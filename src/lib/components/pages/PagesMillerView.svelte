@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getChildren, getPage } from '$lib/api/endpoints/pages';
+	import { getChildren, getPage, getPagesList } from '$lib/api/endpoints/pages';
 	import type { PageSummary, PageDetail } from '$lib/api/endpoints/pages';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
@@ -16,12 +16,70 @@
 
 	let { searchQuery = '', onEdit }: Props = $props();
 
-	function matchesSearch(page: PageSummary): boolean {
-		if (!searchQuery) return true;
-		const q = searchQuery.toLowerCase();
-		return page.title.toLowerCase().includes(q) ||
-			page.route.toLowerCase().includes(q) ||
-			page.template.toLowerCase().includes(q);
+	// Search state
+	let searchResults = $state<PageSummary[]>([]);
+	let searchLoading = $state(false);
+	let searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+	const isSearching = $derived(!!searchQuery.trim());
+
+	// Debounced search
+	$effect(() => {
+		if (searchTimer) clearTimeout(searchTimer);
+		if (!searchQuery.trim()) {
+			searchResults = [];
+			return;
+		}
+		searchLoading = true;
+		searchTimer = setTimeout(async () => {
+			try {
+				const all = await getPagesList({ per_page: 200, sort: 'title', order: 'asc' });
+				const q = searchQuery.toLowerCase();
+				searchResults = all.filter(p =>
+					p.title.toLowerCase().includes(q) ||
+					p.route.toLowerCase().includes(q) ||
+					p.template.toLowerCase().includes(q)
+				);
+			} catch {
+				searchResults = [];
+			} finally {
+				searchLoading = false;
+			}
+		}, 250);
+	});
+
+	// Navigate to a page's location in the column hierarchy
+	async function navigateToPage(page: PageSummary) {
+		const segments = page.route.split('/').filter(Boolean);
+		const newColumns: Column[] = [];
+
+		// Build path: /, /about, /about/team, etc.
+		let currentParent = '/';
+		const rootPages = await loadColumn('/');
+		newColumns.push({ parentRoute: '/', pages: rootPages, selectedRoute: null, loading: false });
+
+		for (let i = 0; i < segments.length; i++) {
+			const route = '/' + segments.slice(0, i + 1).join('/');
+			// Select this route in the current column
+			newColumns[newColumns.length - 1].selectedRoute = route;
+
+			// If not the last segment, or if it has children, load next column
+			const isLast = i === segments.length - 1;
+			const matchingPage = newColumns[newColumns.length - 1].pages.find(p => p.route === route);
+
+			if (matchingPage?.has_children) {
+				const children = await loadColumn(route);
+				newColumns.push({ parentRoute: route, pages: children, selectedRoute: null, loading: false });
+			}
+
+			if (isLast) {
+				// Select the final page
+				newColumns[newColumns.length - 1].selectedRoute = route;
+			}
+		}
+
+		columns = newColumns;
+		loadPreview(page.route);
 	}
 
 	let sortField = $state<SortField>('order');
@@ -205,6 +263,42 @@
 
 <!-- Miller columns + preview -->
 <div class="flex" style="min-height: 500px; max-height: calc(100vh - 220px);">
+	{#if isSearching}
+		<!-- Search results column -->
+		<div class="flex w-72 shrink-0 flex-col overflow-y-auto border-r border-border">
+			{#if searchLoading}
+				<div class="flex flex-1 items-center justify-center">
+					<Loader2 size={16} class="animate-spin text-muted-foreground" />
+				</div>
+			{:else if searchResults.length === 0}
+				<div class="flex flex-1 items-center justify-center text-xs text-muted-foreground">
+					No pages match "{searchQuery}"
+				</div>
+			{:else}
+				<div class="border-b border-border px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
+					{searchResults.length} result{searchResults.length === 1 ? '' : 's'}
+				</div>
+				{#each searchResults as page (page.route)}
+					<button
+						class="flex w-full items-center gap-2 border-b border-border/40 px-3 py-2 text-left transition-all text-foreground hover:bg-accent"
+						onclick={() => navigateToPage(page)}
+						ondblclick={() => onEdit(page.route)}
+					>
+						{#if page.has_children}
+							<Folder size={14} class="shrink-0 text-amber-500" />
+						{:else}
+							<File size={14} class="shrink-0 text-muted-foreground" />
+						{/if}
+						<div class="min-w-0 flex-1">
+							<div class="truncate text-[13px] font-medium">{page.title}</div>
+							<div class="truncate text-[10px] text-muted-foreground">{page.route}</div>
+						</div>
+					</button>
+				{/each}
+			{/if}
+		</div>
+	{/if}
+
 	<!-- Scrollable columns area -->
 	<div class="flex flex-1 overflow-x-auto">
 		{#each columns as col, colIndex (colIndex)}
@@ -214,7 +308,7 @@
 						<Loader2 size={16} class="animate-spin text-muted-foreground" />
 					</div>
 				{:else}
-					{#each col.pages.filter(matchesSearch) as page (page.route)}
+					{#each col.pages as page (page.route)}
 						{@const isSelected = col.selectedRoute === page.route}
 					{@const isActive = isSelected && colIndex === activeColumnIndex}
 					{@const isPath = isSelected && colIndex !== activeColumnIndex}
