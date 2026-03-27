@@ -23,22 +23,27 @@
 
 	const isSearching = $derived(!!searchQuery.trim());
 
-	// Debounced search
+	// Debounced search — track previous query to avoid re-triggering
+	let prevSearchQuery = '';
+
 	$effect(() => {
+		const query = searchQuery; // read the reactive prop
+		if (query === prevSearchQuery) return;
+		prevSearchQuery = query;
+
 		if (searchTimer) clearTimeout(searchTimer);
-		if (!searchQuery.trim()) {
+		if (!query.trim()) {
 			searchResults = [];
+			searchLoading = false;
 			return;
 		}
+
 		previewPage = null;
-		// Reset column selections
-		columns = columns.map(c => ({ ...c, selectedRoute: null }));
-		columns = columns.slice(0, 1);
 		searchLoading = true;
 		searchTimer = setTimeout(async () => {
 			try {
 				const all = await getPagesList({ per_page: 200, sort: 'title', order: 'asc' });
-				const q = searchQuery.toLowerCase();
+				const q = query.toLowerCase();
 				searchResults = all.filter(p =>
 					p.title.toLowerCase().includes(q) ||
 					p.route.toLowerCase().includes(q) ||
@@ -49,7 +54,7 @@
 			} finally {
 				searchLoading = false;
 			}
-		}, 250);
+		}, 300);
 	});
 
 	// Navigate to a page's location in the column hierarchy
