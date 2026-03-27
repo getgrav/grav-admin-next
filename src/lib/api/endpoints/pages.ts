@@ -14,6 +14,7 @@ export interface PageSummary {
 	date: string;
 	modified: string;
 	order: string | null;
+	has_children: boolean;
 }
 
 export interface PageDetail extends PageSummary {
@@ -54,6 +55,17 @@ export interface PageListParams {
 	routable?: boolean;
 	visible?: boolean;
 	parent?: string;
+	children_of?: string;
+	root?: boolean;
+}
+
+export async function getChildren(parentRoute: string, sort: string = 'order', order: string = 'asc'): Promise<PageSummary[]> {
+	return api.get<PageSummary[]>('/pages', {
+		children_of: parentRoute,
+		sort,
+		order,
+		per_page: '200'
+	});
 }
 
 export interface CreatePageBody {
@@ -86,6 +98,8 @@ function toParams(p: PageListParams): Record<string, string> {
 	if (p.routable !== undefined) params.routable = String(p.routable);
 	if (p.visible !== undefined) params.visible = String(p.visible);
 	if (p.parent) params.parent = p.parent;
+	if (p.children_of) params.children_of = p.children_of;
+	if (p.root) params.root = 'true';
 	return params;
 }
 
