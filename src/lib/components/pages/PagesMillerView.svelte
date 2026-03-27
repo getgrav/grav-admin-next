@@ -4,14 +4,19 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import {
-		Folder, File, Loader2, ChevronRight, ExternalLink
+		Folder, File, Loader2, ChevronRight, ExternalLink, ArrowUpDown
 	} from 'lucide-svelte';
+
+	type SortField = 'order' | 'title' | 'modified' | 'date';
 
 	interface Props {
 		onEdit: (route: string) => void;
 	}
 
 	let { onEdit }: Props = $props();
+
+	let sortField = $state<SortField>('order');
+	let sortOrder = $state<'asc' | 'desc'>('asc');
 
 	interface Column {
 		parentRoute: string;
@@ -26,10 +31,28 @@
 
 	async function loadColumn(parentRoute: string): Promise<PageSummary[]> {
 		try {
-			return await getChildren(parentRoute);
+			return await getChildren(parentRoute, sortField, sortOrder);
 		} catch {
 			return [];
 		}
+	}
+
+	function handleSortChange(e: Event) {
+		const val = (e.target as HTMLSelectElement).value;
+		const [field, order] = val.split(':') as [SortField, 'asc' | 'desc'];
+		sortField = field;
+		sortOrder = order;
+		// Reload from root with new sort
+		(async () => {
+			const rootPages = await loadColumn('/');
+			columns = [{
+				parentRoute: '/',
+				pages: rootPages,
+				selectedRoute: null,
+				loading: false,
+			}];
+			previewPage = null;
+		})();
 	}
 
 	async function loadPreview(route: string) {
@@ -124,7 +147,7 @@
 	});
 </script>
 
-<!-- Breadcrumb -->
+<!-- Breadcrumb + Sort -->
 <div class="flex items-center gap-1 border-b border-border px-4 py-2 text-[12px]">
 	<button
 		class="font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -153,6 +176,22 @@
 			{crumb.title}
 		</button>
 	{/each}
+
+	<div class="ml-auto flex items-center gap-1.5 text-muted-foreground">
+		<ArrowUpDown size={11} />
+		<select
+			class="h-6 rounded border-0 bg-transparent pr-6 text-[11px] font-medium focus:outline-none focus:ring-0"
+			value={`${sortField}:${sortOrder}`}
+			onchange={handleSortChange}
+		>
+			<option value="order:asc">Order</option>
+			<option value="title:asc">Title A-Z</option>
+			<option value="title:desc">Title Z-A</option>
+			<option value="modified:desc">Newest</option>
+			<option value="modified:asc">Oldest</option>
+			<option value="date:desc">Date (newest)</option>
+		</select>
+	</div>
 </div>
 
 <!-- Miller columns + preview -->

@@ -96,7 +96,9 @@
 <!-- Sortable header -->
 <div class="flex items-center gap-4 border-b border-border px-4 py-2">
 	<div class="flex-1">{@render sortHeader('Title', 'title', 'flex-1')}</div>
-	<div class="w-24">{@render sortHeader('Template', 'slug', 'w-24')}</div>
+	<div class="w-20 text-center">
+		<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Template</span>
+	</div>
 	<div class="w-16 text-center">
 		<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Status</span>
 	</div>
@@ -120,7 +122,7 @@
 				</button>
 			</div>
 
-			<div class="w-24">
+			<div class="w-20 text-center">
 				<Badge variant="outline">{page.template}</Badge>
 			</div>
 

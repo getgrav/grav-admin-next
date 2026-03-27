@@ -3,8 +3,11 @@
 	import type { PageSummary } from '$lib/api/endpoints/pages';
 	import { Badge } from '$lib/components/ui/badge';
 	import {
-		ChevronRight, ChevronDown, FolderOpen, Folder, File, Loader2, Trash2
+		ChevronRight, ChevronDown, FolderOpen, Folder, File, Loader2, Trash2,
+		ArrowUp, ArrowDown
 	} from 'lucide-svelte';
+
+	type SortField = 'order' | 'title' | 'modified' | 'date' | 'slug';
 
 	interface Props {
 		searchQuery?: string;
@@ -14,18 +17,40 @@
 
 	let { searchQuery = '', onEdit, onDelete }: Props = $props();
 
-	// Lazy-loaded children cache: route -> children
 	let childrenCache = $state<Record<string, PageSummary[]>>({});
 	let loadingRoutes = $state<Set<string>>(new Set());
 	let expandedRoutes = $state<Set<string>>(new Set(['/']));
 	let rootPages = $state<PageSummary[]>([]);
 	let rootLoading = $state(true);
+	let sortField = $state<SortField>('order');
+	let sortOrder = $state<'asc' | 'desc'>('asc');
+
+	function toggleSort(field: SortField) {
+		if (sortField === field) {
+			sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+		} else {
+			sortField = field;
+			sortOrder = field === 'modified' || field === 'date' ? 'desc' : 'asc';
+		}
+		// Reload everything with new sort
+		childrenCache = {};
+		loadRoot();
+	}
+
+	async function loadRoot() {
+		rootLoading = true;
+		try {
+			rootPages = await getChildren('/', sortField, sortOrder);
+			childrenCache = { '/': rootPages };
+		} catch { /* handled */ }
+		finally { rootLoading = false; }
+	}
 
 	async function loadChildren(parentRoute: string) {
 		if (childrenCache[parentRoute]) return;
 		loadingRoutes = new Set([...loadingRoutes, parentRoute]);
 		try {
-			const children = await getChildren(parentRoute);
+			const children = await getChildren(parentRoute, sortField, sortOrder);
 			childrenCache = { ...childrenCache, [parentRoute]: children };
 		} catch {
 			childrenCache = { ...childrenCache, [parentRoute]: [] };
@@ -61,32 +86,12 @@
 		return date.toLocaleDateString();
 	}
 
-	// Initial load
-	$effect(() => {
-		(async () => {
-			rootLoading = true;
-			try {
-				rootPages = await getChildren('/');
-				childrenCache = { ...childrenCache, '/': rootPages };
-			} catch { /* handled */ }
-			finally { rootLoading = false; }
-		})();
-	});
+	$effect(() => { loadRoot(); });
 
-	// Get children for a route (from cache)
 	function getPageChildren(route: string): PageSummary[] {
 		return childrenCache[route] ?? [];
 	}
 
-	function isExpanded(route: string): boolean {
-		return expandedRoutes.has(route);
-	}
-
-	function isLoading(route: string): boolean {
-		return loadingRoutes.has(route);
-	}
-
-	// Search filter
 	function matchesSearch(page: PageSummary): boolean {
 		if (!searchQuery) return true;
 		const q = searchQuery.toLowerCase();
@@ -96,12 +101,34 @@
 	}
 </script>
 
-<!-- Table header -->
-<div class="flex items-center gap-4 border-b border-border px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-	<div class="flex-1">Title</div>
-	<div class="w-20 text-center">Template</div>
-	<div class="w-16 text-center">Status</div>
-	<div class="w-20 text-right">Modified</div>
+{#snippet sortHeader(label: string, field: SortField, align: string = 'left')}
+	<button
+		class="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider transition-colors
+			{sortField === field ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}
+			{align === 'right' ? 'ml-auto' : ''}"
+		onclick={() => toggleSort(field)}
+	>
+		{label}
+		{#if sortField === field}
+			{#if sortOrder === 'asc'}
+				<ArrowUp size={11} />
+			{:else}
+				<ArrowDown size={11} />
+			{/if}
+		{/if}
+	</button>
+{/snippet}
+
+<!-- Sortable header -->
+<div class="flex items-center gap-4 border-b border-border px-4 py-2">
+	<div class="flex-1">{@render sortHeader('Title', 'title')}</div>
+	<div class="w-20 text-center">
+		<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Template</span>
+	</div>
+	<div class="w-16 text-center">
+		<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Status</span>
+	</div>
+	<div class="w-24 text-right">{@render sortHeader('Modified', 'modified', 'right')}</div>
 	<div class="w-10"></div>
 </div>
 
@@ -113,17 +140,16 @@
 {:else}
 	{#snippet treeRow(page: PageSummary, depth: number)}
 		{#if matchesSearch(page)}
-			<div class="group flex items-center gap-4 border-b border-border/50 px-4 py-1.5 transition-colors hover:bg-accent/50">
-				<!-- Title with tree indentation -->
+			<div class="group flex items-center gap-4 border-b border-border/50 px-4 py-2 transition-colors hover:bg-accent/50">
 				<div class="flex min-w-0 flex-1 items-center gap-1" style="padding-left: {depth * 20}px">
 					{#if page.has_children}
 						<button
 							class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
 							onclick={() => toggleExpand(page.route)}
 						>
-							{#if isLoading(page.route)}
+							{#if loadingRoutes.has(page.route)}
 								<Loader2 size={13} class="animate-spin" />
-							{:else if isExpanded(page.route)}
+							{:else if expandedRoutes.has(page.route)}
 								<ChevronDown size={14} />
 							{:else}
 								<ChevronRight size={14} />
@@ -134,7 +160,7 @@
 					{/if}
 
 					{#if page.has_children}
-						{#if isExpanded(page.route)}
+						{#if expandedRoutes.has(page.route)}
 							<FolderOpen size={14} class="shrink-0 text-amber-500" />
 						{:else}
 							<Folder size={14} class="shrink-0 text-amber-500/70" />
@@ -161,7 +187,7 @@
 					{/if}
 				</div>
 
-				<div class="w-20 text-right text-[11px] text-muted-foreground">
+				<div class="w-24 text-right text-[11px] text-muted-foreground">
 					{formatDate(page.modified)}
 				</div>
 
@@ -176,8 +202,7 @@
 				</div>
 			</div>
 
-			<!-- Render children if expanded -->
-			{#if page.has_children && isExpanded(page.route)}
+			{#if page.has_children && expandedRoutes.has(page.route)}
 				{#each getPageChildren(page.route) as child (child.route)}
 					{@render treeRow(child, depth + 1)}
 				{/each}
