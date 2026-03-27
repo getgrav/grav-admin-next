@@ -10,10 +10,19 @@
 	type SortField = 'order' | 'title' | 'modified' | 'date';
 
 	interface Props {
+		searchQuery?: string;
 		onEdit: (route: string) => void;
 	}
 
-	let { onEdit }: Props = $props();
+	let { searchQuery = '', onEdit }: Props = $props();
+
+	function matchesSearch(page: PageSummary): boolean {
+		if (!searchQuery) return true;
+		const q = searchQuery.toLowerCase();
+		return page.title.toLowerCase().includes(q) ||
+			page.route.toLowerCase().includes(q) ||
+			page.template.toLowerCase().includes(q);
+	}
 
 	let sortField = $state<SortField>('order');
 	let sortOrder = $state<'asc' | 'desc'>('asc');
@@ -205,7 +214,7 @@
 						<Loader2 size={16} class="animate-spin text-muted-foreground" />
 					</div>
 				{:else}
-					{#each col.pages as page (page.route)}
+					{#each col.pages.filter(matchesSearch) as page (page.route)}
 						{@const isSelected = col.selectedRoute === page.route}
 					{@const isActive = isSelected && colIndex === activeColumnIndex}
 					{@const isPath = isSelected && colIndex !== activeColumnIndex}
