@@ -30,11 +30,11 @@
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
 <Toaster
-	position="top-right"
-	richColors
+	position="bottom-right"
 	closeButton
+	visibleToasts={5}
 	toastOptions={{
-		class: 'text-sm',
+		class: 'grav-toast',
 	}}
 />
 
