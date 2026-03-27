@@ -7,7 +7,7 @@
 	import type { Snippet } from 'svelte';
 	import {
 		LayoutDashboard, FileText, Image, Users, Puzzle, Palette,
-		Settings, Wrench, Monitor, Sun, Moon, LogOut,
+		Settings, Wrench, Monitor, FlaskConical, Sun, Moon, LogOut,
 		ChevronLeft, ChevronRight, Menu
 	} from 'lucide-svelte';
 
@@ -26,7 +26,8 @@
 		{ href: '/themes', label: 'Themes', icon: Palette },
 		{ href: '/config', label: 'Configuration', icon: Settings },
 		{ href: '/tools', label: 'Tools', icon: Wrench },
-		{ href: '/system', label: 'System', icon: Monitor }
+		{ href: '/system', label: 'System', icon: Monitor },
+		{ href: '/testing', label: 'Testing', icon: FlaskConical }
 	];
 
 	function isActive(href: string): boolean {
