@@ -30,6 +30,10 @@
 			searchResults = [];
 			return;
 		}
+		previewPage = null;
+		// Reset column selections
+		columns = columns.map(c => ({ ...c, selectedRoute: null }));
+		columns = columns.slice(0, 1);
 		searchLoading = true;
 		searchTimer = setTimeout(async () => {
 			try {
