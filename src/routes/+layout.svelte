@@ -6,6 +6,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import AppShell from '$lib/components/AppShell.svelte';
+	import { Toaster } from 'svelte-sonner';
 
 	let { children } = $props();
 
@@ -27,6 +28,15 @@
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
+
+<Toaster
+	position="top-right"
+	richColors
+	closeButton
+	toastOptions={{
+		class: 'text-sm',
+	}}
+/>
 
 {#if isLoginPage}
 	{@render children()}

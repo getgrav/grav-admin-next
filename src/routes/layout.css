@@ -209,4 +209,13 @@
 		scrollbar-color: hsl(240 3.7% 15.9%) transparent;
 		scrollbar-width: thin;
 	}
+
+	/* Shake animation for validation errors */
+	@keyframes shake {
+		0%, 100% { transform: translateX(0); }
+		20% { transform: translateX(-4px); }
+		40% { transform: translateX(4px); }
+		60% { transform: translateX(-3px); }
+		80% { transform: translateX(2px); }
+	}
 }

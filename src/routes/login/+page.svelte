@@ -3,49 +3,60 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { login } from '$lib/api/auth';
-	import { Sun, Moon, LogIn, Server, Globe } from 'lucide-svelte';
+	import { toast } from 'svelte-sonner';
+	import { Button } from '$lib/components/ui/button';
+	import { Sun, Moon, LogIn, Server, Globe, ChevronDown, Loader2 } from 'lucide-svelte';
 	import { theme } from '$lib/stores/theme.svelte';
 
-	// In dev mode, use the Vite dev server (which proxies to Grav)
 	const defaultUrl = import.meta.env.DEV ? 'http://localhost:5180/grav-api' : 'https://localhost/grav-api';
 	let serverUrl = $state(auth.serverUrl || defaultUrl);
+	let environment = $state(auth.environment || 'localhost');
+	let username = $state('');
+	let password = $state('');
+	let loading = $state(false);
+	let showServerConfig = $state(!auth.serverUrl);
+	let attempted = $state(false);
 
-	// Phase 1: Load login-related strings immediately (small, fast)
-	// Phase 2: Start loading ALL strings in background while user types credentials
+	// Field-level validation state
+	const usernameInvalid = $derived(attempted && !username.trim());
+	const passwordInvalid = $derived(attempted && !password.trim());
+
+	// Load translations on mount
 	$effect(() => {
 		if (!i18n.loaded) {
-			// Set server URL first so the API client knows where to fetch
 			auth.setServer(serverUrl, environment);
 			i18n.loadPrefix('PLUGIN_LOGIN').then(() => {
-				// Once login strings are ready, load everything else in background
 				i18n.loadAllInBackground();
 			});
 		}
 	});
-	let environment = $state(auth.environment || 'localhost');
-	let username = $state('');
-	let password = $state('');
-	let error = $state('');
-	let loading = $state(false);
-	let showServerConfig = $state(!auth.serverUrl);
 
 	async function handleLogin(e: Event) {
 		e.preventDefault();
-		error = '';
+		attempted = true;
+
+		if (!username.trim() || !password.trim()) {
+			toast.error('Please fill in all required fields');
+			return;
+		}
+
 		loading = true;
 
 		try {
 			auth.setServer(serverUrl, environment);
 			await login(username, password);
+			toast.success('Signed in successfully');
 			goto('/');
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err) {
 				const apiErr = err as { status: number; message: string };
-				error = apiErr.status === 401
-					? 'Invalid username or password'
-					: apiErr.message || 'Login failed';
+				if (apiErr.status === 401) {
+					toast.error('Invalid username or password');
+				} else {
+					toast.error(apiErr.message || 'Login failed');
+				}
 			} else {
-				error = 'Unable to connect to server';
+				toast.error('Unable to connect to server. Check your server URL and try again.');
 			}
 		} finally {
 			loading = false;
@@ -58,125 +69,120 @@
 </svelte:head>
 
 <div class="flex min-h-screen items-center justify-center bg-background p-4">
-	<!-- Theme toggle -->
 	<button
 		type="button"
-		class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground absolute top-4 right-4"
+		class="absolute top-4 right-4 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
 		onclick={() => theme.toggleColorMode()}
 		aria-label="Toggle dark mode"
 	>
 		{#if theme.isDark}
-			<Sun size={18} />
+			<Sun size={16} />
 		{:else}
-			<Moon size={18} />
+			<Moon size={16} />
 		{/if}
 	</button>
 
-	<div class="w-full max-w-md">
-		<!-- Logo / Brand -->
+	<div class="w-full max-w-sm">
+		<!-- Brand -->
 		<div class="mb-8 text-center">
-			<div class="bg-primary mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg">
-				<span class="text-2xl font-bold text-white">G</span>
+			<div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary shadow-lg">
+				<span class="text-xl font-bold text-primary-foreground">G</span>
 			</div>
-			<h1 class="text-2xl font-semibold text-foreground">Grav Admin</h1>
-			<p class="mt-1 text-sm text-muted-foreground">Sign in to manage your site</p>
+			<h1 class="text-2xl font-semibold tracking-tight text-foreground">Grav Admin</h1>
+			<p class="mt-1 text-[13px] text-muted-foreground">Sign in to manage your site</p>
 		</div>
 
 		<!-- Login Card -->
-		<div class="space-y-6 rounded-xl border border-border bg-card p-8 shadow-xl">
-			<!-- Server Configuration (collapsible) -->
-			<div>
+		<div class="rounded-lg border border-border bg-card shadow-sm">
+			<!-- Server config (collapsible) -->
+			<div class="border-b border-border px-6 py-3">
 				<button
 					type="button"
-					class="flex w-full items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+					class="flex w-full items-center gap-2 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
 					onclick={() => showServerConfig = !showServerConfig}
 				>
-					<Server size={14} />
-					<span>Server Configuration</span>
-					<span class="ml-auto text-xs">{showServerConfig ? '▲' : '▼'}</span>
+					<Server size={13} />
+					Server Configuration
+					<ChevronDown size={13} class="ml-auto transition-transform {showServerConfig ? 'rotate-180' : ''}" />
 				</button>
 
 				{#if showServerConfig}
-					<div class="mt-3 space-y-3">
-						<label class="label">
-							<span class="text-sm font-medium text-foreground">Server URL</span>
-							<div class="flex rounded-md border border-input shadow-sm">
-								<div class="flex items-center rounded-l-md border-r border-input bg-muted px-3 text-muted-foreground">
-									<Globe size={14} />
-								</div>
+					<div class="mt-3 space-y-3 pb-1">
+						<div class="space-y-1.5">
+							<label for="server-url" class="text-[13px] font-medium text-foreground">Server URL</label>
+							<div class="flex rounded-md shadow-sm">
+								<span class="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-muted-foreground">
+									<Globe size={13} />
+								</span>
 								<input
+									id="server-url"
 									type="url"
-									class="flex h-9 w-full rounded-r-md bg-transparent px-3 py-1 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-									placeholder="https://your-site.com"
+									class="flex h-9 w-full rounded-r-md border border-input bg-transparent px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 									bind:value={serverUrl}
 								/>
 							</div>
-						</label>
+						</div>
 
-						<label class="label">
-							<span class="text-sm font-medium text-foreground">Environment</span>
+						<div class="space-y-1.5">
+							<label for="environment" class="text-[13px] font-medium text-foreground">Environment</label>
 							<input
+								id="environment"
 								type="text"
-								class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-								placeholder="localhost"
+								class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 								bind:value={environment}
 							/>
-						</label>
+						</div>
 					</div>
 				{/if}
 			</div>
 
-			{#if showServerConfig}
-				<hr class="border-border" />
-			{/if}
-
-			<!-- Login Form -->
-			<form onsubmit={handleLogin} class="space-y-4">
-				{#if error}
-					<div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
-						{error}
-					</div>
-				{/if}
-
-				<label class="label">
-					<span class="text-sm font-medium text-foreground">Username</span>
+			<!-- Login form -->
+			<form onsubmit={handleLogin} class="space-y-4 px-6 py-5">
+				<div class="space-y-1.5">
+					<label for="username" class="text-[13px] font-medium text-foreground">Username</label>
 					<input
+						id="username"
 						type="text"
-						class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-						placeholder="admin"
+						class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
+							{usernameInvalid
+								? 'border-red-500 ring-1 ring-red-500/30 animate-[shake_0.3s_ease-in-out]'
+								: 'border-input'}"
 						bind:value={username}
-						required
 						autocomplete="username"
 						disabled={loading}
 					/>
-				</label>
+					{#if usernameInvalid}
+						<p class="text-xs text-red-500">Username is required</p>
+					{/if}
+				</div>
 
-				<label class="label">
-					<span class="text-sm font-medium text-foreground">Password</span>
+				<div class="space-y-1.5">
+					<label for="password" class="text-[13px] font-medium text-foreground">Password</label>
 					<input
+						id="password"
 						type="password"
-						class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-						placeholder="••••••••"
+						class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
+							{passwordInvalid
+								? 'border-red-500 ring-1 ring-red-500/30 animate-[shake_0.3s_ease-in-out]'
+								: 'border-input'}"
 						bind:value={password}
-						required
 						autocomplete="current-password"
 						disabled={loading}
 					/>
-				</label>
-
-				<button
-					type="submit"
-					class="inline-flex items-center justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 w-full gap-2"
-					disabled={loading || !username || !password}
-				>
-					{#if loading}
-						<span class="animate-spin">⏳</span>
-						<span>Signing in...</span>
-					{:else}
-						<LogIn size={16} />
-						<span>Sign In</span>
+					{#if passwordInvalid}
+						<p class="text-xs text-red-500">Password is required</p>
 					{/if}
-				</button>
+				</div>
+
+				<Button type="submit" class="w-full" disabled={loading}>
+					{#if loading}
+						<Loader2 size={15} class="animate-spin" />
+						Signing in...
+					{:else}
+						<LogIn size={15} />
+						Sign In
+					{/if}
+				</Button>
 			</form>
 		</div>
 

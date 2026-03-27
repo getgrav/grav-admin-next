@@ -7,9 +7,10 @@
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import { toast } from 'svelte-sonner';
 	import {
 		Save, Trash2, ArrowLeft, Eye, EyeOff, Code,
-		RefreshCw, Check, AlertCircle, ChevronDown
+		RefreshCw, AlertCircle, ChevronDown, Loader2
 	} from 'lucide-svelte';
 
 	const route = $derived('/' + (page.params.route || ''));
@@ -19,7 +20,6 @@
 	let loading = $state(true);
 	let saving = $state(false);
 	let error = $state('');
-	let successMessage = $state('');
 	let showRawEditor = $state(false);
 
 	// Editable fields
@@ -80,7 +80,6 @@
 		if (!pageData) return;
 		saving = true;
 		error = '';
-		successMessage = '';
 
 		try {
 			const body: Record<string, unknown> = {};
@@ -91,21 +90,19 @@
 			if (visible !== pageData.visible) body.visible = visible;
 
 			if (Object.keys(body).length === 0) {
-				successMessage = 'No changes to save';
-				setTimeout(() => successMessage = '', 2000);
+				toast.info('No changes to save');
 				return;
 			}
 
 			const updated = await updatePage(route, body);
 			pageData = updated;
 			content = updated.content ?? content;
-			successMessage = 'Page saved successfully';
-			setTimeout(() => successMessage = '', 3000);
+			toast.success('Page saved successfully');
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'message' in err) {
-				error = (err as { message: string }).message;
+				toast.error((err as { message: string }).message);
 			} else {
-				error = 'Failed to save page';
+				toast.error('Failed to save page');
 			}
 		} finally {
 			saving = false;
@@ -117,9 +114,10 @@
 		if (!confirm(`Delete "${pageData.title}" at ${route}? This cannot be undone.`)) return;
 		try {
 			await deletePage(route, { children: true });
+			toast.success('Page deleted');
 			goto('/pages');
 		} catch {
-			error = 'Failed to delete page';
+			toast.error('Failed to delete page');
 		}
 	}
 
@@ -166,7 +164,7 @@
 			</Button>
 			<Button size="sm" onclick={handleSave} disabled={saving || loading}>
 				{#if saving}
-					<RefreshCw size={14} class="animate-spin" />
+					<Loader2 size={14} class="animate-spin" />
 					Saving...
 				{:else}
 					<Save size={14} />
@@ -176,17 +174,10 @@
 		</div>
 	</div>
 
-	<!-- Messages -->
 	{#if error}
 		<div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
 			<AlertCircle size={16} />
 			{error}
-		</div>
-	{/if}
-	{#if successMessage}
-		<div class="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/30 dark:text-emerald-300">
-			<Check size={16} />
-			{successMessage}
 		</div>
 	{/if}
 

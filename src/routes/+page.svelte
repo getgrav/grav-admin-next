@@ -8,6 +8,7 @@
 	import type { PageSummary } from '$lib/api/endpoints/pages';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
+	import { toast } from 'svelte-sonner';
 	import {
 		FileText, Users, Puzzle, Palette, Server, RefreshCw, Trash2,
 		ExternalLink, Clock, AlertCircle, CheckCircle, Info
@@ -20,7 +21,6 @@
 	let loading = $state(true);
 	let error = $state('');
 	let cacheClearing = $state(false);
-	let cacheMessage = $state('');
 
 	async function loadDashboard() {
 		loading = true;
@@ -45,13 +45,14 @@
 
 	async function handleClearCache() {
 		cacheClearing = true;
-		cacheMessage = '';
 		try {
 			const result = await clearCache();
-			cacheMessage = result.message || 'Cache cleared successfully';
-			setTimeout(() => cacheMessage = '', 3000);
-		} catch { cacheMessage = 'Failed to clear cache'; }
-		finally { cacheClearing = false; }
+			toast.success(result.message || 'Cache cleared successfully');
+		} catch {
+			toast.error('Failed to clear cache');
+		} finally {
+			cacheClearing = false;
+		}
 	}
 
 	function formatDate(dateStr: string): string {
@@ -193,12 +194,6 @@
 					<Trash2 size={14} />
 					{cacheClearing ? 'Clearing...' : 'Clear Cache'}
 				</Button>
-				{#if cacheMessage}
-					<div class="mt-2 flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
-						<CheckCircle size={12} />
-						{cacheMessage}
-					</div>
-				{/if}
 			</div>
 		</div>
 
