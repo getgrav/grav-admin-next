@@ -1,0 +1,212 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================
+   shadcn/ui Theme — Zinc base + Blue primary
+   Using standard shadcn HSL values for balance
+   ============================================ */
+
+@layer base {
+	:root {
+		--background: hsl(0 0% 100%);
+		--foreground: hsl(240 10% 3.9%);
+		--card: hsl(0 0% 100%);
+		--card-foreground: hsl(240 10% 3.9%);
+		--popover: hsl(0 0% 100%);
+		--popover-foreground: hsl(240 10% 3.9%);
+		--primary: hsl(221 83% 53%);
+		--primary-foreground: hsl(0 0% 100%);
+		--secondary: hsl(240 4.8% 95.9%);
+		--secondary-foreground: hsl(240 5.9% 10%);
+		--muted: hsl(240 4.8% 95.9%);
+		--muted-foreground: hsl(240 3.8% 46.1%);
+		--accent: hsl(240 4.8% 95.9%);
+		--accent-foreground: hsl(240 5.9% 10%);
+		--destructive: hsl(0 84.2% 60.2%);
+		--destructive-foreground: hsl(0 0% 98%);
+		--border: hsl(240 5.9% 90%);
+		--input: hsl(240 5.9% 90%);
+		--ring: hsl(221 83% 53%);
+		--radius: 0.5rem;
+		--sidebar: hsl(0 0% 98%);
+		--sidebar-foreground: hsl(240 5.3% 26.1%);
+		--sidebar-border: hsl(220 13% 91%);
+		--sidebar-accent: hsl(240 4.8% 95.9%);
+		--sidebar-accent-foreground: hsl(240 5.9% 10%);
+	}
+
+	.dark {
+		--background: hsl(240 10% 3.9%);
+		--foreground: hsl(0 0% 98%);
+		--card: hsl(240 10% 3.9%);
+		--card-foreground: hsl(0 0% 98%);
+		--popover: hsl(240 10% 3.9%);
+		--popover-foreground: hsl(0 0% 98%);
+		--primary: hsl(217 91% 60%);
+		--primary-foreground: hsl(0 0% 100%);
+		--secondary: hsl(240 3.7% 15.9%);
+		--secondary-foreground: hsl(0 0% 98%);
+		--muted: hsl(240 3.7% 15.9%);
+		--muted-foreground: hsl(240 5% 64.9%);
+		--accent: hsl(240 3.7% 15.9%);
+		--accent-foreground: hsl(0 0% 98%);
+		--destructive: hsl(0 62.8% 30.6%);
+		--destructive-foreground: hsl(0 0% 98%);
+		--border: hsl(240 3.7% 15.9%);
+		--input: hsl(240 3.7% 15.9%);
+		--ring: hsl(217 91% 60%);
+		--sidebar: hsl(240 5.9% 10%);
+		--sidebar-foreground: hsl(240 4.8% 95.9%);
+		--sidebar-border: hsl(240 3.7% 15.9%);
+		--sidebar-accent: hsl(240 3.7% 15.9%);
+		--sidebar-accent-foreground: hsl(0 0% 98%);
+	}
+
+	* {
+		border-color: var(--border);
+	}
+
+	body {
+		background-color: var(--background);
+		color: var(--foreground);
+		font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
+}
+
+/* ============================================
+   Tailwind v4 theme mapping
+   ============================================ */
+
+@theme {
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+	--color-sidebar: var(--sidebar);
+	--color-sidebar-foreground: var(--sidebar-foreground);
+	--color-sidebar-border: var(--sidebar-border);
+	--color-sidebar-accent: var(--sidebar-accent);
+	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ============================================
+   Form element styling
+   ============================================ */
+
+@layer base {
+	.label {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	/* Switch */
+	.switch {
+		appearance: none;
+		width: 2.75rem;
+		height: 1.5rem;
+		border-radius: 9999px;
+		background-color: var(--input);
+		position: relative;
+		cursor: pointer;
+		transition: background-color 0.2s;
+		flex-shrink: 0;
+		border: 2px solid transparent;
+	}
+	.switch::after {
+		content: '';
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		width: 1.25rem;
+		height: 1.25rem;
+		border-radius: 9999px;
+		background: white;
+		box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+		transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+	}
+	.switch:checked {
+		background-color: var(--primary);
+	}
+	.switch:checked::after {
+		transform: translateX(1.15rem);
+	}
+	.switch:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+	}
+
+	/* Checkbox */
+	.checkbox {
+		appearance: none;
+		width: 1rem;
+		height: 1rem;
+		border: 1px solid var(--primary);
+		border-radius: var(--radius-sm);
+		background: transparent;
+		cursor: pointer;
+		flex-shrink: 0;
+		transition: all 0.15s;
+	}
+	.checkbox:checked {
+		background-color: var(--primary);
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+		background-size: 0.65rem;
+		background-position: center;
+		background-repeat: no-repeat;
+	}
+	.checkbox:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+	}
+
+	/* Radio */
+	.radio {
+		appearance: none;
+		width: 1rem;
+		height: 1rem;
+		border: 1px solid var(--primary);
+		border-radius: 9999px;
+		background: transparent;
+		cursor: pointer;
+		flex-shrink: 0;
+		transition: all 0.15s;
+	}
+	.radio:checked {
+		border-width: 5px;
+		border-color: var(--primary);
+	}
+	.radio:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+	}
+
+	/* Scrollbar */
+	:root {
+		scrollbar-color: hsl(240 3.7% 15.9%) transparent;
+		scrollbar-width: thin;
+	}
+}
