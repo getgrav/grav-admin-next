@@ -6,19 +6,10 @@
 	import type { PageDetail } from '$lib/api/endpoints/pages';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import {
-		Save,
-		Trash2,
-		ArrowLeft,
-		Eye,
-		EyeOff,
-		FileText,
-		Settings,
-		Code,
-		Blocks,
-		RefreshCw,
-		Check,
-		AlertCircle
+		Save, Trash2, ArrowLeft, Eye, EyeOff, Code,
+		RefreshCw, Check, AlertCircle, ChevronDown
 	} from 'lucide-svelte';
 
 	const route = $derived('/' + (page.params.route || ''));
@@ -29,6 +20,7 @@
 	let saving = $state(false);
 	let error = $state('');
 	let successMessage = $state('');
+	let showRawEditor = $state(false);
 
 	// Editable fields
 	let title = $state('');
@@ -38,7 +30,6 @@
 	let visible = $state(true);
 	let headerData = $state<Record<string, unknown>>({});
 	let headerYaml = $state('');
-	let activeTab = $state<'content' | 'blueprint' | 'options' | 'advanced'>('content');
 
 	let hasChanges = $derived(
 		pageData !== null && (
@@ -64,11 +55,11 @@
 			headerData = { header: data.header ?? {} };
 			headerYaml = JSON.stringify(data.header ?? {}, null, 2);
 
-			// Load blueprint for the page template
+			// Load blueprint for the page template (falls back to default on API side)
 			try {
 				blueprint = await getPageBlueprint(data.template);
 			} catch {
-				blueprint = null; // Non-critical — editor still works without blueprint
+				blueprint = null;
 			}
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 404) {
@@ -82,7 +73,6 @@
 	}
 
 	function handleBlueprintChange(path: string, value: unknown) {
-		// Update headerData with the change
 		headerData = { ...headerData };
 	}
 
@@ -140,9 +130,7 @@
 		}
 	}
 
-	$effect(() => {
-		loadPage();
-	});
+	$effect(() => { loadPage(); });
 </script>
 
 <svelte:head>
@@ -155,7 +143,7 @@
 	<!-- Top bar -->
 	<div class="flex items-center justify-between gap-4">
 		<div class="flex min-w-0 items-center gap-3">
-			<button class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground" onclick={() => goto('/pages')} title="Back to pages">
+			<button class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground" onclick={() => goto('/pages')}>
 				<ArrowLeft size={16} />
 			</button>
 			<div class="min-w-0">
@@ -172,19 +160,11 @@
 			{#if hasChanges}
 				<span class="text-xs text-amber-500">Unsaved changes</span>
 			{/if}
-			<button
-				class="inline-flex items-center rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 shadow-sm transition-colors hover:bg-red-100 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-900/40 gap-1"
-				onclick={handleDelete}
-				disabled={loading}
-			>
+			<Button variant="destructive" size="sm" onclick={handleDelete} disabled={loading}>
 				<Trash2 size={14} />
 				Delete
-			</button>
-			<button
-				class="inline-flex items-center rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 gap-1"
-				onclick={handleSave}
-				disabled={saving || loading}
-			>
+			</Button>
+			<Button size="sm" onclick={handleSave} disabled={saving || loading}>
 				{#if saving}
 					<RefreshCw size={14} class="animate-spin" />
 					Saving...
@@ -192,7 +172,7 @@
 					<Save size={14} />
 					Save
 				{/if}
-			</button>
+			</Button>
 		</div>
 	</div>
 
@@ -213,122 +193,63 @@
 	{#if loading}
 		<div class="py-20 text-center text-sm text-muted-foreground">Loading page...</div>
 	{:else if pageData}
-		<div class="grid gap-4 lg:grid-cols-[1fr_300px]">
-			<!-- Main editor area -->
+		<div class="grid gap-4 lg:grid-cols-[1fr_280px]">
+			<!-- Main content area — blueprint IS the form -->
 			<div class="space-y-4">
-				<!-- Title -->
-				<div class="rounded-lg border border-border bg-card p-4">
-					<input
-						type="text"
-						class="flex h-11 w-full rounded-md border border-input bg-transparent px-3 py-1 text-lg font-semibold shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-						placeholder="Page Title"
-						bind:value={title}
+				{#if blueprint}
+					<!-- Blueprint-driven form renders the full editor: tabs, fields, everything -->
+					<BlueprintForm
+						fields={blueprint.fields}
+						data={headerData}
+						onchange={handleBlueprintChange}
 					/>
-				</div>
-
-				<!-- Tab bar -->
-				<div class="flex gap-1 border-b border-border">
-					<button
-						class="flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors {activeTab === 'content' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}"
-						onclick={() => activeTab = 'content'}
-					>
-						<FileText size={14} />
-						Content
-					</button>
-					{#if blueprint}
-						<button
-							class="flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors {activeTab === 'blueprint' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}"
-							onclick={() => activeTab = 'blueprint'}
-						>
-							<Blocks size={14} />
-							Blueprint
-						</button>
-					{/if}
-					<button
-						class="flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors {activeTab === 'options' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}"
-						onclick={() => activeTab = 'options'}
-					>
-						<Settings size={14} />
-						Options
-					</button>
-					<button
-						class="flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors {activeTab === 'advanced' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}"
-						onclick={() => activeTab = 'advanced'}
-					>
-						<Code size={14} />
-						Advanced
-					</button>
-				</div>
-
-				<!-- Tab content -->
-				{#if activeTab === 'blueprint' && blueprint}
+				{:else}
+					<!-- Fallback when no blueprint is available -->
 					<div class="rounded-lg border border-border bg-card p-4">
-						<BlueprintForm
-							fields={blueprint.fields}
-							data={headerData}
-							onchange={handleBlueprintChange}
-						/>
+						<label class="label">
+							<span class="text-sm font-medium text-foreground">Title</span>
+							<input
+								type="text"
+								class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+								bind:value={title}
+							/>
+						</label>
 					</div>
-				{:else if activeTab === 'content'}
 					<div class="rounded-lg border border-border bg-card">
 						<textarea
-							class="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"
-							rows={25}
+							class="flex min-h-[400px] w-full rounded-md border-0 bg-transparent px-4 py-3 font-mono text-sm placeholder:text-muted-foreground focus-visible:outline-none"
 							placeholder="Write your markdown content here..."
 							bind:value={content}
-							style="resize: vertical; border: none; border-radius: inherit;"
-						></textarea>
-					</div>
-				{:else if activeTab === 'options'}
-					<div class="space-y-4 rounded-lg border border-border bg-card p-4">
-						<label class="label">
-							<span class="text-sm font-medium text-foreground">Template</span>
-							<input type="text" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" bind:value={template} />
-						</label>
-
-						{#if pageData.taxonomy && Object.keys(pageData.taxonomy).length > 0}
-							<div>
-								<span class="text-sm font-medium text-foreground">Taxonomy</span>
-								<div class="mt-2 flex flex-wrap gap-2">
-									{#each Object.entries(pageData.taxonomy) as [type, values]}
-										{#each values as val}
-											<span class="inline-flex items-center rounded-md border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">{type}: {val}</span>
-										{/each}
-									{/each}
-								</div>
-							</div>
-						{/if}
-
-						{#if pageData.translated_languages || pageData.untranslated_languages}
-							<div>
-								<span class="text-sm font-medium text-foreground">Translations</span>
-								<div class="mt-2 flex gap-2">
-									{#each Object.keys(pageData.translated_languages ?? {}) as lang}
-										<span class="inline-flex items-center rounded-md bg-emerald-600/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">{lang}</span>
-									{/each}
-									{#each Object.keys(pageData.untranslated_languages ?? {}) as lang}
-										<span class="inline-flex items-center rounded-md border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">{lang} (missing)</span>
-									{/each}
-								</div>
-							</div>
-						{/if}
-					</div>
-				{:else if activeTab === 'advanced'}
-					<div class="rounded-lg border border-border bg-card">
-						<div class="p-4 text-sm font-medium text-foreground">Page Header (JSON)</div>
-						<textarea
-							class="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"
-							rows={15}
-							bind:value={headerYaml}
-							style="resize: vertical; border: none; border-top: 1px solid hsl(var(--border)); border-radius: 0 0 0.5rem 0.5rem;"
+							style="resize: vertical;"
 						></textarea>
 					</div>
 				{/if}
+
+				<!-- Raw header editor (collapsible) -->
+				<div class="rounded-lg border border-border bg-card">
+					<button
+						class="flex w-full items-center gap-2 p-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+						onclick={() => showRawEditor = !showRawEditor}
+					>
+						<Code size={13} />
+						Raw Page Header (JSON)
+						<ChevronDown size={13} class="ml-auto transition-transform {showRawEditor ? 'rotate-180' : ''}" />
+					</button>
+					{#if showRawEditor}
+						<div class="border-t border-border">
+							<textarea
+								class="flex min-h-[200px] w-full rounded-b-md bg-transparent px-4 py-3 font-mono text-xs placeholder:text-muted-foreground focus-visible:outline-none"
+								bind:value={headerYaml}
+								style="resize: vertical;"
+							></textarea>
+						</div>
+					{/if}
+				</div>
 			</div>
 
 			<!-- Sidebar -->
 			<div class="space-y-4">
-				<!-- Publish settings -->
+				<!-- Publishing -->
 				<div class="rounded-lg border border-border bg-card p-4">
 					<h3 class="mb-3 text-sm font-semibold text-foreground">Publishing</h3>
 					<div class="space-y-3">
@@ -343,7 +264,6 @@
 							</span>
 							<input type="checkbox" class="switch" bind:checked={published} />
 						</label>
-
 						<label class="flex cursor-pointer items-center justify-between">
 							<span class="flex items-center gap-2 text-sm text-muted-foreground">
 								{#if visible}
@@ -358,13 +278,13 @@
 					</div>
 				</div>
 
-				<!-- Page info -->
+				<!-- Info -->
 				<div class="rounded-lg border border-border bg-card p-4">
 					<h3 class="mb-3 text-sm font-semibold text-foreground">Info</h3>
-					<dl class="space-y-2 text-sm">
+					<dl class="space-y-2 text-[13px]">
 						<div class="flex justify-between">
 							<dt class="text-muted-foreground">Route</dt>
-							<dd class="max-w-[150px] truncate font-medium text-foreground" title={pageData.route}>{pageData.route}</dd>
+							<dd class="max-w-[140px] truncate font-medium text-foreground" title={pageData.route}>{pageData.route}</dd>
 						</div>
 						<div class="flex justify-between">
 							<dt class="text-muted-foreground">Slug</dt>

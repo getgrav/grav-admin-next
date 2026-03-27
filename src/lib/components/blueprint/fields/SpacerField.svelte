@@ -1,12 +1,13 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
+	import { i18n } from '$lib/stores/i18n.svelte';
 
 	interface Props {
 		field: BlueprintField;
-		translateLabel: (label: string | undefined) => string;
 	}
 
-	let { field, translateLabel }: Props = $props();
+	let { field }: Props = $props();
+	const translateLabel = i18n.tMaybe;
 </script>
 
 {#if field.title}

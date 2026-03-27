@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import AppShell from '$lib/components/AppShell.svelte';
 
 	let { children } = $props();
@@ -14,6 +15,13 @@
 	$effect(() => {
 		if (needsAuth) {
 			goto('/login');
+		}
+	});
+
+	// Load translations when authenticated
+	$effect(() => {
+		if (auth.isAuthenticated && !i18n.loaded) {
+			i18n.load();
 		}
 	});
 </script>

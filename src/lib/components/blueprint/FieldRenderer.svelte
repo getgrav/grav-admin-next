@@ -8,6 +8,7 @@
 	import SelectField from './fields/SelectField.svelte';
 	import ToggleField from './fields/ToggleField.svelte';
 	import RawField from './fields/RawField.svelte';
+	import { i18n } from '$lib/stores/i18n.svelte';
 
 	interface Props {
 		field: BlueprintField;
@@ -19,6 +20,9 @@
 
 	let { field, value, onchange, getValue, onFieldChange }: Props = $props();
 
+	// Use i18n.tMaybe for all label translation
+	const translateLabel = i18n.tMaybe;
+
 	// Map field types to components
 	const inputTypes = new Set([
 		'text', 'email', 'url', 'tel', 'password', 'number',
@@ -26,25 +30,16 @@
 		'range', 'hidden'
 	]);
 
-	function translateLabel(label: string | undefined): string {
-		if (!label) return '';
-		// Strip PLUGIN_ADMIN. and PLUGIN_* prefixes, convert to readable
-		return label
-			.replace(/^PLUGIN_ADMIN\./, '')
-			.replace(/^PLUGIN_\w+\./, '')
-			.replace(/_/g, ' ')
-			.replace(/\b\w/g, (c) => c.toUpperCase());
-	}
 </script>
 
 {#if field.type === 'tabs' && field.fields}
-	<TabsField {field} {getValue} {onFieldChange} {translateLabel} />
+	<TabsField {field} {getValue} {onFieldChange} />
 
 {:else if field.type === 'tab' && field.fields}
 	<!-- Tabs handle rendering their own tab content -->
 
 {:else if field.type === 'section' || field.type === 'fieldset'}
-	<SectionField {field} {getValue} {onFieldChange} {translateLabel} />
+	<SectionField {field} {getValue} {onFieldChange} />
 
 {:else if field.type === 'columns' && field.fields}
 	<div class="grid gap-4 lg:grid-cols-2">
@@ -66,7 +61,7 @@
 	</div>
 
 {:else if field.type === 'spacer'}
-	<SpacerField {field} {translateLabel} />
+	<SpacerField {field} />
 
 {:else if field.type === 'display'}
 	{#if field.text || field.description}
@@ -76,16 +71,16 @@
 	{/if}
 
 {:else if inputTypes.has(field.type)}
-	<TextField {field} {value} {onchange} {translateLabel} />
+	<TextField {field} {value} {onchange} />
 
 {:else if field.type === 'textarea' || field.type === 'markdown' || field.type === 'editor'}
-	<TextareaField {field} {value} {onchange} {translateLabel} />
+	<TextareaField {field} {value} {onchange} />
 
 {:else if field.type === 'select'}
-	<SelectField {field} {value} {onchange} {translateLabel} />
+	<SelectField {field} {value} {onchange} />
 
 {:else if field.type === 'toggle' || field.type === 'switch'}
-	<ToggleField {field} {value} {onchange} {translateLabel} />
+	<ToggleField {field} {value} {onchange} />
 
 {:else if field.type === 'checkbox'}
 	<label class="flex cursor-pointer items-center gap-2">
@@ -130,10 +125,10 @@
 
 {:else if field.type === 'list' && field.fields}
 	<!-- List (repeating field group) — fallback to JSON for now -->
-	<RawField {field} {value} {onchange} {translateLabel} />
+	<RawField {field} {value} {onchange} />
 
 {:else if field.type === 'array'}
-	<RawField {field} {value} {onchange} {translateLabel} />
+	<RawField {field} {value} {onchange} />
 
 {:else if field.type === 'xss' || field.type === 'ignore' || field.type === 'nonce' || field.type === 'honeypot'}
 	<!-- Skip non-visible system fields -->
@@ -151,12 +146,12 @@
 
 {:else if field.type === 'taxonomy' || field.type === 'selectize' || field.type === 'pages' || field.type === 'parents'}
 	<!-- Complex picker fields — use text input as fallback -->
-	<TextField {field} {value} {onchange} {translateLabel} />
+	<TextField {field} {value} {onchange} />
 
 {:else if field.type === 'colorpicker'}
-	<TextField field={{ ...field, type: 'color' }} {value} {onchange} {translateLabel} />
+	<TextField field={{ ...field, type: 'color' }} {value} {onchange} />
 
 {:else}
 	<!-- Unknown field type — render as raw JSON editor -->
-	<RawField {field} {value} {onchange} {translateLabel} />
+	<RawField {field} {value} {onchange} />
 {/if}

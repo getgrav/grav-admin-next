@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { login } from '$lib/api/auth';
 	import { Sun, Moon, LogIn, Server, Globe } from 'lucide-svelte';
 	import { theme } from '$lib/stores/theme.svelte';
@@ -8,6 +9,19 @@
 	// In dev mode, use the Vite dev server (which proxies to Grav)
 	const defaultUrl = import.meta.env.DEV ? 'http://localhost:5180/grav-api' : 'https://localhost/grav-api';
 	let serverUrl = $state(auth.serverUrl || defaultUrl);
+
+	// Phase 1: Load login-related strings immediately (small, fast)
+	// Phase 2: Start loading ALL strings in background while user types credentials
+	$effect(() => {
+		if (!i18n.loaded) {
+			// Set server URL first so the API client knows where to fetch
+			auth.setServer(serverUrl, environment);
+			i18n.loadPrefix('PLUGIN_LOGIN').then(() => {
+				// Once login strings are ready, load everything else in background
+				i18n.loadAllInBackground();
+			});
+		}
+	});
 	let environment = $state(auth.environment || 'localhost');
 	let username = $state('');
 	let password = $state('');

@@ -1,15 +1,16 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import FieldRenderer from '../FieldRenderer.svelte';
+	import { i18n } from '$lib/stores/i18n.svelte';
 
 	interface Props {
 		field: BlueprintField;
 		getValue: (path: string) => unknown;
 		onFieldChange: (path: string, value: unknown) => void;
-		translateLabel: (label: string | undefined) => string;
 	}
 
-	let { field, getValue, onFieldChange, translateLabel }: Props = $props();
+	let { field, getValue, onFieldChange }: Props = $props();
+	const translateLabel = i18n.tMaybe;
 
 	const tabs = $derived((field.fields ?? []).filter((f) => f.type === 'tab' || f.fields));
 	let activeIndex = $state(0);
