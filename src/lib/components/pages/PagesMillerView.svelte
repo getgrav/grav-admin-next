@@ -114,6 +114,14 @@
 		}
 		return null;
 	});
+
+	// Index of the last column that has a selection (the "active" column)
+	const activeColumnIndex = $derived.by(() => {
+		for (let i = columns.length - 1; i >= 0; i--) {
+			if (columns[i].selectedRoute) return i;
+		}
+		return -1;
+	});
 </script>
 
 <!-- Breadcrumb -->
@@ -159,24 +167,29 @@
 					</div>
 				{:else}
 					{#each col.pages as page (page.route)}
-						<button
+						{@const isSelected = col.selectedRoute === page.route}
+					{@const isActive = isSelected && colIndex === activeColumnIndex}
+					{@const isPath = isSelected && colIndex !== activeColumnIndex}
+					<button
 							class="flex w-full items-center gap-2 border-b border-border/40 px-3 py-2 text-left transition-all
-								{col.selectedRoute === page.route
+								{isActive
 									? 'bg-primary text-primary-foreground'
-									: 'text-foreground hover:bg-accent'}"
+									: isPath
+										? 'bg-accent text-accent-foreground'
+										: 'text-foreground hover:bg-accent'}"
 							onclick={() => selectPage(colIndex, page)}
 							ondblclick={() => onEdit(page.route)}
 						>
 							{#if page.has_children}
-								<Folder size={14} class="shrink-0 {col.selectedRoute === page.route ? 'text-primary-foreground/80' : 'text-amber-500'}" />
+								<Folder size={14} class="shrink-0 {isActive ? 'text-primary-foreground/80' : 'text-amber-500'}" />
 							{:else}
-								<File size={14} class="shrink-0 {col.selectedRoute === page.route ? 'text-primary-foreground/60' : 'text-muted-foreground'}" />
+								<File size={14} class="shrink-0 {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground'}" />
 							{/if}
 							<div class="min-w-0 flex-1">
 								<div class="truncate text-[13px] font-medium">{page.title}</div>
 							</div>
 							{#if page.has_children}
-								<ChevronRight size={12} class="shrink-0 {col.selectedRoute === page.route ? 'text-primary-foreground/60' : 'text-muted-foreground/50'}" />
+								<ChevronRight size={12} class="shrink-0 {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground/50'}" />
 							{/if}
 						</button>
 					{/each}
