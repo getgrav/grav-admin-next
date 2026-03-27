@@ -7,8 +7,8 @@
 	import type { Snippet } from 'svelte';
 	import {
 		LayoutDashboard, FileText, Image, Users, Puzzle, Palette,
-		Settings, Wrench, Monitor, FlaskConical, Sun, Moon, LogOut,
-		ChevronLeft, ChevronRight, Menu
+		Settings, Wrench, Monitor, FlaskConical, SlidersHorizontal,
+		Sun, Moon, LogOut, ChevronLeft, ChevronRight, Menu
 	} from 'lucide-svelte';
 
 	interface Props { children: Snippet; }
@@ -27,6 +27,7 @@
 		{ href: '/config', label: 'Configuration', icon: Settings },
 		{ href: '/tools', label: 'Tools', icon: Wrench },
 		{ href: '/system', label: 'System', icon: Monitor },
+		{ href: '/settings', label: 'Settings', icon: SlidersHorizontal },
 		{ href: '/testing', label: 'Testing', icon: FlaskConical }
 	];
 
