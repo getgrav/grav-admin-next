@@ -126,33 +126,34 @@
 	/* Switch */
 	.switch {
 		appearance: none;
-		width: 2.75rem;
-		height: 1.5rem;
+		width: 2.5rem;
+		height: 1.25rem;
 		border-radius: 9999px;
 		background-color: var(--input);
 		position: relative;
 		cursor: pointer;
 		transition: background-color 0.2s;
 		flex-shrink: 0;
-		border: 2px solid transparent;
+		border: none;
 	}
 	.switch::after {
 		content: '';
 		position: absolute;
-		top: 2px;
+		top: 50%;
 		left: 2px;
-		width: 1.25rem;
-		height: 1.25rem;
+		transform: translateY(-50%);
+		width: 1rem;
+		height: 1rem;
 		border-radius: 9999px;
 		background: white;
-		box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+		box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
 		transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
 	}
 	.switch:checked {
 		background-color: var(--primary);
 	}
 	.switch:checked::after {
-		transform: translateX(1.15rem);
+		transform: translateY(-50%) translateX(1.25rem);
 	}
 	.switch:focus-visible {
 		outline: none;
