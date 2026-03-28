@@ -20,13 +20,18 @@
 	);
 </script>
 
-<div class="flex items-center justify-between">
-	<span class="text-sm text-foreground">
-		{translateLabel(field.label)}
+<label class="flex cursor-pointer items-center justify-between gap-4">
+	<div class="min-w-0">
+		<span class="text-sm font-medium text-foreground">
+			{translateLabel(field.label)}
+		</span>
 		{#if field.help}
 			<span class="ml-1 text-xs text-muted-foreground">({translateLabel(field.help)})</span>
 		{/if}
-	</span>
+		{#if field.description}
+			<p class="mt-0.5 text-xs text-muted-foreground">{translateLabel(field.description)}</p>
+		{/if}
+	</div>
 	<input
 		type="checkbox"
 		class="switch"
@@ -37,9 +42,8 @@
 			if (isBool) {
 				onchange(checked);
 			} else {
-				// Toggle between highlight value and 0
 				onchange(checked ? (field.highlight ?? 1) : 0);
 			}
 		}}
 	/>
-</div>
+</label>

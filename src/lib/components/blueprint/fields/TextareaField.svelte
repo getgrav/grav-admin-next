@@ -11,10 +11,10 @@
 	let { field, value, onchange }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
-	const isCode = field.type === 'markdown' || field.type === 'editor' || field.yaml;
+	const isCode = field.yaml;
 </script>
 
-<label class="label">
+<div class="space-y-1.5">
 	{#if field.label}
 		<span class="text-sm font-medium text-foreground">
 			{translateLabel(field.label)}
@@ -34,6 +34,6 @@
 		style="resize: vertical;"
 	></textarea>
 	{#if field.help}
-		<span class="text-xs text-muted-foreground">{translateLabel(field.help)}</span>
+		<p class="text-xs text-muted-foreground">{translateLabel(field.help)}</p>
 	{/if}
-</label>
+</div>

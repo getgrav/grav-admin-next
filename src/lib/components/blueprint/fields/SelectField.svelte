@@ -12,7 +12,7 @@
 	const translateLabel = i18n.tMaybe;
 </script>
 
-<label class="label">
+<div class="space-y-1.5">
 	{#if field.label}
 		<span class="text-sm font-medium text-foreground">
 			{translateLabel(field.label)}
@@ -37,6 +37,6 @@
 		{/if}
 	</select>
 	{#if field.help}
-		<span class="text-xs text-muted-foreground">{translateLabel(field.help)}</span>
+		<p class="text-xs text-muted-foreground">{translateLabel(field.help)}</p>
 	{/if}
-</label>
+</div>

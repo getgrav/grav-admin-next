@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getChildren, getPage, getPagesList } from '$lib/api/endpoints/pages';
 	import type { PageSummary, PageDetail } from '$lib/api/endpoints/pages';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import {
@@ -362,14 +363,24 @@
 					{#if previewPage.media && previewPage.media.length > 0}
 						<div class="mt-4 border-t border-border pt-4">
 							<h4 class="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Media ({previewPage.media.length})</h4>
-							<ul class="space-y-1">
+							<div class="grid grid-cols-4 gap-1.5">
 								{#each previewPage.media as m}
-									<li class="flex items-center justify-between text-xs">
-										<span class="truncate text-foreground">{m.filename}</span>
-										<span class="text-muted-foreground">{(m.size / 1024).toFixed(0)}KB</span>
-									</li>
+									{@const isImage = m.type?.startsWith('image/')}
+									{@const thumbUrl = m.thumbnail_url ? `${auth.serverUrl}${m.thumbnail_url}` : null}
+									<div
+										class="group relative aspect-square overflow-hidden rounded-md border border-border bg-muted/50"
+										title="{m.filename} ({(m.size / 1024).toFixed(0)}KB)"
+									>
+										{#if isImage && thumbUrl}
+											<img src={thumbUrl} alt={m.filename} class="h-full w-full object-cover" loading="lazy" />
+										{:else}
+											<div class="flex h-full w-full items-center justify-center text-[10px] font-medium text-muted-foreground">
+												{m.filename.split('.').pop()?.toUpperCase()}
+											</div>
+										{/if}
+									</div>
 								{/each}
-							</ul>
+							</div>
 						</div>
 					{/if}
 

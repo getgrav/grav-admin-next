@@ -21,7 +21,7 @@
 </script>
 
 {#if field.type !== 'hidden'}
-	<label class="label">
+	<div class="space-y-1.5">
 		{#if field.label}
 			<span class="text-sm font-medium text-foreground">
 				{translateLabel(field.label)}
@@ -43,14 +43,14 @@
 			oninput={handleInput}
 		/>
 		{#if field.help}
-			<span class="text-xs text-muted-foreground">{translateLabel(field.help)}</span>
+			<p class="text-xs text-muted-foreground">{translateLabel(field.help)}</p>
 		{/if}
 		{#if field.description && field.markdown}
-			<span class="text-xs text-muted-foreground">{@html field.description}</span>
+			<p class="text-xs text-muted-foreground">{@html field.description}</p>
 		{:else if field.description}
-			<span class="text-xs text-muted-foreground">{translateLabel(field.description)}</span>
+			<p class="text-xs text-muted-foreground">{translateLabel(field.description)}</p>
 		{/if}
-	</label>
+	</div>
 {:else}
 	<input type="hidden" value={value ?? field.default ?? ''} />
 {/if}

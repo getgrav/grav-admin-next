@@ -29,6 +29,8 @@ export interface PageDetail extends PageSummary {
 
 export interface PageMedia {
 	filename: string;
+	url: string;
+	thumbnail_url?: string;
 	type: string;
 	size: number;
 }
