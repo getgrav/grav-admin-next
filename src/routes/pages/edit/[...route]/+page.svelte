@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { setContext } from 'svelte';
 	import { getPage, updatePage, deletePage } from '$lib/api/endpoints/pages';
 	import { getPageBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { PageDetail } from '$lib/api/endpoints/pages';
@@ -12,8 +13,13 @@
 		Save, Trash2, ArrowLeft, Eye, EyeOff, Code,
 		RefreshCw, AlertCircle, ChevronDown, Loader2
 	} from 'lucide-svelte';
+	import MarkdownEditor from '$lib/components/editors/MarkdownEditor.svelte';
+	import PageMedia from '$lib/components/media/PageMedia.svelte';
 
 	const route = $derived('/' + (page.params.route || ''));
+
+	// Provide page route to child components (used by PageMedia field, etc.)
+	setContext('pageRoute', () => route);
 
 	let pageData = $state<PageDetail | null>(null);
 	let blueprint = $state<BlueprintSchema | null>(null);
@@ -52,7 +58,7 @@
 			template = data.template;
 			published = data.published;
 			visible = data.visible;
-			headerData = { header: data.header ?? {} };
+			headerData = { header: { ...data.header ?? {}, title: data.title }, content: data.content ?? '' };
 			headerYaml = JSON.stringify(data.header ?? {}, null, 2);
 
 			// Load blueprint for the page template (falls back to default on API side)
@@ -73,6 +79,12 @@
 	}
 
 	function handleBlueprintChange(path: string, value: unknown) {
+		// Sync special fields back to their state variables
+		if (path === 'content') {
+			content = value as string;
+		} else if (path === 'header.title') {
+			title = value as string;
+		}
 		headerData = { ...headerData };
 	}
 
@@ -206,14 +218,12 @@
 							/>
 						</label>
 					</div>
-					<div class="rounded-lg border border-border bg-card">
-						<textarea
-							class="flex min-h-[400px] w-full rounded-md border-0 bg-transparent px-4 py-3 font-mono text-sm placeholder:text-muted-foreground focus-visible:outline-none"
-							placeholder="Write your markdown content here..."
-							bind:value={content}
-							style="resize: vertical;"
-						></textarea>
-					</div>
+					<MarkdownEditor
+						value={content}
+						onchange={(v) => { content = v; }}
+						placeholder="Write your markdown content here..."
+						minHeight="400px"
+					/>
 				{/if}
 
 				<!-- Raw header editor (collapsible) -->
@@ -298,18 +308,10 @@
 					</dl>
 				</div>
 
-				<!-- Media -->
-				{#if pageData.media && pageData.media.length > 0}
+				<!-- Page Media (shown when no blueprint provides a pagemedia field) -->
+				{#if !blueprint}
 					<div class="rounded-lg border border-border bg-card p-4">
-						<h3 class="mb-3 text-sm font-semibold text-foreground">Media ({pageData.media.length})</h3>
-						<ul class="space-y-1">
-							{#each pageData.media as m}
-								<li class="flex items-center justify-between text-xs">
-									<span class="truncate text-foreground">{m.filename}</span>
-									<span class="text-muted-foreground">{(m.size / 1024).toFixed(0)}KB</span>
-								</li>
-							{/each}
-						</ul>
+						<PageMedia {route} />
 					</div>
 				{/if}
 			</div>

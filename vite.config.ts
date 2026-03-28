@@ -6,8 +6,8 @@ export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 	server: {
 		proxy: {
-			// Proxy API requests to Grav during development
-			'/grav-api/api': {
+			// Proxy all Grav requests (API + media files) during development
+			'/grav-api': {
 				target: 'https://localhost',
 				changeOrigin: true,
 				secure: false // allow self-signed certs

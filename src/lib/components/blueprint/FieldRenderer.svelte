@@ -5,9 +5,11 @@
 	import SpacerField from './fields/SpacerField.svelte';
 	import TextField from './fields/TextField.svelte';
 	import TextareaField from './fields/TextareaField.svelte';
+	import MarkdownField from './fields/MarkdownField.svelte';
 	import SelectField from './fields/SelectField.svelte';
 	import ToggleField from './fields/ToggleField.svelte';
 	import RawField from './fields/RawField.svelte';
+	import PageMediaField from './fields/PageMediaField.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 
 	interface Props {
@@ -73,7 +75,10 @@
 {:else if inputTypes.has(field.type)}
 	<TextField {field} {value} {onchange} />
 
-{:else if field.type === 'textarea' || field.type === 'markdown' || field.type === 'editor'}
+{:else if field.type === 'markdown' || field.type === 'editor'}
+	<MarkdownField {field} {value} {onchange} />
+
+{:else if field.type === 'textarea'}
 	<TextareaField {field} {value} {onchange} />
 
 {:else if field.type === 'select'}
@@ -133,14 +138,17 @@
 {:else if field.type === 'xss' || field.type === 'ignore' || field.type === 'nonce' || field.type === 'honeypot'}
 	<!-- Skip non-visible system fields -->
 
-{:else if field.type === 'pagemedia' || field.type === 'filepicker' || field.type === 'mediapicker' || field.type === 'file'}
-	<!-- Media fields — show label with placeholder for now -->
+{:else if field.type === 'pagemedia'}
+	<PageMediaField />
+
+{:else if field.type === 'filepicker' || field.type === 'mediapicker' || field.type === 'file'}
+	<!-- File picker fields — placeholder for now -->
 	<div>
 		{#if field.label}
 			<span class="mb-1 block text-sm font-medium text-foreground">{translateLabel(field.label)}</span>
 		{/if}
 		<div class="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
-			{field.type === 'pagemedia' ? 'Page media manager' : 'File picker'} — coming soon
+			File picker — coming soon
 		</div>
 	</div>
 
