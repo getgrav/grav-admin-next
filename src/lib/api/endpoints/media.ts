@@ -3,6 +3,7 @@ import { api } from '../client';
 export interface MediaItem {
 	filename: string;
 	url: string;
+	thumbnail_url?: string;
 	type: string;
 	size: number;
 	dimensions?: {

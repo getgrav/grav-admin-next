@@ -204,10 +204,24 @@
 		e.dataTransfer.effectAllowed = 'copy';
 	}
 
+	function resolveUrl(url: string): string {
+		if (url.startsWith('http')) return url;
+		return url.startsWith('/') ? url : `${auth.serverUrl}/${url}`;
+	}
+
+	function resolveApiUrl(url: string): string {
+		if (url.startsWith('http')) return url;
+		// API-relative URLs (e.g. /api/v1/thumbnails/...) need serverUrl prefix
+		return `${auth.serverUrl}${url}`;
+	}
+
+	function getThumbnailUrl(item: MediaItem): string {
+		if (item.thumbnail_url) return resolveApiUrl(item.thumbnail_url);
+		return resolveUrl(item.url);
+	}
+
 	function getMediaUrl(item: MediaItem): string {
-		if (item.url.startsWith('http')) return item.url;
-		// In dev, Vite proxies /grav-api paths; in prod, serverUrl provides the base
-		return item.url.startsWith('/') ? item.url : `${auth.serverUrl}/${item.url}`;
+		return resolveUrl(item.url);
 	}
 
 	function isImage(item: MediaItem): boolean {
@@ -303,7 +317,7 @@
 					>
 						{#if isImage(item)}
 							<img
-								src={getMediaUrl(item)}
+								src={getThumbnailUrl(item)}
 								alt={item.filename}
 								class="h-full w-full object-cover"
 								loading="lazy"

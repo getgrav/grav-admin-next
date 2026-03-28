@@ -109,7 +109,7 @@
 	async function loadPreview(route: string) {
 		previewLoading = true;
 		try {
-			previewPage = await getPage(route, { render: true });
+			previewPage = await getPage(route, { summary: true });
 		} catch {
 			previewPage = null;
 		} finally {
@@ -303,9 +303,17 @@
 				</div>
 			{:else if previewPage}
 				<div class="p-5">
-					<!-- Title & route -->
-					<h3 class="text-base font-semibold text-foreground">{previewPage.title}</h3>
-					<p class="mt-0.5 text-[11px] text-muted-foreground">{previewPage.route}</p>
+					<!-- Title & edit button -->
+					<div class="flex items-start justify-between gap-2">
+						<div class="min-w-0">
+							<h3 class="text-base font-semibold text-foreground">{previewPage.title}</h3>
+							<p class="mt-0.5 text-[11px] text-muted-foreground">{previewPage.route}</p>
+						</div>
+						<Button size="sm" onclick={() => onEdit(previewPage!.route)} class="shrink-0">
+							<ExternalLink size={13} />
+							Edit
+						</Button>
+					</div>
 
 					<!-- Badges -->
 					<div class="mt-3 flex flex-wrap gap-1.5">
@@ -340,18 +348,13 @@
 						{/if}
 					</dl>
 
-					<!-- Content preview -->
-					{#if previewPage.content_html}
+					<!-- Content summary -->
+					{#if previewPage.summary}
 						<div class="mt-4 border-t border-border pt-4">
-							<h4 class="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Preview</h4>
+							<h4 class="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Summary</h4>
 							<div class="prose prose-sm dark:prose-invert max-w-none text-[13px] leading-relaxed text-foreground/80">
-								{@html previewPage.content_html}
+								{@html previewPage.summary}
 							</div>
-						</div>
-					{:else if previewPage.content}
-						<div class="mt-4 border-t border-border pt-4">
-							<h4 class="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Content</h4>
-							<pre class="max-h-48 overflow-auto rounded-md bg-muted p-3 font-mono text-xs text-foreground/70">{previewPage.content}</pre>
 						</div>
 					{/if}
 
@@ -370,13 +373,6 @@
 						</div>
 					{/if}
 
-					<!-- Edit button -->
-					<div class="mt-5">
-						<Button class="w-full" onclick={() => onEdit(previewPage!.route)}>
-							<ExternalLink size={14} />
-							Edit Page
-						</Button>
-					</div>
 				</div>
 			{/if}
 		</div>

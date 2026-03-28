@@ -20,6 +20,7 @@ export interface PageSummary {
 export interface PageDetail extends PageSummary {
 	content?: string;
 	content_html?: string;
+	summary?: string;
 	media?: PageMedia[];
 	children?: PageSummary[];
 	translated_languages?: Record<string, boolean>;
@@ -123,9 +124,11 @@ export async function getRecentPages(limit = 5): Promise<PageSummary[]> {
 	});
 }
 
-export async function getPage(route: string, options?: { render?: boolean; children?: boolean; children_depth?: number; translations?: boolean }): Promise<PageDetail> {
+export async function getPage(route: string, options?: { render?: boolean; summary?: boolean; summary_size?: number; children?: boolean; children_depth?: number; translations?: boolean }): Promise<PageDetail> {
 	const params: Record<string, string> = {};
 	if (options?.render) params.render = 'true';
+	if (options?.summary) params.summary = 'true';
+	if (options?.summary_size) params.summary_size = String(options.summary_size);
 	if (options?.children) params.children = 'true';
 	if (options?.children_depth) params.children_depth = String(options.children_depth);
 	if (options?.translations) params.translations = 'true';
