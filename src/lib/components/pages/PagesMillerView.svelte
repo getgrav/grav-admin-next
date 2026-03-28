@@ -23,22 +23,36 @@
 
 	const isSearching = $derived(!!searchQuery.trim());
 
-	// Debounced search — track previous query to avoid re-triggering
-	let prevSearchQuery = '';
-
+	// Reset columns when search starts
+	let wasSearching = false;
 	$effect(() => {
-		const query = searchQuery; // read the reactive prop
-		if (query === prevSearchQuery) return;
-		prevSearchQuery = query;
+		const searching = isSearching;
+		if (searching && !wasSearching) {
+			// Entering search mode — reset columns to root with no selection
+			resetColumns();
+		}
+		wasSearching = searching;
+	});
 
+	function resetColumns() {
+		const root = columns[0];
+		if (root) {
+			columns = [{ ...root, selectedRoute: null }];
+		}
+		previewPage = null;
+	}
+
+	// Debounced search
+	$effect(() => {
+		const query = searchQuery;
 		if (searchTimer) clearTimeout(searchTimer);
+
 		if (!query.trim()) {
 			searchResults = [];
 			searchLoading = false;
 			return;
 		}
 
-		previewPage = null;
 		searchLoading = true;
 		searchTimer = setTimeout(async () => {
 			try {
