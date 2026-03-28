@@ -16,93 +16,54 @@
 
 	let { searchQuery = '', onEdit }: Props = $props();
 
-	// Search state
-	let searchResults = $state<PageSummary[]>([]);
-	let searchLoading = $state(false);
+	// Search: build set of visible routes (matches + their ancestors)
+	let allPagesCache = $state<PageSummary[] | null>(null);
+	let visibleRoutes = $state<Set<string> | null>(null);
 	let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
 	const isSearching = $derived(!!searchQuery.trim());
 
-	// Reset columns when search starts
-	let wasSearching = false;
-	$effect(() => {
-		const searching = isSearching;
-		if (searching && !wasSearching) {
-			// Entering search mode — reset columns to root with no selection
-			resetColumns();
-		}
-		wasSearching = searching;
-	});
-
-	function resetColumns() {
-		const root = columns[0];
-		if (root) {
-			columns = [{ ...root, selectedRoute: null }];
-		}
-		previewPage = null;
-	}
-
-	// Debounced search
 	$effect(() => {
 		const query = searchQuery;
 		if (searchTimer) clearTimeout(searchTimer);
 
 		if (!query.trim()) {
-			searchResults = [];
-			searchLoading = false;
+			visibleRoutes = null;
 			return;
 		}
 
-		searchLoading = true;
 		searchTimer = setTimeout(async () => {
-			try {
-				const all = await getPagesList({ per_page: 200, sort: 'title', order: 'asc' });
-				const q = query.toLowerCase();
-				searchResults = all.filter(p =>
-					p.title.toLowerCase().includes(q) ||
-					p.route.toLowerCase().includes(q) ||
-					p.template.toLowerCase().includes(q)
-				);
-			} catch {
-				searchResults = [];
-			} finally {
-				searchLoading = false;
+			// Fetch all pages once and cache
+			if (!allPagesCache) {
+				allPagesCache = await getPagesList({ per_page: 500, sort: 'title', order: 'asc' });
 			}
-		}, 300);
+
+			const q = query.toLowerCase();
+			const matchingRoutes = allPagesCache.filter(p =>
+				p.title.toLowerCase().includes(q) ||
+				p.route.toLowerCase().includes(q) ||
+				p.template.toLowerCase().includes(q)
+			).map(p => p.route);
+
+			// Build visible set: matching routes + all ancestor routes
+			const visible = new Set<string>();
+			for (const route of matchingRoutes) {
+				visible.add(route);
+				// Add all ancestors
+				const parts = route.split('/').filter(Boolean);
+				for (let i = 1; i <= parts.length; i++) {
+					visible.add('/' + parts.slice(0, i).join('/'));
+				}
+			}
+
+			visibleRoutes = visible;
+		}, 200);
 	});
 
-	// Navigate to a page's location in the column hierarchy
-	async function navigateToPage(page: PageSummary) {
-		const segments = page.route.split('/').filter(Boolean);
-		const newColumns: Column[] = [];
-
-		// Build path: /, /about, /about/team, etc.
-		let currentParent = '/';
-		const rootPages = await loadColumn('/');
-		newColumns.push({ parentRoute: '/', pages: rootPages, selectedRoute: null, loading: false });
-
-		for (let i = 0; i < segments.length; i++) {
-			const route = '/' + segments.slice(0, i + 1).join('/');
-			// Select this route in the current column
-			newColumns[newColumns.length - 1].selectedRoute = route;
-
-			// If not the last segment, or if it has children, load next column
-			const isLast = i === segments.length - 1;
-			const matchingPage = newColumns[newColumns.length - 1].pages.find(p => p.route === route);
-
-			if (matchingPage?.has_children) {
-				const children = await loadColumn(route);
-				newColumns.push({ parentRoute: route, pages: children, selectedRoute: null, loading: false });
-			}
-
-			if (isLast) {
-				// Select the final page
-				newColumns[newColumns.length - 1].selectedRoute = route;
-			}
-		}
-
-		columns = newColumns;
-		loadPreview(page.route);
+	// Filter pages in a column based on search
+	function filterColumn(pages: PageSummary[]): PageSummary[] {
+		if (!visibleRoutes) return pages;
+		return pages.filter(p => visibleRoutes!.has(p.route));
 	}
 
 	let sortField = $state<SortField>('order');
@@ -286,42 +247,6 @@
 
 <!-- Miller columns + preview -->
 <div class="flex" style="min-height: 500px; max-height: calc(100vh - 220px);">
-	{#if isSearching}
-		<!-- Search results column -->
-		<div class="flex w-72 shrink-0 flex-col overflow-y-auto border-r border-border">
-			{#if searchLoading}
-				<div class="flex flex-1 items-center justify-center">
-					<Loader2 size={16} class="animate-spin text-muted-foreground" />
-				</div>
-			{:else if searchResults.length === 0}
-				<div class="flex flex-1 items-center justify-center text-xs text-muted-foreground">
-					No pages match "{searchQuery}"
-				</div>
-			{:else}
-				<div class="border-b border-border px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
-					{searchResults.length} result{searchResults.length === 1 ? '' : 's'}
-				</div>
-				{#each searchResults as page (page.route)}
-					<button
-						class="flex w-full items-center gap-2 border-b border-border/40 px-3 py-2 text-left transition-all text-foreground hover:bg-accent"
-						onclick={() => navigateToPage(page)}
-						ondblclick={() => onEdit(page.route)}
-					>
-						{#if page.has_children}
-							<Folder size={14} class="shrink-0 text-amber-500" />
-						{:else}
-							<File size={14} class="shrink-0 text-muted-foreground" />
-						{/if}
-						<div class="min-w-0 flex-1">
-							<div class="truncate text-[13px] font-medium">{page.title}</div>
-							<div class="truncate text-[10px] text-muted-foreground">{page.route}</div>
-						</div>
-					</button>
-				{/each}
-			{/if}
-		</div>
-	{/if}
-
 	<!-- Scrollable columns area -->
 	<div class="flex flex-1 overflow-x-auto">
 		{#each columns as col, colIndex (colIndex)}
@@ -331,7 +256,7 @@
 						<Loader2 size={16} class="animate-spin text-muted-foreground" />
 					</div>
 				{:else}
-					{#each col.pages as page (page.route)}
+					{#each filterColumn(col.pages) as page (page.route)}
 						{@const isSelected = col.selectedRoute === page.route}
 					{@const isActive = isSelected && colIndex === activeColumnIndex}
 					{@const isPath = isSelected && colIndex !== activeColumnIndex}
@@ -359,9 +284,9 @@
 						</button>
 					{/each}
 
-					{#if col.pages.length === 0}
+					{#if filterColumn(col.pages).length === 0}
 						<div class="flex flex-1 items-center justify-center text-xs text-muted-foreground">
-							Empty
+							{isSearching ? 'No matches' : 'Empty'}
 						</div>
 					{/if}
 				{/if}
