@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
+	import { api } from '$lib/api/client';
 	import { i18n } from '$lib/stores/i18n.svelte';
 
 	interface Props {
@@ -11,19 +12,26 @@
 	let { field, value, onchange }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
-	// Normalize a value for option matching — booleans to '1'/'0'
-	function normalize(v: unknown): string {
-		if (v === true) return '1';
-		if (v === false) return '0';
-		if (v === undefined || v === null) return '';
-		return String(v);
+	interface ThemeInfo {
+		slug: string;
+		name: string;
 	}
 
-	// Resolve the effective value: use config value, fall back to blueprint default
-	const effectiveValue = $derived(
-		value !== undefined && value !== null ? normalize(value) : normalize(field.default)
-	);
+	let themes = $state<ThemeInfo[]>([]);
+	let loading = $state(true);
 
+	async function loadThemes() {
+		loading = true;
+		try {
+			themes = await api.get<ThemeInfo[]>('/gpm/themes');
+		} catch {
+			themes = [];
+		} finally {
+			loading = false;
+		}
+	}
+
+	$effect(() => { loadThemes(); });
 </script>
 
 <div class="space-y-2">
@@ -32,9 +40,6 @@
 			{#if field.label}
 				<label class="text-sm font-semibold text-foreground">
 					{translateLabel(field.label)}
-					{#if field.validate?.required}
-						<span class="text-red-500">*</span>
-					{/if}
 				</label>
 			{/if}
 			{#if field.help}
@@ -44,13 +49,16 @@
 	{/if}
 	<select
 		class="flex h-10 w-full rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-		value={effectiveValue}
+		value={value ?? field.default ?? ''}
 		onchange={(e) => onchange((e.target as HTMLSelectElement).value)}
-		disabled={field.disabled}
+		disabled={field.disabled || loading}
 	>
-		{#if field.options}
-			{#each field.options as opt (opt.value)}
-				<option value={opt.value} selected={effectiveValue === opt.value}>{translateLabel(opt.label)}</option>
+		{#if loading}
+			<option value="">Loading themes...</option>
+		{:else}
+			<option value="">— Select theme —</option>
+			{#each themes as theme (theme.slug)}
+				<option value={theme.slug} selected={String(value) === theme.slug}>{theme.name}</option>
 			{/each}
 		{/if}
 	</select>

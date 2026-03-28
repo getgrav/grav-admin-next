@@ -19,12 +19,12 @@
 
 	const navItems = [
 		{ href: '/', label: 'Dashboard', icon: LayoutDashboard },
+		{ href: '/config', label: 'Configuration', icon: Settings },
 		{ href: '/pages', label: 'Pages', icon: FileText },
 		{ href: '/media', label: 'Media', icon: Image },
 		{ href: '/users', label: 'Users', icon: Users },
 		{ href: '/plugins', label: 'Plugins', icon: Puzzle },
 		{ href: '/themes', label: 'Themes', icon: Palette },
-		{ href: '/config', label: 'Configuration', icon: Settings },
 		{ href: '/tools', label: 'Tools', icon: Wrench },
 		{ href: '/system', label: 'System', icon: Monitor },
 		{ href: '/settings', label: 'Settings', icon: SlidersHorizontal },

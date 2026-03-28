@@ -24,7 +24,9 @@ export interface BlueprintField {
 	multiple?: boolean;
 	markdown?: boolean;
 	underline?: boolean;
-	options?: Record<string, string>;
+	prepend?: string;
+	append?: string;
+	options?: Array<{ value: string; label: string }>;
 	validate?: {
 		type?: string;
 		required?: boolean;
@@ -36,6 +38,28 @@ export interface BlueprintField {
 	yaml?: boolean;
 	accept?: string[];
 	destination?: string;
+	style?: string;
+	classes?: string;
+	use?: string;
+	key?: string;
+	controls?: string;
+	collapsed?: boolean;
+	collapsible?: boolean;
+	sort?: boolean;
+	btnLabel?: string;
+	placement?: string;
+	sortby?: string;
+	sortby_dir?: string;
+	min_height?: string;
+	selectunique?: unknown;
+	value_only?: boolean;
+	show_all?: boolean;
+	show_modular?: boolean;
+	show_root?: boolean;
+	show_slug?: boolean;
+	placeholder_key?: string;
+	placeholder_value?: string;
+	value_type?: string;
 }
 
 export interface BlueprintSchema {

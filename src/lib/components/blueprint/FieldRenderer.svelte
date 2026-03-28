@@ -9,6 +9,14 @@
 	import SelectField from './fields/SelectField.svelte';
 	import ToggleField from './fields/ToggleField.svelte';
 	import RawField from './fields/RawField.svelte';
+	import PagesField from './fields/PagesField.svelte';
+	import ThemeSelectField from './fields/ThemeSelectField.svelte';
+	import ArrayField from './fields/ArrayField.svelte';
+	import DateFormatField from './fields/DateFormatField.svelte';
+	import SelectizeField from './fields/SelectizeField.svelte';
+	import ListField from './fields/ListField.svelte';
+	import CronField from './fields/CronField.svelte';
+	import MultilevelField from './fields/MultilevelField.svelte';
 	import PageMediaField from './fields/PageMediaField.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 
@@ -29,7 +37,7 @@
 	const inputTypes = new Set([
 		'text', 'email', 'url', 'tel', 'password', 'number',
 		'date', 'datetime', 'time', 'month', 'week', 'color',
-		'range', 'hidden'
+		'hidden'
 	]);
 
 </script>
@@ -72,6 +80,35 @@
 		</div>
 	{/if}
 
+{:else if field.type === 'range'}
+	<div class="space-y-2">
+		{#if field.label || field.help}
+			<div>
+				{#if field.label}
+					<label class="text-sm font-semibold text-foreground">{translateLabel(field.label)}</label>
+				{/if}
+				{#if field.help}
+					<p class="mt-0.5 text-xs text-muted-foreground">{translateLabel(field.help)}</p>
+				{/if}
+			</div>
+		{/if}
+		<div class="flex items-center gap-3">
+			<input
+				type="range"
+				class="h-2 flex-1 cursor-pointer appearance-none rounded-full bg-muted accent-primary"
+				value={value ?? field.default ?? 50}
+				min={field.min ?? 0}
+				max={field.max ?? 100}
+				step={field.step ?? 1}
+				oninput={(e) => onchange(Number((e.target as HTMLInputElement).value))}
+			/>
+			<span class="w-10 text-right font-mono text-sm font-medium text-foreground">{value ?? field.default ?? 50}</span>
+			{#if field.append}
+				<span class="text-sm text-muted-foreground">{translateLabel(field.append)}</span>
+			{/if}
+		</div>
+	</div>
+
 {:else if inputTypes.has(field.type)}
 	<TextField {field} {value} {onchange} />
 
@@ -84,56 +121,80 @@
 {:else if field.type === 'select'}
 	<SelectField {field} {value} {onchange} />
 
+{:else if field.type === 'themeselect'}
+	<ThemeSelectField {field} {value} {onchange} />
+
+{:else if field.type === 'dateformat'}
+	<DateFormatField {field} {value} {onchange} />
+
 {:else if field.type === 'toggle' || field.type === 'switch'}
 	<ToggleField {field} {value} {onchange} />
 
 {:else if field.type === 'checkbox'}
-	<label class="flex cursor-pointer items-center gap-2">
-		<input
-			type="checkbox"
-			class="checkbox"
-			checked={!!value}
-			onchange={(e) => onchange((e.target as HTMLInputElement).checked)}
-		/>
-		<span class="text-sm text-foreground">{translateLabel(field.label)}</span>
-	</label>
+	<div>
+		<label class="flex cursor-pointer items-center gap-2">
+			<input
+				type="checkbox"
+				class="checkbox"
+				checked={!!value}
+				onchange={(e) => onchange((e.target as HTMLInputElement).checked)}
+			/>
+			<span class="text-sm font-semibold text-foreground">{translateLabel(field.label)}</span>
+		</label>
+		{#if field.help}
+			<p class="mt-0.5 ml-6 text-xs text-muted-foreground">{translateLabel(field.help)}</p>
+		{/if}
+	</div>
 
 {:else if field.type === 'checkboxes' && field.options}
-	<div>
-		{#if field.label}
-			<span class="mb-1 block text-sm font-medium text-foreground">{translateLabel(field.label)}</span>
+	<div class="space-y-2">
+		{#if field.label || field.help}
+			<div>
+				{#if field.label}
+					<span class="block text-sm font-semibold text-foreground">{translateLabel(field.label)}</span>
+				{/if}
+				{#if field.help}
+					<p class="mt-0.5 text-xs text-muted-foreground">{translateLabel(field.help)}</p>
+				{/if}
+			</div>
 		{/if}
 		<div class="space-y-1">
-			{#each Object.entries(field.options) as [val, label]}
+			{#each field.options as opt (opt.value)}
 				<label class="flex cursor-pointer items-center gap-2">
-					<input type="checkbox" class="checkbox" checked={Array.isArray(value) && value.includes(val)} />
-					<span class="text-sm text-muted-foreground">{translateLabel(label)}</span>
+					<input type="checkbox" class="checkbox" checked={Array.isArray(value) && value.includes(opt.value)} />
+					<span class="text-sm text-muted-foreground">{translateLabel(opt.label)}</span>
 				</label>
 			{/each}
 		</div>
 	</div>
 
 {:else if field.type === 'radio' && field.options}
-	<div>
-		{#if field.label}
-			<span class="mb-1 block text-sm font-medium text-foreground">{translateLabel(field.label)}</span>
+	<div class="space-y-2">
+		{#if field.label || field.help}
+			<div>
+				{#if field.label}
+					<span class="block text-sm font-semibold text-foreground">{translateLabel(field.label)}</span>
+				{/if}
+				{#if field.help}
+					<p class="mt-0.5 text-xs text-muted-foreground">{translateLabel(field.help)}</p>
+				{/if}
+			</div>
 		{/if}
 		<div class="space-y-1">
-			{#each Object.entries(field.options) as [val, label]}
+			{#each field.options as opt (opt.value)}
 				<label class="flex cursor-pointer items-center gap-2">
-					<input type="radio" class="radio" name={field.name} value={val} checked={value === val} onchange={() => onchange(val)} />
-					<span class="text-sm text-muted-foreground">{translateLabel(label)}</span>
+					<input type="radio" class="radio" name={field.name} value={opt.value} checked={value === opt.value} onchange={() => onchange(opt.value)} />
+					<span class="text-sm text-muted-foreground">{translateLabel(opt.label)}</span>
 				</label>
 			{/each}
 		</div>
 	</div>
 
 {:else if field.type === 'list' && field.fields}
-	<!-- List (repeating field group) — fallback to JSON for now -->
-	<RawField {field} {value} {onchange} />
+	<ListField {field} {value} {onchange} {getValue} {onFieldChange} />
 
 {:else if field.type === 'array'}
-	<RawField {field} {value} {onchange} />
+	<ArrayField {field} {value} {onchange} />
 
 {:else if field.type === 'xss' || field.type === 'ignore' || field.type === 'nonce' || field.type === 'honeypot'}
 	<!-- Skip non-visible system fields -->
@@ -152,9 +213,17 @@
 		</div>
 	</div>
 
-{:else if field.type === 'taxonomy' || field.type === 'selectize' || field.type === 'pages' || field.type === 'parents'}
-	<!-- Complex picker fields — use text input as fallback -->
-	<TextField {field} {value} {onchange} />
+{:else if field.type === 'pages' || field.type === 'parents'}
+	<PagesField {field} {value} {onchange} />
+
+{:else if field.type === 'taxonomy' || field.type === 'selectize'}
+	<SelectizeField {field} {value} {onchange} />
+
+{:else if field.type === 'cron'}
+	<CronField {field} {value} {onchange} />
+
+{:else if field.type === 'multilevel'}
+	<MultilevelField {field} {value} {onchange} />
 
 {:else if field.type === 'colorpicker'}
 	<TextField field={{ ...field, type: 'color' }} {value} {onchange} />

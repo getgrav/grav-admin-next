@@ -10,6 +10,52 @@
 
 	let { fields, data, onchange }: Props = $props();
 
+	/**
+	 * Normalize blueprint fields: adopt orphan siblings into bare sections.
+	 *
+	 * In Grav blueprints, a section with no `fields` followed by sibling
+	 * fields is visually equivalent to a section containing those fields.
+	 * This function collects orphan fields into the preceding bare section,
+	 * stopping at the next section/fieldset boundary. Applied recursively.
+	 */
+	function normalizeFields(input: BlueprintField[]): BlueprintField[] {
+		const sectionTypes = new Set(['section', 'fieldset']);
+		const result: BlueprintField[] = [];
+
+		let i = 0;
+		while (i < input.length) {
+			const field = input[i];
+
+			// If this is a bare section (no fields), collect following siblings
+			if (sectionTypes.has(field.type) && !field.fields?.length) {
+				const adopted: BlueprintField[] = [];
+				let j = i + 1;
+				while (j < input.length && !sectionTypes.has(input[j].type)) {
+					adopted.push(input[j]);
+					j++;
+				}
+				if (adopted.length > 0) {
+					result.push({ ...field, fields: normalizeFields(adopted) });
+				} else {
+					result.push(field);
+				}
+				i = j;
+			} else {
+				// Recurse into any field that has children
+				if (field.fields?.length) {
+					result.push({ ...field, fields: normalizeFields(field.fields) });
+				} else {
+					result.push(field);
+				}
+				i++;
+			}
+		}
+
+		return result;
+	}
+
+	const normalizedFields = $derived(normalizeFields(fields));
+
 	function getValue(path: string): unknown {
 		const parts = path.split('.');
 		let current: unknown = data;
@@ -42,7 +88,7 @@
 </script>
 
 <div class="space-y-4">
-	{#each fields as field (field.name)}
+	{#each normalizedFields as field (field.name)}
 		<FieldRenderer
 			{field}
 			value={getValue(field.name)}

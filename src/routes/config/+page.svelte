@@ -1,8 +1,10 @@
-<svelte:head>
-	<title>Configuration — Grav Admin</title>
-</svelte:head>
+<script lang="ts">
+	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 
-<div>
-	<h1 class="text-2xl font-semibold text-surface-900 dark:text-surface-100">Configuration</h1>
-	<p class="mt-1 text-sm text-surface-500">Coming soon</p>
-</div>
+	onMount(() => {
+		goto('/config/system', { replaceState: true });
+	});
+</script>
+
+<div class="py-20 text-center text-sm text-muted-foreground">Loading configuration...</div>

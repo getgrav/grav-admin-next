@@ -161,6 +161,53 @@ class ApiClient {
 		}
 	}
 
+	/**
+	 * Make a request and return both parsed data and response headers.
+	 * Useful for extracting ETag headers for optimistic concurrency.
+	 */
+	async requestRaw<T>(
+		method: string,
+		path: string,
+		options: {
+			body?: unknown;
+			params?: Record<string, string>;
+			headers?: Record<string, string>;
+		} = {}
+	): Promise<{ data: T; headers: Headers }> {
+		let url = `${this.baseUrl}${path}`;
+
+		if (options.params) {
+			const searchParams = new URLSearchParams(options.params);
+			url += `?${searchParams.toString()}`;
+		}
+
+		const fetchOptions: RequestInit = {
+			method,
+			headers: { ...this.headers, ...options.headers }
+		};
+
+		if (options.body !== undefined) {
+			fetchOptions.body = JSON.stringify(options.body);
+		}
+
+		const response = await fetch(url, fetchOptions);
+
+		if (response.status === 401 && !path.startsWith('/auth/')) {
+			const refreshed = await this.tryRefresh();
+			if (refreshed) {
+				return this.requestRaw<T>(method, path, options);
+			}
+			auth.logout();
+			throw new ApiRequestError(
+				{ status: 401, title: 'Unauthorized', detail: 'Session expired. Please log in again.' },
+				response
+			);
+		}
+
+		const data = await this.handleResponse<T>(response);
+		return { data, headers: response.headers };
+	}
+
 	async get<T>(path: string, params?: Record<string, string>): Promise<T> {
 		return this.request<T>('GET', path, { params });
 	}
