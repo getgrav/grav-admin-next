@@ -9,7 +9,7 @@
 	import PagesListView from '$lib/components/pages/PagesListView.svelte';
 	import PagesMillerView from '$lib/components/pages/PagesMillerView.svelte';
 	import {
-		Plus, Search, TreePine, List, Columns3
+		Plus, Search, TreePine, List, Columns3, X
 	} from 'lucide-svelte';
 
 	let searchQuery = $state('');
@@ -63,10 +63,19 @@
 			<Search size={14} class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground" />
 			<input
 				type="text"
-				class="flex h-9 w-full rounded-md border border-input bg-transparent pl-9 pr-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+				class="flex h-9 w-full rounded-md border border-input bg-transparent pl-9 pr-8 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 				placeholder="Search pages..."
 				bind:value={searchQuery}
 			/>
+			{#if searchQuery}
+				<button
+					class="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+					onclick={() => searchQuery = ''}
+					aria-label="Clear search"
+				>
+					<X size={14} />
+				</button>
+			{/if}
 		</div>
 
 		<div class="flex-1"></div>
