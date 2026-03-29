@@ -10,8 +10,8 @@
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
 	import {
-		Save, Trash2, ArrowLeft, Eye, EyeOff, Code,
-		RefreshCw, AlertCircle, ChevronDown, Loader2
+		Save, Trash2, ArrowLeft, Code,
+		AlertCircle, ChevronDown, Loader2
 	} from 'lucide-svelte';
 	import MarkdownEditor from '$lib/components/editors/MarkdownEditor.svelte';
 	import PageMedia from '$lib/components/media/PageMedia.svelte';
@@ -32,8 +32,6 @@
 	let title = $state('');
 	let content = $state('');
 	let template = $state('');
-	let published = $state(true);
-	let visible = $state(true);
 	let headerData = $state<Record<string, unknown>>({});
 	let headerChanges = $state<Record<string, unknown>>({});
 	let headerYaml = $state('');
@@ -43,8 +41,6 @@
 			title !== pageData.title ||
 			content !== (pageData.content ?? '') ||
 			template !== pageData.template ||
-			published !== pageData.published ||
-			visible !== pageData.visible ||
 			Object.keys(headerChanges).length > 0
 		)
 	);
@@ -58,8 +54,6 @@
 			title = data.title;
 			content = data.content ?? '';
 			template = data.template;
-			published = data.published;
-			visible = data.visible;
 			headerData = { header: { ...data.header ?? {}, title: data.title }, content: data.content ?? '' };
 			headerYaml = JSON.stringify(data.header ?? {}, null, 2);
 
@@ -125,8 +119,6 @@
 			if (title !== pageData.title) body.title = title;
 			if (content !== (pageData.content ?? '')) body.content = content;
 			if (template !== pageData.template) body.template = template;
-			if (published !== pageData.published) body.published = published;
-			if (visible !== pageData.visible) body.visible = visible;
 
 			// Include header changes from blueprint form fields
 			if (Object.keys(headerChanges).length > 0) {
@@ -296,39 +288,49 @@
 
 			<!-- Sidebar -->
 			<div class="space-y-4">
-				<!-- Publishing -->
+				<!-- Page Status & Info -->
 				<div class="rounded-lg border border-border bg-card p-4">
-					<h3 class="mb-3 text-sm font-semibold text-foreground">Publishing</h3>
-					<div class="space-y-3">
-						<label class="flex cursor-pointer items-center justify-between">
-							<span class="flex items-center gap-2 text-sm text-muted-foreground">
-								{#if published}
-									<Eye size={14} class="text-emerald-500" />
+					<h3 class="mb-3 text-sm font-semibold text-foreground">Page Info</h3>
+					<dl class="space-y-2.5 text-[13px]">
+						<!-- Status indicators -->
+						<div class="flex justify-between">
+							<dt class="flex items-center gap-1.5 text-muted-foreground">
+								{#if pageData.published}
+									<span class="h-2 w-2 rounded-full bg-emerald-500"></span>
 								{:else}
-									<EyeOff size={14} />
+									<span class="h-2 w-2 rounded-full bg-muted-foreground/40"></span>
 								{/if}
 								Published
-							</span>
-							<input type="checkbox" class="switch" bind:checked={published} />
-						</label>
-						<label class="flex cursor-pointer items-center justify-between">
-							<span class="flex items-center gap-2 text-sm text-muted-foreground">
-								{#if visible}
-									<Eye size={14} class="text-primary" />
+							</dt>
+							<dd class="font-medium {pageData.published ? 'text-emerald-500' : 'text-muted-foreground'}">
+								{pageData.published ? 'Yes' : 'No'}
+							</dd>
+						</div>
+						<div class="flex justify-between">
+							<dt class="flex items-center gap-1.5 text-muted-foreground">
+								{#if pageData.visible}
+									<span class="h-2 w-2 rounded-full bg-primary"></span>
 								{:else}
-									<EyeOff size={14} />
+									<span class="h-2 w-2 rounded-full bg-muted-foreground/40"></span>
 								{/if}
 								Visible in nav
-							</span>
-							<input type="checkbox" class="switch" bind:checked={visible} />
-						</label>
-					</div>
-				</div>
+							</dt>
+							<dd class="font-medium {pageData.visible ? 'text-primary' : 'text-muted-foreground'}">
+								{pageData.visible ? 'Yes' : 'No'}
+							</dd>
+						</div>
+						{#if pageData.routable !== undefined}
+							<div class="flex justify-between">
+								<dt class="text-muted-foreground">Routable</dt>
+								<dd class="font-medium {pageData.routable ? 'text-foreground' : 'text-muted-foreground'}">
+									{pageData.routable ? 'Yes' : 'No'}
+								</dd>
+							</div>
+						{/if}
 
-				<!-- Info -->
-				<div class="rounded-lg border border-border bg-card p-4">
-					<h3 class="mb-3 text-sm font-semibold text-foreground">Info</h3>
-					<dl class="space-y-2 text-[13px]">
+						<div class="my-1 border-t border-border"></div>
+
+						<!-- Page details -->
 						<div class="flex justify-between">
 							<dt class="text-muted-foreground">Route</dt>
 							<dd class="max-w-[140px] truncate font-medium text-foreground" title={pageData.route}>{pageData.route}</dd>
@@ -347,10 +349,38 @@
 								<dd class="font-medium text-foreground">{pageData.language}</dd>
 							</div>
 						{/if}
+						{#if pageData.order}
+							<div class="flex justify-between">
+								<dt class="text-muted-foreground">Order</dt>
+								<dd class="font-medium text-foreground">{pageData.order}</dd>
+							</div>
+						{/if}
+
+						<div class="my-1 border-t border-border"></div>
+
+						<!-- Dates -->
+						{#if pageData.date}
+							<div class="flex justify-between">
+								<dt class="text-muted-foreground">Date</dt>
+								<dd class="font-medium text-foreground">{new Date(pageData.date).toLocaleDateString()}</dd>
+							</div>
+						{/if}
 						<div class="flex justify-between">
 							<dt class="text-muted-foreground">Modified</dt>
 							<dd class="font-medium text-foreground">{new Date(pageData.modified).toLocaleString()}</dd>
 						</div>
+						{#if pageData.header?.publish_date}
+							<div class="flex justify-between">
+								<dt class="text-muted-foreground">Publish on</dt>
+								<dd class="font-medium text-emerald-500">{new Date(pageData.header.publish_date as string).toLocaleString()}</dd>
+							</div>
+						{/if}
+						{#if pageData.header?.unpublish_date}
+							<div class="flex justify-between">
+								<dt class="text-muted-foreground">Unpublish on</dt>
+								<dd class="font-medium text-amber-500">{new Date(pageData.header.unpublish_date as string).toLocaleString()}</dd>
+							</div>
+						{/if}
 					</dl>
 				</div>
 
