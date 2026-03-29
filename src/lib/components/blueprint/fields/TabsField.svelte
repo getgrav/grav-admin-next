@@ -88,8 +88,8 @@
 		<!-- Active tab content -->
 		<div class="min-w-0 flex-1 p-4 lg:pl-6">
 			{#each tabs as tab, i (tab.name)}
-				{#if i === activeIndex && tab.fields}
-					<div class="space-y-4">
+				{#if tab.fields}
+					<div class="space-y-4" class:hidden={i !== activeIndex}>
 						{#each tab.fields as childField (childField.name)}
 							<FieldRenderer
 								field={childField}
@@ -122,8 +122,8 @@
 		</div>
 
 		{#each tabs as tab, i (tab.name)}
-			{#if i === activeIndex && tab.fields}
-				<div class="space-y-4 pt-4">
+			{#if tab.fields}
+				<div class="space-y-4 pt-4" class:hidden={i !== activeIndex}>
 					{#each tab.fields as childField (childField.name)}
 						<FieldRenderer
 							field={childField}
