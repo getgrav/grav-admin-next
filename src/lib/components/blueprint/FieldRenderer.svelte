@@ -18,6 +18,9 @@
 	import CronField from './fields/CronField.svelte';
 	import MultilevelField from './fields/MultilevelField.svelte';
 	import PageMediaField from './fields/PageMediaField.svelte';
+	import DateTimeField from './fields/DateTimeField.svelte';
+	import TaxonomyField from './fields/TaxonomyField.svelte';
+	import FolderSlugField from './fields/FolderSlugField.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 
 	interface Props {
@@ -33,16 +36,25 @@
 	// Use i18n.tMaybe for all label translation
 	const translateLabel = i18n.tMaybe;
 
+	// Fields suppressed in admin-next (handled by the UI directly, e.g. drag-and-drop reorder)
+	const suppressedNames = new Set(['order_title', 'header.order_by', 'header.order_manual']);
+	const suppressedTypes = new Set(['order', 'blueprint']);
+	// Fields to relocate from later columns into the first column (e.g. ordering toggle → settings)
+	const relocateToFirstColumn = new Set(['ordering']);
+
 	// Map field types to components
 	const inputTypes = new Set([
 		'text', 'email', 'url', 'tel', 'password', 'number',
-		'date', 'datetime', 'time', 'month', 'week', 'color',
+		'date', 'time', 'month', 'week', 'color',
 		'hidden'
 	]);
 
 </script>
 
-{#if field.type === 'tabs' && field.fields}
+{#if suppressedNames.has(field.name) || suppressedTypes.has(field.type)}
+	<!-- Suppressed in admin-next -->
+
+{:else if field.type === 'tabs' && field.fields}
 	<TabsField {field} {getValue} {onFieldChange} />
 
 {:else if field.type === 'tab' && field.fields}
@@ -52,21 +64,83 @@
 	<SectionField {field} {getValue} {onFieldChange} />
 
 {:else if field.type === 'columns' && field.fields}
-	<div class="grid gap-4 lg:grid-cols-2">
-		{#each field.fields as col (col.name)}
-			{#if col.fields}
-				<div class="space-y-4">
-					{#each col.fields as childField (childField.name)}
-						<svelte:self
-							field={childField}
-							value={getValue(childField.name)}
-							onchange={(val) => onFieldChange(childField.name, val)}
-							{getValue}
-							{onFieldChange}
-						/>
-					{/each}
-				</div>
-			{/if}
+	{@const processed = (() => {
+		/** Recursively extract fields by name from a field tree, removing them from their parent */
+		function extractFields(fields: BlueprintField[], names: Set<string>): BlueprintField[] {
+			const extracted: BlueprintField[] = [];
+			for (const f of fields) {
+				if (names.has(f.name)) {
+					extracted.push(f);
+				}
+				if (f.fields) {
+					extracted.push(...extractFields(f.fields, names));
+				}
+			}
+			return extracted;
+		}
+
+		/** Remove fields by name from a tree (in place) and prune empty sections */
+		function removeFields(fields: BlueprintField[], names: Set<string>): BlueprintField[] {
+			return fields
+				.filter(f => !names.has(f.name))
+				.map(f => {
+					if (f.fields) {
+						const cleaned = removeFields(f.fields, names);
+						return { ...f, fields: cleaned };
+					}
+					return f;
+				})
+				// Remove sections/fieldsets that are now empty
+				.filter(f => {
+					if ((f.type === 'section' || f.type === 'fieldset') && f.fields && f.fields.length === 0) return false;
+					return true;
+				});
+		}
+
+		// First: extract relocatable fields from later columns BEFORE suppression
+		const rawCols = field.fields.map(col => ({
+			name: col.name,
+			fields: [...(col.fields ?? [])],
+		}));
+		const relocated: BlueprintField[] = [];
+		if (rawCols.length >= 2 && relocateToFirstColumn.size > 0) {
+			for (let i = 1; i < rawCols.length; i++) {
+				relocated.push(...extractFields(rawCols[i].fields, relocateToFirstColumn));
+			}
+		}
+
+		// Then: apply suppression
+		const cols = rawCols.map(col => ({
+			name: col.name,
+			fields: col.fields.filter(f => !suppressedNames.has(f.name) && !suppressedTypes.has(f.type)),
+		}));
+
+		// Add relocated fields into the first section of column1 (so they appear inside the card)
+		if (relocated.length > 0) {
+			const firstSection = cols[0].fields.find(f => f.type === 'section' || f.type === 'fieldset');
+			if (firstSection && firstSection.fields) {
+				firstSection.fields = [...firstSection.fields, ...relocated];
+			} else {
+				cols[0].fields = [...cols[0].fields, ...relocated];
+			}
+		}
+
+		return cols;
+	})()}
+	{@const nonEmptyCols = processed.filter(c => c.fields.length > 0)}
+	<div class={nonEmptyCols.length > 1 ? 'grid gap-4 lg:grid-cols-2' : ''}>
+		{#each nonEmptyCols as col (col.name)}
+			<div class="space-y-4">
+				{#each col.fields as childField (childField.name)}
+					<svelte:self
+						field={childField}
+						value={getValue(childField.name)}
+						onchange={(val: unknown) => onFieldChange(childField.name, val)}
+						{getValue}
+						{onFieldChange}
+					/>
+				{/each}
+			</div>
 		{/each}
 	</div>
 
@@ -108,6 +182,12 @@
 			{/if}
 		</div>
 	</div>
+
+{:else if field.type === 'datetime'}
+	<DateTimeField {field} {value} {onchange} />
+
+{:else if field.type === 'folder-slug'}
+	<FolderSlugField {field} {value} {onchange} {getValue} />
 
 {:else if inputTypes.has(field.type)}
 	<TextField {field} {value} {onchange} />
@@ -216,7 +296,10 @@
 {:else if field.type === 'pages' || field.type === 'parents'}
 	<PagesField {field} {value} {onchange} />
 
-{:else if field.type === 'taxonomy' || field.type === 'selectize'}
+{:else if field.type === 'taxonomy'}
+	<TaxonomyField {field} {value} {onchange} />
+
+{:else if field.type === 'selectize'}
 	<SelectizeField {field} {value} {onchange} />
 
 {:else if field.type === 'cron'}

@@ -9,10 +9,11 @@
 	import PagesListView from '$lib/components/pages/PagesListView.svelte';
 	import PagesMillerView from '$lib/components/pages/PagesMillerView.svelte';
 	import {
-		Plus, Search, TreePine, List, Columns3, X
+		Plus, Search, TreePine, List, Columns3, X, ArrowUpDown
 	} from 'lucide-svelte';
 
 	let searchQuery = $state('');
+	let reorderMode = $state(false);
 
 	const viewModes: { mode: PagesViewMode; icon: typeof TreePine; label: string }[] = [
 		{ mode: 'tree', icon: TreePine, label: 'Tree' },
@@ -80,6 +81,19 @@
 
 		<div class="flex-1"></div>
 
+		<!-- Reorder mode toggle -->
+		<button
+			class="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-[12px] font-medium transition-colors
+				{reorderMode
+					? 'border-primary bg-primary/10 text-primary'
+					: 'border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+			onclick={() => reorderMode = !reorderMode}
+			title={reorderMode ? 'Exit reorder mode' : 'Reorder pages'}
+		>
+			<ArrowUpDown size={14} />
+			<span class="hidden sm:inline">{reorderMode ? 'Done' : 'Reorder / Move'}</span>
+		</button>
+
 		<!-- View mode toggle -->
 		<div class="inline-flex rounded-md border border-border shadow-sm">
 			{#each viewModes as vm}
@@ -101,11 +115,11 @@
 	<!-- View content -->
 	<div class="overflow-hidden rounded-lg border border-border bg-card">
 		{#if prefs.pagesViewMode === 'tree'}
-			<PagesTreeView {searchQuery} onEdit={handleEdit} onDelete={handleDelete} />
+			<PagesTreeView {searchQuery} {reorderMode} onEdit={handleEdit} onDelete={handleDelete} />
 		{:else if prefs.pagesViewMode === 'list'}
-			<PagesListView {searchQuery} onEdit={handleEdit} onDelete={handleDelete} />
+			<PagesListView {searchQuery} {reorderMode} onEdit={handleEdit} onDelete={handleDelete} />
 		{:else if prefs.pagesViewMode === 'miller'}
-			<PagesMillerView {searchQuery} onEdit={handleEdit} />
+			<PagesMillerView {searchQuery} {reorderMode} onEdit={handleEdit} />
 		{/if}
 	</div>
 </div>

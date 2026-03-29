@@ -1,21 +1,29 @@
 <script lang="ts">
-	import { getChildren, getPage, getPagesList } from '$lib/api/endpoints/pages';
-	import type { PageSummary, PageDetail } from '$lib/api/endpoints/pages';
+	import { getChildren, getPage, getPagesList, reorganizePages } from '$lib/api/endpoints/pages';
+	import type { PageSummary, PageDetail, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
+	import { toast } from 'svelte-sonner';
 	import {
-		Folder, File, Loader2, ChevronRight, ExternalLink, ArrowUpDown
+		Folder, File, Loader2, ChevronRight, ExternalLink, ArrowUpDown, GripVertical
 	} from 'lucide-svelte';
 
 	type SortField = 'order' | 'title' | 'modified' | 'date';
 
 	interface Props {
 		searchQuery?: string;
+		reorderMode?: boolean;
 		onEdit: (route: string) => void;
 	}
 
-	let { searchQuery = '', onEdit }: Props = $props();
+	let { searchQuery = '', reorderMode = false, onEdit }: Props = $props();
+
+	// Drag state for Miller columns
+	let dragPage = $state<PageSummary | null>(null);
+	let dragColIndex = $state<number | null>(null);
+	let dropTarget = $state<{ colIndex: number; index: number } | null>(null);
+	let saving = $state(false);
 
 	// Search: build set of visible routes (matches + their ancestors)
 	let allPagesCache = $state<PageSummary[] | null>(null);
@@ -190,6 +198,102 @@
 		return null;
 	});
 
+	// --- Miller drag-and-drop handlers ---
+
+	function millerDragStart(e: DragEvent, page: PageSummary, colIndex: number) {
+		if (!reorderMode) return;
+		dragPage = page;
+		dragColIndex = colIndex;
+		if (e.dataTransfer) {
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setData('text/plain', page.route);
+		}
+	}
+
+	function millerDragOver(e: DragEvent, colIndex: number, index: number) {
+		if (!reorderMode || !dragPage) return;
+		e.preventDefault();
+		if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+		dropTarget = { colIndex, index };
+	}
+
+	async function millerDrop(e: DragEvent, colIndex: number, targetIndex: number) {
+		e.preventDefault();
+		if (!dragPage || saving || dragColIndex === null) return;
+
+		const page = dragPage;
+		const sourceColIndex = dragColIndex;
+		const col = columns[colIndex];
+		const sourceCol = columns[sourceColIndex];
+
+		dragPage = null;
+		dragColIndex = null;
+		dropTarget = null;
+
+		if (sourceColIndex !== colIndex) {
+			// Cross-column move: move to different parent
+			const ops: ReorganizeOperation[] = [{
+				route: page.route,
+				parent: col.parentRoute,
+				position: targetIndex + 1,
+			}];
+
+			saving = true;
+			try {
+				await reorganizePages(ops);
+				toast.success(`Moved "${page.title}"`);
+				// Reload both columns
+				const [srcPages, dstPages] = await Promise.all([
+					loadColumn(sourceCol.parentRoute),
+					loadColumn(col.parentRoute),
+				]);
+				columns = columns.map((c, i) => {
+					if (i === sourceColIndex) return { ...c, pages: srcPages };
+					if (i === colIndex) return { ...c, pages: dstPages };
+					return c;
+				});
+			} catch {
+				toast.error('Failed to move page');
+			} finally {
+				saving = false;
+			}
+			return;
+		}
+
+		// Same column reorder
+		const siblings = [...col.pages];
+		const currentIndex = siblings.findIndex(s => s.route === page.route);
+		if (currentIndex === -1 || currentIndex === targetIndex) return;
+
+		const [moved] = siblings.splice(currentIndex, 1);
+		siblings.splice(targetIndex, 0, moved);
+
+		const ops: ReorganizeOperation[] = siblings.map((p, i) => ({
+			route: p.route,
+			position: i + 1,
+		}));
+
+		saving = true;
+		try {
+			await reorganizePages(ops);
+			toast.success(`Reordered "${page.title}"`);
+			// Update column in place
+			columns = columns.map((c, i) =>
+				i === colIndex ? { ...c, pages: siblings } : c
+			);
+		} catch {
+			toast.error('Failed to reorder');
+		} finally {
+			saving = false;
+		}
+	}
+
+	function millerDragEnd() {
+		dragPage = null;
+		dragColIndex = null;
+		dropTarget = null;
+	}
+
 	// Index of the last column that has a selection (the "active" column)
 	const activeColumnIndex = $derived.by(() => {
 		for (let i = columns.length - 1; i >= 0; i--) {
@@ -257,20 +361,39 @@
 						<Loader2 size={16} class="animate-spin text-muted-foreground" />
 					</div>
 				{:else}
-					{#each filterColumn(col.pages) as page (page.route)}
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					{#each filterColumn(col.pages) as page, pageIndex (page.route)}
 						{@const isSelected = col.selectedRoute === page.route}
 					{@const isActive = isSelected && colIndex === activeColumnIndex}
 					{@const isPath = isSelected && colIndex !== activeColumnIndex}
-					<button
-							class="flex w-full items-center gap-2 border-b border-border/40 px-3 py-2 text-left transition-all
+					{@const isDragged = dragPage?.route === page.route}
+					{#if reorderMode && dropTarget?.colIndex === colIndex && dropTarget?.index === pageIndex && !isDragged}
+						<div class="mx-2 h-0.5 rounded bg-primary"></div>
+					{/if}
+					<div
+							class="flex w-full items-center gap-1 border-b border-border/40 px-2 py-2 text-left transition-all
+								{isDragged ? 'opacity-30' : ''}
 								{isActive
 									? 'bg-primary text-primary-foreground'
 									: isPath
 										? 'bg-accent text-accent-foreground'
 										: 'text-foreground hover:bg-accent'}"
-							onclick={() => selectPage(colIndex, page)}
-							ondblclick={() => onEdit(page.route)}
+							draggable={reorderMode}
+							ondragstart={(e) => millerDragStart(e, page, colIndex)}
+							ondragover={(e) => millerDragOver(e, colIndex, pageIndex)}
+							ondrop={(e) => millerDrop(e, colIndex, pageIndex)}
+							ondragend={millerDragEnd}
 						>
+							{#if reorderMode}
+								<span class="flex shrink-0 cursor-grab items-center text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing">
+									<GripVertical size={12} />
+								</span>
+							{/if}
+							<button
+								class="flex min-w-0 flex-1 items-center gap-2 text-left"
+								onclick={() => selectPage(colIndex, page)}
+								ondblclick={() => onEdit(page.route)}
+							>
 							{#if page.has_children}
 								<Folder size={14} class="shrink-0 {isActive ? 'text-primary-foreground/80' : 'text-amber-500'}" />
 							{:else}
@@ -282,7 +405,8 @@
 							{#if page.has_children}
 								<ChevronRight size={12} class="shrink-0 {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground/50'}" />
 							{/if}
-						</button>
+							</button>
+						</div>
 					{/each}
 
 					{#if filterColumn(col.pages).length === 0}

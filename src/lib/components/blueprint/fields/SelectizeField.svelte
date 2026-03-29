@@ -12,40 +12,36 @@
 	let { field, value, onchange }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
-	// Parse current value into tags array
-	// Selectize fields store as comma-separated string or array
 	function parseTags(val: unknown): string[] {
 		if (Array.isArray(val)) return val.map(String).filter(Boolean);
 		if (typeof val === 'string' && val) return val.split(',').map((s) => s.trim()).filter(Boolean);
 		return [];
 	}
 
-	// Use derived for the tag display — always reflects the current value prop.
-	// Internal edits call onchange() which updates the parent's data, which flows back as value.
 	const tags = $derived(parseTags(value));
 	let inputValue = $state('');
 	let inputEl = $state<HTMLInputElement | null>(null);
 	let showSuggestions = $state(false);
 	let highlightedIndex = $state(-1);
+	let selectedTagIndex = $state(-1);
 
-	// Available options from blueprint (if any) — for autocomplete
 	const predefinedOptions = $derived(
 		field.options?.map((opt) => opt.value) ?? []
 	);
 
-	// Filter suggestions based on input, excluding already-selected tags
-	const suggestions = $derived(
-		inputValue.length > 0 && predefinedOptions.length > 0
-			? predefinedOptions.filter(
-					(opt) =>
-						opt.toLowerCase().includes(inputValue.toLowerCase()) &&
-						!tags.includes(opt)
-				)
-			: []
-	);
+	// Show filtered suggestions when typing, or ALL unselected options on focus
+	const suggestions = $derived.by(() => {
+		if (!showSuggestions) return [];
+		const available = predefinedOptions.filter((opt) => !tags.includes(opt));
+		if (inputValue.length > 0) {
+			return available.filter((opt) =>
+				opt.toLowerCase().includes(inputValue.toLowerCase())
+			);
+		}
+		return available;
+	});
 
 	function emitChange(newTags: string[]) {
-		// Emit as comma-separated string (matches Grav's commalist validate type)
 		if (field.validate?.type === 'commalist') {
 			onchange(newTags.join(','));
 		} else {
@@ -58,31 +54,73 @@
 		if (!trimmed || tags.includes(trimmed)) return;
 		emitChange([...tags, trimmed]);
 		inputValue = '';
-		showSuggestions = false;
 		highlightedIndex = -1;
+		selectedTagIndex = -1;
+		// Keep suggestions open if there are predefined options
+		showSuggestions = predefinedOptions.length > 0;
 	}
 
 	function removeTag(index: number) {
 		emitChange(tags.filter((_, i) => i !== index));
-	}
-
-	function removeLastTag() {
-		if (tags.length > 0 && !inputValue) {
-			emitChange(tags.slice(0, -1));
-		}
+		selectedTagIndex = -1;
+		inputEl?.focus();
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
+		// If a tag is selected via arrow keys
+		if (selectedTagIndex >= 0) {
+			if (e.key === 'Backspace' || e.key === 'Delete') {
+				e.preventDefault();
+				const idx = selectedTagIndex;
+				const newIdx = idx > 0 ? idx - 1 : tags.length > 1 ? 0 : -1;
+				removeTag(idx);
+				selectedTagIndex = newIdx;
+				return;
+			}
+			if (e.key === 'ArrowLeft') {
+				e.preventDefault();
+				selectedTagIndex = Math.max(0, selectedTagIndex - 1);
+				return;
+			}
+			if (e.key === 'ArrowRight') {
+				e.preventDefault();
+				if (selectedTagIndex < tags.length - 1) {
+					selectedTagIndex++;
+				} else {
+					selectedTagIndex = -1;
+					inputEl?.focus();
+				}
+				return;
+			}
+			if (e.key === 'Escape') {
+				selectedTagIndex = -1;
+				inputEl?.focus();
+				return;
+			}
+			// Any other key — deselect tag and let input handle it
+			selectedTagIndex = -1;
+			return;
+		}
+
 		if (e.key === 'Enter' || e.key === 'Tab' || e.key === ',') {
-			e.preventDefault();
 			if (highlightedIndex >= 0 && highlightedIndex < suggestions.length) {
+				e.preventDefault();
 				addTag(suggestions[highlightedIndex]);
 			} else if (inputValue.trim()) {
+				e.preventDefault();
 				addTag(inputValue);
+			} else if (e.key === 'Enter' && suggestions.length > 0 && !inputValue) {
+				// Don't prevent tab default when no input
 			}
 		} else if (e.key === 'Backspace') {
-			if (!inputValue) {
-				removeLastTag();
+			if (!inputValue && tags.length > 0) {
+				e.preventDefault();
+				selectedTagIndex = tags.length - 1;
+			}
+		} else if (e.key === 'ArrowLeft') {
+			if (!inputValue && tags.length > 0) {
+				e.preventDefault();
+				selectedTagIndex = tags.length - 1;
 			}
 		} else if (e.key === 'Escape') {
 			showSuggestions = false;
@@ -103,22 +141,22 @@
 		inputValue = (e.target as HTMLInputElement).value;
 		showSuggestions = true;
 		highlightedIndex = -1;
+		selectedTagIndex = -1;
 	}
 
 	function handleFocus() {
-		if (inputValue && suggestions.length > 0) {
-			showSuggestions = true;
-		}
+		showSuggestions = true;
+		selectedTagIndex = -1;
 	}
 
 	function handleBlur() {
-		// Delay to allow click on suggestion
 		setTimeout(() => {
 			if (inputValue.trim()) {
 				addTag(inputValue);
 			}
 			showSuggestions = false;
 			highlightedIndex = -1;
+			selectedTagIndex = -1;
 		}, 150);
 	}
 
@@ -128,6 +166,7 @@
 	}
 
 	function focusInput() {
+		selectedTagIndex = -1;
 		inputEl?.focus();
 	}
 </script>
@@ -154,12 +193,19 @@
 			onclick={focusInput}
 		>
 			{#each tags as tag, i (tag + i)}
-				<span class="inline-flex items-center gap-1 rounded-md bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
+				<span
+					class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium transition-colors
+						{selectedTagIndex === i
+							? 'bg-primary text-primary-foreground ring-1 ring-primary'
+							: 'bg-primary/15 text-primary'}"
+				>
 					{tag}
 					<button
 						type="button"
-						class="inline-flex items-center rounded-sm text-primary/60 transition-colors hover:text-primary"
+						class="inline-flex items-center rounded-sm transition-colors
+							{selectedTagIndex === i ? 'text-primary-foreground/70 hover:text-primary-foreground' : 'text-primary/60 hover:text-primary'}"
 						onclick={(e) => { e.stopPropagation(); removeTag(i); }}
+						tabindex={-1}
 					>
 						<X size={12} />
 					</button>
@@ -179,7 +225,6 @@
 			/>
 		</div>
 
-		<!-- Autocomplete suggestions dropdown -->
 		{#if showSuggestions && suggestions.length > 0}
 			<div class="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
 				<div class="max-h-48 overflow-y-auto p-1">

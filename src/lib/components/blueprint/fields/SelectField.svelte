@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { resolveDataOptions } from '$lib/api/endpoints/data';
+	import { getContext } from 'svelte';
 	import { ChevronsUpDown } from 'lucide-svelte';
 
 	interface Props {
@@ -12,7 +14,31 @@
 	let { field, value, onchange }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
-	// Normalize a value for option matching — booleans to '1'/'0'
+	// Page type context (standard vs modular) — used for pageTypes resolution
+	const getPageType = getContext<(() => string) | undefined>('pageType');
+
+	// Dynamically resolved options (from data_options directive)
+	let resolvedOptions = $state<Array<{ value: string; label: string }>>([]);
+
+	// If field has no options but has a data_options directive, resolve it
+	$effect(() => {
+		if (field.data_options && (!field.options || field.options.length === 0)) {
+			const params: Record<string, string> = {};
+			// Pass page type for pageTypes callable
+			if (field.data_options.includes('pageTypes') && getPageType) {
+				params.type = getPageType();
+			}
+			resolveDataOptions(field.data_options, Object.keys(params).length > 0 ? params : undefined).then((opts) => {
+				resolvedOptions = opts;
+			});
+		}
+	});
+
+	// Merge blueprint options with dynamically resolved ones
+	const options = $derived(
+		field.options && field.options.length > 0 ? field.options : resolvedOptions
+	);
+
 	function normalize(v: unknown): string {
 		if (v === true) return '1';
 		if (v === false) return '0';
@@ -20,7 +46,6 @@
 		return String(v);
 	}
 
-	// Resolve the effective value: use config value, fall back to blueprint default
 	const effectiveValue = $derived(
 		value !== undefined && value !== null ? normalize(value) : normalize(field.default)
 	);
@@ -49,11 +74,9 @@
 			onchange={(e) => onchange((e.target as HTMLSelectElement).value)}
 			disabled={field.disabled}
 		>
-			{#if field.options}
-				{#each field.options as opt (opt.value)}
-					<option value={opt.value} selected={effectiveValue === opt.value}>{translateLabel(opt.label)}</option>
-				{/each}
-			{/if}
+			{#each options as opt (opt.value)}
+				<option value={opt.value} selected={effectiveValue === opt.value}>{translateLabel(opt.label)}</option>
+			{/each}
 		</select>
 		<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5">
 			<ChevronsUpDown size={14} class="text-muted-foreground" />

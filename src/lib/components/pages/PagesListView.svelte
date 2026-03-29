@@ -1,19 +1,22 @@
 <script lang="ts">
-	import { getPagesList } from '$lib/api/endpoints/pages';
-	import type { PageSummary, PageListParams } from '$lib/api/endpoints/pages';
+	import { getPagesList, reorganizePages } from '$lib/api/endpoints/pages';
+	import type { PageSummary, PageListParams, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
+	import { toast } from 'svelte-sonner';
 	import {
-		ArrowUp, ArrowDown, File, Loader2, Trash2, ChevronLeft, ChevronRight
+		ArrowUp, ArrowDown, File, Loader2, Trash2, ChevronLeft, ChevronRight,
+		GripVertical
 	} from 'lucide-svelte';
 
 	interface Props {
 		searchQuery?: string;
+		reorderMode?: boolean;
 		onEdit: (route: string) => void;
 		onDelete: (page: PageSummary) => void;
 	}
 
-	let { searchQuery = '', onEdit, onDelete }: Props = $props();
+	let { searchQuery = '', reorderMode = false, onEdit, onDelete }: Props = $props();
 
 	let pages = $state<PageSummary[]>([]);
 	let loading = $state(true);
@@ -22,6 +25,11 @@
 	let sortField = $state<PageListParams['sort']>('modified');
 	let sortOrder = $state<'asc' | 'desc'>('desc');
 	const perPage = 20;
+
+	// Drag state
+	let dragPage = $state<PageSummary | null>(null);
+	let dropIndex = $state<number | null>(null);
+	let saving = $state(false);
 
 	async function loadPages() {
 		loading = true;
@@ -32,7 +40,6 @@
 				sort: sortField,
 				order: sortOrder,
 			});
-			// Estimate total pages (API doesn't return meta in unwrapped response)
 			totalPages = pages.length < perPage ? currentPage : currentPage + 1;
 		} catch { /* handled */ }
 		finally { loading = false; }
@@ -63,7 +70,6 @@
 		return date.toLocaleDateString();
 	}
 
-	// Filter by search
 	const filteredPages = $derived(
 		searchQuery
 			? pages.filter(p =>
@@ -73,6 +79,77 @@
 	);
 
 	$effect(() => { loadPages(); });
+
+	function getParentRoute(page: PageSummary): string {
+		const parts = page.route.split('/').filter(Boolean);
+		if (parts.length <= 1) return '/';
+		return '/' + parts.slice(0, -1).join('/');
+	}
+
+	function handleDragStart(e: DragEvent, page: PageSummary) {
+		if (!reorderMode) return;
+		dragPage = page;
+		if (e.dataTransfer) {
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setData('text/plain', page.route);
+		}
+	}
+
+	function handleDragOver(e: DragEvent, index: number) {
+		if (!reorderMode || !dragPage) return;
+		e.preventDefault();
+		if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+		dropIndex = index;
+	}
+
+	async function handleDrop(e: DragEvent, targetIndex: number) {
+		e.preventDefault();
+		if (!dragPage || saving) return;
+
+		const source = dragPage;
+		const sourceParent = getParentRoute(source);
+		const target = filteredPages[targetIndex];
+		const targetParent = getParentRoute(target);
+
+		dragPage = null;
+		dropIndex = null;
+
+		if (sourceParent !== targetParent) {
+			toast.error('Can only reorder pages under the same parent. Use Tree view for cross-parent moves.');
+			return;
+		}
+
+		// Get all siblings in the current list that share this parent
+		const siblings = filteredPages.filter(p => getParentRoute(p) === sourceParent);
+		const sourceIdx = siblings.findIndex(s => s.route === source.route);
+		const targetIdx = siblings.findIndex(s => s.route === target.route);
+		if (sourceIdx === -1 || targetIdx === -1 || sourceIdx === targetIdx) return;
+
+		const reordered = [...siblings];
+		const [moved] = reordered.splice(sourceIdx, 1);
+		reordered.splice(targetIdx, 0, moved);
+
+		const ops: ReorganizeOperation[] = reordered.map((p, i) => ({
+			route: p.route,
+			position: i + 1,
+		}));
+
+		saving = true;
+		try {
+			await reorganizePages(ops);
+			toast.success(`Reordered "${source.title}"`);
+			await loadPages();
+		} catch {
+			toast.error('Failed to reorder');
+		} finally {
+			saving = false;
+		}
+	}
+
+	function handleDragEnd() {
+		dragPage = null;
+		dropIndex = null;
+	}
 </script>
 
 {#snippet sortHeader(label: string, field: PageListParams['sort'], width: string, align: string = 'left')}
@@ -95,15 +172,22 @@
 
 <!-- Sortable header -->
 <div class="flex items-center gap-4 border-b border-border px-4 py-2">
+	{#if reorderMode}<div class="w-6"></div>{/if}
 	<div class="flex-1">{@render sortHeader('Title', 'title', 'flex-1')}</div>
-	<div class="w-20 text-center">
-		<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Template</span>
-	</div>
-	<div class="w-16 text-center">
-		<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Status</span>
-	</div>
-	<div class="w-24 text-right">{@render sortHeader('Modified', 'modified', 'w-24', 'right')}</div>
-	<div class="w-10"></div>
+	{#if !reorderMode}
+		<div class="w-20 text-center">
+			<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Template</span>
+		</div>
+		<div class="w-16 text-center">
+			<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Status</span>
+		</div>
+		<div class="w-24 text-right">{@render sortHeader('Modified', 'modified', 'w-24', 'right')}</div>
+		<div class="w-10"></div>
+	{:else}
+		<div class="w-32 text-right">
+			<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Parent</span>
+		</div>
+	{/if}
 </div>
 
 {#if loading}
@@ -112,8 +196,26 @@
 		Loading pages...
 	</div>
 {:else}
-	{#each filteredPages as page (page.route)}
-		<div class="group flex items-center gap-4 border-b border-border/50 px-4 py-2 transition-colors hover:bg-accent/50">
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	{#each filteredPages as page, index (page.route)}
+		{#if reorderMode && dropIndex === index && dragPage?.route !== page.route}
+			<div class="mx-4 h-0.5 rounded bg-primary"></div>
+		{/if}
+		<div
+			class="group flex items-center gap-4 border-b border-border/50 px-4 py-2 transition-colors
+				{dragPage?.route === page.route ? 'opacity-30' : 'hover:bg-accent/50'}
+				{saving ? 'pointer-events-none' : ''}"
+			draggable={reorderMode}
+			ondragstart={(e) => handleDragStart(e, page)}
+			ondragover={(e) => handleDragOver(e, index)}
+			ondrop={(e) => handleDrop(e, index)}
+			ondragend={handleDragEnd}
+		>
+			{#if reorderMode}
+				<span class="flex shrink-0 cursor-grab items-center text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing">
+					<GripVertical size={14} />
+				</span>
+			{/if}
 			<div class="flex min-w-0 flex-1 items-center gap-2">
 				<File size={14} class="shrink-0 text-muted-foreground" />
 				<button class="min-w-0 flex-1 text-left" onclick={() => onEdit(page.route)}>
@@ -122,31 +224,34 @@
 				</button>
 			</div>
 
-			<div class="w-20 text-center">
-				<Badge variant="outline">{page.template}</Badge>
-			</div>
-
-			<div class="w-16 text-center">
-				{#if page.published}
-					<Badge variant="success">Published</Badge>
-				{:else}
-					<Badge variant="secondary">Draft</Badge>
-				{/if}
-			</div>
-
-			<div class="w-24 text-right text-[11px] text-muted-foreground">
-				{formatDate(page.modified)}
-			</div>
-
-			<div class="flex w-10 justify-end opacity-0 transition-opacity group-hover:opacity-100">
-				<button
-					class="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-					onclick={() => onDelete(page)}
-					title="Delete"
-				>
-					<Trash2 size={12} />
-				</button>
-			</div>
+			{#if !reorderMode}
+				<div class="w-20 text-center">
+					<Badge variant="outline">{page.template}</Badge>
+				</div>
+				<div class="w-16 text-center">
+					{#if page.published}
+						<Badge variant="success">Published</Badge>
+					{:else}
+						<Badge variant="secondary">Draft</Badge>
+					{/if}
+				</div>
+				<div class="w-24 text-right text-[11px] text-muted-foreground">
+					{formatDate(page.modified)}
+				</div>
+				<div class="flex w-10 justify-end opacity-0 transition-opacity group-hover:opacity-100">
+					<button
+						class="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+						onclick={() => onDelete(page)}
+						title="Delete"
+					>
+						<Trash2 size={12} />
+					</button>
+				</div>
+			{:else}
+				<div class="w-32 text-right text-[11px] text-muted-foreground">
+					{getParentRoute(page)}
+				</div>
+			{/if}
 		</div>
 	{/each}
 
@@ -157,7 +262,7 @@
 	{/if}
 
 	<!-- Pagination -->
-	{#if totalPages > 1 || currentPage > 1}
+	{#if !reorderMode && (totalPages > 1 || currentPage > 1)}
 		<div class="flex items-center justify-between border-t border-border px-4 py-2">
 			<span class="text-xs text-muted-foreground">Page {currentPage}</span>
 			<div class="flex gap-1">

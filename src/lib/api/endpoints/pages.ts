@@ -165,3 +165,21 @@ export async function copyPage(route: string, destination: string): Promise<Page
 	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
 	return api.post<PageDetail>(`/pages/${cleanRoute}/copy`, { route: destination });
 }
+
+export interface ReorganizeOperation {
+	route: string;
+	parent?: string;
+	position?: number;
+}
+
+export interface ReorganizeResult {
+	route: string;
+	slug: string;
+	title: string;
+	order: number | null;
+	parent: string;
+}
+
+export async function reorganizePages(operations: ReorganizeOperation[]): Promise<ReorganizeResult[]> {
+	return api.post<ReorganizeResult[]>('/pages/reorganize', { operations });
+}

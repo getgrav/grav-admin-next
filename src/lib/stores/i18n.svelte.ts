@@ -1,4 +1,5 @@
 import { getTranslations } from '$lib/api/endpoints/translations';
+import { getLocalStrings } from '$lib/i18n';
 
 const CACHE_KEY = 'grav_admin_i18n';
 const CACHE_CHECKSUM_KEY = 'grav_admin_i18n_checksum';
@@ -22,10 +23,16 @@ function createI18nStore() {
 	const cached = loadCached();
 
 	let lang = $state(cached?.lang ?? 'en');
-	let strings = $state<Record<string, string>>(cached?.strings ?? {});
+	let strings = $state<Record<string, string>>({ ...getLocalStrings(cached?.lang ?? 'en'), ...(cached?.strings ?? {}) });
 	let checksum = $state(cached?.checksum ?? '');
 	let loading = $state(false);
 	let loaded = $state(!!cached);
+
+	/** Merge local admin-next translations (ADMIN_NEXT.*) into current strings */
+	function mergeLocalStrings() {
+		const local = getLocalStrings(lang);
+		strings = { ...strings, ...local };
+	}
 
 	function persist() {
 		try {
@@ -106,6 +113,7 @@ function createI18nStore() {
 				lang = data.lang;
 				strings = data.strings;
 				checksum = data.checksum;
+				mergeLocalStrings();
 				persist();
 			}
 
@@ -131,6 +139,7 @@ function createI18nStore() {
 			lang = data.lang;
 			// Merge prefix strings into existing strings
 			strings = { ...strings, ...data.strings };
+			mergeLocalStrings();
 			persist();
 		} catch {
 			// Non-critical — full load will happen later

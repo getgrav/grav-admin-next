@@ -20,6 +20,8 @@
 
 	// Provide page route to child components (used by PageMedia field, etc.)
 	setContext('pageRoute', () => route);
+	// Provide page type context (standard vs modular) for template selectors
+	setContext('pageType', () => template?.startsWith('modular') ? 'modular' : 'standard');
 
 	let pageData = $state<PageDetail | null>(null);
 	let blueprint = $state<BlueprintSchema | null>(null);
@@ -54,7 +56,7 @@
 			title = data.title;
 			content = data.content ?? '';
 			template = data.template;
-			headerData = { header: { ...data.header ?? {}, title: data.title }, content: data.content ?? '' };
+			headerData = { header: { ...data.header ?? {}, title: data.title }, content: data.content ?? '', folder: data.slug, name: data.template };
 			headerYaml = JSON.stringify(data.header ?? {}, null, 2);
 
 			// Load blueprint for the page template (falls back to default on API side)
