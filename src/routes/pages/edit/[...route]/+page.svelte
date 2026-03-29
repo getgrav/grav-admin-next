@@ -35,6 +35,7 @@
 	let published = $state(true);
 	let visible = $state(true);
 	let headerData = $state<Record<string, unknown>>({});
+	let headerChanges = $state<Record<string, unknown>>({});
 	let headerYaml = $state('');
 
 	let hasChanges = $derived(
@@ -43,7 +44,8 @@
 			content !== (pageData.content ?? '') ||
 			template !== pageData.template ||
 			published !== pageData.published ||
-			visible !== pageData.visible
+			visible !== pageData.visible ||
+			Object.keys(headerChanges).length > 0
 		)
 	);
 
@@ -85,7 +87,32 @@
 		} else if (path === 'header.title') {
 			title = value as string;
 		}
-		headerData = { ...headerData };
+
+		// Track header field changes for save
+		if (path.startsWith('header.')) {
+			const headerPath = path.slice(7); // Remove 'header.' prefix
+			if (value === undefined) {
+				const next = { ...headerChanges };
+				delete next[headerPath];
+				headerChanges = next;
+			} else {
+				headerChanges = { ...headerChanges, [headerPath]: value };
+			}
+		}
+
+		// Apply the value change to headerData immutably
+		const parts = path.split('.');
+		const newData = { ...headerData };
+		let current: Record<string, unknown> = newData;
+		for (let i = 0; i < parts.length - 1; i++) {
+			if (!current[parts[i]] || typeof current[parts[i]] !== 'object') {
+				current[parts[i]] = {};
+			}
+			current[parts[i]] = { ...(current[parts[i]] as Record<string, unknown>) };
+			current = current[parts[i]] as Record<string, unknown>;
+		}
+		current[parts[parts.length - 1]] = value;
+		headerData = newData;
 	}
 
 	async function handleSave() {
@@ -101,6 +128,24 @@
 			if (published !== pageData.published) body.published = published;
 			if (visible !== pageData.visible) body.visible = visible;
 
+			// Include header changes from blueprint form fields
+			if (Object.keys(headerChanges).length > 0) {
+				// Build nested header object from dot-notation keys
+				const header: Record<string, unknown> = {};
+				for (const [dotPath, val] of Object.entries(headerChanges)) {
+					const parts = dotPath.split('.');
+					let current = header;
+					for (let i = 0; i < parts.length - 1; i++) {
+						if (!current[parts[i]] || typeof current[parts[i]] !== 'object') {
+							current[parts[i]] = {};
+						}
+						current = current[parts[i]] as Record<string, unknown>;
+					}
+					current[parts[parts.length - 1]] = val;
+				}
+				body.header = header;
+			}
+
 			if (Object.keys(body).length === 0) {
 				toast.info('No changes to save');
 				return;
@@ -109,6 +154,7 @@
 			const updated = await updatePage(route, body);
 			pageData = updated;
 			content = updated.content ?? content;
+			headerChanges = {};
 			toast.success('Page saved successfully');
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'message' in err) {
