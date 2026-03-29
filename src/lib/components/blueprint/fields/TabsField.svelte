@@ -25,6 +25,22 @@
 	}
 
 	let activeIndex = $state(getInitialIndex());
+	const tabKey = $derived(tabs.map((t) => t.name).join(','));
+	let prevTabKey = $state(tabKey);
+
+	// Only re-resolve activeIndex when the tabs actually change (blueprint reload)
+	$effect(() => {
+		if (tabKey === prevTabKey) return;
+		prevTabKey = tabKey;
+		if (tabs.length === 0) return;
+		const hash = typeof window !== 'undefined' ? window.location.hash.slice(1).toLowerCase() : '';
+		if (hash) {
+			const idx = tabs.findIndex((t) => t.name.toLowerCase() === hash);
+			activeIndex = idx >= 0 ? idx : 0;
+		} else if (activeIndex >= tabs.length) {
+			activeIndex = 0;
+		}
+	});
 
 	function setActiveTab(index: number) {
 		activeIndex = index;

@@ -16,22 +16,21 @@
 		return f.style === 'vertical';
 	}
 
-	// Track toggleable field states
-	let toggleStates = $state<Record<string, boolean>>({});
-	let togglesInitialized = $state(false);
-
-	$effect(() => {
-		if (togglesInitialized || !field.fields) return;
-		togglesInitialized = true;
+	// Track toggleable field states — initialize eagerly (not in $effect)
+	// to avoid state_unsafe_mutation when template reads during first render
+	const initToggleStates = (): Record<string, boolean> => {
 		const initial: Record<string, boolean> = {};
-		for (const f of field.fields) {
-			if (f.toggleable) {
-				const val = getValue(f.name);
-				initial[f.name] = val !== undefined && val !== null;
+		if (field.fields) {
+			for (const f of field.fields) {
+				if (f.toggleable) {
+					const val = getValue(f.name);
+					initial[f.name] = val !== undefined && val !== null;
+				}
 			}
 		}
-		toggleStates = initial;
-	});
+		return initial;
+	};
+	let toggleStates = $state<Record<string, boolean>>(initToggleStates());
 
 	function toggleField(name: string, fieldDef: BlueprintField) {
 		const current = toggleStates[name] ?? false;
@@ -50,7 +49,6 @@
 
 	function isToggleOn(f: BlueprintField): boolean {
 		if (!f.toggleable) return true;
-		if (!togglesInitialized) return true;
 		return toggleStates[f.name] ?? false;
 	}
 </script>

@@ -76,12 +76,21 @@
 		}
 	}
 
-	function handleBlueprintChange(path: string, value: unknown) {
+	async function handleBlueprintChange(path: string, value: unknown) {
 		// Sync special fields back to their state variables
 		if (path === 'content') {
 			content = value as string;
 		} else if (path === 'header.title') {
 			title = value as string;
+		} else if (path === 'name') {
+			// Template changed — reload the blueprint for the new template
+			const newTemplate = value as string;
+			template = newTemplate;
+			try {
+				blueprint = await getPageBlueprint(newTemplate);
+			} catch {
+				blueprint = null;
+			}
 		}
 
 		// Track header field changes for save
@@ -147,8 +156,21 @@
 
 			const updated = await updatePage(route, body);
 			pageData = updated;
+			title = updated.title;
 			content = updated.content ?? content;
+			template = updated.template;
+			headerData = { header: { ...updated.header ?? {}, title: updated.title }, content: updated.content ?? '', folder: updated.slug, name: updated.template };
 			headerChanges = {};
+
+			// Reload blueprint if template changed
+			if (body.template) {
+				try {
+					blueprint = await getPageBlueprint(updated.template);
+				} catch {
+					blueprint = null;
+				}
+			}
+
 			toast.success('Page saved successfully');
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'message' in err) {
@@ -241,11 +263,14 @@
 			<div class="space-y-4">
 				{#if blueprint}
 					<!-- Blueprint-driven form renders the full editor: tabs, fields, everything -->
-					<BlueprintForm
-						fields={blueprint.fields}
-						data={headerData}
-						onchange={handleBlueprintChange}
-					/>
+					<!-- Key on template name to force full re-mount when blueprint changes -->
+					{#key blueprint.name}
+						<BlueprintForm
+							fields={blueprint.fields}
+							data={headerData}
+							onchange={handleBlueprintChange}
+						/>
+					{/key}
 				{:else}
 					<!-- Fallback when no blueprint is available -->
 					<div class="rounded-lg border border-border bg-card p-4">
