@@ -61,6 +61,9 @@ export interface BlueprintField {
 	placeholder_key?: string;
 	placeholder_value?: string;
 	value_type?: string;
+	preview_images?: boolean;
+	folder?: string;
+	condition?: string;
 }
 
 export interface BlueprintSchema {

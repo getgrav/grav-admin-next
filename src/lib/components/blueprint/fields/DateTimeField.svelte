@@ -95,19 +95,19 @@
 		);
 	}
 
-	/** Format CalendarDateTime to a standard string for Grav storage */
+	/** Format CalendarDateTime to d-m-Y H:i for Grav storage (matches old admin format) */
 	function formatForStorage(date: DateValue | undefined): string {
 		if (!date) return '';
-		const y = String(date.year);
-		const m = String(date.month).padStart(2, '0');
 		const d = String(date.day).padStart(2, '0');
+		const m = String(date.month).padStart(2, '0');
+		const y = String(date.year);
 		if ('hour' in date) {
 			const dt = date as CalendarDateTime;
 			const h = String(dt.hour).padStart(2, '0');
 			const min = String(dt.minute).padStart(2, '0');
-			return `${y}-${m}-${d} ${h}:${min}`;
+			return `${d}-${m}-${y} ${h}:${min}`;
 		}
-		return `${y}-${m}-${d}`;
+		return `${d}-${m}-${y}`;
 	}
 
 	let dateValue = $derived(parseValue(value));

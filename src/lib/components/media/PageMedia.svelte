@@ -10,11 +10,21 @@
 
 	interface Props {
 		route: string;
+		onMediaChange?: (items: MediaItem[]) => void;
+		/** External media items from shared context — when updated externally, syncs into local state */
+		externalItems?: MediaItem[];
 	}
 
-	let { route }: Props = $props();
+	let { route, onMediaChange, externalItems }: Props = $props();
 
 	let mediaItems = $state<MediaItem[]>([]);
+
+	// Sync from external context when it changes (e.g. FileField uploaded a file)
+	$effect(() => {
+		if (externalItems && externalItems.length > 0) {
+			mediaItems = externalItems;
+		}
+	});
 	let loading = $state(true);
 	let uploading = $state(false);
 	let uploadProgress = $state<Map<string, number>>(new Map());
@@ -117,6 +127,7 @@
 	async function loadMedia() {
 		try {
 			mediaItems = await getPageMedia(route);
+			onMediaChange?.(mediaItems);
 		} catch (err) {
 			console.error('[PageMedia] Failed to load media:', err);
 		} finally {
@@ -128,6 +139,7 @@
 		try {
 			await deletePageMedia(route, item.filename);
 			mediaItems = mediaItems.filter(m => m.filename !== item.filename);
+			onMediaChange?.(mediaItems);
 			toast.success(`Deleted ${item.filename}`);
 		} catch {
 			toast.error(`Failed to delete ${item.filename}`);

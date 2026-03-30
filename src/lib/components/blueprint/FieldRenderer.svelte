@@ -21,6 +21,13 @@
 	import DateTimeField from './fields/DateTimeField.svelte';
 	import TaxonomyField from './fields/TaxonomyField.svelte';
 	import FolderSlugField from './fields/FolderSlugField.svelte';
+	import FilePickerField from './fields/FilePickerField.svelte';
+	import FileField from './fields/FileField.svelte';
+	import ElementsField from './fields/ElementsField.svelte';
+	import ConditionalField from './fields/ConditionalField.svelte';
+	import FrontmatterField from './fields/FrontmatterField.svelte';
+	import IconPickerField from './fields/IconPickerField.svelte';
+	import PermissionsField from './fields/PermissionsField.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 
 	interface Props {
@@ -282,16 +289,11 @@
 {:else if field.type === 'pagemedia'}
 	<PageMediaField />
 
-{:else if field.type === 'filepicker' || field.type === 'mediapicker' || field.type === 'file'}
-	<!-- File picker fields — placeholder for now -->
-	<div>
-		{#if field.label}
-			<span class="mb-1 block text-sm font-medium text-foreground">{translateLabel(field.label)}</span>
-		{/if}
-		<div class="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
-			File picker — coming soon
-		</div>
-	</div>
+{:else if field.type === 'filepicker' || field.type === 'mediapicker' || field.type === 'pagemediaselect'}
+	<FilePickerField {field} {value} {onchange} />
+
+{:else if field.type === 'file'}
+	<FileField {field} {value} {onchange} />
 
 {:else if field.type === 'pages' || field.type === 'parents'}
 	<PagesField {field} {value} {onchange} />
@@ -310,6 +312,24 @@
 
 {:else if field.type === 'colorpicker'}
 	<TextField field={{ ...field, type: 'color' }} {value} {onchange} />
+
+{:else if field.type === 'elements'}
+	<ElementsField {field} {value} {onchange} {getValue} {onFieldChange} />
+
+{:else if field.type === 'element'}
+	<!-- Elements handle their own element children; standalone element is a no-op -->
+
+{:else if field.type === 'conditional'}
+	<ConditionalField {field} {getValue} {onFieldChange} />
+
+{:else if field.type === 'frontmatter' || field.type === 'codemirror'}
+	<FrontmatterField {field} {value} {onchange} />
+
+{:else if field.type === 'iconpicker'}
+	<IconPickerField {field} {value} {onchange} />
+
+{:else if field.type === 'permissions' || field.type === 'acl_picker'}
+	<PermissionsField {field} {value} {onchange} />
 
 {:else}
 	<!-- Unknown field type — render as raw JSON editor -->

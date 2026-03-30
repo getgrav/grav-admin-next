@@ -1,5 +1,6 @@
 <script lang="ts">
 	import './layout.css';
+	import '@fortawesome/fontawesome-free/css/all.min.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';

@@ -6,6 +6,8 @@
 	import { getPageBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { PageDetail } from '$lib/api/endpoints/pages';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
+	import type { MediaItem } from '$lib/api/endpoints/media';
+	import type { PageMediaContext } from '$lib/components/media/types';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
@@ -18,10 +20,19 @@
 
 	const route = $derived('/' + (page.params.route || ''));
 
+	// Shared reactive media list — PageMedia writes to it, FilePickerField reads from it
+	let pageMediaItems = $state<MediaItem[]>([]);
+	function updatePageMedia(items: MediaItem[]) { pageMediaItems = items; }
+
 	// Provide page route to child components (used by PageMedia field, etc.)
 	setContext('pageRoute', () => route);
 	// Provide page type context (standard vs modular) for template selectors
 	setContext('pageType', () => template?.startsWith('modular') ? 'modular' : 'standard');
+	// Provide shared media list + updater so file pickers see uploads without saving
+	setContext('pageMediaItems', {
+		get items() { return pageMediaItems; },
+		update: updatePageMedia,
+	});
 
 	let pageData = $state<PageDetail | null>(null);
 	let blueprint = $state<BlueprintSchema | null>(null);
@@ -414,7 +425,7 @@
 				<!-- Page Media (shown when no blueprint provides a pagemedia field) -->
 				{#if !blueprint}
 					<div class="rounded-lg border border-border bg-card p-4">
-						<PageMedia {route} />
+						<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} />
 					</div>
 				{/if}
 			</div>
