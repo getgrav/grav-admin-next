@@ -9,6 +9,8 @@ interface StoredAuth {
 	expiresAt: number;
 	username: string;
 	fullname: string;
+	email: string;
+	avatarUrl: string;
 }
 
 function loadStored(): StoredAuth | null {
@@ -31,6 +33,8 @@ function createAuthStore() {
 	let expiresAt = $state(stored?.expiresAt ?? 0);
 	let username = $state(stored?.username ?? '');
 	let fullname = $state(stored?.fullname ?? '');
+	let email = $state(stored?.email ?? '');
+	let avatarUrl = $state(stored?.avatarUrl ?? '');
 
 	const isAuthenticated = $derived(!!accessToken && Date.now() < expiresAt);
 	const isExpiringSoon = $derived(!!accessToken && expiresAt - Date.now() < 5 * 60 * 1000);
@@ -44,7 +48,9 @@ function createAuthStore() {
 			refreshToken,
 			expiresAt,
 			username,
-			fullname
+			fullname,
+			email,
+			avatarUrl,
 		};
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 	}
@@ -65,6 +71,8 @@ function createAuthStore() {
 
 		get username() { return username; },
 		get fullname() { return fullname; },
+		get email() { return email; },
+		get avatarUrl() { return avatarUrl; },
 
 		get isAuthenticated() { return isAuthenticated; },
 		get isExpiringSoon() { return isExpiringSoon; },
@@ -76,9 +84,11 @@ function createAuthStore() {
 			persist();
 		},
 
-		setUser(name: string, full: string) {
+		setUser(name: string, full: string, userEmail = '', avatar = '') {
 			username = name;
 			fullname = full;
+			email = userEmail;
+			avatarUrl = avatar;
 			persist();
 		},
 
@@ -95,6 +105,8 @@ function createAuthStore() {
 			expiresAt = 0;
 			username = '';
 			fullname = '';
+			email = '';
+			avatarUrl = '';
 			persist();
 		}
 	};

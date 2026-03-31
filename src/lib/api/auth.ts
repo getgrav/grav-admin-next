@@ -8,6 +8,13 @@ interface TokenResponse {
 	token_type: string;
 }
 
+interface UserProfile {
+	username: string;
+	email: string | null;
+	fullname: string | null;
+	avatar_url: string | null;
+}
+
 function parseJwtSubject(token: string): string {
 	try {
 		const payload = JSON.parse(atob(token.split('.')[1]));
@@ -20,9 +27,21 @@ function parseJwtSubject(token: string): string {
 export async function login(username: string, password: string): Promise<void> {
 	const data = await api.post<TokenResponse>('/auth/token', { username, password });
 	auth.setTokens(data.access_token, data.refresh_token, data.expires_in);
-	// Extract username from JWT subject claim; use login username as fallback
+
 	const sub = parseJwtSubject(data.access_token) || username;
-	auth.setUser(sub, sub);
+
+	// Fetch the user's profile to get fullname, email, and avatar
+	try {
+		const profile = await api.get<UserProfile>(`/users/${sub}`);
+		auth.setUser(
+			sub,
+			profile.fullname || sub,
+			profile.email || '',
+			profile.avatar_url || '',
+		);
+	} catch {
+		auth.setUser(sub, sub);
+	}
 }
 
 export async function logout(): Promise<void> {

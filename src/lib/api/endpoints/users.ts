@@ -8,6 +8,7 @@ export interface UserInfo {
 	title: string | null;
 	state: 'enabled' | 'disabled';
 	access: Record<string, unknown>;
+	avatar_url: string | null;
 	twofa_enabled: boolean;
 	twofa_secret: boolean;
 	created: string | null;
@@ -97,6 +98,36 @@ export async function updateUser(
 
 export async function deleteUser(username: string): Promise<void> {
 	await api.delete(`/users/${username}`);
+}
+
+export async function uploadAvatar(username: string, file: File): Promise<UserInfo> {
+	const baseUrl = `${auth.serverUrl}${auth.apiPrefix || '/api/v1'}`;
+	const formData = new FormData();
+	formData.append('avatar', file);
+
+	const response = await fetch(`${baseUrl}/users/${username}/avatar`, {
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${auth.accessToken}`,
+			...(auth.environment ? { 'X-Grav-Environment': auth.environment } : {}),
+		},
+		body: formData,
+	});
+
+	if (!response.ok) {
+		const body = await response.json().catch(() => null);
+		throw new ApiRequestError(
+			body ?? { status: response.status, title: 'Upload Failed', detail: 'Failed to upload avatar' },
+			response,
+		);
+	}
+
+	const body = await response.json();
+	return body.data ?? body;
+}
+
+export async function deleteAvatar(username: string): Promise<UserInfo> {
+	return api.delete<UserInfo>(`/users/${username}/avatar`);
 }
 
 export interface TwoFactorData {

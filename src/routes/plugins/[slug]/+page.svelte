@@ -379,7 +379,7 @@
 		</div>
 	{:else if plugin}
 		<div class="flex-1 overflow-y-auto">
-			<div class="mx-auto max-w-4xl space-y-6 px-6 py-6">
+			<div class="space-y-6 px-6 py-6">
 				<!-- Plugin info card -->
 				<div class="rounded-xl border border-border bg-card p-5">
 					<div class="flex items-start gap-4">

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { getUsers, type UserInfo, type UsersPage } from '$lib/api/endpoints/users';
+	import { resolveAvatarUrl } from '$lib/utils/avatar';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
 	import {
@@ -155,10 +156,11 @@
 							ondblclick={() => openUserEdit(user.username)}
 						>
 							<!-- Avatar -->
-							<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full
-								{user.state === 'enabled' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}">
-								<span class="text-xs font-semibold">{getInitials(user)}</span>
-							</div>
+							<img
+								src={resolveAvatarUrl(user.avatar_url, user.email, user.fullname, user.username)}
+								alt={user.fullname ?? user.username}
+								class="h-10 w-10 shrink-0 rounded-full object-cover"
+							/>
 
 							<!-- Info -->
 							<div class="min-w-0 flex-1">
@@ -226,10 +228,11 @@
 					<div class="p-6">
 						<!-- User header -->
 						<div class="flex items-start gap-4">
-							<div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full
-								{selectedUser.state === 'enabled' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}">
-								<span class="text-lg font-semibold">{getInitials(selectedUser)}</span>
-							</div>
+							<img
+								src={resolveAvatarUrl(selectedUser.avatar_url, selectedUser.email, selectedUser.fullname, selectedUser.username)}
+								alt={selectedUser.fullname ?? selectedUser.username}
+								class="h-16 w-16 shrink-0 rounded-full object-cover shadow-md"
+							/>
 							<div class="min-w-0 flex-1">
 								<div class="flex items-center gap-2">
 									<h2 class="text-lg font-semibold text-foreground">

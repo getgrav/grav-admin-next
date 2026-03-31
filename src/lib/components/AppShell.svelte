@@ -7,6 +7,7 @@
 	import { theme } from '$lib/stores/theme.svelte';
 	import { logout } from '$lib/api/auth';
 	import { api } from '$lib/api/client';
+	import { resolveAvatarUrl } from '$lib/utils/avatar';
 	import type { Snippet } from 'svelte';
 	import {
 		LayoutDashboard, FileText, Image, Users, Puzzle, Palette,
@@ -149,7 +150,14 @@
 			<div class="h-5 w-px bg-border"></div>
 
 			<div class="flex items-center gap-2">
-				<span class="text-[13px] font-medium text-foreground">{auth.fullname || auth.username}</span>
+				<a href="/users/{auth.username}" class="flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-accent">
+					<img
+						src={resolveAvatarUrl(auth.avatarUrl || null, auth.email || null, auth.fullname || null, auth.username)}
+						alt={auth.fullname || auth.username}
+						class="h-7 w-7 rounded-full object-cover"
+					/>
+					<span class="text-[13px] font-medium text-foreground">{auth.fullname || auth.username}</span>
+				</a>
 				<button class="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
 					onclick={handleLogout} title="Sign out">
 					<LogOut size={15} />

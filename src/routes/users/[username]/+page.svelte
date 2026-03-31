@@ -7,6 +7,7 @@
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
 	import TwoFactorField from '$lib/components/TwoFactorField.svelte';
+	import UserAvatarCard from '$lib/components/UserAvatarCard.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
@@ -45,7 +46,7 @@
 	);
 
 	// Names of fields/sections handled manually outside the blueprint form
-	const SUPPRESSED_NAMES = new Set(['security', 'twofa_check']);
+	const SUPPRESSED_NAMES = new Set(['security', 'twofa_check', 'avatar', 'multiavatar_only']);
 
 	// Recursively filter out suppressed field types and named sections from blueprint
 	function filterFields(fields: BlueprintSchema['fields']): BlueprintSchema['fields'] {
@@ -158,6 +159,17 @@
 			user = result.user;
 			etag = result.etag;
 			populateForm(result.user);
+
+			// If editing your own account, update the top bar
+			if (username === auth.username) {
+				auth.setUser(
+					username,
+					result.user.fullname || username,
+					result.user.email || '',
+					result.user.avatar_url || '',
+				);
+			}
+
 			toast.success(`User '${username}' saved`);
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {
@@ -195,6 +207,10 @@
 
 	function handleAccessChange(newAccess: Record<string, unknown>) {
 		access = newAccess;
+	}
+
+	function handleAvatarUpdated(updated: UserInfo) {
+		user = updated;
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -295,7 +311,10 @@
 		</div>
 	{:else if user}
 		<div class="flex-1 overflow-y-auto">
-			<div class="mx-auto max-w-3xl space-y-6 px-6 py-6">
+			<div class="space-y-6 px-6 py-6">
+				<!-- Avatar card -->
+				<UserAvatarCard {user} onupdated={handleAvatarUpdated} />
+
 				<!-- Blueprint-driven account fields -->
 				{#if filteredBlueprint && filteredBlueprint.fields.length > 0}
 					<BlueprintForm

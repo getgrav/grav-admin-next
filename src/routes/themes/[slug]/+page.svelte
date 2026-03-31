@@ -357,7 +357,7 @@
 		</div>
 	{:else if theme}
 		<div class="flex-1 overflow-y-auto">
-			<div class="mx-auto max-w-4xl space-y-6 px-6 py-6">
+			<div class="space-y-6 px-6 py-6">
 				<!-- Theme info card -->
 				<div class="rounded-xl border border-border bg-card p-5">
 					{#if resolveUrl(theme.screenshot)}
