@@ -217,7 +217,7 @@
 					/>
 				</div>
 			</div>
-			<div class="text-xs text-muted-foreground self-center pb-1.5">days <span class="italic">(blank = never)</span></div>
+			<div class="flex h-9 items-center text-xs text-muted-foreground">days <span class="ml-1 italic">(blank = never)</span></div>
 			<Button size="sm" onclick={handleGenerate} disabled={generating || !newKeyName.trim()}>
 				{#if generating}
 					<Loader2 size={14} class="mr-1.5 animate-spin" />
