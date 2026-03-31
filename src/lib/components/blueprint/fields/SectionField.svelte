@@ -2,15 +2,23 @@
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import FieldRenderer from '../FieldRenderer.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { fieldMatches, fieldMatchesSelf } from '$lib/utils/field-filter';
 
 	interface Props {
 		field: BlueprintField;
 		getValue: (path: string) => unknown;
 		onFieldChange: (path: string, value: unknown) => void;
+		filter?: string;
 	}
 
-	let { field, getValue, onFieldChange }: Props = $props();
+	let { field, getValue, onFieldChange, filter = '' }: Props = $props();
 	const translateLabel = i18n.tMaybe;
+
+	const visibleFields = $derived(
+		filter && field.fields
+			? field.fields.filter(f => fieldMatchesSelf(f, filter))
+			: field.fields ?? []
+	);
 
 	function isVertical(f: BlueprintField): boolean {
 		return f.style === 'vertical';
@@ -51,6 +59,12 @@
 		if (!f.toggleable) return true;
 		return toggleStates[f.name] ?? false;
 	}
+
+	function highlight(text: string): string {
+		if (!filter) return text;
+		const escaped = filter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="bg-yellow-400/40 text-inherit rounded-sm">$1</mark>');
+	}
 </script>
 
 {#snippet toggleCheckbox(fieldDef: BlueprintField, toggled: boolean)}
@@ -68,6 +82,7 @@
 	</button>
 {/snippet}
 
+{#if !filter || visibleFields.length > 0}
 <div class="rounded-xl border border-border bg-muted/30">
 	{#if field.title || field.label}
 		<div class="px-6 pt-6 pb-2">
@@ -80,9 +95,9 @@
 		</div>
 	{/if}
 
-	{#if field.fields}
+	{#if visibleFields.length > 0}
 		<div class="space-y-5 px-6 py-5">
-			{#each field.fields as childField (childField.name)}
+			{#each visibleFields as childField (childField.name)}
 				{@const toggled = isToggleOn(childField)}
 
 				{#if isVertical(childField)}
@@ -104,14 +119,24 @@
 							<div>
 								{#if childField.label}
 									<span class="text-sm font-semibold {toggled ? 'text-foreground' : 'text-muted-foreground'}">
-										{translateLabel(childField.label)}
+										{#if filter}
+											{@html highlight(translateLabel(childField.label))}
+										{:else}
+											{translateLabel(childField.label)}
+										{/if}
 										{#if childField.validate?.required}
 											<span class="text-red-500">*</span>
 										{/if}
 									</span>
 								{/if}
 								{#if childField.help}
-									<p class="mt-0.5 text-xs text-muted-foreground">{translateLabel(childField.help)}</p>
+									<p class="mt-0.5 text-xs text-muted-foreground">
+										{#if filter}
+											{@html highlight(translateLabel(childField.help))}
+										{:else}
+											{translateLabel(childField.help)}
+										{/if}
+									</p>
 								{/if}
 							</div>
 						</div>
@@ -130,3 +155,4 @@
 		</div>
 	{/if}
 </div>
+{/if}

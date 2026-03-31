@@ -10,7 +10,7 @@
 	import ConfigInfoPage from '$lib/components/config/ConfigInfoPage.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
-	import { Save, AlertCircle, Loader2, RefreshCw } from 'lucide-svelte';
+	import { Save, AlertCircle, Loader2, RefreshCw, Search, X } from 'lucide-svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 
 	const REDACTED = '********';
@@ -29,6 +29,7 @@
 	let error = $state('');
 
 	let hasChanges = $derived(JSON.stringify(configData) !== originalJson);
+	let filter = $state('');
 
 	function scopeTitle(s: string): string {
 		const key = `PLUGIN_ADMIN.${s.toUpperCase()}`;
@@ -195,8 +196,32 @@
 		{/if}
 	</div>
 
-	<!-- Scope navigation tabs -->
-	<ConfigNav {sections} />
+	<!-- Scope navigation tabs + filter -->
+	<div class="flex items-center gap-3">
+		<div class="flex-1">
+			<ConfigNav {sections} />
+		</div>
+		{#if !isInfo && blueprint}
+			<div class="relative">
+				<Search size={14} class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+				<input
+					type="text"
+					class="h-8 w-48 rounded-md border border-input bg-transparent pl-9 pr-8 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+					placeholder="Filter fields..."
+					bind:value={filter}
+				/>
+				{#if filter}
+					<button
+						class="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+						onclick={() => filter = ''}
+						aria-label="Clear filter"
+					>
+						<X size={14} />
+					</button>
+				{/if}
+			</div>
+		{/if}
+	</div>
 
 	{#if error}
 		<div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
@@ -214,6 +239,7 @@
 			fields={blueprint.fields}
 			data={configData}
 			onchange={handleBlueprintChange}
+			{filter}
 		/>
 	{:else if !error}
 		<div class="py-20 text-center text-sm text-muted-foreground">

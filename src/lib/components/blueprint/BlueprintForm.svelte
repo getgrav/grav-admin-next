@@ -6,9 +6,10 @@
 		fields: BlueprintField[];
 		data: Record<string, unknown>;
 		onchange?: (path: string, value: unknown) => void;
+		filter?: string;
 	}
 
-	let { fields, data, onchange }: Props = $props();
+	let { fields, data, onchange, filter = '' }: Props = $props();
 
 	/**
 	 * Normalize blueprint fields: adopt orphan siblings into bare sections.
@@ -95,6 +96,7 @@
 			onchange={(val) => handleChange(field.name, val)}
 			{getValue}
 			onFieldChange={handleChange}
+			{filter}
 		/>
 	{/each}
 </div>

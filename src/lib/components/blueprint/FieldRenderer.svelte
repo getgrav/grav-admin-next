@@ -31,6 +31,7 @@
 	import CustomFieldWrapper from './fields/CustomFieldWrapper.svelte';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { fieldMatches } from '$lib/utils/field-filter';
 
 	interface Props {
 		field: BlueprintField;
@@ -38,9 +39,10 @@
 		onchange: (value: unknown) => void;
 		getValue: (path: string) => unknown;
 		onFieldChange: (path: string, value: unknown) => void;
+		filter?: string;
 	}
 
-	let { field, value, onchange, getValue, onFieldChange }: Props = $props();
+	let { field, value, onchange, getValue, onFieldChange, filter = '' }: Props = $props();
 
 	// Use i18n.tMaybe for all label translation
 	const translateLabel = i18n.tMaybe;
@@ -63,14 +65,17 @@
 {#if suppressedNames.has(field.name) || suppressedTypes.has(field.type)}
 	<!-- Suppressed in admin-next -->
 
+{:else if filter && !fieldMatches(field, filter)}
+	<!-- Filtered out -->
+
 {:else if field.type === 'tabs' && field.fields}
-	<TabsField {field} {getValue} {onFieldChange} />
+	<TabsField {field} {getValue} {onFieldChange} {filter} />
 
 {:else if field.type === 'tab' && field.fields}
 	<!-- Tabs handle rendering their own tab content -->
 
 {:else if field.type === 'section' || field.type === 'fieldset'}
-	<SectionField {field} {getValue} {onFieldChange} />
+	<SectionField {field} {getValue} {onFieldChange} {filter} />
 
 {:else if field.type === 'columns' && field.fields}
 	{@const processed = (() => {
@@ -147,6 +152,7 @@
 						onchange={(val: unknown) => onFieldChange(childField.name, val)}
 						{getValue}
 						{onFieldChange}
+						{filter}
 					/>
 				{/each}
 			</div>
