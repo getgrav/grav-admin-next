@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { goto, beforeNavigate } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { getUser, updateUser, deleteUser, type UserInfo } from '$lib/api/endpoints/users';
 	import { getUserBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
@@ -13,6 +13,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import {
 		Save, ArrowLeft, Loader2, AlertCircle, Trash2, User
 	} from 'lucide-svelte';
@@ -221,11 +222,7 @@
 		}
 	}
 
-	beforeNavigate(({ cancel }) => {
-		if (hasChanges && !confirm('You have unsaved changes. Leave anyway?')) {
-			cancel();
-		}
-	});
+	const guard = createUnsavedGuard(() => hasChanges);
 
 	$effect(() => {
 		username; // track
@@ -384,4 +381,14 @@
 	variant="destructive"
 	onconfirm={confirmDelete}
 	oncancel={() => { confirmDeleteOpen = false; }}
+/>
+
+<ConfirmModal
+	open={guard.showModal}
+	title="Unsaved Changes"
+	message="You have unsaved changes. Leave anyway?"
+	confirmLabel="Leave"
+	cancelLabel="Stay"
+	onconfirm={guard.confirm}
+	oncancel={guard.cancel}
 />

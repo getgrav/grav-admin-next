@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { fieldSizeClass } from '$lib/utils/field-size';
 	import { resolveDataOptions } from '$lib/api/endpoints/data';
 	import { getContext } from 'svelte';
 	import { ChevronsUpDown } from 'lucide-svelte';
@@ -67,7 +68,7 @@
 			{/if}
 		</div>
 	{/if}
-	<div class="relative">
+	<div class="relative {fieldSizeClass(field.size)}">
 		<select
 			class="flex h-10 w-full appearance-none rounded-lg border border-input bg-muted/50 pl-3 pr-8 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 			value={effectiveValue}

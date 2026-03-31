@@ -85,8 +85,9 @@
 			plugin.enabled = newState;
 			plugins = [...plugins]; // trigger reactivity
 			toast.success(`${plugin.name} ${newState ? 'enabled' : 'disabled'}`);
-		} catch {
-			toast.error(`Failed to ${newState ? 'enable' : 'disable'} ${plugin.name}`);
+		} catch (err: unknown) {
+			const detail = err instanceof Error ? err.message : String(err);
+			toast.error(`Failed to ${newState ? 'enable' : 'disable'} ${plugin.name}: ${detail}`);
 		} finally {
 			togglingSlug = null;
 		}

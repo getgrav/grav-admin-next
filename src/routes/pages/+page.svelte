@@ -8,12 +8,15 @@
 	import PagesTreeView from '$lib/components/pages/PagesTreeView.svelte';
 	import PagesListView from '$lib/components/pages/PagesListView.svelte';
 	import PagesMillerView from '$lib/components/pages/PagesMillerView.svelte';
+	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import {
 		Plus, Search, TreePine, List, Columns3, X, ArrowUpDown
 	} from 'lucide-svelte';
 
 	let searchQuery = $state('');
 	let reorderMode = $state(false);
+	let confirmDeleteOpen = $state(false);
+	let pendingDeletePage = $state<PageSummary | null>(null);
 
 	const viewModes: { mode: PagesViewMode; icon: typeof TreePine; label: string }[] = [
 		{ mode: 'tree', icon: TreePine, label: 'Tree' },
@@ -25,11 +28,19 @@
 		goto(`/pages/edit${route}`);
 	}
 
-	async function handleDelete(page: PageSummary) {
-		if (!confirm(`Delete "${page.title}" at ${page.route}?`)) return;
+	function handleDelete(page: PageSummary) {
+		pendingDeletePage = page;
+		confirmDeleteOpen = true;
+	}
+
+	async function confirmDelete() {
+		const pg = pendingDeletePage;
+		confirmDeleteOpen = false;
+		pendingDeletePage = null;
+		if (!pg) return;
 		try {
-			await deletePage(page.route, { children: true });
-			toast.success(`Deleted "${page.title}"`);
+			await deletePage(pg.route, { children: true });
+			toast.success(`Deleted "${pg.title}"`);
 			// Force re-render
 			const current = prefs.pagesViewMode;
 			prefs.pagesViewMode = 'list';
@@ -123,3 +134,13 @@
 		{/if}
 	</div>
 </div>
+
+<ConfirmModal
+	open={confirmDeleteOpen}
+	title="Delete Page"
+	message={`Delete "${pendingDeletePage?.title}" at ${pendingDeletePage?.route}?`}
+	confirmLabel="Delete"
+	variant="destructive"
+	onconfirm={confirmDelete}
+	oncancel={() => { confirmDeleteOpen = false; pendingDeletePage = null; }}
+/>

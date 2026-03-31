@@ -17,6 +17,8 @@
 	} from 'lucide-svelte';
 	import MarkdownEditor from '$lib/components/editors/MarkdownEditor.svelte';
 	import PageMedia from '$lib/components/media/PageMedia.svelte';
+	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 
 	const route = $derived('/' + (page.params.route || ''));
 
@@ -57,6 +59,8 @@
 			Object.keys(headerChanges).length > 0
 		)
 	);
+
+	const guard = createUnsavedGuard(() => hasChanges);
 
 	async function loadPage() {
 		loading = true;
@@ -194,9 +198,15 @@
 		}
 	}
 
-	async function handleDelete() {
+	let confirmDeleteOpen = $state(false);
+
+	function handleDelete() {
 		if (!pageData) return;
-		if (!confirm(`Delete "${pageData.title}" at ${route}? This cannot be undone.`)) return;
+		confirmDeleteOpen = true;
+	}
+
+	async function confirmDeletePage() {
+		confirmDeleteOpen = false;
 		try {
 			await deletePage(route, { children: true });
 			toast.success('Page deleted');
@@ -432,3 +442,23 @@
 		</div>
 	{/if}
 </div>
+
+<ConfirmModal
+	open={confirmDeleteOpen}
+	title="Delete Page"
+	message={`Delete "${pageData?.title}" at ${route}? This cannot be undone.`}
+	confirmLabel="Delete"
+	variant="destructive"
+	onconfirm={confirmDeletePage}
+	oncancel={() => { confirmDeleteOpen = false; }}
+/>
+
+<ConfirmModal
+	open={guard.showModal}
+	title="Unsaved Changes"
+	message="You have unsaved changes. Leave anyway?"
+	confirmLabel="Leave"
+	cancelLabel="Stay"
+	onconfirm={guard.confirm}
+	oncancel={guard.cancel}
+/>

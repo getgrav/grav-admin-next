@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { goto, beforeNavigate } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { getPlugin, getPluginConfig, savePluginConfig, setPluginEnabled, removePlugin, getPluginReadme, getPluginChangelog, type PluginInfo } from '$lib/api/endpoints/gpm';
 	import { getPluginBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
@@ -16,6 +16,7 @@
 
 	import { faIconClass, parseKeywords, parseDependencies, isFirstParty } from '$lib/utils/gpm';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
+	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 
 	const REDACTED = '********';
 
@@ -211,8 +212,9 @@
 				etag = cfg.etag;
 			}
 			toast.success(`${plugin.name} ${newState ? 'enabled' : 'disabled'}`);
-		} catch {
-			toast.error(`Failed to ${newState ? 'enable' : 'disable'} ${plugin.name}`);
+		} catch (err: unknown) {
+			const detail = err instanceof Error ? err.message : String(err);
+			toast.error(`Failed to ${newState ? 'enable' : 'disable'} ${plugin.name}: ${detail}`);
 		} finally {
 			toggling = false;
 		}
@@ -255,11 +257,7 @@
 	}
 
 	// Unsaved changes guard
-	beforeNavigate(({ cancel }) => {
-		if (hasChanges && !confirm('You have unsaved changes. Leave anyway?')) {
-			cancel();
-		}
-	});
+	const guard = createUnsavedGuard(() => hasChanges);
 
 	$effect(() => {
 		slug; // track
@@ -472,4 +470,14 @@
 	variant="destructive"
 	onconfirm={confirmDelete}
 	oncancel={() => { confirmDeleteOpen = false; }}
+/>
+
+<ConfirmModal
+	open={guard.showModal}
+	title="Unsaved Changes"
+	message="You have unsaved changes. Leave anyway?"
+	confirmLabel="Leave"
+	cancelLabel="Stay"
+	onconfirm={guard.confirm}
+	oncancel={guard.cancel}
 />

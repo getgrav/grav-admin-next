@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { beforeNavigate } from '$app/navigation';
+	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import { getConfig, saveConfig, getConfigSections } from '$lib/api/endpoints/config';
 	import { getConfigBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
@@ -151,11 +152,7 @@
 	}
 
 	// Warn about unsaved changes on navigation
-	beforeNavigate(({ cancel }) => {
-		if (hasChanges && !confirm('You have unsaved changes. Discard them?')) {
-			cancel();
-		}
-	});
+	const guard = createUnsavedGuard(() => hasChanges);
 
 	// Load sections once, reload config when scope changes
 	$effect(() => { loadSections(); });
@@ -224,3 +221,13 @@
 		</div>
 	{/if}
 </div>
+
+<ConfirmModal
+	open={guard.showModal}
+	title="Unsaved Changes"
+	message="You have unsaved changes. Leave anyway?"
+	confirmLabel="Leave"
+	cancelLabel="Stay"
+	onconfirm={guard.confirm}
+	oncancel={guard.cancel}
+/>

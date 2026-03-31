@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { goto, beforeNavigate } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { getTheme, getThemeConfig, saveThemeConfig, setActiveTheme, removeTheme, getThemeReadme, getThemeChangelog, type ThemeInfo } from '$lib/api/endpoints/gpm';
 	import { getThemeBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
@@ -16,6 +16,7 @@
 
 	import { faIconClass, parseKeywords, isFirstParty } from '$lib/utils/gpm';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 
 	const REDACTED = '********';
 
@@ -42,6 +43,9 @@
 
 	// Confirm delete modal
 	let confirmDeleteOpen = $state(false);
+
+	// Screenshot lightbox
+	let screenshotOpen = $state(false);
 
 	function resolveUrl(url: string | null | undefined): string | null {
 		if (!url) return null;
@@ -223,17 +227,17 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape' && screenshotOpen) {
+			screenshotOpen = false;
+			return;
+		}
 		if ((e.metaKey || e.ctrlKey) && e.key === 's') {
 			e.preventDefault();
 			if (hasChanges && !saving) handleSave();
 		}
 	}
 
-	beforeNavigate(({ cancel }) => {
-		if (hasChanges && !confirm('You have unsaved changes. Leave anyway?')) {
-			cancel();
-		}
-	});
+	const guard = createUnsavedGuard(() => hasChanges);
 
 	$effect(() => {
 		slug; // track
@@ -360,19 +364,26 @@
 			<div class="space-y-6 px-6 py-6">
 				<!-- Theme info card -->
 				<div class="rounded-xl border border-border bg-card p-5">
-					{#if resolveUrl(theme.screenshot)}
-						<div class="mb-4 overflow-hidden rounded-lg border border-border">
-							<img src={resolveUrl(theme.screenshot)} alt={theme.name} class="w-full" />
-						</div>
-					{/if}
-					<div class="flex items-start gap-4">
-						<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl {theme.enabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}">
-							{#if theme.icon}
-								<i class="{faIconClass(theme.icon)} text-xl"></i>
-							{:else}
-								<Palette size={24} />
-							{/if}
-						</div>
+					<div class="flex items-start gap-5">
+						<!-- Thumbnail -->
+						{#if resolveUrl(theme.thumbnail ?? theme.screenshot)}
+							<button
+								type="button"
+								class="shrink-0 overflow-hidden rounded-lg border border-border transition-shadow hover:shadow-lg hover:ring-2 hover:ring-primary/30"
+								onclick={() => { screenshotOpen = true; }}
+								title="Click to view full size"
+							>
+								<img
+									src={resolveUrl(theme.thumbnail ?? theme.screenshot)}
+									alt={theme.name}
+									class="block h-[200px] w-[200px] object-cover"
+								/>
+							</button>
+						{:else}
+							<div class="flex h-[200px] w-[200px] shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground">
+								<Palette size={48} />
+							</div>
+						{/if}
 						<div class="min-w-0 flex-1">
 							{#if theme.description}
 								<p class="text-sm leading-relaxed text-muted-foreground">{theme.description}</p>
@@ -443,3 +454,30 @@
 	onconfirm={confirmDelete}
 	oncancel={() => { confirmDeleteOpen = false; }}
 />
+
+<ConfirmModal
+	open={guard.showModal}
+	title="Unsaved Changes"
+	message="You have unsaved changes. Leave anyway?"
+	confirmLabel="Leave"
+	cancelLabel="Stay"
+	onconfirm={guard.confirm}
+	oncancel={guard.cancel}
+/>
+
+<!-- Screenshot lightbox -->
+{#if screenshotOpen && resolveUrl(theme?.screenshot)}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/75 p-8 backdrop-blur-sm"
+		onclick={() => { screenshotOpen = false; }}
+	>
+		<img
+			src={resolveUrl(theme?.screenshot)}
+			alt={theme?.name ?? ''}
+			class="max-h-full max-w-full rounded-lg shadow-2xl"
+			onclick={(e) => e.stopPropagation()}
+		/>
+	</div>
+{/if}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { fieldSizeClass } from '$lib/utils/field-size';
 
 	interface Props {
 		field: BlueprintField;
@@ -38,7 +39,7 @@
 			</div>
 		{/if}
 		{#if field.prepend || field.append}
-			<div class="flex items-stretch rounded-lg shadow-sm">
+			<div class="flex items-stretch rounded-lg shadow-sm {fieldSizeClass(field.size)}">
 				{#if field.prepend}
 					<span class="flex items-center rounded-l-lg border border-r-0 border-input bg-muted px-3 text-sm text-muted-foreground">
 						{translateLabel(field.prepend)}
@@ -66,7 +67,7 @@
 		{:else}
 			<input
 				type={inputType}
-				class="flex h-10 w-full rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+				class="flex h-10 w-full rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring {fieldSizeClass(field.size)}"
 				value={value ?? field.default ?? ''}
 				placeholder={translateLabel(field.placeholder)}
 				disabled={field.disabled}
