@@ -2,7 +2,11 @@
 	import { page } from '$app/state';
 	import { goto, beforeNavigate } from '$app/navigation';
 	import { getUser, updateUser, deleteUser, type UserInfo } from '$lib/api/endpoints/users';
+	import { getUserBlueprint } from '$lib/api/endpoints/blueprints';
+	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
+	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
+	import TwoFactorField from '$lib/components/TwoFactorField.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
@@ -11,9 +15,15 @@
 		Save, ArrowLeft, Loader2, AlertCircle, Trash2, User
 	} from 'lucide-svelte';
 
+	const REDACTED = '********';
+
+	// Fields handled outside the blueprint form or not renderable in admin-next
+	const SUPPRESSED_TYPES = new Set(['permissions', 'userinfo', '2fa_secret', 'api_keys']);
+
 	const username = $derived(page.params.username ?? '');
 
 	let user = $state<UserInfo | null>(null);
+	let blueprint = $state<BlueprintSchema | null>(null);
 	let etag = $state('');
 	let loading = $state(true);
 	let saving = $state(false);
@@ -21,38 +31,75 @@
 	let error = $state('');
 	let confirmDeleteOpen = $state(false);
 
-	// Editable fields
-	let email = $state('');
-	let fullname = $state('');
-	let title = $state('');
-	let accountState = $state<'enabled' | 'disabled'>('enabled');
-	let password = $state('');
+	// Form data from blueprint fields
+	let configData = $state<Record<string, unknown>>({});
+	let originalJson = $state('{}');
+
+	// Permissions handled separately
 	let access = $state<Record<string, unknown>>({});
+	let originalAccessJson = $state('{}');
 
-	// Track original for change detection
-	let originalJson = $state('');
+	const hasChanges = $derived(
+		JSON.stringify(configData) !== originalJson ||
+		JSON.stringify(access) !== originalAccessJson
+	);
 
-	const currentData = $derived(JSON.stringify({ email, fullname, title, accountState, access }));
-	const hasChanges = $derived(currentData !== originalJson || password !== '');
+	// Names of fields/sections handled manually outside the blueprint form
+	const SUPPRESSED_NAMES = new Set(['security', 'twofa_check']);
+
+	// Recursively filter out suppressed field types and named sections from blueprint
+	function filterFields(fields: BlueprintSchema['fields']): BlueprintSchema['fields'] {
+		return fields
+			.filter((f) => {
+				if (SUPPRESSED_TYPES.has(f.type)) return false;
+				if (SUPPRESSED_NAMES.has(f.name)) return false;
+				return true;
+			})
+			.map((f) => {
+				if (f.fields) {
+					return { ...f, fields: filterFields(f.fields) };
+				}
+				return f;
+			});
+	}
+
+	const filteredBlueprint = $derived.by(() => {
+		if (!blueprint) return null;
+		return {
+			...blueprint,
+			fields: filterFields(blueprint.fields),
+		};
+	});
 
 	function populateForm(u: UserInfo) {
-		email = u.email ?? '';
-		fullname = u.fullname ?? '';
-		title = u.title ?? '';
-		accountState = u.state;
+		// Build config data from user properties for blueprint fields
+		configData = {
+			username: u.username,
+			email: u.email ?? '',
+			fullname: u.fullname ?? '',
+			title: u.title ?? '',
+			state: u.state,
+			twofa_enabled: u.twofa_enabled,
+		};
+		originalJson = JSON.stringify(configData);
+
 		access = structuredClone(u.access);
-		password = '';
-		originalJson = JSON.stringify({ email, fullname, title, accountState, access });
+		originalAccessJson = JSON.stringify(access);
 	}
 
 	async function loadUser() {
 		loading = true;
 		error = '';
 		try {
-			const result = await getUser(username);
-			user = result.user;
-			etag = result.etag;
-			populateForm(result.user);
+			const [userResult, blueprintResult] = await Promise.all([
+				getUser(username),
+				getUserBlueprint().catch(() => null),
+			]);
+
+			user = userResult.user;
+			etag = userResult.etag;
+			blueprint = blueprintResult;
+			populateForm(userResult.user);
 		} catch {
 			error = `Failed to load user '${username}'.`;
 		} finally {
@@ -60,18 +107,51 @@
 		}
 	}
 
+	function handleBlueprintChange(path: string, value: unknown) {
+		const parts = path.split('.');
+		const newData = { ...configData };
+		let current: Record<string, unknown> = newData;
+
+		for (let i = 0; i < parts.length - 1; i++) {
+			const key = parts[i];
+			if (typeof current[key] !== 'object' || current[key] === null) {
+				current[key] = {};
+			} else {
+				current[key] = { ...(current[key] as Record<string, unknown>) };
+			}
+			current = current[key] as Record<string, unknown>;
+		}
+		current[parts[parts.length - 1]] = value;
+		configData = newData;
+	}
+
+	function stripRedacted(obj: unknown): unknown {
+		if (typeof obj === 'string') return obj === REDACTED ? undefined : obj;
+		if (Array.isArray(obj)) return obj.map(stripRedacted);
+		if (obj && typeof obj === 'object') {
+			const result: Record<string, unknown> = {};
+			for (const [key, value] of Object.entries(obj)) {
+				const stripped = stripRedacted(value);
+				if (stripped !== undefined) result[key] = stripped;
+			}
+			return result;
+		}
+		return obj;
+	}
+
 	async function handleSave() {
 		saving = true;
 		try {
+			const cleaned = stripRedacted(configData) as Record<string, unknown>;
+			// Merge blueprint data with access permissions
 			const body: Record<string, unknown> = {
-				email,
-				fullname,
-				title,
-				state: accountState,
+				...cleaned,
 				access,
 			};
-			if (password) {
-				body.password = password;
+			// Don't send username (readonly) or empty password
+			delete body.username;
+			if (!body.password || body.password === '') {
+				delete body.password;
 			}
 
 			const result = await updateUser(username, body, etag);
@@ -216,75 +296,52 @@
 	{:else if user}
 		<div class="flex-1 overflow-y-auto">
 			<div class="mx-auto max-w-3xl space-y-6 px-6 py-6">
-				<!-- Account details -->
+				<!-- Blueprint-driven account fields -->
+				{#if filteredBlueprint && filteredBlueprint.fields.length > 0}
+					<BlueprintForm
+						fields={filteredBlueprint.fields}
+						data={configData}
+						onchange={handleBlueprintChange}
+					/>
+				{/if}
+
+				<!-- 2FA Section -->
 				<div class="rounded-xl border border-border bg-card p-5">
-					<h2 class="text-sm font-semibold text-foreground">Account</h2>
+					<h2 class="text-sm font-semibold text-foreground">2-Factor Authentication</h2>
 					<div class="mt-4 space-y-4">
-						<div>
-							<label for="username" class="block text-xs font-medium text-muted-foreground">Username</label>
-							<input
-								id="username"
-								type="text"
-								value={user.username}
-								disabled
-								class="mt-1 h-9 w-full rounded-md border border-input bg-muted/50 px-3 text-sm text-muted-foreground"
-							/>
-						</div>
-						<div class="grid gap-4 sm:grid-cols-2">
+						<!-- 2FA toggle -->
+						<div class="flex items-center justify-between">
 							<div>
-								<label for="fullname" class="block text-xs font-medium text-muted-foreground">Full Name</label>
-								<input
-									id="fullname"
-									type="text"
-									bind:value={fullname}
-									class="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-								/>
+								<div class="text-sm font-medium text-foreground">2FA Enabled</div>
+								<div class="text-xs text-muted-foreground">Require a one-time code on login</div>
 							</div>
-							<div>
-								<label for="title-field" class="block text-xs font-medium text-muted-foreground">Title</label>
-								<input
-									id="title-field"
-									type="text"
-									bind:value={title}
-									class="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-								/>
-							</div>
-						</div>
-						<div>
-							<label for="email" class="block text-xs font-medium text-muted-foreground">Email</label>
-							<input
-								id="email"
-								type="email"
-								bind:value={email}
-								class="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-							/>
-						</div>
-						<div>
-							<label for="password" class="block text-xs font-medium text-muted-foreground">New Password</label>
-							<input
-								id="password"
-								type="password"
-								autocomplete="new-password"
-								bind:value={password}
-								placeholder="Leave blank to keep current"
-								class="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-							/>
-						</div>
-						<div>
-							<label for="state" class="block text-xs font-medium text-muted-foreground">Status</label>
-							<select
-								id="state"
-								bind:value={accountState}
-								class="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+							<button
+								type="button"
+								class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
+									{configData.twofa_enabled ? 'bg-primary' : 'bg-muted'}"
+								role="switch"
+								aria-checked={!!configData.twofa_enabled}
+								onclick={() => handleBlueprintChange('twofa_enabled', !configData.twofa_enabled)}
 							>
-								<option value="enabled">Enabled</option>
-								<option value="disabled">Disabled</option>
-							</select>
+								<span
+									class="pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform
+										{configData.twofa_enabled ? 'translate-x-5' : 'translate-x-0'}"
+								></span>
+							</button>
 						</div>
+
+						<!-- 2FA secret / QR code -->
+						{#if user}
+							<TwoFactorField
+								username={user.username}
+								twofaEnabled={!!configData.twofa_enabled}
+								hasSecret={user.twofa_secret}
+							/>
+						{/if}
 					</div>
 				</div>
 
-				<!-- Permissions -->
+				<!-- Permissions (always rendered separately) -->
 				<div class="rounded-xl border border-border bg-card p-5">
 					<h2 class="text-sm font-semibold text-foreground">Permissions</h2>
 					<div class="mt-4">

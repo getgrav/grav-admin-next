@@ -8,6 +8,8 @@ export interface UserInfo {
 	title: string | null;
 	state: 'enabled' | 'disabled';
 	access: Record<string, unknown>;
+	twofa_enabled: boolean;
+	twofa_secret: boolean;
 	created: string | null;
 	modified: string | null;
 }
@@ -95,4 +97,13 @@ export async function updateUser(
 
 export async function deleteUser(username: string): Promise<void> {
 	await api.delete(`/users/${username}`);
+}
+
+export interface TwoFactorData {
+	secret: string;
+	qr_code: string;
+}
+
+export async function generate2fa(username: string): Promise<TwoFactorData> {
+	return api.post<TwoFactorData>(`/users/${username}/2fa`);
 }

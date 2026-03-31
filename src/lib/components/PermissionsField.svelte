@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getPermissionsBlueprint, type PermissionAction } from '$lib/api/endpoints/blueprints';
-	import { Loader2, ChevronRight } from 'lucide-svelte';
+	import { Loader2, ChevronDown, Crown } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
 
 	interface Props {
@@ -18,7 +18,6 @@
 		loading = true;
 		try {
 			sections = await getPermissionsBlueprint();
-			// Auto-expand all top-level sections
 			for (const s of sections) {
 				expandedSections.add(s.name);
 			}
@@ -30,9 +29,22 @@
 		}
 	}
 
+	function deepClone(obj: Record<string, unknown>): Record<string, unknown> {
+		return JSON.parse(JSON.stringify(obj));
+	}
+
+	/** Unwrap the $state proxy once for reading. */
+	function plainValue(): Record<string, unknown> {
+		try {
+			return JSON.parse(JSON.stringify(value));
+		} catch {
+			return {};
+		}
+	}
+
 	function getPermValue(name: string): 'allowed' | 'denied' | 'unset' {
 		const parts = name.split('.');
-		let current: unknown = value;
+		let current: unknown = plainValue();
 		for (const part of parts) {
 			if (current && typeof current === 'object') {
 				current = (current as Record<string, unknown>)[part];
@@ -45,12 +57,26 @@
 		return 'unset';
 	}
 
+	/** Check if admin.super is explicitly allowed. */
+	const isSuperAdmin = $derived.by(() => {
+		return getPermValue('admin.super') === 'allowed';
+	});
+
+	/**
+	 * Check if a permission is implicitly granted by admin.super.
+	 * admin.super grants all admin.* and site.* permissions, but NOT api.* ones.
+	 */
+	function isImplicitlyGranted(name: string): boolean {
+		if (!isSuperAdmin) return false;
+		if (name === 'admin.super') return false; // Don't show crown on itself
+		return name.startsWith('admin.') || name.startsWith('site.');
+	}
+
 	function setPermValue(name: string, newVal: 'allowed' | 'denied' | 'unset') {
 		const parts = name.split('.');
-		const updated = structuredClone(value);
+		const updated = deepClone(value);
 		let current: Record<string, unknown> = updated;
 
-		// Navigate to parent
 		for (let i = 0; i < parts.length - 1; i++) {
 			const key = parts[i];
 			if (typeof current[key] !== 'object' || current[key] === null) {
@@ -85,6 +111,56 @@
 	});
 </script>
 
+{#snippet toggle(name: string)}
+	{@const val = getPermValue(name)}
+	{@const implicit = isImplicitlyGranted(name)}
+	<div class="flex shrink-0 items-center gap-2">
+		{#if implicit}
+			<Crown size={14} class="text-purple-500" />
+		{/if}
+		<div class="flex overflow-hidden rounded-md border border-border text-[11px] font-medium">
+			<button
+				type="button"
+				class="flex items-center gap-1 px-2.5 py-1 transition-colors
+					{val === 'allowed' ? 'bg-green-500 text-white' : 'text-muted-foreground hover:bg-muted'}"
+				onclick={() => setPermValue(name, val === 'allowed' ? 'unset' : 'allowed')}
+			>
+				{#if val === 'allowed'}<svg class="h-3 w-3" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>{/if}
+				Allowed
+			</button>
+			<button
+				type="button"
+				class="border-x border-border px-2.5 py-1 transition-colors
+					{val === 'denied' ? 'bg-red-400 text-white' : 'text-muted-foreground hover:bg-muted'}"
+				onclick={() => setPermValue(name, val === 'denied' ? 'unset' : 'denied')}
+			>
+				{#if val === 'denied'}<svg class="mr-0.5 inline h-3 w-3" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 9l6-6" stroke="currentColor" stroke-width="1.5"/></svg>{/if}
+				Denied
+			</button>
+			<button
+				type="button"
+				class="px-2.5 py-1 transition-colors
+					{val === 'unset' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}"
+				onclick={() => setPermValue(name, 'unset')}
+			>
+				Not set
+			</button>
+		</div>
+	</div>
+{/snippet}
+
+{#snippet permRow(action: PermissionAction, depth: number)}
+	<div class="flex items-center justify-between border-t border-border px-4 py-2" style="padding-left: {16 + depth * 24}px">
+		<span class="text-sm {depth > 0 ? 'text-muted-foreground' : 'text-foreground'}">{action.label}</span>
+		{@render toggle(action.name)}
+	</div>
+	{#if action.children}
+		{#each action.children as child}
+			{@render permRow(child, depth + 1)}
+		{/each}
+	{/if}
+{/snippet}
+
 {#if loading}
 	<div class="flex items-center justify-center py-8">
 		<Loader2 size={20} class="animate-spin text-muted-foreground" />
@@ -92,88 +168,24 @@
 {:else}
 	<div class="space-y-3">
 		{#each sections as section}
-			<div class="rounded-lg border border-border">
-				<!-- Section header -->
+			<div class="overflow-hidden rounded-lg border border-border">
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<div
-					class="flex cursor-pointer items-center gap-2 px-4 py-2.5"
+					class="flex cursor-pointer items-center gap-2 bg-muted/30 px-4 py-2.5"
 					onclick={() => toggleSection(section.name)}
 				>
-					<ChevronRight
+					<ChevronDown
 						size={14}
-						class="shrink-0 text-muted-foreground transition-transform {expandedSections.has(section.name) ? 'rotate-90' : ''}"
+						class="shrink-0 text-muted-foreground transition-transform {expandedSections.has(section.name) ? '' : '-rotate-90'}"
 					/>
 					<span class="text-sm font-semibold text-foreground">{section.label}</span>
 				</div>
 
 				{#if expandedSections.has(section.name) && section.children}
-					<div class="border-t border-border">
-						{#each section.children as action, i}
-							{@const permName = action.name}
-							{@const currentVal = getPermValue(permName)}
-							<div class="flex items-center justify-between px-4 py-2 {i > 0 ? 'border-t border-border/50' : ''}">
-								<span class="text-sm text-foreground">{action.label}</span>
-								<div class="flex overflow-hidden rounded-md border border-border text-xs">
-									<button
-										type="button"
-										class="px-2.5 py-1 transition-colors {currentVal === 'allowed' ? 'bg-green-500 text-white' : 'bg-background text-muted-foreground hover:bg-muted'}"
-										onclick={() => setPermValue(permName, currentVal === 'allowed' ? 'unset' : 'allowed')}
-									>
-										Allow
-									</button>
-									<button
-										type="button"
-										class="border-x border-border px-2.5 py-1 transition-colors {currentVal === 'unset' ? 'bg-muted text-foreground' : 'bg-background text-muted-foreground hover:bg-muted'}"
-										onclick={() => setPermValue(permName, 'unset')}
-									>
-										—
-									</button>
-									<button
-										type="button"
-										class="px-2.5 py-1 transition-colors {currentVal === 'denied' ? 'bg-red-500 text-white' : 'bg-background text-muted-foreground hover:bg-muted'}"
-										onclick={() => setPermValue(permName, currentVal === 'denied' ? 'unset' : 'denied')}
-									>
-										Deny
-									</button>
-								</div>
-							</div>
-
-							<!-- Nested children -->
-							{#if action.children}
-								{#each action.children as child}
-									{@const childName = child.name}
-									{@const childVal = getPermValue(childName)}
-									<div class="flex items-center justify-between border-t border-border/50 py-2 pl-10 pr-4">
-										<span class="text-xs text-muted-foreground">{child.label}</span>
-										<div class="flex overflow-hidden rounded-md border border-border text-xs">
-											<button
-												type="button"
-												class="px-2 py-0.5 transition-colors {childVal === 'allowed' ? 'bg-green-500 text-white' : 'bg-background text-muted-foreground hover:bg-muted'}"
-												onclick={() => setPermValue(childName, childVal === 'allowed' ? 'unset' : 'allowed')}
-											>
-												Allow
-											</button>
-											<button
-												type="button"
-												class="border-x border-border px-2 py-0.5 transition-colors {childVal === 'unset' ? 'bg-muted text-foreground' : 'bg-background text-muted-foreground hover:bg-muted'}"
-												onclick={() => setPermValue(childName, 'unset')}
-											>
-												—
-											</button>
-											<button
-												type="button"
-												class="px-2 py-0.5 transition-colors {childVal === 'denied' ? 'bg-red-500 text-white' : 'bg-background text-muted-foreground hover:bg-muted'}"
-												onclick={() => setPermValue(childName, childVal === 'denied' ? 'unset' : 'denied')}
-											>
-												Deny
-											</button>
-										</div>
-									</div>
-								{/each}
-							{/if}
-						{/each}
-					</div>
+					{#each section.children as action}
+						{@render permRow(action, 0)}
+					{/each}
 				{/if}
 			</div>
 		{/each}

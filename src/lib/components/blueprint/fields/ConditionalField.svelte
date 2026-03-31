@@ -43,9 +43,12 @@
 	});
 
 	function resolveValue(path: string): unknown {
-		// config.* paths → read from getValue which has access to form data
-		// In a page context, header.* maps to form data
-		// For config.*, we'd need the config store — for now, try getValue
+		// config.* paths reference server-side Grav config which we can't
+		// resolve client-side. Default to showing the fields rather than hiding.
+		if (path.startsWith('config.')) {
+			return true;
+		}
+		// Form data paths
 		return getValue(path);
 	}
 </script>
