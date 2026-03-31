@@ -138,3 +138,38 @@ export interface TwoFactorData {
 export async function generate2fa(username: string): Promise<TwoFactorData> {
 	return api.post<TwoFactorData>(`/users/${username}/2fa`);
 }
+
+// --- API Keys ---
+
+export interface ApiKeyInfo {
+	id: string;
+	name: string;
+	prefix: string;
+	scopes: string[] | Record<string, unknown>;
+	active: boolean;
+	created: number | null;
+	last_used: number | null;
+	expires: number | null;
+}
+
+export interface ApiKeyCreated extends ApiKeyInfo {
+	api_key: string;
+}
+
+export async function getApiKeys(username: string): Promise<ApiKeyInfo[]> {
+	return api.get<ApiKeyInfo[]>(`/users/${username}/api-keys`);
+}
+
+export async function createApiKey(
+	username: string,
+	name: string,
+	expiryDays?: number,
+): Promise<ApiKeyCreated> {
+	const body: Record<string, unknown> = { name };
+	if (expiryDays && expiryDays > 0) body.expiry_days = expiryDays;
+	return api.post<ApiKeyCreated>(`/users/${username}/api-keys`, body);
+}
+
+export async function deleteApiKey(username: string, keyId: string): Promise<void> {
+	await api.delete(`/users/${username}/api-keys/${keyId}`);
+}

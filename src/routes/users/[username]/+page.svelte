@@ -7,6 +7,7 @@
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
 	import TwoFactorField from '$lib/components/TwoFactorField.svelte';
+	import ApiKeysField from '$lib/components/ApiKeysField.svelte';
 	import UserAvatarCard from '$lib/components/UserAvatarCard.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -46,7 +47,7 @@
 	);
 
 	// Names of fields/sections handled manually outside the blueprint form
-	const SUPPRESSED_NAMES = new Set(['security', 'twofa_check', 'avatar', 'multiavatar_only']);
+	const SUPPRESSED_NAMES = new Set(['security', 'twofa_check', 'avatar', 'multiavatar_only', 'api_check', 'api_section']);
 
 	// Recursively filter out suppressed field types and named sections from blueprint
 	function filterFields(fields: BlueprintSchema['fields']): BlueprintSchema['fields'] {
@@ -367,6 +368,9 @@
 						<PermissionsField value={access} onchange={handleAccessChange} />
 					</div>
 				</div>
+
+				<!-- API Keys -->
+				<ApiKeysField username={user.username} />
 			</div>
 		</div>
 	{/if}
