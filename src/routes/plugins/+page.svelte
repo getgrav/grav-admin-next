@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { getInstalledPlugins, setPluginEnabled, type PluginInfo } from '$lib/api/endpoints/gpm';
+	import { getInstalledPlugins, setPluginEnabled, checkUpdates, type PluginInfo } from '$lib/api/endpoints/gpm';
+	import { Button } from '$lib/components/ui/button';
+	import AddPluginModal from '$lib/components/AddPluginModal.svelte';
 	import { toast } from 'svelte-sonner';
-	import { Search, Puzzle, ExternalLink, ArrowUpCircle, ChevronRight, Loader2 } from 'lucide-svelte';
+	import { Search, Puzzle, ExternalLink, ArrowUpCircle, ChevronRight, Loader2, Plus, RefreshCw, BadgeCheck } from 'lucide-svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { faIconClass, parseKeywords, parseDependencies } from '$lib/utils/gpm';
+	import { faIconClass, parseKeywords, parseDependencies, isFirstParty } from '$lib/utils/gpm';
 
 	const translateLabel = i18n.tMaybe;
 
@@ -14,6 +16,8 @@
 	let sortBy = $state<'name' | 'author' | 'enabled'>('name');
 	let selectedSlug = $state<string | null>(null);
 	let togglingSlug = $state<string | null>(null);
+	let addModalOpen = $state(false);
+	let checkingUpdates = $state(false);
 
 	const filtered = $derived.by(() => {
 		let list = [...plugins];
@@ -96,6 +100,23 @@
 		goto(`/plugins/${slug}`);
 	}
 
+	async function handleCheckUpdates() {
+		checkingUpdates = true;
+		try {
+			const result = await checkUpdates(true);
+			toast.success(`GPM refreshed — ${result.total} update${result.total !== 1 ? 's' : ''} available`);
+			await loadPlugins();
+		} catch {
+			toast.error('Failed to check for updates');
+		} finally {
+			checkingUpdates = false;
+		}
+	}
+
+	function handlePluginInstalled() {
+		loadPlugins();
+	}
+
 	$effect(() => {
 		loadPlugins();
 	});
@@ -113,6 +134,16 @@
 			{#if !loading}
 				<p class="mt-0.5 text-xs text-muted-foreground">{plugins.length} installed</p>
 			{/if}
+		</div>
+		<div class="flex items-center gap-2">
+			<Button variant="outline" size="sm" onclick={handleCheckUpdates} disabled={checkingUpdates}>
+				<RefreshCw size={13} class={checkingUpdates ? 'animate-spin' : ''} />
+				Check Updates
+			</Button>
+			<Button size="sm" onclick={() => (addModalOpen = true)}>
+				<Plus size={14} />
+				Add
+			</Button>
 		</div>
 	</div>
 
@@ -165,8 +196,11 @@
 
 						<!-- Info -->
 						<div class="min-w-0 flex-1">
-							<div class="flex items-center gap-2">
+							<div class="flex items-center gap-1.5">
 								<span class="truncate text-sm font-medium text-foreground">{plugin.name}</span>
+								{#if isFirstParty(plugin.author)}
+									<BadgeCheck size={14} class="shrink-0 text-purple-500" />
+								{/if}
 								{#if plugin.updatable}
 									<ArrowUpCircle size={12} class="shrink-0 text-amber-500" />
 								{/if}
@@ -214,7 +248,12 @@
 								{/if}
 							</div>
 							<div class="min-w-0 flex-1">
-								<h2 class="text-lg font-semibold text-foreground">{selectedPlugin.name}</h2>
+								<div class="flex items-center gap-1.5">
+									<h2 class="text-lg font-semibold text-foreground">{selectedPlugin.name}</h2>
+									{#if isFirstParty(selectedPlugin.author)}
+										<BadgeCheck size={18} class="shrink-0 text-purple-500" />
+									{/if}
+								</div>
 								<div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
 									<span>v{selectedPlugin.version}</span>
 									{#if selectedPlugin.author?.name}
@@ -330,3 +369,9 @@
 		</div>
 	{/if}
 </div>
+
+<AddPluginModal
+	open={addModalOpen}
+	onclose={() => (addModalOpen = false)}
+	oninstalled={handlePluginInstalled}
+/>

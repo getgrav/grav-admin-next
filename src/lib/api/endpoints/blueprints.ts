@@ -100,3 +100,17 @@ export async function getThemeBlueprint(theme: string): Promise<BlueprintSchema>
 export async function getConfigBlueprint(scope: string): Promise<BlueprintSchema> {
 	return api.get<BlueprintSchema>(`/blueprints/config/${scope}`);
 }
+
+export async function getUserBlueprint(): Promise<BlueprintSchema> {
+	return api.get<BlueprintSchema>('/blueprints/users');
+}
+
+export interface PermissionAction {
+	name: string;
+	label: string;
+	children?: PermissionAction[];
+}
+
+export async function getPermissionsBlueprint(): Promise<PermissionAction[]> {
+	return api.get<PermissionAction[]>('/blueprints/users/permissions');
+}

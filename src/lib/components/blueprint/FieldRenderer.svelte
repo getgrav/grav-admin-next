@@ -28,6 +28,8 @@
 	import FrontmatterField from './fields/FrontmatterField.svelte';
 	import IconPickerField from './fields/IconPickerField.svelte';
 	import PermissionsField from './fields/PermissionsField.svelte';
+	import CustomFieldWrapper from './fields/CustomFieldWrapper.svelte';
+	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 
 	interface Props {
@@ -330,6 +332,16 @@
 
 {:else if field.type === 'permissions' || field.type === 'acl_picker'}
 	<PermissionsField {field} {value} {onchange} />
+
+{:else if customFieldRegistry.has(field.type)}
+	<!-- Plugin-provided custom field via web component -->
+	<CustomFieldWrapper
+		{field}
+		{value}
+		{onchange}
+		pluginSlug={customFieldRegistry.getPluginSlug(field.type) ?? ''}
+		fieldType={field.type}
+	/>
 
 {:else}
 	<!-- Unknown field type — render as raw JSON editor -->

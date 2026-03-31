@@ -21,6 +21,8 @@ export interface PluginInfo {
 	dependencies?: string[];
 	keywords?: string[];
 	icon?: string;
+	/** Custom admin-next field types provided by this plugin (type → type name) */
+	custom_fields?: Record<string, string>;
 }
 
 /**
@@ -82,4 +84,150 @@ export async function savePluginConfig(
 	const headers: Record<string, string> = {};
 	if (etag) headers['If-Match'] = `"${etag}"`;
 	await api.requestRaw('PATCH', `/config/plugins/${slug}`, { body: config, headers });
+}
+
+// ---------------------------------------------------------------------------
+// Repository / GPM operations
+// ---------------------------------------------------------------------------
+
+export interface RepositoryPlugin {
+	slug: string;
+	name: string;
+	version: string;
+	type: 'plugin' | 'theme';
+	description: string | null;
+	author: PackageAuthor | null;
+	homepage: string | null;
+	installed: boolean;
+	premium?: boolean;
+	licensed?: boolean;
+	purchase_url?: string;
+	dependencies?: string[];
+	keywords?: string[];
+	icon?: string;
+}
+
+/**
+ * Get available plugins from the GPM repository.
+ * Uses a large per_page to fetch all in one request.
+ */
+export async function getRepositoryPlugins(): Promise<RepositoryPlugin[]> {
+	return api.get<RepositoryPlugin[]>('/gpm/repository/plugins', { per_page: '500' });
+}
+
+/**
+ * Install a plugin by slug.
+ */
+export async function installPlugin(slug: string): Promise<void> {
+	await api.post('/gpm/install', { package: slug, type: 'plugin' });
+}
+
+/**
+ * Remove/delete a plugin by slug.
+ */
+export async function removePlugin(slug: string): Promise<void> {
+	await api.post('/gpm/remove', { package: slug });
+}
+
+/**
+ * Check for available updates (flush=true refreshes GPM cache).
+ */
+export async function checkUpdates(flush = true): Promise<{ total: number }> {
+	return api.get<{ total: number }>('/gpm/updates', { flush: flush ? 'true' : 'false' });
+}
+
+// ---------------------------------------------------------------------------
+// Themes
+// ---------------------------------------------------------------------------
+
+export interface ThemeInfo {
+	slug: string;
+	name: string;
+	version: string;
+	type: 'theme';
+	description: string | null;
+	author: PackageAuthor | null;
+	homepage: string | null;
+	enabled: boolean;
+	available_version?: string;
+	updatable?: boolean;
+	premium?: boolean;
+	dependencies?: string[];
+	keywords?: string[];
+	icon?: string;
+	thumbnail?: string | null;
+	screenshot?: string | null;
+}
+
+export async function getInstalledThemes(): Promise<ThemeInfo[]> {
+	return api.get<ThemeInfo[]>('/gpm/themes');
+}
+
+export async function getTheme(slug: string): Promise<ThemeInfo> {
+	return api.get<ThemeInfo>(`/gpm/themes/${slug}`);
+}
+
+/**
+ * Activate a theme by setting it as the system theme.
+ */
+export async function setActiveTheme(slug: string): Promise<void> {
+	await api.patch('/config/system', { pages: { theme: slug } });
+}
+
+export async function getThemeReadme(slug: string): Promise<string> {
+	const result = await api.get<{ content: string }>(`/gpm/themes/${slug}/readme`);
+	return result.content;
+}
+
+export async function getThemeChangelog(slug: string): Promise<string> {
+	const result = await api.get<{ content: string }>(`/gpm/themes/${slug}/changelog`);
+	return result.content;
+}
+
+export async function getThemeConfig(slug: string): Promise<{ data: Record<string, unknown>; etag: string }> {
+	const { data, headers } = await api.requestRaw<Record<string, unknown>>('GET', `/config/themes/${slug}`);
+	return {
+		data,
+		etag: headers.get('etag')?.replace(/"/g, '') ?? '',
+	};
+}
+
+export async function saveThemeConfig(
+	slug: string,
+	config: Record<string, unknown>,
+	etag?: string,
+): Promise<void> {
+	const headers: Record<string, string> = {};
+	if (etag) headers['If-Match'] = `"${etag}"`;
+	await api.requestRaw('PATCH', `/config/themes/${slug}`, { body: config, headers });
+}
+
+export interface RepositoryTheme {
+	slug: string;
+	name: string;
+	version: string;
+	type: 'theme';
+	description: string | null;
+	author: PackageAuthor | null;
+	homepage: string | null;
+	installed: boolean;
+	premium?: boolean;
+	licensed?: boolean;
+	purchase_url?: string;
+	dependencies?: string[];
+	keywords?: string[];
+	icon?: string;
+	screenshot?: string | null;
+}
+
+export async function getRepositoryThemes(): Promise<RepositoryTheme[]> {
+	return api.get<RepositoryTheme[]>('/gpm/repository/themes', { per_page: '500' });
+}
+
+export async function installTheme(slug: string): Promise<void> {
+	await api.post('/gpm/install', { package: slug, type: 'theme' });
+}
+
+export async function removeTheme(slug: string): Promise<void> {
+	await api.post('/gpm/remove', { package: slug });
 }

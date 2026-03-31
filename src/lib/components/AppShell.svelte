@@ -1,9 +1,12 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { onDestroy } from 'svelte';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { prefs } from '$lib/stores/preferences.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
 	import { logout } from '$lib/api/auth';
+	import { api } from '$lib/api/client';
 	import type { Snippet } from 'svelte';
 	import {
 		LayoutDashboard, FileText, Image, Users, Puzzle, Palette,
@@ -13,6 +16,41 @@
 
 	interface Props { children: Snippet; }
 	let { children }: Props = $props();
+
+	// Keep-alive: ping server periodically to prevent session timeout
+	let keepAliveTimer: ReturnType<typeof setInterval> | null = null;
+
+	function startKeepAlive() {
+		stopKeepAlive();
+		if (!prefs.keepAlive || !auth.isAuthenticated) return;
+
+		// Ping at half the token lifetime, clamped between 30s and 5 min
+		const ttl = auth.expiresAt - Date.now();
+		const interval = Math.max(30_000, Math.min(300_000, ttl / 2));
+
+		keepAliveTimer = setInterval(() => {
+			if (auth.isAuthenticated) {
+				api.get('/ping').catch(() => {});
+			} else {
+				stopKeepAlive();
+			}
+		}, interval);
+	}
+
+	function stopKeepAlive() {
+		if (keepAliveTimer) {
+			clearInterval(keepAliveTimer);
+			keepAliveTimer = null;
+		}
+	}
+
+	$effect(() => {
+		// Re-evaluate when keepAlive pref or auth state changes
+		const _ = [prefs.keepAlive, auth.isAuthenticated];
+		startKeepAlive();
+	});
+
+	onDestroy(stopKeepAlive);
 
 	let collapsed = $state(false);
 	let mobileOpen = $state(false);
@@ -119,8 +157,10 @@
 			</div>
 		</header>
 
-		<main class="flex-1 overflow-y-auto p-5">
-			{@render children()}
+		<main class="flex-1 overflow-y-auto">
+			<div class="mx-auto h-full max-w-6xl">
+				{@render children()}
+			</div>
 		</main>
 	</div>
 </div>

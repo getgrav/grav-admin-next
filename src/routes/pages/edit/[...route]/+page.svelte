@@ -222,7 +222,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="mx-auto max-w-6xl space-y-4">
+<div class="space-y-4 p-5">
 	<!-- Top bar -->
 	<div class="flex items-center justify-between gap-4">
 		<div class="flex min-w-0 items-center gap-3">

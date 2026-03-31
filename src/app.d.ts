@@ -8,6 +8,13 @@ declare global {
 		// interface PageState {}
 		// interface Platform {}
 	}
+
+	// Globals exposed to custom field web components
+	interface Window {
+		__GRAV_FIELD_TAG: string;
+		__GRAV_API_SERVER_URL: string;
+		__GRAV_API_PREFIX: string;
+	}
 }
 
 export {};

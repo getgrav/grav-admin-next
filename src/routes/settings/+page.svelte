@@ -27,7 +27,7 @@
 	<title>Settings — Grav Admin</title>
 </svelte:head>
 
-<div class="mx-auto max-w-3xl space-y-6">
+<div class="space-y-6 p-5">
 	<div>
 		<h1 class="text-xl font-semibold tracking-tight text-foreground">Settings</h1>
 		<p class="mt-0.5 text-[13px] text-muted-foreground">Configure your admin experience</p>
@@ -152,6 +152,35 @@
 					<option value="ja">日本語</option>
 					<option value="zh">中文</option>
 				</select>
+			</div>
+		</div>
+	</div>
+
+	<!-- Session -->
+	<div class="rounded-lg border border-border bg-card">
+		<div class="border-b border-border px-5 py-3">
+			<h2 class="text-sm font-semibold text-foreground">Session</h2>
+			<p class="text-[12px] text-muted-foreground">Keep your session active while working</p>
+		</div>
+		<div class="divide-y divide-border">
+			<div class="flex items-center justify-between px-5 py-4">
+				<div>
+					<div class="text-sm font-medium text-foreground">Keep Alive</div>
+					<div class="text-[12px] text-muted-foreground">Periodically ping the server to prevent session timeout</div>
+				</div>
+				<button
+					type="button"
+					class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
+						{prefs.keepAlive ? 'bg-primary' : 'bg-muted'}"
+					role="switch"
+					aria-checked={prefs.keepAlive}
+					onclick={() => prefs.keepAlive = !prefs.keepAlive}
+				>
+					<span
+						class="pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform
+							{prefs.keepAlive ? 'translate-x-5' : 'translate-x-0'}"
+					></span>
+				</button>
 			</div>
 		</div>
 	</div>

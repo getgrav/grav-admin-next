@@ -22,7 +22,7 @@
 	<title>Testing — Grav Admin</title>
 </svelte:head>
 
-<div class="mx-auto max-w-5xl space-y-8">
+<div class="space-y-8 p-5">
 	<div>
 		<h1 class="text-xl font-semibold tracking-tight text-foreground">UI Testing</h1>
 		<p class="mt-0.5 text-[13px] text-muted-foreground">Component playground and testing area</p>

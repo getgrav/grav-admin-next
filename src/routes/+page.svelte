@@ -74,7 +74,7 @@
 
 <svelte:head><title>Dashboard — Grav Admin</title></svelte:head>
 
-<div class="mx-auto max-w-7xl space-y-5">
+<div class="space-y-5 p-5">
 	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div>

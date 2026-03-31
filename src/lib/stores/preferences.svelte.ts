@@ -8,6 +8,7 @@ interface Preferences {
 	pagesPerPage: number;
 	sidebarCollapsed: boolean;
 	adminLanguage: string;
+	keepAlive: boolean;
 }
 
 function loadStored(): Partial<Preferences> {
@@ -26,6 +27,7 @@ function createPreferencesStore() {
 	let pagesPerPage = $state(stored.pagesPerPage ?? 20);
 	let sidebarCollapsed = $state(stored.sidebarCollapsed ?? false);
 	let adminLanguage = $state(stored.adminLanguage ?? 'en');
+	let keepAlive = $state(stored.keepAlive ?? true);
 
 	function persist() {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -33,6 +35,7 @@ function createPreferencesStore() {
 			pagesPerPage,
 			sidebarCollapsed,
 			adminLanguage,
+			keepAlive,
 		}));
 	}
 
@@ -48,6 +51,9 @@ function createPreferencesStore() {
 
 		get adminLanguage() { return adminLanguage; },
 		set adminLanguage(v: string) { adminLanguage = v; persist(); },
+
+		get keepAlive() { return keepAlive; },
+		set keepAlive(v: boolean) { keepAlive = v; persist(); },
 	};
 }
 
