@@ -18,7 +18,8 @@ const config = {
 			fallback: 'index.html'
 		}),
 		paths: {
-			relative: true
+			base: process.env.ADMIN_PRO_BASE || '',
+			relative: false
 		}
 	}
 };
