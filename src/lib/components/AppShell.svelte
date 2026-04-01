@@ -86,21 +86,21 @@
 	let mobileOpen = $state(false);
 
 	const navItems = [
-		{ href: '/', label: 'Dashboard', icon: LayoutDashboard },
-		{ href: '/config', label: 'Configuration', icon: Settings },
-		{ href: '/pages', label: 'Pages', icon: FileText },
-		{ href: '/media', label: 'Media', icon: Image },
-		{ href: '/users', label: 'Users', icon: Users },
-		{ href: '/plugins', label: 'Plugins', icon: Puzzle },
-		{ href: '/themes', label: 'Themes', icon: Palette },
-		{ href: '/tools', label: 'Tools', icon: Wrench },
-		{ href: '/system', label: 'System', icon: Monitor },
-		{ href: '/settings', label: 'Settings', icon: SlidersHorizontal },
-		{ href: '/testing', label: 'Testing', icon: FlaskConical }
+		{ href: `${base}/`, label: 'Dashboard', icon: LayoutDashboard },
+		{ href: `${base}/config`, label: 'Configuration', icon: Settings },
+		{ href: `${base}/pages`, label: 'Pages', icon: FileText },
+		{ href: `${base}/media`, label: 'Media', icon: Image },
+		{ href: `${base}/users`, label: 'Users', icon: Users },
+		{ href: `${base}/plugins`, label: 'Plugins', icon: Puzzle },
+		{ href: `${base}/themes`, label: 'Themes', icon: Palette },
+		{ href: `${base}/tools`, label: 'Tools', icon: Wrench },
+		{ href: `${base}/system`, label: 'System', icon: Monitor },
+		{ href: `${base}/settings`, label: 'Settings', icon: SlidersHorizontal },
+		{ href: `${base}/testing`, label: 'Testing', icon: FlaskConical }
 	];
 
 	function isActive(href: string): boolean {
-		if (href === '/') return page.url.pathname === '/';
+		if (href === `${base}/`) return page.url.pathname === `${base}/`;
 		return page.url.pathname.startsWith(href);
 	}
 
@@ -163,9 +163,9 @@
 					<li class="my-1 border-t border-sidebar-border"></li>
 					{#each sidebarStore.items as item (item.id)}
 						<li>
-							<a href={item.route}
+							<a href="{base}{item.route}"
 								class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors
-									{isActive(item.route)
+									{isActive(`${base}${item.route}`)
 										? 'bg-sidebar-accent text-sidebar-accent-foreground'
 										: 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
 								onclick={() => mobileOpen = false}
@@ -187,7 +187,7 @@
 		<!-- User profile -->
 		<div class="border-t border-sidebar-border px-2 py-2">
 			{#if collapsed}
-				<a href="/users/{auth.username}" class="flex items-center justify-center rounded-md p-1.5 transition-colors hover:bg-sidebar-accent" title={auth.fullname || auth.username}>
+				<a href="{base}/users/{auth.username}" class="flex items-center justify-center rounded-md p-1.5 transition-colors hover:bg-sidebar-accent" title={auth.fullname || auth.username}>
 					<img
 						src={avatarSrc}
 						alt={auth.fullname || auth.username}
@@ -197,7 +197,7 @@
 				</a>
 			{:else}
 				<div class="flex items-center gap-2.5 rounded-md px-2 py-1.5">
-					<a href="/users/{auth.username}" class="shrink-0">
+					<a href="{base}/users/{auth.username}" class="shrink-0">
 						<img
 							src={avatarSrc}
 							alt={auth.fullname || auth.username}
@@ -206,7 +206,7 @@
 						/>
 					</a>
 					<div class="min-w-0 flex-1">
-						<a href="/users/{auth.username}" class="block truncate text-[13px] font-medium text-foreground hover:underline">
+						<a href="{base}/users/{auth.username}" class="block truncate text-[13px] font-medium text-foreground hover:underline">
 							{auth.fullname || auth.username}
 						</a>
 					</div>

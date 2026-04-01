@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { getPlugin, getPluginConfig, savePluginConfig, setPluginEnabled, removePlugin, getPluginReadme, getPluginChangelog, type PluginInfo } from '$lib/api/endpoints/gpm';
 	import { getPluginBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
@@ -240,7 +241,7 @@
 		try {
 			await removePlugin(slug);
 			toast.success(`${plugin?.name ?? slug} removed`);
-			goto('/plugins');
+			goto(`${base}/plugins`);
 		} catch {
 			toast.error(`Failed to remove ${plugin?.name ?? slug}`);
 		} finally {
@@ -278,7 +279,7 @@
 			<button
 				type="button"
 				class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-				onclick={() => goto('/plugins')}
+				onclick={() => goto(`${base}/plugins`)}
 			>
 				<ArrowLeft size={16} />
 			</button>
@@ -370,7 +371,7 @@
 			<div class="text-center">
 				<AlertCircle size={32} class="mx-auto text-destructive" />
 				<p class="mt-2 text-sm text-destructive">{error}</p>
-				<Button variant="outline" size="sm" class="mt-3" onclick={() => goto('/plugins')}>
+				<Button variant="outline" size="sm" class="mt-3" onclick={() => goto(`${base}/plugins`)}>
 					Back to Plugins
 				</Button>
 			</div>

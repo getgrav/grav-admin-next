@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { getUsers, type UserInfo, type UsersPage } from '$lib/api/endpoints/users';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
 	import { Button } from '$lib/components/ui/button';
@@ -56,7 +57,7 @@
 	}
 
 	function openUserEdit(username: string) {
-		goto(`/users/${username}`);
+		goto(`${base}/users/${username}`);
 	}
 
 	function getInitials(user: UserInfo): string {
@@ -117,7 +118,7 @@
 				<p class="mt-0.5 text-xs text-muted-foreground">{data.total} account{data.total !== 1 ? 's' : ''}</p>
 			{/if}
 		</div>
-		<Button size="sm" onclick={() => goto('/users/new')}>
+		<Button size="sm" onclick={() => goto(`${base}/users/new`)}>
 			<Plus size={14} />
 			Add User
 		</Button>

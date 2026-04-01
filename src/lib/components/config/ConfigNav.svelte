@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { base } from '$app/paths';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { Cpu, Globe, Image, Shield, Info } from 'lucide-svelte';
 
@@ -27,7 +28,7 @@
 	}
 
 	function isActive(scope: string): boolean {
-		return page.url.pathname === `/config/${scope}`;
+		return page.url.pathname === `${base}/config/${scope}`;
 	}
 </script>
 
@@ -35,7 +36,7 @@
 	{#each sections as scope (scope)}
 		{@const Icon = icons[scope]}
 		<a
-			href="/config/{scope}"
+			href="{base}/config/{scope}"
 			class="flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors
 				{isActive(scope)
 					? 'border-primary text-primary'

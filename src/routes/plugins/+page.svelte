@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { page } from '$app/state';
 	import { getInstalledPlugins, setPluginEnabled, checkUpdates, type PluginInfo } from '$lib/api/endpoints/gpm';
 	import { Button } from '$lib/components/ui/button';
@@ -109,7 +110,7 @@
 	}
 
 	function openPluginConfig(slug: string) {
-		goto(`/plugins/${slug}`);
+		goto(`${base}/plugins/${slug}`);
 	}
 
 	async function handleCheckUpdates() {
@@ -385,6 +386,6 @@
 <AddPluginModal
 	open={addModalOpen}
 	initialSearch={installSlug}
-	onclose={() => { addModalOpen = false; installSlug = ''; if (page.url.searchParams.has('install')) goto('/plugins', { replaceState: true }); }}
+	onclose={() => { addModalOpen = false; installSlug = ''; if (page.url.searchParams.has('install')) goto(`${base}/plugins`, { replaceState: true }); }}
 	oninstalled={handlePluginInstalled}
 />

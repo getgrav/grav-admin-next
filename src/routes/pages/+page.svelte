@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { deletePage } from '$lib/api/endpoints/pages';
 	import type { PageSummary } from '$lib/api/endpoints/pages';
 	import { prefs, type PagesViewMode } from '$lib/stores/preferences.svelte';
@@ -25,7 +26,7 @@
 	];
 
 	function handleEdit(route: string) {
-		goto(`/pages/edit${route}`);
+		goto(`${base}/pages/edit${route}`);
 	}
 
 	function handleDelete(page: PageSummary) {
@@ -62,7 +63,7 @@
 		<div>
 			<h1 class="text-xl font-semibold tracking-tight text-foreground">Pages</h1>
 		</div>
-		<Button onclick={() => goto('/pages/new')}>
+		<Button onclick={() => goto(`${base}/pages/new`)}>
 			<Plus size={15} />
 			Add Page
 		</Button>

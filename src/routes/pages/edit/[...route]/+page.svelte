@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { setContext } from 'svelte';
 	import { getPage, updatePage, deletePage } from '$lib/api/endpoints/pages';
 	import { getPageBlueprint } from '$lib/api/endpoints/blueprints';
@@ -210,7 +211,7 @@
 		try {
 			await deletePage(route, { children: true });
 			toast.success('Page deleted');
-			goto('/pages');
+			goto(`${base}/pages`);
 		} catch {
 			toast.error('Failed to delete page');
 		}
@@ -236,7 +237,7 @@
 	<!-- Top bar -->
 	<div class="flex items-center justify-between gap-4">
 		<div class="flex min-w-0 items-center gap-3">
-			<button class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground" onclick={() => goto('/pages')}>
+			<button class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground" onclick={() => goto(`${base}/pages`)}>
 				<ArrowLeft size={16} />
 			</button>
 			<div class="min-w-0">

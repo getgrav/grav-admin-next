@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { createUser } from '$lib/api/endpoints/users';
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -30,7 +31,7 @@
 				access: Object.keys(access).length > 0 ? access : undefined,
 			});
 			toast.success(`User '${username}' created`);
-			goto(`/users/${username}`);
+			goto(`${base}/users/${username}`);
 		} catch (err: unknown) {
 			const message = err && typeof err === 'object' && 'message' in err
 				? (err as { message: string }).message
@@ -66,7 +67,7 @@
 			<button
 				type="button"
 				class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-				onclick={() => goto('/users')}
+				onclick={() => goto(`${base}/users`)}
 			>
 				<ArrowLeft size={16} />
 			</button>

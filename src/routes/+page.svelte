@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { auth } from '$lib/stores/auth.svelte';
 	import {
 		getStats, getNotifications, getPopularity, getFeed, getBackups, getUpdates, getReports,
@@ -125,7 +126,7 @@
 	<!-- ═══ Stats Row ═══ -->
 	{#if stats}
 		<div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-			<a href="/pages" class="group flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 transition-all hover:border-primary/30 hover:shadow-sm">
+			<a href="{base}/pages" class="group flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 transition-all hover:border-primary/30 hover:shadow-sm">
 				<div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500">
 					<FileText size={36} />
 				</div>
@@ -135,7 +136,7 @@
 				</div>
 			</a>
 
-			<a href="/users" class="group flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 transition-all hover:border-primary/30 hover:shadow-sm">
+			<a href="{base}/users" class="group flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 transition-all hover:border-primary/30 hover:shadow-sm">
 				<div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-500">
 					<Users size={36} />
 				</div>
@@ -145,7 +146,7 @@
 				</div>
 			</a>
 
-			<a href="/plugins" class="group flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 transition-all hover:border-primary/30 hover:shadow-sm">
+			<a href="{base}/plugins" class="group flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 transition-all hover:border-primary/30 hover:shadow-sm">
 				<div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-teal-500/10 text-teal-500">
 					<Puzzle size={36} />
 				</div>
@@ -160,7 +161,7 @@
 				</div>
 			</a>
 
-			<a href="/themes" class="group flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 transition-all hover:border-primary/30 hover:shadow-sm">
+			<a href="{base}/themes" class="group flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 transition-all hover:border-primary/30 hover:shadow-sm">
 				<div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
 					<Palette size={36} />
 				</div>
@@ -375,12 +376,12 @@
 					<Clock size={15} />
 					Recent Pages
 				</h2>
-				<a href="/pages" class="text-[11px] text-primary hover:underline">View all</a>
+				<a href="{base}/pages" class="text-[11px] text-primary hover:underline">View all</a>
 			</div>
 			{#if recentPages.length > 0}
 				<div class="space-y-0.5">
 					{#each recentPages.slice(0, 6) as pg}
-						<a href="/pages/edit{pg.route}" class="group flex items-center justify-between gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-accent">
+						<a href="{base}/pages/edit{pg.route}" class="group flex items-center justify-between gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-accent">
 							<div class="min-w-0 flex-1">
 								<div class="truncate text-[13px] font-medium text-foreground group-hover:text-primary">{pg.title}</div>
 								<div class="truncate text-[11px] text-muted-foreground">{pg.route}</div>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { getInstalledThemes, checkUpdates, type ThemeInfo } from '$lib/api/endpoints/gpm';
 	import { Button } from '$lib/components/ui/button';
 	import AddThemeModal from '$lib/components/AddThemeModal.svelte';
@@ -75,7 +76,7 @@
 	}
 
 	function openThemeConfig(slug: string) {
-		goto(`/themes/${slug}`);
+		goto(`${base}/themes/${slug}`);
 	}
 
 	async function handleCheckUpdates() {

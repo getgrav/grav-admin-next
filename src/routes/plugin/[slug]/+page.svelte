@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import {
 		getPluginPageDefinition,
 		getPluginPageBlueprint,
@@ -296,7 +297,7 @@
 			<button
 				type="button"
 				class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-				onclick={() => goto('/')}
+				onclick={() => goto(`${base}/`)}
 			>
 				<ArrowLeft size={16} />
 			</button>
@@ -369,7 +370,7 @@
 			<div class="text-center">
 				<AlertCircle size={32} class="mx-auto text-destructive" />
 				<p class="mt-2 text-sm text-destructive">{error}</p>
-				<Button variant="outline" size="sm" class="mt-3" onclick={() => goto('/')}>
+				<Button variant="outline" size="sm" class="mt-3" onclick={() => goto(`${base}/`)}>
 					Back to Dashboard
 				</Button>
 			</div>
