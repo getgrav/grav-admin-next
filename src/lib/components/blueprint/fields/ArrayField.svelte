@@ -60,12 +60,15 @@
 
 	function emitChange() {
 		if (valueOnly) {
-			onchange(entries.map((e) => e.value));
+			const val = entries.map((e) => e.value);
+			lastExternalJson = JSON.stringify(val);
+			onchange(val);
 		} else {
 			const obj: Record<string, string> = {};
 			for (const e of entries) {
 				if (e.key) obj[e.key] = e.value;
 			}
+			lastExternalJson = JSON.stringify(obj);
 			onchange(obj);
 		}
 	}

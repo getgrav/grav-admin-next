@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
+	import { marked } from 'marked';
 	import TabsField from './fields/TabsField.svelte';
 	import SectionField from './fields/SectionField.svelte';
 	import SpacerField from './fields/SpacerField.svelte';
@@ -163,10 +164,13 @@
 	<SpacerField {field} />
 
 {:else if field.type === 'display'}
-	{#if field.text || field.description}
-		<div class="text-sm text-muted-foreground">
-			{translateLabel(field.text || field.description)}
-		</div>
+	{#if field.content || field.text || field.description}
+		{@const displayText = translateLabel(field.content || field.text || field.description)}
+		{#if field.markdown}
+			<div class="prose prose-sm dark:prose-invert max-w-none text-muted-foreground">{@html marked.parse(displayText)}</div>
+		{:else}
+			<div class="text-sm text-muted-foreground">{displayText}</div>
+		{/if}
 	{/if}
 
 {:else if field.type === 'range'}

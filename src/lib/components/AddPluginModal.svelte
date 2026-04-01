@@ -9,13 +9,19 @@
 		open: boolean;
 		onclose: () => void;
 		oninstalled: () => void;
+		initialSearch?: string;
 	}
 
-	let { open, onclose, oninstalled }: Props = $props();
+	let { open, onclose, oninstalled, initialSearch = '' }: Props = $props();
 
 	let allPlugins = $state<RepositoryPlugin[]>([]);
 	let loading = $state(false);
-	let search = $state('');
+	let search = $state(initialSearch);
+
+	// Update search when initialSearch changes (e.g., navigated with ?install=slug)
+	$effect(() => {
+		if (initialSearch) search = initialSearch;
+	});
 	let selectedSlug = $state<string | null>(null);
 	let installingSlug = $state<string | null>(null);
 
@@ -48,8 +54,9 @@
 		loading = true;
 		try {
 			allPlugins = await getRepositoryPlugins();
-			// Auto-select first available
-			const first = allPlugins.find((p) => !p.installed);
+			// Auto-select matching plugin if initialSearch is a slug, otherwise first available
+			const match = initialSearch ? allPlugins.find((p) => !p.installed && p.slug === initialSearch) : null;
+			const first = match ?? allPlugins.find((p) => !p.installed);
 			if (first) selectedSlug = first.slug;
 		} catch {
 			toast.error('Failed to load available plugins from GPM');
@@ -103,7 +110,7 @@
 	// Load data when modal opens
 	$effect(() => {
 		if (open) {
-			search = '';
+			search = initialSearch || '';
 			selectedSlug = null;
 			loadPlugins();
 		}

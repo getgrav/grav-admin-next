@@ -9,11 +9,14 @@ declare global {
 		// interface Platform {}
 	}
 
-	// Globals exposed to custom field web components
+	// Globals exposed to custom field/page web components
 	interface Window {
 		__GRAV_FIELD_TAG: string;
+		__GRAV_PAGE_TAG: string;
 		__GRAV_API_SERVER_URL: string;
 		__GRAV_API_PREFIX: string;
+		__GRAV_API_TOKEN: string | null;
+		__GRAV_PAGE_LOADING: Record<string, Promise<void> | undefined>;
 	}
 }
 

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { getInstalledPlugins, setPluginEnabled, checkUpdates, type PluginInfo } from '$lib/api/endpoints/gpm';
 	import { Button } from '$lib/components/ui/button';
 	import AddPluginModal from '$lib/components/AddPluginModal.svelte';
@@ -17,6 +18,16 @@
 	let selectedSlug = $state<string | null>(null);
 	let togglingSlug = $state<string | null>(null);
 	let addModalOpen = $state(false);
+	let installSlug = $state('');
+
+	// Auto-open install modal when navigating with ?install=slug
+	$effect(() => {
+		const slug = page.url.searchParams.get('install');
+		if (slug) {
+			installSlug = slug;
+			addModalOpen = true;
+		}
+	});
 	let checkingUpdates = $state(false);
 
 	const filtered = $derived.by(() => {
@@ -373,6 +384,7 @@
 
 <AddPluginModal
 	open={addModalOpen}
-	onclose={() => (addModalOpen = false)}
+	initialSearch={installSlug}
+	onclose={() => { addModalOpen = false; installSlug = ''; if (page.url.searchParams.has('install')) goto('/plugins', { replaceState: true }); }}
 	oninstalled={handlePluginInstalled}
 />

@@ -12,6 +12,7 @@
 	import CacheClearButton from '$lib/components/menubar/CacheClearButton.svelte';
 	import MenubarLinks from '$lib/components/menubar/MenubarLinks.svelte';
 	import PluginMenubarItems from '$lib/components/menubar/PluginMenubarItems.svelte';
+	import { sidebarStore } from '$lib/stores/sidebar.svelte';
 	import type { Snippet } from 'svelte';
 	import {
 		LayoutDashboard, FileText, Image, Users, Puzzle, Palette,
@@ -56,6 +57,15 @@
 	});
 
 	onDestroy(stopKeepAlive);
+
+	// Load plugin sidebar items on authentication
+	$effect(() => {
+		if (auth.isAuthenticated) {
+			sidebarStore.load();
+		} else {
+			sidebarStore.clear();
+		}
+	});
 
 	// Refresh user profile on mount to keep avatar URL fresh
 	$effect(() => {
@@ -148,6 +158,28 @@
 						</a>
 					</li>
 				{/each}
+				{#if sidebarStore.items.length > 0}
+					<li class="my-1 border-t border-sidebar-border"></li>
+					{#each sidebarStore.items as item (item.id)}
+						<li>
+							<a href={item.route}
+								class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors
+									{isActive(item.route)
+										? 'bg-sidebar-accent text-sidebar-accent-foreground'
+										: 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
+								onclick={() => mobileOpen = false}
+								title={collapsed ? item.label : undefined}>
+								<i class="fa-solid {item.icon.startsWith('fa-') ? item.icon : 'fa-' + item.icon} w-4 text-center text-[13px]"></i>
+								{#if !collapsed}
+									<span>{item.label}</span>
+									{#if item.badge != null}
+										<span class="ml-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">{item.badge}</span>
+									{/if}
+								{/if}
+							</a>
+						</li>
+					{/each}
+				{/if}
 			</ul>
 		</nav>
 

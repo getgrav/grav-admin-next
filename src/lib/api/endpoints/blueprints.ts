@@ -28,6 +28,7 @@ export interface BlueprintField {
 	append?: string;
 	options?: Array<{ value: string; label: string }>;
 	data_options?: string;
+	content?: string;
 	validate?: {
 		type?: string;
 		required?: boolean;

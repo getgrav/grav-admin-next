@@ -71,6 +71,7 @@
 			// Expose auth context as globals for web component API calls
 			window.__GRAV_API_SERVER_URL = auth.serverUrl;
 			window.__GRAV_API_PREFIX = auth.apiPrefix || '/api/v1';
+			window.__GRAV_API_TOKEN = auth.accessToken;
 
 			// Execute the module — it calls customElements.define(TAG, ...)
 			const blob = new Blob([
