@@ -111,7 +111,7 @@
 						/>
 					</div>
 				{:else}
-					<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+					<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_2fr] lg:items-start lg:gap-x-6">
 						<div class="flex items-start gap-2 lg:pt-2.5">
 							{#if childField.toggleable}
 								{@render toggleCheckbox(childField, toggled)}

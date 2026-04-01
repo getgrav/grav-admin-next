@@ -39,7 +39,7 @@
 			</div>
 		{/if}
 		{#if field.prepend || field.append}
-			<div class="flex items-stretch rounded-lg shadow-sm {fieldSizeClass(field.size)}">
+			<div class="flex items-stretch rounded-lg shadow-sm">
 				{#if field.prepend}
 					<span class="flex items-center rounded-l-lg border border-r-0 border-input bg-muted px-3 text-sm text-muted-foreground">
 						{translateLabel(field.prepend)}
@@ -47,7 +47,7 @@
 				{/if}
 				<input
 					type={inputType}
-					class="flex h-10 min-w-0 flex-1 border border-input bg-muted/50 px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
+					class="flex h-10 min-w-0 flex-1 border border-input bg-muted/50 px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring {fieldSizeClass(field.size)}
 						{field.prepend && field.append ? '' : field.prepend ? 'rounded-r-lg' : field.append ? 'rounded-l-lg' : 'rounded-lg'}"
 					value={value ?? field.default ?? ''}
 					placeholder={translateLabel(field.placeholder)}

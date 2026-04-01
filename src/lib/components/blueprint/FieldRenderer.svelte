@@ -41,15 +41,33 @@
 		getValue: (path: string) => unknown;
 		onFieldChange: (path: string, value: unknown) => void;
 		filter?: string;
+		/** When true, label/help are rendered externally (e.g. by SectionField) — skip internal label */
+		externalLabel?: boolean;
 	}
 
-	let { field, value, onchange, getValue, onFieldChange, filter = '' }: Props = $props();
+	let { field, value, onchange, getValue, onFieldChange, filter = '', externalLabel = false }: Props = $props();
 
 	// Use i18n.tMaybe for all label translation
 	const translateLabel = i18n.tMaybe;
 
-	// Fields suppressed in admin-next (handled by the UI directly, e.g. drag-and-drop reorder)
-	const suppressedNames = new Set(['order_title', 'header.order_by', 'header.order_manual']);
+	// Container types that manage their own layout
+	const containerTypes = new Set(['section', 'fieldset', 'tabs', 'tab', 'columns', 'column']);
+
+	// Should this field use the 2-column (label left, field right) layout?
+	// Only for non-container leaf fields that have a label and aren't explicitly vertical
+	const useTwoColumn = $derived(
+		!externalLabel &&
+		!containerTypes.has(field.type) &&
+		field.type !== 'spacer' &&
+		field.type !== 'display' &&
+		field.style !== 'vertical' &&
+		!!(field.label || field.help)
+	);
+
+	// Fields suppressed in admin-next (handled by the UI directly)
+	// - order fields: reordering is via drag-and-drop in listing views
+	// - enabled: plugin enable/disable is in the toolbar, not the form
+	const suppressedNames = new Set(['order_title', 'header.order_by', 'header.order_manual', 'enabled']);
 	const suppressedTypes = new Set(['order', 'blueprint']);
 	// Fields to relocate from later columns into the first column (e.g. ordering toggle → settings)
 	const relocateToFirstColumn = new Set(['ordering']);
@@ -68,6 +86,30 @@
 
 {:else if filter && !fieldMatches(field, filter)}
 	<!-- Filtered out -->
+
+{:else if useTwoColumn}
+	<!-- 2-column layout: label left, field right -->
+	<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_2fr] lg:items-start lg:gap-x-6">
+		<div class="lg:pt-2.5">
+			{#if field.label}
+				<span class="text-sm font-semibold text-foreground">{translateLabel(field.label)}</span>
+			{/if}
+			{#if field.help}
+				<p class="mt-0.5 text-xs text-muted-foreground">{translateLabel(field.help)}</p>
+			{/if}
+		</div>
+		<div>
+			<svelte:self
+				field={{ ...field, label: undefined, help: undefined }}
+				{value}
+				{onchange}
+				{getValue}
+				{onFieldChange}
+				{filter}
+				externalLabel={true}
+			/>
+		</div>
+	</div>
 
 {:else if field.type === 'tabs' && field.fields}
 	<TabsField {field} {getValue} {onFieldChange} {filter} />

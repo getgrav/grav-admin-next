@@ -6,13 +6,13 @@
 export function fieldSizeClass(size?: string): string {
 	switch (size) {
 		case 'x-small':
-			return 'max-w-20';
+			return 'max-w-24';
 		case 'small':
-			return 'max-w-40';
+			return 'max-w-48';
 		case 'medium':
-			return 'max-w-64';
+			return 'max-w-80';
 		case 'large':
-			return 'max-w-96';
+			return 'max-w-[28rem]';
 		default:
 			return '';
 	}
