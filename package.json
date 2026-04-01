@@ -5,7 +5,9 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
+		"dev:plugin": "ADMIN_PRO_BASE=/grav-api/admin-pro vite build --watch",
 		"build": "vite build",
+		"build:plugin": "ADMIN_PRO_BASE=/grav-api/admin-pro vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

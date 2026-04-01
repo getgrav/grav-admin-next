@@ -1,5 +1,9 @@
 import adapter from '@sveltejs/adapter-static';
-import { relative, sep } from 'node:path';
+import { relative, sep, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const isPluginBuild = !!process.env.ADMIN_PRO_BASE;
+const pluginAppDir = dirname(fileURLToPath(import.meta.url)) + '/../grav-plugin-admin-pro/app';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -15,7 +19,9 @@ const config = {
 	},
 	kit: {
 		adapter: adapter({
-			fallback: 'index.html'
+			fallback: 'index.html',
+			// When building for the plugin, output directly into its app/ directory
+			...(isPluginBuild && { pages: pluginAppDir, assets: pluginAppDir })
 		}),
 		paths: {
 			base: process.env.ADMIN_PRO_BASE || '',
