@@ -3,12 +3,20 @@ const STORAGE_KEY = 'grav_admin_prefs';
 export type PagesViewMode = 'tree' | 'list' | 'miller';
 export type ColorMode = 'light' | 'dark' | 'system';
 
+export interface MenubarLink {
+	label: string;
+	url: string;
+	icon?: string;
+	external?: boolean;
+}
+
 interface Preferences {
 	pagesViewMode: PagesViewMode;
 	pagesPerPage: number;
 	sidebarCollapsed: boolean;
 	adminLanguage: string;
 	keepAlive: boolean;
+	menubarLinks: MenubarLink[];
 }
 
 function loadStored(): Partial<Preferences> {
@@ -28,6 +36,7 @@ function createPreferencesStore() {
 	let sidebarCollapsed = $state(stored.sidebarCollapsed ?? false);
 	let adminLanguage = $state(stored.adminLanguage ?? 'en');
 	let keepAlive = $state(stored.keepAlive ?? true);
+	let menubarLinks = $state<MenubarLink[]>(stored.menubarLinks ?? []);
 
 	function persist() {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -36,6 +45,7 @@ function createPreferencesStore() {
 			sidebarCollapsed,
 			adminLanguage,
 			keepAlive,
+			menubarLinks,
 		}));
 	}
 
@@ -54,6 +64,9 @@ function createPreferencesStore() {
 
 		get keepAlive() { return keepAlive; },
 		set keepAlive(v: boolean) { keepAlive = v; persist(); },
+
+		get menubarLinks() { return menubarLinks; },
+		set menubarLinks(v: MenubarLink[]) { menubarLinks = v; persist(); },
 	};
 }
 

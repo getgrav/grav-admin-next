@@ -84,11 +84,15 @@ function createAuthStore() {
 			persist();
 		},
 
-		setUser(name: string, full: string, userEmail = '', avatar = '') {
+		setUser(name: string, full: string, userEmail = '', avatar?: string) {
 			username = name;
 			fullname = full;
 			email = userEmail;
-			avatarUrl = avatar;
+			// Only update avatar if a new value is provided — don't wipe a stored
+			// avatar when the API transiently returns null (e.g. thumbnail not cached)
+			if (avatar !== undefined && avatar !== '') {
+				avatarUrl = avatar;
+			}
 			persist();
 		},
 

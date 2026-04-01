@@ -8,6 +8,10 @@
 	import { logout } from '$lib/api/auth';
 	import { api } from '$lib/api/client';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
+	import { getUser } from '$lib/api/endpoints/users';
+	import CacheClearButton from '$lib/components/menubar/CacheClearButton.svelte';
+	import MenubarLinks from '$lib/components/menubar/MenubarLinks.svelte';
+	import PluginMenubarItems from '$lib/components/menubar/PluginMenubarItems.svelte';
 	import type { Snippet } from 'svelte';
 	import {
 		LayoutDashboard, FileText, Image, Users, Puzzle, Palette,
@@ -53,6 +57,20 @@
 
 	onDestroy(stopKeepAlive);
 
+	// Refresh user profile on mount to keep avatar URL fresh
+	$effect(() => {
+		if (auth.isAuthenticated && auth.username) {
+			getUser(auth.username).then(({ user }) => {
+				auth.setUser(
+					user.username,
+					user.fullname || user.username,
+					user.email || '',
+					user.avatar_url || undefined,
+				);
+			}).catch(() => {});
+		}
+	});
+
 	let collapsed = $state(false);
 	let mobileOpen = $state(false);
 
@@ -78,6 +96,20 @@
 	async function handleLogout() {
 		await logout();
 		goto('/login');
+	}
+
+	const avatarSrc = $derived(
+		resolveAvatarUrl(auth.avatarUrl || null, auth.email || null, auth.fullname || null, auth.username)
+	);
+	const fallbackAvatarSrc = $derived(
+		resolveAvatarUrl(null, auth.email || null, auth.fullname || null, auth.username)
+	);
+
+	function handleAvatarError(e: Event) {
+		const img = e.target as HTMLImageElement;
+		if (img.src !== fallbackAvatarSrc) {
+			img.src = fallbackAvatarSrc;
+		}
 	}
 </script>
 
@@ -119,6 +151,44 @@
 			</ul>
 		</nav>
 
+		<!-- User profile -->
+		<div class="border-t border-sidebar-border px-2 py-2">
+			{#if collapsed}
+				<a href="/users/{auth.username}" class="flex items-center justify-center rounded-md p-1.5 transition-colors hover:bg-sidebar-accent" title={auth.fullname || auth.username}>
+					<img
+						src={avatarSrc}
+						alt={auth.fullname || auth.username}
+						class="h-7 w-7 rounded-full object-cover"
+						onerror={handleAvatarError}
+					/>
+				</a>
+			{:else}
+				<div class="flex items-center gap-2.5 rounded-md px-2 py-1.5">
+					<a href="/users/{auth.username}" class="shrink-0">
+						<img
+							src={avatarSrc}
+							alt={auth.fullname || auth.username}
+							class="h-8 w-8 rounded-full object-cover"
+							onerror={handleAvatarError}
+						/>
+					</a>
+					<div class="min-w-0 flex-1">
+						<a href="/users/{auth.username}" class="block truncate text-[13px] font-medium text-foreground hover:underline">
+							{auth.fullname || auth.username}
+						</a>
+					</div>
+					<button
+						class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+						onclick={handleLogout}
+						title="Sign out"
+					>
+						<LogOut size={14} />
+					</button>
+				</div>
+			{/if}
+		</div>
+
+		<!-- Collapse toggle -->
 		<div class="border-t border-sidebar-border px-2 py-1.5">
 			<button
 				class="hidden w-full items-center justify-center rounded-md p-1.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground lg:flex"
@@ -142,27 +212,20 @@
 
 			<div class="flex-1"></div>
 
+			<!-- Menubar -->
+			<div class="flex items-center gap-1">
+				<PluginMenubarItems />
+				<MenubarLinks />
+				<CacheClearButton />
+			</div>
+
+			<div class="h-5 w-px bg-border"></div>
+
+			<!-- Color mode toggle -->
 			<button class="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
 				onclick={() => theme.toggleColorMode()} aria-label="Toggle dark mode">
 				{#if theme.isDark}<Sun size={15} />{:else}<Moon size={15} />{/if}
 			</button>
-
-			<div class="h-5 w-px bg-border"></div>
-
-			<div class="flex items-center gap-2">
-				<a href="/users/{auth.username}" class="flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-accent">
-					<img
-						src={resolveAvatarUrl(auth.avatarUrl || null, auth.email || null, auth.fullname || null, auth.username)}
-						alt={auth.fullname || auth.username}
-						class="h-7 w-7 rounded-full object-cover"
-					/>
-					<span class="text-[13px] font-medium text-foreground">{auth.fullname || auth.username}</span>
-				</a>
-				<button class="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-					onclick={handleLogout} title="Sign out">
-					<LogOut size={15} />
-				</button>
-			</div>
 		</header>
 
 		<main class="flex-1 overflow-y-auto">
