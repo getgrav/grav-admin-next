@@ -208,6 +208,48 @@ class ApiClient {
 		return { data, headers: response.headers };
 	}
 
+	/**
+	 * GET request that returns the full response body (data + meta + links)
+	 * without unwrapping. Useful for paginated endpoints with extra metadata.
+	 */
+	async getFullBody<T = unknown>(path: string, params?: Record<string, string>): Promise<T> {
+		let url = `${this.baseUrl}${path}`;
+		if (params) {
+			const searchParams = new URLSearchParams(params);
+			url += `?${searchParams.toString()}`;
+		}
+
+		const response = await fetch(url, {
+			method: 'GET',
+			headers: this.headers
+		});
+
+		if (response.status === 401 && !path.startsWith('/auth/')) {
+			const refreshed = await this.tryRefresh();
+			if (refreshed) {
+				return this.getFullBody<T>(path, params);
+			}
+			auth.logout();
+			throw new ApiRequestError(
+				{ status: 401, title: 'Unauthorized', detail: 'Session expired. Please log in again.' },
+				response
+			);
+		}
+
+		const body = await response.json().catch(() => null);
+
+		if (!response.ok) {
+			const error: ApiError = body ?? {
+				status: response.status,
+				title: response.statusText,
+				detail: `Request failed with status ${response.status}`
+			};
+			throw new ApiRequestError(error, response);
+		}
+
+		return body as T;
+	}
+
 	async get<T>(path: string, params?: Record<string, string>): Promise<T> {
 		return this.request<T>('GET', path, { params });
 	}

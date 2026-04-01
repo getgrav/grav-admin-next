@@ -1,6 +1,7 @@
 const STORAGE_KEY = 'grav_admin_prefs';
 
 export type PagesViewMode = 'tree' | 'list' | 'miller';
+export type MediaViewMode = 'grid' | 'list';
 export type ColorMode = 'light' | 'dark' | 'system';
 
 export interface MenubarLink {
@@ -13,6 +14,7 @@ export interface MenubarLink {
 interface Preferences {
 	pagesViewMode: PagesViewMode;
 	pagesPerPage: number;
+	mediaViewMode: MediaViewMode;
 	sidebarCollapsed: boolean;
 	adminLanguage: string;
 	keepAlive: boolean;
@@ -33,6 +35,7 @@ function createPreferencesStore() {
 
 	let pagesViewMode = $state<PagesViewMode>(stored.pagesViewMode ?? 'tree');
 	let pagesPerPage = $state(stored.pagesPerPage ?? 20);
+	let mediaViewMode = $state<MediaViewMode>(stored.mediaViewMode ?? 'grid');
 	let sidebarCollapsed = $state(stored.sidebarCollapsed ?? false);
 	let adminLanguage = $state(stored.adminLanguage ?? 'en');
 	let keepAlive = $state(stored.keepAlive ?? true);
@@ -42,6 +45,7 @@ function createPreferencesStore() {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify({
 			pagesViewMode,
 			pagesPerPage,
+			mediaViewMode,
 			sidebarCollapsed,
 			adminLanguage,
 			keepAlive,
@@ -55,6 +59,9 @@ function createPreferencesStore() {
 
 		get pagesPerPage() { return pagesPerPage; },
 		set pagesPerPage(v: number) { pagesPerPage = v; persist(); },
+
+		get mediaViewMode() { return mediaViewMode; },
+		set mediaViewMode(v: MediaViewMode) { mediaViewMode = v; persist(); },
 
 		get sidebarCollapsed() { return sidebarCollapsed; },
 		set sidebarCollapsed(v: boolean) { sidebarCollapsed = v; persist(); },
