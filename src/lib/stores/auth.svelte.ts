@@ -22,12 +22,28 @@ function loadStored(): StoredAuth | null {
 	}
 }
 
+/** Config injected by the Admin Pro plugin via window.__GRAV_CONFIG__ */
+interface GravConfig {
+	serverUrl: string;
+	apiPrefix: string;
+	basePath: string;
+	environment: string;
+}
+
+function getGravConfig(): GravConfig | null {
+	if (typeof window !== 'undefined' && (window as any).__GRAV_CONFIG__) {
+		return (window as any).__GRAV_CONFIG__ as GravConfig;
+	}
+	return null;
+}
+
 function createAuthStore() {
 	const stored = loadStored();
+	const gravConfig = getGravConfig();
 
-	let serverUrl = $state(stored?.serverUrl ?? '');
-	let environment = $state(stored?.environment ?? '');
-	let apiPrefix = $state(stored?.apiPrefix ?? '/api/v1');
+	let serverUrl = $state(gravConfig?.serverUrl ?? stored?.serverUrl ?? '');
+	let environment = $state(gravConfig?.environment ?? stored?.environment ?? '');
+	let apiPrefix = $state(gravConfig?.apiPrefix ?? stored?.apiPrefix ?? '/api/v1');
 	let accessToken = $state(stored?.accessToken ?? '');
 	let refreshToken = $state(stored?.refreshToken ?? '');
 	let expiresAt = $state(stored?.expiresAt ?? 0);
@@ -38,6 +54,7 @@ function createAuthStore() {
 
 	const isAuthenticated = $derived(!!accessToken && Date.now() < expiresAt);
 	const isExpiringSoon = $derived(!!accessToken && expiresAt - Date.now() < 5 * 60 * 1000);
+	const hasGravConfig = gravConfig !== null;
 
 	function persist() {
 		const data: StoredAuth = {
@@ -76,6 +93,7 @@ function createAuthStore() {
 
 		get isAuthenticated() { return isAuthenticated; },
 		get isExpiringSoon() { return isExpiringSoon; },
+		get hasGravConfig() { return hasGravConfig; },
 
 		setTokens(access: string, refresh: string, expiresIn: number) {
 			accessToken = access;

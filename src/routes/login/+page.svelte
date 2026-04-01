@@ -14,7 +14,7 @@
 	let username = $state('');
 	let password = $state('');
 	let loading = $state(false);
-	let showServerConfig = $state(!auth.serverUrl);
+	let showServerConfig = $state(!auth.serverUrl && !auth.hasGravConfig);
 	let attempted = $state(false);
 
 	// Field-level validation state
