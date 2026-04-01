@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { onDestroy } from 'svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
@@ -105,7 +106,7 @@
 
 	async function handleLogout() {
 		await logout();
-		goto('/login');
+		goto(`${base}/login`);
 	}
 
 	const avatarSrc = $derived(
