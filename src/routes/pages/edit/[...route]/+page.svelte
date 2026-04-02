@@ -267,7 +267,7 @@
 				<Eye size={14} />
 				Preview
 			</Button>
-			<Button size="sm" variant={hasChanges ? 'default' : 'outline'} onclick={handleSave} disabled={saving || loading || !hasChanges}>
+			<Button size="sm" class={hasChanges ? '' : 'opacity-50 pointer-events-none'} onclick={handleSave} disabled={saving || loading}>
 				{#if saving}
 					<Loader2 size={14} class="animate-spin" />
 					Saving...
