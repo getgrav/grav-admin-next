@@ -30,6 +30,11 @@
 
 	// Provide page route to child components (used by PageMedia field, etc.)
 	setContext('pageRoute', () => route);
+	// Expose page route globally for custom field web components (e.g., editor-pro)
+	$effect(() => {
+		window.__GRAV_PAGE_ROUTE = route;
+		return () => { window.__GRAV_PAGE_ROUTE = ''; };
+	});
 	// Provide page type context (standard vs modular) for template selectors
 	setContext('pageType', () => template?.startsWith('modular') ? 'modular' : 'standard');
 	// Provide shared media list + updater so file pickers see uploads without saving
