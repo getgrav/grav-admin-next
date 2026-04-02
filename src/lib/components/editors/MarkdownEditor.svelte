@@ -618,6 +618,16 @@
 					e.preventDefault();
 				}
 			}}
+			ondrop={(e) => {
+				const mdText = e.dataTransfer?.getData('application/x-grav-media')
+					? e.dataTransfer?.getData('text/plain')
+					: null;
+				if (mdText) {
+					e.preventDefault();
+					const pos = view?.posAtCoords({ x: e.clientX, y: e.clientY }) ?? view?.state.doc.length ?? 0;
+					view?.dispatch({ changes: { from: pos, insert: mdText } });
+				}
+			}}
 			style:min-height={minHeight}
 			style:max-height={maxHeight}
 		></div>
