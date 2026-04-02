@@ -51,7 +51,7 @@
 	const translateLabel = i18n.tMaybe;
 
 	// Container types that manage their own layout
-	const containerTypes = new Set(['section', 'fieldset', 'tabs', 'tab', 'columns', 'column']);
+	const containerTypes = new Set(['section', 'fieldset', 'tabs', 'tab', 'columns', 'column', 'pagemedia']);
 
 	// Should this field use the 2-column (label left, field right) layout?
 	// Only for non-container leaf fields that have a label and aren't explicitly vertical
