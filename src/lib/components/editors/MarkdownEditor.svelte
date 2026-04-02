@@ -603,9 +603,21 @@
 			{/if}
 		</div>
 	{:else}
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			bind:this={editorContainer}
 			class="markdown-editor-cm"
+			ondragover={(e) => {
+				if (e.dataTransfer?.types.includes('application/x-grav-media') || e.dataTransfer?.types.includes('Files')) {
+					e.preventDefault();
+					if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+				}
+			}}
+			ondragenter={(e) => {
+				if (e.dataTransfer?.types.includes('application/x-grav-media') || e.dataTransfer?.types.includes('Files')) {
+					e.preventDefault();
+				}
+			}}
 			style:min-height={minHeight}
 			style:max-height={maxHeight}
 		></div>
