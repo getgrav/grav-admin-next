@@ -265,6 +265,24 @@
 		// Drop handler: media panel drag-out (text/plain with markdown) or file drops
 		extensions.push(
 			EditorView.domEventHandlers({
+				dragover(event: DragEvent) {
+					// Accept drops from media panel and files
+					if (event.dataTransfer?.types.includes('application/x-grav-media') ||
+						event.dataTransfer?.types.includes('Files')) {
+						event.preventDefault();
+						event.dataTransfer.dropEffect = 'copy';
+						return true;
+					}
+					return false;
+				},
+				dragenter(event: DragEvent) {
+					if (event.dataTransfer?.types.includes('application/x-grav-media') ||
+						event.dataTransfer?.types.includes('Files')) {
+						event.preventDefault();
+						return true;
+					}
+					return false;
+				},
 				drop(event: DragEvent) {
 					// Check for media panel drag-out (carries markdown text)
 					const mdText = event.dataTransfer?.getData('application/x-grav-media')
