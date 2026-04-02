@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, getContext } from 'svelte';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { EditorView, keymap, placeholder as cmPlaceholder, type ViewUpdate } from '@codemirror/view';
 	import { EditorState, type Extension } from '@codemirror/state';
 	import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
@@ -47,7 +48,43 @@
 	}: Props = $props();
 
 	let showPreview = $state(false);
-	const previewHtml = $derived(showPreview ? marked.parse(value || '', { async: false }) as string : '');
+
+	// Resolve image paths for preview: page-relative, media://, image://
+	const getRoute = getContext<(() => string) | undefined>('pageRoute');
+
+	function resolveImagePaths(md: string): string {
+		const serverUrl = auth.serverUrl || '';
+		const pageRoute = getRoute?.() || '';
+		// Build the page media base path (e.g. /user/pages/01.home/)
+		const cleanRoute = pageRoute.startsWith('/') ? pageRoute.slice(1) : pageRoute;
+
+		return md.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, src) => {
+			let resolved = src;
+
+			if (src.startsWith('media://')) {
+				// media:// → /user/media/
+				resolved = `${serverUrl}/user/media/${src.slice(8)}`;
+			} else if (src.startsWith('image://')) {
+				// image:// → /user/images/
+				resolved = `${serverUrl}/user/images/${src.slice(8)}`;
+			} else if (src.startsWith('user://')) {
+				// user:// → /user/
+				resolved = `${serverUrl}/user/${src.slice(7)}`;
+			} else if (src.startsWith('theme://')) {
+				// theme:// → skip, can't resolve easily
+				resolved = src;
+			} else if (!src.startsWith('http') && !src.startsWith('/') && !src.startsWith('data:')) {
+				// Relative path → page media, resolve via the frontend page route
+				if (pageRoute) {
+					resolved = `${serverUrl}${pageRoute}/${src}`;
+				}
+			}
+
+			return `![${alt}](${resolved})`;
+		});
+	}
+
+	const previewHtml = $derived(showPreview ? marked.parse(resolveImagePaths(value || ''), { async: false }) as string : '');
 
 	let editorContainer: HTMLDivElement;
 	let view: EditorView | undefined;
@@ -579,4 +616,26 @@
 	.markdown-editor-cm :global(.cm-strikethrough) { text-decoration: line-through; }
 	.markdown-editor-cm :global(.cm-url) { color: hsl(221 83% 53%); text-decoration: underline; }
 	:global(.dark) .markdown-editor-cm :global(.cm-url) { color: hsl(217 91% 60%); }
+
+	/* Prose styling for markdown preview */
+	.prose { line-height: 1.7; color: var(--color-foreground); }
+	.prose :global(h1) { font-size: 1.5rem; font-weight: 700; margin: 1.5rem 0 0.5rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.5rem; }
+	.prose :global(h2) { font-size: 1.2rem; font-weight: 600; margin: 1.25rem 0 0.25rem; }
+	.prose :global(h3) { font-size: 1.05rem; font-weight: 600; margin: 1rem 0 0.25rem; }
+	.prose :global(h4) { font-size: 0.95rem; font-weight: 600; margin: 0.75rem 0 0.25rem; }
+	.prose :global(p) { margin: 0.5rem 0; }
+	.prose :global(ul) { margin: 0.25rem 0 0.5rem; padding-left: 1.25rem; list-style-type: disc; }
+	.prose :global(ol) { margin: 0.25rem 0 0.5rem; padding-left: 1.25rem; list-style-type: decimal; }
+	.prose :global(li) { margin: 0.1rem 0; }
+	.prose :global(code) { font-size: 0.85em; background: var(--color-muted); padding: 0.15em 0.35em; border-radius: 4px; }
+	.prose :global(pre) { background: var(--color-muted); padding: 0.75rem 1rem; border-radius: 8px; overflow-x: auto; margin: 0.5rem 0; }
+	.prose :global(pre code) { background: none; padding: 0; }
+	.prose :global(a) { color: var(--color-primary); text-decoration: none; }
+	.prose :global(a:hover) { text-decoration: underline; }
+	.prose :global(blockquote) { border-left: 3px solid var(--color-border); padding-left: 1rem; color: var(--color-muted-foreground); margin: 0.5rem 0; }
+	.prose :global(hr) { border: none; border-top: 1px solid var(--color-border); margin: 1rem 0; }
+	.prose :global(img) { max-width: 100%; border-radius: 6px; margin: 0.5rem 0; }
+	.prose :global(table) { width: 100%; border-collapse: collapse; margin: 0.5rem 0; }
+	.prose :global(th), .prose :global(td) { border: 1px solid var(--color-border); padding: 0.4rem 0.75rem; text-align: left; }
+	.prose :global(th) { font-weight: 600; background: var(--color-muted); }
 </style>
