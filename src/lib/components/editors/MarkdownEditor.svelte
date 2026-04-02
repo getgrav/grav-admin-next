@@ -19,8 +19,10 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import {
 		Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3,
-		List, ListOrdered, Quote, Minus, Link, Image, Undo2, Redo2, WrapText
+		List, ListOrdered, Quote, Minus, Link, Image, Undo2, Redo2, WrapText,
+		Eye, PenLine
 	} from 'lucide-svelte';
+	import { marked } from 'marked';
 
 	interface Props {
 		value?: string;
@@ -43,6 +45,9 @@
 		disabled = false,
 		readonly: isReadonly = false,
 	}: Props = $props();
+
+	let showPreview = $state(false);
+	const previewHtml = $derived(showPreview ? marked.parse(value || '', { async: false }) as string : '');
 
 	let editorContainer: HTMLDivElement;
 	let view: EditorView | undefined;
@@ -489,6 +494,10 @@
 			{ icon: Image, label: 'Image', action: insertImage },
 			{ icon: Minus, label: 'Horizontal Rule', action: insertHorizontalRule },
 		],
+		'separator',
+		[
+			{ icon: Eye, label: 'Toggle Preview', action: () => showPreview = !showPreview },
+		],
 	];
 </script>
 
@@ -502,25 +511,50 @@
 				{#each group as item}
 					<button
 						type="button"
-						class="inline-flex h-7 w-7 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+						class="inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors disabled:pointer-events-none disabled:opacity-50
+							{item.label === 'Toggle Preview' && showPreview
+								? 'bg-primary/10 text-primary'
+								: 'text-muted-foreground hover:bg-accent hover:text-foreground'}"
 						title="{item.label}{item.shortcut ? ` (${item.shortcut})` : ''}"
 						onclick={item.action}
-						disabled={disabled || isReadonly}
+						disabled={item.label === 'Toggle Preview' ? false : disabled || isReadonly}
 					>
-						<item.icon size={15} strokeWidth={2} />
+						{#if item.label === 'Toggle Preview'}
+							{#if showPreview}
+								<PenLine size={15} strokeWidth={2} />
+							{:else}
+								<item.icon size={15} strokeWidth={2} />
+							{/if}
+						{:else}
+							<item.icon size={15} strokeWidth={2} />
+						{/if}
 					</button>
 				{/each}
 			{/if}
 		{/each}
 	</div>
 
-	<!-- Editor -->
-	<div
-		bind:this={editorContainer}
-		class="markdown-editor-cm"
-		style:min-height={minHeight}
-		style:max-height={maxHeight}
-	></div>
+	<!-- Editor / Preview -->
+	{#if showPreview}
+		<div
+			class="prose prose-sm dark:prose-invert max-w-none overflow-y-auto px-4 py-3"
+			style:min-height={minHeight}
+			style:max-height={maxHeight || 'none'}
+		>
+			{#if previewHtml}
+				{@html previewHtml}
+			{:else}
+				<p class="text-muted-foreground italic">Nothing to preview</p>
+			{/if}
+		</div>
+	{:else}
+		<div
+			bind:this={editorContainer}
+			class="markdown-editor-cm"
+			style:min-height={minHeight}
+			style:max-height={maxHeight}
+		></div>
+	{/if}
 </div>
 
 <style>

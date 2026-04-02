@@ -14,8 +14,9 @@
 	import { toast } from 'svelte-sonner';
 	import {
 		Save, Trash2, ArrowLeft, Code,
-		AlertCircle, ChevronDown, Loader2
+		AlertCircle, ChevronDown, Loader2, Eye, ExternalLink, X
 	} from 'lucide-svelte';
+	import { auth } from '$lib/stores/auth.svelte';
 	import MarkdownEditor from '$lib/components/editors/MarkdownEditor.svelte';
 	import PageMedia from '$lib/components/media/PageMedia.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
@@ -43,6 +44,10 @@
 	let saving = $state(false);
 	let error = $state('');
 	let showRawEditor = $state(false);
+
+	// Preview
+	let showFrontendPreview = $state(false);
+	const frontendPreviewUrl = $derived(pageData ? `${auth.serverUrl}${pageData.route}` : '');
 
 	// Editable fields
 	let title = $state('');
@@ -258,6 +263,10 @@
 				<Trash2 size={14} />
 				Delete
 			</Button>
+			<Button variant="outline" size="sm" onclick={() => showFrontendPreview = true} disabled={loading || !pageData}>
+				<Eye size={14} />
+				Preview
+			</Button>
 			<Button size="sm" onclick={handleSave} disabled={saving || loading}>
 				{#if saving}
 					<Loader2 size={14} class="animate-spin" />
@@ -463,3 +472,50 @@
 	onconfirm={guard.confirm}
 	oncancel={guard.cancel}
 />
+
+<!-- Frontend Preview Modal -->
+{#if showFrontendPreview && frontendPreviewUrl}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/80 p-4 backdrop-blur-sm sm:p-6"
+		onclick={(e) => { if (e.target === e.currentTarget) showFrontendPreview = false; }}
+	>
+		<div class="flex h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+			<!-- Header -->
+			<div class="flex shrink-0 items-center justify-between border-b border-border px-4 py-2.5">
+				<div class="flex items-center gap-3">
+					<h2 class="text-sm font-semibold text-foreground">Page Preview</h2>
+					<span class="truncate text-xs text-muted-foreground">{frontendPreviewUrl}</span>
+				</div>
+				<div class="flex items-center gap-2">
+					<a
+						href={frontendPreviewUrl}
+						target="_blank"
+						rel="noopener"
+						class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+					>
+						<ExternalLink size={13} />
+						Open in New Tab
+					</a>
+					<button
+						class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+						onclick={() => showFrontendPreview = false}
+					>
+						<X size={16} />
+					</button>
+				</div>
+			</div>
+
+			<!-- iframe -->
+			<div class="flex-1 bg-white">
+				<iframe
+					src={frontendPreviewUrl}
+					title="Page Preview"
+					class="h-full w-full border-0"
+					sandbox="allow-same-origin allow-scripts allow-forms"
+				></iframe>
+			</div>
+		</div>
+	</div>
+{/if}
