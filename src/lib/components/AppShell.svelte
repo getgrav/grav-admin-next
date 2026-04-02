@@ -24,40 +24,59 @@
 	interface Props { children: Snippet; }
 	let { children }: Props = $props();
 
-	// Keep-alive: ping server periodically to prevent session timeout
-	let keepAliveTimer: ReturnType<typeof setInterval> | null = null;
+	// Proactive token refresh: refresh the access token before it expires
+	// so requests never hit a 401 from staleness.
+	let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
-	function startKeepAlive() {
-		stopKeepAlive();
-		if (!prefs.keepAlive || !auth.isAuthenticated) return;
+	function scheduleTokenRefresh() {
+		clearTokenRefresh();
+		if (!auth.isAuthenticated || !auth.refreshToken) return;
 
-		// Ping at half the token lifetime, clamped between 30s and 5 min
+		// Refresh at 80% of token lifetime (e.g. 15-min token → refresh at 12 min)
 		const ttl = auth.expiresAt - Date.now();
-		const interval = Math.max(30_000, Math.min(300_000, ttl / 2));
+		const delay = Math.max(10_000, ttl * 0.8); // at least 10s
 
-		keepAliveTimer = setInterval(() => {
-			if (auth.isAuthenticated) {
-				api.get('/ping').catch(() => {});
-			} else {
-				stopKeepAlive();
+		refreshTimer = setTimeout(async () => {
+			try {
+				const response = await fetch(`${auth.serverUrl}${auth.apiPrefix || '/api/v1'}/auth/refresh`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+					body: JSON.stringify({ refresh_token: auth.refreshToken }),
+				});
+				if (response.ok) {
+					const body = await response.json();
+					const data = body.data ?? body;
+					auth.setTokens(data.access_token, data.refresh_token, data.expires_in);
+					// Schedule the next refresh with the new token's TTL
+					scheduleTokenRefresh();
+				} else {
+					// Refresh failed — token is no longer valid
+					auth.logout();
+				}
+			} catch {
+				// Network error — try again in 30s
+				refreshTimer = setTimeout(() => scheduleTokenRefresh(), 30_000);
 			}
-		}, interval);
+		}, delay);
 	}
 
-	function stopKeepAlive() {
-		if (keepAliveTimer) {
-			clearInterval(keepAliveTimer);
-			keepAliveTimer = null;
+	function clearTokenRefresh() {
+		if (refreshTimer) {
+			clearTimeout(refreshTimer);
+			refreshTimer = null;
 		}
 	}
 
 	$effect(() => {
-		// Re-evaluate when keepAlive pref or auth state changes
-		const _ = [prefs.keepAlive, auth.isAuthenticated];
-		startKeepAlive();
+		// Re-schedule when auth state changes (login, manual refresh, etc.)
+		if (auth.isAuthenticated) {
+			scheduleTokenRefresh();
+		} else {
+			clearTokenRefresh();
+		}
 	});
 
-	onDestroy(stopKeepAlive);
+	onDestroy(clearTokenRefresh);
 
 	// Load plugin sidebar items on authentication
 	$effect(() => {
