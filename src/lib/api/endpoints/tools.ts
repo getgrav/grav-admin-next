@@ -160,7 +160,7 @@ export interface SystemReports {
 }
 
 export async function getReports(): Promise<SystemReports> {
-	return api.get<SystemReports>('/scheduler/reports');
+	return api.get<SystemReports>('/reports');
 }
 
 // ── Direct Install ──

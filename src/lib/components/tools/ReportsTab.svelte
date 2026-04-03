@@ -26,11 +26,10 @@
 		return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + units[i];
 	}
 
-	const diskUsedPercent = $derived(
-		reports?.disk
-			? Math.round(((reports.disk.total_space - reports.disk.free_space) / reports.disk.total_space) * 100)
-			: 0
-	);
+	function getDiskUsedPercent(): number {
+		if (!reports?.disk) return 0;
+		return Math.round(((reports.disk.total_space - reports.disk.free_space) / reports.disk.total_space) * 100);
+	}
 
 	onMount(load);
 </script>
@@ -91,12 +90,12 @@
 							<span class="text-muted-foreground">
 								{formatBytes(reports.disk.total_space - reports.disk.free_space)} used
 							</span>
-							<span class="font-medium text-foreground">{diskUsedPercent}%</span>
+							<span class="font-medium text-foreground">{getDiskUsedPercent()}%</span>
 						</div>
 						<div class="h-2.5 w-full overflow-hidden rounded-full bg-muted">
 							<div
-								class="h-full rounded-full transition-all {diskUsedPercent > 90 ? 'bg-destructive' : diskUsedPercent > 75 ? 'bg-amber-500' : 'bg-primary'}"
-								style="width: {diskUsedPercent}%"
+								class="h-full rounded-full transition-all {getDiskUsedPercent() > 90 ? 'bg-destructive' : getDiskUsedPercent() > 75 ? 'bg-amber-500' : 'bg-primary'}"
+								style="width: {getDiskUsedPercent()}%"
 							></div>
 						</div>
 						<p class="mt-2 text-xs text-muted-foreground">
@@ -156,7 +155,7 @@
 				<h3 class="text-sm font-semibold text-foreground">PHP Extensions ({reports.php.extensions.length})</h3>
 			</div>
 			<div class="flex flex-wrap gap-1.5 p-4">
-				{#each reports.php.extensions.sort() as ext (ext)}
+				{#each [...reports.php.extensions].sort() as ext (ext)}
 					<span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">{ext}</span>
 				{/each}
 			</div>
