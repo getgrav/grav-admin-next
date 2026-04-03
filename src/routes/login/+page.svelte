@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { page } from '$app/state';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { login } from '$lib/api/auth';
@@ -48,7 +49,8 @@
 			auth.setServer(serverUrl, environment);
 			await login(username, password);
 			toast.success('Signed in successfully');
-			goto(`${base}/`);
+			const returnTo = page.url.searchParams.get('returnTo');
+			goto(returnTo && returnTo !== `${base}/login` ? returnTo : `${base}/`);
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err) {
 				const apiErr = err as { status: number; message: string };

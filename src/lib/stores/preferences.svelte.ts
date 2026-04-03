@@ -26,7 +26,6 @@ interface Preferences {
 	mediaViewMode: MediaViewMode;
 	sidebarCollapsed: boolean;
 	adminLanguage: string;
-	keepAlive: boolean;
 	menubarLinks: MenubarLink[];
 	logo: LogoConfig;
 }
@@ -48,7 +47,6 @@ function createPreferencesStore() {
 	let mediaViewMode = $state<MediaViewMode>(stored.mediaViewMode ?? 'grid');
 	let sidebarCollapsed = $state(stored.sidebarCollapsed ?? false);
 	let adminLanguage = $state(stored.adminLanguage ?? 'en');
-	let keepAlive = $state(stored.keepAlive ?? true);
 	let menubarLinks = $state<MenubarLink[]>(stored.menubarLinks ?? []);
 	let logo = $state<LogoConfig>(stored.logo ?? { mode: 'default', text: 'Grav', customLight: '', customDark: '' });
 
@@ -59,7 +57,6 @@ function createPreferencesStore() {
 			mediaViewMode,
 			sidebarCollapsed,
 			adminLanguage,
-			keepAlive,
 			menubarLinks,
 			logo,
 		}));
@@ -80,9 +77,6 @@ function createPreferencesStore() {
 
 		get adminLanguage() { return adminLanguage; },
 		set adminLanguage(v: string) { adminLanguage = v; persist(); },
-
-		get keepAlive() { return keepAlive; },
-		set keepAlive(v: boolean) { keepAlive = v; persist(); },
 
 		get menubarLinks() { return menubarLinks; },
 		set menubarLinks(v: MenubarLink[]) { menubarLinks = v; persist(); },

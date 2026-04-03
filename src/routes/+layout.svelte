@@ -19,7 +19,8 @@
 
 	$effect(() => {
 		if (needsAuth) {
-			goto(`${base}/login`);
+			const returnTo = page.url.pathname + page.url.search + page.url.hash;
+			goto(`${base}/login?returnTo=${encodeURIComponent(returnTo)}`);
 		}
 	});
 

@@ -394,37 +394,6 @@
 		</div>
 	</div>
 
-	<!-- Session -->
-	<div class="rounded-xl border border-border bg-muted/30">
-		<div class="px-6 pt-6 pb-2">
-			<h3 class="text-base font-bold text-foreground">Session</h3>
-			<p class="mt-1 text-sm text-muted-foreground">Keep your session active while working</p>
-		</div>
-		<div class="space-y-5 px-6 py-5">
-			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
-				<div class="lg:pt-2.5">
-					<span class="text-sm font-semibold text-foreground">Keep Alive</span>
-					<p class="mt-0.5 text-xs text-muted-foreground">Periodically ping the server to prevent session timeout</p>
-				</div>
-				<div>
-					<button
-						type="button"
-						class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
-							{prefs.keepAlive ? 'bg-primary' : 'bg-muted'}"
-						role="switch"
-						aria-checked={prefs.keepAlive}
-						onclick={() => prefs.keepAlive = !prefs.keepAlive}
-					>
-						<span
-							class="pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform
-								{prefs.keepAlive ? 'translate-x-5' : 'translate-x-0'}"
-						></span>
-					</button>
-				</div>
-			</div>
-		</div>
-	</div>
-
 	<!-- Connection -->
 	<div class="rounded-xl border border-border bg-muted/30">
 		<div class="px-6 pt-6 pb-2">
