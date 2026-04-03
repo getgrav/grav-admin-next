@@ -2,9 +2,9 @@
 	import { base } from '$app/paths';
 	import { auth } from '$lib/stores/auth.svelte';
 	import {
-		getStats, getNotifications, getPopularity, getFeed, getBackups, getUpdates, getReports,
+		getStats, getNotifications, getPopularity, getFeed, getBackups, getUpdates, getSystemInfoOverview,
 		type DashboardStats, type Notification, type PopularityData,
-		type FeedItem, type BackupInfo, type UpdatesData, type ReportsData
+		type FeedItem, type BackupInfo, type UpdatesData, type SystemInfoOverview
 	} from '$lib/api/endpoints/dashboard';
 	import { getSystemInfo } from '$lib/api/endpoints/system';
 	import { getRecentPages } from '$lib/api/endpoints/pages';
@@ -28,7 +28,7 @@
 	let feed = $state<FeedItem[]>([]);
 	let backups = $state<BackupInfo[]>([]);
 	let updates = $state<UpdatesData | null>(null);
-	let reports = $state<ReportsData | null>(null);
+	let reports = $state<SystemInfoOverview | null>(null);
 	let loading = $state(true);
 
 	async function loadDashboard() {
@@ -43,7 +43,7 @@
 				getFeed(),
 				getBackups(),
 				getUpdates(),
-				getReports(),
+				getSystemInfoOverview(),
 			]);
 			if (results[0].status === 'fulfilled') stats = results[0].value;
 			if (results[1].status === 'fulfilled') systemInfo = results[1].value;

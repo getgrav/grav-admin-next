@@ -128,9 +128,9 @@ export async function getLogs(params: {
 	return api.getFullBody<LogsResponse>('/system/logs', qp);
 }
 
-// ── Reports ──
+// ── System Info ──
 
-export interface SystemReports {
+export interface SystemInfoData {
 	php: {
 		version: string;
 		sapi: string;
@@ -159,8 +159,24 @@ export interface SystemReports {
 	};
 }
 
-export async function getReports(): Promise<SystemReports> {
-	return api.get<SystemReports>('/reports');
+export async function getSystemInfo(): Promise<SystemInfoData> {
+	return api.get<SystemInfoData>('/systeminfo');
+}
+
+// ── Reports ──
+
+export interface ReportItem {
+	id: string;
+	title: string;
+	provider: string;
+	component: string | null;
+	status: 'success' | 'warning' | 'error';
+	message: string;
+	items: Record<string, unknown>[];
+}
+
+export async function getReports(): Promise<ReportItem[]> {
+	return api.get<ReportItem[]>('/reports');
 }
 
 // ── Direct Install ──

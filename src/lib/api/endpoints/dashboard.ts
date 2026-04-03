@@ -102,7 +102,7 @@ export async function getUpdates(): Promise<UpdatesData> {
 	return api.get<UpdatesData>('/gpm/updates');
 }
 
-export interface ReportsData {
+export interface SystemInfoOverview {
 	php: {
 		version: string;
 		memory_limit: string;
@@ -125,6 +125,6 @@ export interface ReportsData {
 	};
 }
 
-export async function getReports(): Promise<ReportsData> {
-	return api.get<ReportsData>('/reports');
+export async function getSystemInfoOverview(): Promise<SystemInfoOverview> {
+	return api.get<SystemInfoOverview>('/systeminfo');
 }

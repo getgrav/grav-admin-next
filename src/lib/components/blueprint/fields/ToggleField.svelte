@@ -107,7 +107,7 @@
 		{#each options as opt, i (opt.value)}
 			<button
 				type="button"
-				class="relative z-10 rounded-md px-3 py-1 text-xs font-medium transition-colors duration-200
+				class="relative z-10 rounded-md px-4 py-2 text-sm font-medium transition-colors duration-200
 					{opt.value === activeValue
 						? 'text-white'
 						: 'text-muted-foreground hover:text-foreground'}"
