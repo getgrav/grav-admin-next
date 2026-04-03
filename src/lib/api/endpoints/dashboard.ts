@@ -84,7 +84,8 @@ export interface BackupInfo {
 }
 
 export async function getBackups(): Promise<BackupInfo[]> {
-	return api.get<BackupInfo[]>('/system/backups');
+	const result = await api.get<{ backups: BackupInfo[] } | BackupInfo[]>('/system/backups');
+	return Array.isArray(result) ? result : result.backups ?? [];
 }
 
 export interface UpdatesData {

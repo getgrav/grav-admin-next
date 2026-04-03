@@ -15,7 +15,7 @@
 	import { toast } from 'svelte-sonner';
 	import {
 		FileText, Users, Puzzle, Palette, RefreshCw, Clock,
-		ExternalLink, ArrowUpRight, ArrowDownRight, Minus,
+		ExternalLink, ArrowUpRight, ArrowDownRight, Minus, Download,
 		TrendingUp, Eye, HardDrive, Shield, Rss, Archive,
 		CheckCircle2, AlertTriangle, Loader2, Server, Activity
 	} from 'lucide-svelte';
@@ -203,7 +203,7 @@
 	<!-- ═══ Main Grid: Chart + Views Summary ═══ -->
 	<div class="grid gap-5 lg:grid-cols-3">
 		<!-- Page Views Chart (spans 2 cols) -->
-		<div class="rounded-lg border border-border bg-card p-5 lg:col-span-2">
+		<div class="flex flex-col rounded-lg border border-border bg-card p-5 lg:col-span-2">
 			<div class="mb-4 flex items-center justify-between">
 				<div>
 					<h2 class="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -237,7 +237,7 @@
 				{@const chartData = popularity.chart}
 				{@const pts = chartData.map((p, i) => {
 					const step = 650 / Math.max(chartData.length - 1, 1);
-					return { x: 45 + i * step, y: 160 - (chartMax > 0 ? (p.views / chartMax) * 140 : 0) };
+					return { x: 45 + i * step, y: 250 - (chartMax > 0 ? (p.views / chartMax) * 220 : 0) };
 				})}
 				{@const linePath = pts.map((p, i) => {
 					if (i === 0) return `M ${p.x},${p.y}`;
@@ -245,9 +245,9 @@
 					const cpx = (prev.x + p.x) / 2;
 					return `C ${cpx},${prev.y} ${cpx},${p.y} ${p.x},${p.y}`;
 				}).join(' ')}
-				{@const areaPath = `${linePath} L ${pts[pts.length - 1].x},160 L ${pts[0].x},160 Z`}
-				<div class="relative mt-2">
-					<svg viewBox="0 0 700 180" class="w-full" preserveAspectRatio="xMidYMid meet">
+				{@const areaPath = `${linePath} L ${pts[pts.length - 1].x},250 L ${pts[0].x},250 Z`}
+				<div class="relative mt-2 flex-1">
+					<svg viewBox="0 0 700 275" class="h-full w-full" preserveAspectRatio="none">
 						<defs>
 							<linearGradient id="areaGradient" x1="0" x2="0" y1="0" y2="1">
 								<stop offset="0%" class="[stop-color:var(--primary)]" stop-opacity="0.3" />
@@ -258,13 +258,13 @@
 						<!-- Grid lines -->
 						{#each [0, 0.25, 0.5, 0.75, 1] as tick}
 							<line
-								x1="40" y1={160 - tick * 140}
-								x2="695" y2={160 - tick * 140}
+								x1="40" y1={250 - tick * 220}
+								x2="695" y2={250 - tick * 220}
 								stroke="currentColor" class="text-border" stroke-width="0.5"
 								stroke-dasharray={tick > 0 && tick < 1 ? '3 3' : '0'}
 							/>
 							<text
-								x="35" y={164 - tick * 140}
+								x="35" y={254 - tick * 220}
 								text-anchor="end"
 								class="fill-muted-foreground"
 								font-size="9"
@@ -272,7 +272,7 @@
 						{/each}
 
 						<!-- Animated chart group — scales Y from baseline -->
-						<g style="transform-origin: 0 160px; transition: transform 0.8s cubic-bezier(0.16,1,0.3,1); transform: scaleY({animated ? 1 : 0});">
+						<g style="transform-origin: 0 250px; transition: transform 0.8s cubic-bezier(0.16,1,0.3,1); transform: scaleY({animated ? 1 : 0});">
 							<!-- Filled area -->
 							<path d={areaPath} fill="url(#areaGradient)" />
 
@@ -297,7 +297,7 @@
 							<!-- Date label -->
 							<text
 								x={p.x}
-								y="175"
+								y="268"
 								text-anchor="middle"
 								class="fill-muted-foreground"
 								font-size="8"
@@ -314,6 +314,35 @@
 
 		<!-- Right side: System Health -->
 		<div class="space-y-3">
+			<!-- Updates status -->
+			{#if updates}
+				<div class="rounded-lg border border-border bg-card p-4">
+					<h2 class="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
+						<Shield size={15} />
+						Updates
+					</h2>
+					{#if totalUpdates === 0}
+						<div class="flex items-center gap-2 text-[13px] text-emerald-600 dark:text-emerald-400">
+							<CheckCircle2 size={14} />
+							Everything up to date
+						</div>
+					{:else}
+						<div class="flex items-center gap-2 text-[13px] text-amber-600 dark:text-amber-400">
+							<AlertTriangle size={14} />
+							{totalUpdates} update{totalUpdates > 1 ? 's' : ''} available
+						</div>
+						<ul class="mt-2 space-y-1 text-[12px] text-muted-foreground">
+							{#if updates.grav.updatable}
+								<li>Grav {updates.grav.available}</li>
+							{/if}
+							{#each updates.plugins.filter(p => p.updatable).slice(0, 3) as p}
+								<li>{p.name} {p.available_version}</li>
+							{/each}
+						</ul>
+					{/if}
+				</div>
+			{/if}
+
 			<!-- System Info compact card -->
 			<div class="rounded-lg border border-border bg-card p-4">
 				<h2 class="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -372,35 +401,6 @@
 						<span>{formatBytes(reports.disk.total_space - reports.disk.free_space)} used</span>
 						<span>{formatBytes(reports.disk.free_space)} free</span>
 					</div>
-				</div>
-			{/if}
-
-			<!-- Updates status -->
-			{#if updates}
-				<div class="rounded-lg border border-border bg-card p-4">
-					<h2 class="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
-						<Shield size={15} />
-						Updates
-					</h2>
-					{#if totalUpdates === 0}
-						<div class="flex items-center gap-2 text-[13px] text-emerald-600 dark:text-emerald-400">
-							<CheckCircle2 size={14} />
-							Everything up to date
-						</div>
-					{:else}
-						<div class="flex items-center gap-2 text-[13px] text-amber-600 dark:text-amber-400">
-							<AlertTriangle size={14} />
-							{totalUpdates} update{totalUpdates > 1 ? 's' : ''} available
-						</div>
-						<ul class="mt-2 space-y-1 text-[12px] text-muted-foreground">
-							{#if updates.grav.updatable}
-								<li>Grav {updates.grav.available}</li>
-							{/if}
-							{#each updates.plugins.filter(p => p.updatable).slice(0, 3) as p}
-								<li>{p.name} {p.available_version}</li>
-							{/each}
-						</ul>
-					{/if}
 				</div>
 			{/if}
 		</div>
@@ -475,19 +475,23 @@
 				Backups
 			</h2>
 			{#if backups.length > 0}
-				<div class="space-y-2">
+				<div class="divide-y divide-border -mx-4">
 					{#each backups.slice(0, 5) as backup}
-						<div class="flex items-center justify-between text-[12px]">
+						<div class="flex items-center gap-3 px-4 py-2">
 							<div class="min-w-0 flex-1">
-								<div class="truncate font-medium text-foreground">{formatDate(backup.date)}</div>
+								<div class="text-[12px] font-medium text-foreground">{formatDate(backup.date)}</div>
+								<div class="text-[11px] text-muted-foreground">{formatBytes(backup.size)}</div>
 							</div>
-							<span class="shrink-0 tabular-nums text-muted-foreground">{formatBytes(backup.size)}</span>
+							<a
+								href="{auth.serverUrl}{auth.apiPrefix}/system/backups/{backup.filename}/download"
+								class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+								title="Download {backup.filename}"
+								target="_blank"
+							>
+								<Download size={14} />
+							</a>
 						</div>
 					{/each}
-				</div>
-			{:else if stats?.last_backup}
-				<div class="text-[13px] text-muted-foreground">
-					Last backup: {formatDate(stats.last_backup)}
 				</div>
 			{:else}
 				<p class="py-4 text-center text-[13px] text-muted-foreground">No backups found</p>
@@ -506,20 +510,17 @@
 			{#if notifications.length > 0}
 				<div class="space-y-2.5">
 					{#each notifications.slice(0, 6) as notif}
-						<div class="border-b border-border/50 pb-2 last:border-0 last:pb-0">
-							{#if notif.link}
-								<a href={notif.link} target="_blank" rel="noopener noreferrer" class="group flex items-start gap-2">
-									<ExternalLink size={11} class="mt-1 shrink-0 text-muted-foreground/60" />
-									<div class="min-w-0 flex-1">
-										<p class="text-[12px] leading-relaxed text-foreground/80 group-hover:text-primary">{@html notif.message}</p>
-										<span class="text-[11px] text-muted-foreground">{formatDate(notif.date)}</span>
-									</div>
-								</a>
-							{:else}
-								<p class="text-[12px] leading-relaxed text-foreground/80">{@html notif.message}</p>
-								<span class="text-[11px] text-muted-foreground">{formatDate(notif.date)}</span>
-							{/if}
-						</div>
+						{#if notif.link}
+							<a href={notif.link} target="_blank" rel="noopener noreferrer" class="group flex items-start justify-between gap-3 border-b border-border/50 pb-2 last:border-0 last:pb-0">
+								<p class="min-w-0 flex-1 text-[12px] leading-relaxed text-foreground/80 group-hover:text-primary">{@html notif.message}</p>
+								<span class="shrink-0 text-[11px] tabular-nums text-muted-foreground">{formatDate(notif.date)}</span>
+							</a>
+						{:else}
+							<div class="flex items-start justify-between gap-3 border-b border-border/50 pb-2 last:border-0 last:pb-0">
+								<p class="min-w-0 flex-1 text-[12px] leading-relaxed text-foreground/80">{@html notif.message}</p>
+								<span class="shrink-0 text-[11px] tabular-nums text-muted-foreground">{formatDate(notif.date)}</span>
+							</div>
+						{/if}
 					{/each}
 				</div>
 			{:else}
@@ -535,7 +536,7 @@
 			</h2>
 			{#if feed.length > 0}
 				<div class="space-y-2.5">
-					{#each feed.slice(0, 6) as item}
+					{#each feed.slice(0, 8) as item}
 						<a href={item.url} target="_blank" rel="noopener noreferrer" class="group flex items-start justify-between gap-3 border-b border-border/50 pb-2 last:border-0 last:pb-0">
 							<div class="min-w-0 flex-1">
 								<p class="text-[12px] font-medium text-foreground group-hover:text-primary">{item.title}</p>
