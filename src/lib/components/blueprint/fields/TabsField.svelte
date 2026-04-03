@@ -35,13 +35,22 @@
 		}
 	});
 
-	// Resolve initial tab from URL hash (e.g., #languages)
+	// Check if this is a nested tab (URL already has a hash from a parent tab context)
+	function getHashParts(): string[] {
+		if (typeof window === 'undefined') return [];
+		return window.location.hash.slice(1).split('--').map(s => s.toLowerCase());
+	}
+
+	// Resolve initial tab from URL hash (supports nested hashes like #scheduler--jobs_tab)
 	function getInitialIndex(): number {
-		if (typeof window === 'undefined') return 0;
-		const hash = window.location.hash.slice(1).toLowerCase();
-		if (!hash) return 0;
-		const idx = tabs.findIndex((t) => t.name.toLowerCase() === hash);
-		return idx >= 0 ? idx : 0;
+		const hashParts = getHashParts();
+		if (hashParts.length === 0) return 0;
+		// Try matching the last segment, then any segment
+		for (const part of [...hashParts].reverse()) {
+			const idx = tabs.findIndex((t) => t.name.toLowerCase() === part);
+			if (idx >= 0) return idx;
+		}
+		return 0;
 	}
 
 	let activeIndex = $state(getInitialIndex());
@@ -53,31 +62,34 @@
 		if (tabKey === prevTabKey) return;
 		prevTabKey = tabKey;
 		if (tabs.length === 0) return;
-		const hash = typeof window !== 'undefined' ? window.location.hash.slice(1).toLowerCase() : '';
-		if (hash) {
-			const idx = tabs.findIndex((t) => t.name.toLowerCase() === hash);
-			activeIndex = idx >= 0 ? idx : 0;
-		} else if (activeIndex >= tabs.length) {
-			activeIndex = 0;
-		}
+		activeIndex = getInitialIndex();
 	});
 
 	function setActiveTab(index: number) {
 		activeIndex = index;
 		const tab = tabs[index];
 		if (tab) {
-			history.replaceState(null, '', `#${tab.name}`);
+			// Preserve parent hash segments, replace/append this level
+			const hashParts = getHashParts();
+			const tabName = tab.name.toLowerCase();
+			// Check if any existing part matches a tab in this group
+			const myTabNames = new Set(tabs.map(t => t.name.toLowerCase()));
+			const parentParts = hashParts.filter(p => !myTabNames.has(p));
+			const newHash = [...parentParts, tabName].join('--');
+			history.replaceState(null, '', `#${newHash}`);
 		}
 	}
 
 	// Listen for hash changes (browser back/forward)
 	$effect(() => {
 		function onHashChange() {
-			const hash = window.location.hash.slice(1).toLowerCase();
-			if (!hash) return;
-			const idx = tabs.findIndex((t) => t.name.toLowerCase() === hash);
-			if (idx >= 0 && idx !== activeIndex) {
-				activeIndex = idx;
+			const hashParts = getHashParts();
+			for (const part of [...hashParts].reverse()) {
+				const idx = tabs.findIndex((t) => t.name.toLowerCase() === part);
+				if (idx >= 0 && idx !== activeIndex) {
+					activeIndex = idx;
+					return;
+				}
 			}
 		}
 		window.addEventListener('hashchange', onHashChange);

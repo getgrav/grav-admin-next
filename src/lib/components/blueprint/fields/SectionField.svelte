@@ -20,8 +20,28 @@
 			: field.fields ?? []
 	);
 
+	// Fields that should always render full-width (no label column)
+	const fullWidthTypes = new Set(['cronstatus', 'webhook-status', 'tabs', 'tab', 'section', 'fieldset', 'columns', 'column', 'pagemedia', 'spacer']);
+
+	// Fields suppressed in admin-next (same list as FieldRenderer)
+	const suppressedNames = new Set(['order_title', 'header.order_by', 'header.order_manual', 'enabled', 'health_status', 'active_triggers', 'webhook_token_generate']);
+
+	// Fields that get replaced by native Svelte components (not suppressed)
+	const nativeReplacements = new Set(['webhook_examples']);
+
+	function isSuppressed(f: BlueprintField): boolean {
+		if (nativeReplacements.has(f.name)) return false;
+		if (suppressedNames.has(f.name)) return true;
+		// Suppress display fields with raw HTML/JS or empty content
+		if (f.type === 'display') {
+			const c = f.content || f.text || f.description || '';
+			if (c === '' || c.includes('<script') || c.includes('<div id=')) return true;
+		}
+		return false;
+	}
+
 	function isVertical(f: BlueprintField): boolean {
-		return f.style === 'vertical';
+		return f.style === 'vertical' || fullWidthTypes.has(f.type);
 	}
 
 	// Track toggleable field states — initialize eagerly (not in $effect)
@@ -100,7 +120,9 @@
 			{#each visibleFields as childField (childField.name)}
 				{@const toggled = isToggleOn(childField)}
 
-				{#if isVertical(childField)}
+				{#if isSuppressed(childField)}
+					<!-- Suppressed in admin-next -->
+				{:else if isVertical(childField)}
 					<div class="transition-opacity {childField.toggleable && !toggled ? 'pointer-events-none opacity-50' : ''}">
 						<FieldRenderer
 							field={childField}

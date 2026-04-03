@@ -42,6 +42,7 @@ export interface BlueprintField {
 	destination?: string;
 	style?: string;
 	classes?: string;
+	wrapper_classes?: string;
 	use?: string;
 	key?: string;
 	controls?: string;

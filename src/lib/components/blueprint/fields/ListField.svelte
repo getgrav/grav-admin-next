@@ -19,6 +19,7 @@
 	const isCollapsible = $derived(childFields.length > 1 && field.collapsible !== false);
 	const sortable = $derived(field.sort !== false);
 	const btnLabel = $derived(field.btnLabel ? translateLabel(field.btnLabel) : 'Add item');
+	const isCompact = $derived((field.classes ?? '').includes('compact'));
 
 	// Detect if this list uses key-value pairs (has a field with type 'key')
 	const keyFieldDef = $derived(childFields.find((f) => f.type === 'key'));
@@ -243,9 +244,9 @@
 
 					<!-- Item fields (when expanded) -->
 					{#if !item.collapsed}
-						<div class="space-y-4 border-t border-border px-4 py-3">
+						<div class="{isCompact ? 'grid grid-cols-2 gap-x-4 gap-y-3' : 'space-y-4'} border-t border-border px-4 py-3">
 							{#if keyFieldDef}
-								<div class="space-y-2">
+								<div class="space-y-2 {isCompact ? 'col-span-2' : ''}">
 									{#if keyFieldDef.label}
 										<label class="text-sm font-semibold text-foreground">
 											{translateLabel(keyFieldDef.label)}

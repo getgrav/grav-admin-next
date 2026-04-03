@@ -12,7 +12,22 @@
 	let { field, value, onchange }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
-	const cronStr = $derived(typeof value === 'string' && value ? value : (field.default as string) ?? '* * * * *');
+	// Persist open/close state across re-renders using a module-level map
+	// keyed by field name, so the panel stays open when the parent re-renders
+	const openPanels: Record<string, boolean> = ((globalThis as any).__cronFieldOpenPanels ??= {});
+
+	// Use local state to avoid re-renders when parent value changes mid-edit
+	let localCron = $state(typeof value === 'string' && value ? value : (field.default as string) ?? '* * * * *');
+
+	// Sync from parent only when value genuinely changes externally
+	$effect(() => {
+		const incoming = typeof value === 'string' && value ? value : (field.default as string) ?? '* * * * *';
+		if (incoming !== localCron) {
+			localCron = incoming;
+		}
+	});
+
+	const cronStr = $derived(localCron);
 
 	// Parse cron into 5 parts: minute, hour, day-of-month, month, day-of-week
 	function parseCron(cron: string): [string, string, string, string, string] {
@@ -28,7 +43,11 @@
 
 	const parts = $derived(parseCron(cronStr));
 
-	let showAdvanced = $state(false);
+	let showAdvanced = $state(openPanels[field.name] ?? false);
+	function toggleAdvanced() {
+		showAdvanced = !showAdvanced;
+		openPanels[field.name] = showAdvanced;
+	}
 
 	// Preset detection
 	type Preset = 'every_minute' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'custom';
@@ -71,19 +90,25 @@
 	const description = $derived(describeCron(parts));
 
 	function applyPreset(preset: Preset) {
+		let newCron: string;
 		switch (preset) {
-			case 'every_minute': onchange('* * * * *'); break;
-			case 'hourly': onchange(`0 * * * *`); break;
-			case 'daily': onchange(`0 ${parts[1] !== '*' ? parts[1] : '0'} * * *`); break;
-			case 'weekly': onchange(`0 ${parts[1] !== '*' ? parts[1] : '0'} * * 1`); break;
-			case 'monthly': onchange(`0 ${parts[1] !== '*' ? parts[1] : '0'} 1 * *`); break;
+			case 'every_minute': newCron = '* * * * *'; break;
+			case 'hourly': newCron = `0 * * * *`; break;
+			case 'daily': newCron = `0 ${parts[1] !== '*' ? parts[1] : '0'} * * *`; break;
+			case 'weekly': newCron = `0 ${parts[1] !== '*' ? parts[1] : '0'} * * 1`; break;
+			case 'monthly': newCron = `0 ${parts[1] !== '*' ? parts[1] : '0'} 1 * *`; break;
+			default: return;
 		}
+		localCron = newCron;
+		onchange(newCron);
 	}
 
 	function updatePart(index: number, val: string) {
 		const newParts = [...parts] as [string, string, string, string, string];
 		newParts[index] = val || '*';
-		onchange(newParts.join(' '));
+		const newCron = newParts.join(' ');
+		localCron = newCron;
+		onchange(newCron);
 	}
 
 	const presets: Array<{ value: Preset; label: string }> = [
@@ -128,7 +153,7 @@
 		<button
 			type="button"
 			class="flex w-full items-center gap-2 px-3 py-2.5 text-left"
-			onclick={() => showAdvanced = !showAdvanced}
+			onclick={toggleAdvanced}
 		>
 			<Clock size={14} class="shrink-0 text-muted-foreground" />
 			<span class="flex-1 text-sm text-foreground">{description}</span>

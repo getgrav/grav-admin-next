@@ -29,6 +29,9 @@
 	import FrontmatterField from './fields/FrontmatterField.svelte';
 	import IconPickerField from './fields/IconPickerField.svelte';
 	import PermissionsField from './fields/PermissionsField.svelte';
+	import CronStatusField from './fields/CronStatusField.svelte';
+	import WebhookStatusField from './fields/WebhookStatusField.svelte';
+	import WebhookExamplesField from './fields/WebhookExamplesField.svelte';
 	import CustomFieldWrapper from './fields/CustomFieldWrapper.svelte';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
@@ -51,7 +54,7 @@
 	const translateLabel = i18n.tMaybe;
 
 	// Container types that manage their own layout
-	const containerTypes = new Set(['section', 'fieldset', 'tabs', 'tab', 'columns', 'column', 'pagemedia']);
+	const containerTypes = new Set(['section', 'fieldset', 'tabs', 'tab', 'columns', 'column', 'pagemedia', 'cronstatus', 'webhook-status']);
 
 	// Should this field use the 2-column (label left, field right) layout?
 	// Only for non-container leaf fields that have a label and aren't explicitly vertical
@@ -67,10 +70,23 @@
 	// Fields suppressed in admin-next (handled by the UI directly)
 	// - order fields: reordering is via drag-and-drop in listing views
 	// - enabled: plugin enable/disable is in the toolbar, not the form
-	const suppressedNames = new Set(['order_title', 'header.order_by', 'header.order_manual', 'enabled']);
+	const suppressedNames = new Set([
+		'order_title', 'header.order_by', 'header.order_manual', 'enabled',
+		'health_status', 'active_triggers',
+	]);
+	// Sections whose title should be hidden (content still renders)
+	const hideTitleSections = new Set(['status_title']);
 	const suppressedTypes = new Set(['order', 'blueprint']);
 	// Fields to relocate from later columns into the first column (e.g. ordering toggle → settings)
 	const relocateToFirstColumn = new Set(['ordering']);
+
+	// Check if this display field has content that should be suppressed (raw HTML/JS from old admin)
+	const isRawDisplayField = $derived(
+		field.type === 'display' && (() => {
+			const c = field.content || field.text || field.description || '';
+			return c === '' || c.includes('<script') || c.includes('<div id=');
+		})()
+	);
 
 	// Map field types to components
 	const inputTypes = new Set([
@@ -83,6 +99,12 @@
 
 {#if suppressedNames.has(field.name) || suppressedTypes.has(field.type)}
 	<!-- Suppressed in admin-next -->
+
+{:else if field.name === 'webhook_examples'}
+	<WebhookExamplesField {field} {value} {onchange} />
+
+{:else if isRawDisplayField}
+	<!-- Suppress display fields containing raw JS/HTML or with empty content -->
 
 {:else if filter && !fieldMatches(field, filter)}
 	<!-- Filtered out -->
@@ -118,7 +140,7 @@
 	<!-- Tabs handle rendering their own tab content -->
 
 {:else if field.type === 'section' || field.type === 'fieldset'}
-	<SectionField {field} {getValue} {onFieldChange} {filter} />
+	<SectionField field={hideTitleSections.has(field.name) ? { ...field, title: undefined, label: undefined } : field} {getValue} {onFieldChange} {filter} />
 
 {:else if field.type === 'columns' && field.fields}
 	{@const processed = (() => {
@@ -249,6 +271,9 @@
 
 {:else if field.type === 'folder-slug'}
 	<FolderSlugField {field} {value} {onchange} {getValue} />
+
+{:else if field.type === 'text' && (field.wrapper_classes ?? '').includes('cron-selector')}
+	<CronField {field} {value} {onchange} />
 
 {:else if inputTypes.has(field.type)}
 	<TextField {field} {value} {onchange} />
@@ -384,6 +409,12 @@
 
 {:else if field.type === 'permissions' || field.type === 'acl_picker'}
 	<PermissionsField {field} {value} {onchange} />
+
+{:else if field.type === 'cronstatus'}
+	<CronStatusField {field} {value} {onchange} />
+
+{:else if field.type === 'webhook-status'}
+	<WebhookStatusField {field} {value} {onchange} />
 
 {:else if customFieldRegistry.has(field.type)}
 	<!-- Plugin-provided custom field via web component -->

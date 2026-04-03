@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import Tabs from '$lib/components/ui/Tabs.svelte';
 	import BackupsTab from '$lib/components/tools/BackupsTab.svelte';
 	import SchedulerTab from '$lib/components/tools/SchedulerTab.svelte';
@@ -14,7 +16,18 @@
 		{ id: 'direct-install', label: 'Direct Install' },
 	];
 
-	let activeTab = $state('backups');
+	const validIds = new Set(tabs.map(t => t.id));
+
+	// Read active tab from URL hash, default to 'backups'
+	// Supports nested hashes like #scheduler--jobs_tab (first segment is the tools tab)
+	let activeTab = $derived((() => {
+		const hash = page.url.hash.replace('#', '').split('--')[0];
+		return validIds.has(hash) ? hash : 'backups';
+	})());
+
+	function setTab(id: string) {
+		goto(`#${id}`, { replaceState: true, noScroll: true });
+	}
 </script>
 
 <svelte:head>
@@ -24,7 +37,7 @@
 <div class="space-y-4 p-5">
 	<h1 class="text-lg font-semibold text-foreground">Tools</h1>
 
-	<Tabs items={tabs} active={activeTab} onchange={(id) => { activeTab = id; }} />
+	<Tabs items={tabs} active={activeTab} onchange={setTab} />
 
 	<div class="pt-1">
 		{#if activeTab === 'backups'}

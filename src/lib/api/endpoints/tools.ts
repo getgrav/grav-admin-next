@@ -49,11 +49,26 @@ export function getBackupDownloadUrl(filename: string): string {
 
 // ── Scheduler ──
 
+export interface SchedulerHealth {
+	status: 'healthy' | 'warning' | 'error';
+	message?: string;
+	last_run: string | null;
+	last_run_age: number | null;
+	scheduled_jobs: number;
+	jobs_due: number;
+	queue_size: number;
+	webhook_enabled: boolean;
+}
+
 export interface SchedulerStatus {
 	crontab_status: 'not_installed' | 'installed' | 'error';
 	cron_command: string;
 	scheduler_command: string;
 	whoami: string;
+	health: SchedulerHealth;
+	triggers: string[];
+	webhook_installed: boolean;
+	webhook_enabled: boolean;
 }
 
 export interface SchedulerJob {
@@ -90,9 +105,12 @@ export interface LogEntry {
 export interface LogsResponse {
 	data: LogEntry[];
 	meta: {
-		total: number;
-		page: number;
-		per_page: number;
+		pagination: {
+			total: number;
+			page: number;
+			per_page: number;
+			total_pages: number;
+		};
 	};
 }
 
@@ -100,11 +118,13 @@ export async function getLogs(params: {
 	page?: number;
 	per_page?: number;
 	level?: string;
+	search?: string;
 }): Promise<LogsResponse> {
 	const qp: Record<string, string> = {};
 	if (params.page) qp.page = String(params.page);
 	if (params.per_page) qp.per_page = String(params.per_page);
 	if (params.level) qp.level = params.level;
+	if (params.search) qp.search = params.search;
 	return api.getFullBody<LogsResponse>('/system/logs', qp);
 }
 

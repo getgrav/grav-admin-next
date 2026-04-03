@@ -1,52 +1,74 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { getSchedulerStatus, getSchedulerJobs, runScheduler } from '$lib/api/endpoints/tools';
-	import type { SchedulerStatus, SchedulerJob } from '$lib/api/endpoints/tools';
-	import { Button } from '$lib/components/ui/button';
+	import { getSchedulerStatus } from '$lib/api/endpoints/tools';
+	import type { SchedulerStatus } from '$lib/api/endpoints/tools';
+	import { getConfigBlueprint } from '$lib/api/endpoints/blueprints';
+	import { getConfig, saveConfig } from '$lib/api/endpoints/config';
+	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
+	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import CopyButton from '$lib/components/ui/CopyButton.svelte';
-	import { Play, Loader2, ChevronDown, CheckCircle2, XCircle, AlertTriangle, Clock } from 'lucide-svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { Save, Loader2, AlertTriangle, Info, Shield } from 'lucide-svelte';
 
 	let status = $state<SchedulerStatus | null>(null);
-	let jobs = $state<SchedulerJob[]>([]);
+	let blueprint = $state<BlueprintSchema | null>(null);
+	let configData = $state<Record<string, unknown>>({});
+	let originalJson = $state('{}');
+	let etag = $state('');
 	let loading = $state(true);
-	let running = $state(false);
-	let showInstructions = $state(false);
+	let saving = $state(false);
+
+	let hasChanges = $derived(JSON.stringify(configData) !== originalJson);
 
 	async function load() {
 		loading = true;
 		try {
-			[status, jobs] = await Promise.all([getSchedulerStatus(), getSchedulerJobs()]);
+			const [statusResult, bp, cfg] = await Promise.all([
+				getSchedulerStatus(),
+				getConfigBlueprint('scheduler').catch(() => null),
+				getConfig('scheduler'),
+			]);
+			status = statusResult;
+			blueprint = bp;
+			configData = cfg.data;
+			originalJson = JSON.stringify(cfg.data);
+			etag = cfg.etag;
 		} catch {
-			toast.error('Failed to load scheduler info');
+			toast.error('Failed to load scheduler configuration.');
 		} finally {
 			loading = false;
 		}
 	}
 
-	async function handleRun() {
-		running = true;
-		try {
-			await runScheduler();
-			toast.success('Scheduler run completed');
-			await load();
-		} catch {
-			toast.error('Failed to run scheduler');
-		} finally {
-			running = false;
+	function handleBlueprintChange(path: string, value: unknown) {
+		const parts = path.split('.');
+		const newData = { ...configData };
+		let current: Record<string, unknown> = newData;
+		for (let i = 0; i < parts.length - 1; i++) {
+			if (!current[parts[i]] || typeof current[parts[i]] !== 'object') {
+				current[parts[i]] = {};
+			}
+			current[parts[i]] = { ...(current[parts[i]] as Record<string, unknown>) };
+			current = current[parts[i]] as Record<string, unknown>;
 		}
+		current[parts[parts.length - 1]] = value;
+		configData = newData;
 	}
 
-	function relativeTime(dateStr: string | null): string {
-		if (!dateStr) return 'never';
-		const diff = Date.now() - new Date(dateStr).getTime();
-		const mins = Math.floor(diff / 60000);
-		if (mins < 1) return 'just now';
-		if (mins < 60) return `${mins}m ago`;
-		const hrs = Math.floor(mins / 60);
-		if (hrs < 24) return `${hrs}h ago`;
-		const days = Math.floor(hrs / 24);
-		return `${days}d ago`;
+	async function handleSave() {
+		saving = true;
+		try {
+			const result = await saveConfig('scheduler', configData, etag);
+			configData = result.data;
+			originalJson = JSON.stringify(result.data);
+			etag = result.etag;
+			toast.success('Scheduler configuration saved');
+		} catch {
+			toast.error('Failed to save');
+		} finally {
+			saving = false;
+		}
 	}
 
 	onMount(load);
@@ -55,130 +77,77 @@
 <div class="space-y-4">
 	{#if loading}
 		<div class="p-8 text-center text-sm text-muted-foreground">Loading scheduler...</div>
-	{:else}
-		<!-- Status Banner -->
-		{#if status}
-			<div class="rounded-lg border border-border bg-card p-4">
-				<div class="flex items-center justify-between">
-					<div class="flex items-center gap-3">
-						{#if status.crontab_status === 'installed'}
-							<div class="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10">
-								<CheckCircle2 size={18} class="text-emerald-500" />
-							</div>
-							<div>
-								<p class="text-sm font-semibold text-foreground">Cron Installed</p>
-								<p class="text-xs text-muted-foreground">Running as: {status.whoami}</p>
-							</div>
-						{:else if status.crontab_status === 'error'}
-							<div class="flex h-8 w-8 items-center justify-center rounded-full bg-destructive/10">
-								<XCircle size={18} class="text-destructive" />
-							</div>
-							<div>
-								<p class="text-sm font-semibold text-foreground">Cron Error</p>
-								<p class="text-xs text-muted-foreground">There was a problem checking cron status</p>
-							</div>
-						{:else}
-							<div class="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10">
-								<AlertTriangle size={18} class="text-amber-500" />
-							</div>
-							<div>
-								<p class="text-sm font-semibold text-foreground">Cron Not Installed</p>
-								<p class="text-xs text-muted-foreground">Set up cron to enable automatic scheduling</p>
-							</div>
-						{/if}
-					</div>
-					<button
-						class="flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-						onclick={() => showInstructions = !showInstructions}
-					>
-						Setup Instructions
-						<ChevronDown size={14} class="transition-transform {showInstructions ? 'rotate-180' : ''}" />
-					</button>
-				</div>
+	{:else if status}
 
-				{#if showInstructions && status.cron_command}
-					<div class="mt-4 space-y-3 border-t border-border pt-4">
-						<div>
-							<p class="mb-1.5 text-xs font-medium text-muted-foreground">Add this line to your crontab:</p>
-							<div class="flex items-start gap-2">
-								<code class="block flex-1 rounded-md bg-muted px-3 py-2 font-mono text-xs text-foreground">{status.cron_command}</code>
-								<CopyButton text={status.cron_command} />
-							</div>
-						</div>
-						<p class="text-xs text-muted-foreground">
-							Run <code class="rounded bg-muted px-1.5 py-0.5 text-[11px]">crontab -e</code> to edit your crontab, paste the line above, save and exit.
-						</p>
-					</div>
+		<!-- Cron Status Notice -->
+		{#if status.crontab_status !== 'installed'}
+			<div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
+				<AlertTriangle size={16} />
+				Not Enabled for user: <strong>{status.whoami}</strong>
+			</div>
+		{/if}
+
+		<!-- Info Banner -->
+		<div class="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-300">
+			<Info size={16} class="mt-0.5 shrink-0" />
+			<span>
+				The scheduler can use either system crontab or webhook triggers to execute commands.
+				Webhooks are recommended for cloud environments. Only advanced users should configure custom jobs.
+				Misconfiguration or abuse can lead to security vulnerabilities.
+			</span>
+		</div>
+
+		<!-- Cron Command -->
+		{#if status.cron_command}
+			<div class="rounded-lg border border-border bg-card p-4">
+				<div class="flex items-start gap-2">
+					<code class="block flex-1 overflow-x-auto rounded-md bg-muted px-3 py-2.5 font-mono text-xs text-foreground">{status.cron_command}</code>
+					<CopyButton text={status.cron_command} />
+				</div>
+				<p class="mt-3 text-sm text-muted-foreground">
+					To enable the Scheduler's functionality, you must add the <strong class="text-foreground">Grav Scheduler</strong> to
+					your system's crontab file for the <strong class="text-foreground">{status.whoami}</strong> user.
+					Run the command above from the terminal to add it automatically. Once saved, refresh this page to see the status.
+				</p>
+				{#if !status.webhook_installed}
+					<p class="mt-2 text-sm text-muted-foreground">
+						Alternatively, install the <strong class="text-foreground">scheduler-webhook</strong> plugin to use webhook-based cron firing,
+						which is recommended for cloud environments where system crontab access is not available.
+					</p>
 				{/if}
 			</div>
 		{/if}
 
-		<!-- Jobs Table -->
-		<div class="rounded-lg border border-border bg-card">
-			<div class="flex items-center justify-between border-b border-border px-4 py-3">
-				<h3 class="text-sm font-semibold text-foreground">Scheduled Jobs</h3>
-				<Button size="sm" variant="outline" onclick={handleRun} disabled={running}>
-					{#if running}
-						<Loader2 size={14} class="animate-spin" />
-						Running...
-					{:else}
-						<Play size={14} />
-						Run All
-					{/if}
-				</Button>
-			</div>
-
-			{#if jobs.length === 0}
-				<div class="p-8 text-center text-sm text-muted-foreground">No scheduled jobs registered.</div>
-			{:else}
-				<table class="w-full text-sm">
-					<thead>
-						<tr class="border-b border-border text-left text-xs font-medium text-muted-foreground">
-							<th class="px-4 py-3">Job</th>
-							<th class="px-4 py-3">Schedule</th>
-							<th class="px-4 py-3">Status</th>
-							<th class="px-4 py-3">Last Run</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each jobs as job (job.id)}
-							<tr class="border-b border-border last:border-0 hover:bg-muted/30">
-								<td class="px-4 py-3">
-									<span class="font-medium text-foreground">{job.id}</span>
-									<p class="mt-0.5 truncate text-xs text-muted-foreground" title={job.command}>{job.command}</p>
-								</td>
-								<td class="px-4 py-3">
-									<code class="rounded bg-muted px-1.5 py-0.5 text-xs">{job.expression}</code>
-								</td>
-								<td class="px-4 py-3">
-									{#if job.error}
-										<span class="inline-flex items-center gap-1 text-xs font-medium text-destructive">
-											<span class="h-1.5 w-1.5 rounded-full bg-destructive"></span>
-											error
-										</span>
-									{:else if job.status === 'pending'}
-										<span class="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
-											<span class="h-1.5 w-1.5 rounded-full bg-muted-foreground/50"></span>
-											pending
-										</span>
-									{:else}
-										<span class="inline-flex items-center gap-1 text-xs font-medium text-emerald-500">
-											<span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-											ok
-										</span>
-									{/if}
-								</td>
-								<td class="px-4 py-3">
-									<span class="flex items-center gap-1 text-xs text-muted-foreground">
-										<Clock size={12} />
-										{relativeTime(job.last_run)}
-									</span>
-								</td>
-							</tr>
-						{/each}
-					</tbody>
-				</table>
-			{/if}
+		<!-- Security Warning -->
+		<div class="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+			<Shield size={16} class="mt-0.5 shrink-0" />
+			<span>
+				Only advanced users should configure custom scheduler jobs. Incorrect configuration
+				can cause performance issues or security vulnerabilities.
+			</span>
 		</div>
+
+		<!-- Save button (always visible, disabled when no changes) -->
+		<div class="flex justify-end">
+			<Button size="sm" onclick={handleSave} disabled={saving || !hasChanges} class={hasChanges ? '' : 'opacity-50'}>
+				{#if saving}
+					<Loader2 size={14} class="animate-spin" />
+					Saving...
+				{:else}
+					<Save size={14} />
+					Save
+				{/if}
+			</Button>
+		</div>
+
+		<!-- Blueprint Form (tabs: Scheduler Status, Custom Scheduler Jobs, Advanced Features) -->
+		{#if blueprint}
+			<BlueprintForm
+				fields={blueprint.fields}
+				data={configData}
+				onchange={handleBlueprintChange}
+			/>
+		{/if}
+
 	{/if}
 </div>
