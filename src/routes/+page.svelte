@@ -30,6 +30,31 @@
 	let updates = $state<UpdatesData | null>(null);
 	let reports = $state<SystemInfoOverview | null>(null);
 	let loading = $state(true);
+	let animated = $state(false);
+
+	// Animated counter — tweens from 0 to target over duration
+	function useTween(target: () => number, duration = 700) {
+		let display = $state(0);
+		$effect(() => {
+			const end = target();
+			if (!animated || end === 0) { display = 0; return; }
+			const start = 0;
+			const startTime = performance.now();
+			function tick(now: number) {
+				const elapsed = now - startTime;
+				const t = Math.min(elapsed / duration, 1);
+				const ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
+				display = Math.round(start + (end - start) * ease);
+				if (t < 1) requestAnimationFrame(tick);
+			}
+			requestAnimationFrame(tick);
+		});
+		return { get value() { return display; } };
+	}
+
+	const tweenPages = useTween(() => stats?.pages.total ?? 0);
+	const tweenUsers = useTween(() => stats?.users.total ?? 0);
+	const tweenPlugins = useTween(() => stats?.plugins.total ?? 0);
 
 	async function loadDashboard() {
 		loading = true;
@@ -58,6 +83,8 @@
 			// Individual failures handled above
 		} finally {
 			loading = false;
+			animated = false;
+			requestAnimationFrame(() => requestAnimationFrame(() => { animated = true; }));
 		}
 	}
 
@@ -131,7 +158,7 @@
 					<FileText size={36} />
 				</div>
 				<div class="min-w-0">
-					<div class="text-3xl font-semibold tabular-nums leading-tight text-foreground">{stats.pages.total}</div>
+					<div class="text-3xl font-semibold tabular-nums leading-tight text-foreground">{tweenPages.value}</div>
 					<div class="text-[12px] text-muted-foreground">Pages</div>
 				</div>
 			</a>
@@ -141,7 +168,7 @@
 					<Users size={36} />
 				</div>
 				<div class="min-w-0">
-					<div class="text-3xl font-semibold tabular-nums leading-tight text-foreground">{stats.users.total}</div>
+					<div class="text-3xl font-semibold tabular-nums leading-tight text-foreground">{tweenUsers.value}</div>
 					<div class="text-[12px] text-muted-foreground">Users</div>
 				</div>
 			</a>
@@ -152,7 +179,7 @@
 				</div>
 				<div class="min-w-0 flex-1">
 					<div class="flex items-center gap-2">
-						<span class="text-3xl font-semibold tabular-nums leading-tight text-foreground">{stats.plugins.total}</span>
+						<span class="text-3xl font-semibold tabular-nums leading-tight text-foreground">{tweenPlugins.value}</span>
 						{#if totalUpdates > 0}
 							<Badge variant="default">{totalUpdates} update{totalUpdates > 1 ? 's' : ''}</Badge>
 						{/if}
@@ -206,14 +233,33 @@
 			</div>
 
 			{#if popularity?.chart}
-				<!-- SVG Bar Chart -->
+				<!-- SVG Area Chart -->
+				{@const chartData = popularity.chart}
+				{@const pts = chartData.map((p, i) => {
+					const step = 650 / Math.max(chartData.length - 1, 1);
+					return { x: 45 + i * step, y: 160 - (chartMax > 0 ? (p.views / chartMax) * 140 : 0) };
+				})}
+				{@const linePath = pts.map((p, i) => {
+					if (i === 0) return `M ${p.x},${p.y}`;
+					const prev = pts[i - 1];
+					const cpx = (prev.x + p.x) / 2;
+					return `C ${cpx},${prev.y} ${cpx},${p.y} ${p.x},${p.y}`;
+				}).join(' ')}
+				{@const areaPath = `${linePath} L ${pts[pts.length - 1].x},160 L ${pts[0].x},160 Z`}
 				<div class="relative mt-2">
 					<svg viewBox="0 0 700 180" class="w-full" preserveAspectRatio="xMidYMid meet">
+						<defs>
+							<linearGradient id="areaGradient" x1="0" x2="0" y1="0" y2="1">
+								<stop offset="0%" class="[stop-color:var(--primary)]" stop-opacity="0.3" />
+								<stop offset="100%" class="[stop-color:var(--primary)]" stop-opacity="0.02" />
+							</linearGradient>
+						</defs>
+
 						<!-- Grid lines -->
 						{#each [0, 0.25, 0.5, 0.75, 1] as tick}
 							<line
 								x1="40" y1={160 - tick * 140}
-								x2="690" y2={160 - tick * 140}
+								x2="695" y2={160 - tick * 140}
 								stroke="currentColor" class="text-border" stroke-width="0.5"
 								stroke-dasharray={tick > 0 && tick < 1 ? '3 3' : '0'}
 							/>
@@ -225,39 +271,32 @@
 							>{Math.round(chartMax * tick)}</text>
 						{/each}
 
-						<!-- Bars -->
+						<!-- Animated chart group — scales Y from baseline -->
+						<g style="transform-origin: 0 160px; transition: transform 0.8s cubic-bezier(0.16,1,0.3,1); transform: scaleY({animated ? 1 : 0});">
+							<!-- Filled area -->
+							<path d={areaPath} fill="url(#areaGradient)" />
+
+							<!-- Curve line -->
+							<path d={linePath} fill="none" class="stroke-primary" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+							<!-- Data points -->
+							{#each popularity.chart as point, i}
+								{@const p = pts[i]}
+								{#if point.views > 0}
+									<circle cx={p.x} cy={p.y} r="3" class="fill-primary stroke-card" stroke-width="2" />
+								{:else}
+									<circle cx={p.x} cy={p.y} r="2" class="fill-muted-foreground/50" />
+								{/if}
+							{/each}
+						</g>
+
+						<!-- Labels (not animated) -->
 						{#each popularity.chart as point, i}
-							{@const barWidth = 30}
-							{@const gap = (650 - barWidth * 14) / 13}
-							{@const x = 45 + i * (barWidth + gap)}
-							{@const height = chartMax > 0 ? (point.views / chartMax) * 140 : 0}
-							{@const y = 160 - height}
-
-							<rect
-								{x} {y}
-								width={barWidth}
-								height={Math.max(height, 0)}
-								rx="3"
-								class={point.views > 0
-									? 'fill-primary/80 transition-all hover:fill-primary'
-									: 'fill-muted/50'}
-							/>
-
-							<!-- Value label on hover -->
-							{#if point.views > 0}
-								<text
-									x={x + barWidth / 2}
-									y={y - 5}
-									text-anchor="middle"
-									class="fill-muted-foreground opacity-0 transition-opacity"
-									font-size="9"
-									font-weight="600"
-								>{point.views}</text>
-							{/if}
+							{@const p = pts[i]}
 
 							<!-- Date label -->
 							<text
-								x={x + barWidth / 2}
+								x={p.x}
 								y="175"
 								text-anchor="middle"
 								class="fill-muted-foreground"
@@ -325,8 +364,8 @@
 					</div>
 					<div class="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
 						<div
-							class="h-full rounded-full transition-all {diskUsedPercent > 90 ? 'bg-red-500' : diskUsedPercent > 70 ? 'bg-amber-500' : 'bg-primary'}"
-							style:width="{diskUsedPercent}%"
+							class="h-full rounded-full {diskUsedPercent > 90 ? 'bg-red-500' : diskUsedPercent > 70 ? 'bg-amber-500' : 'bg-primary'}"
+							style="width: {animated ? diskUsedPercent : 0}%; transition: width 0.8s cubic-bezier(0.16,1,0.3,1);"
 						></div>
 					</div>
 					<div class="mt-2 flex justify-between text-[11px] text-muted-foreground">
@@ -420,7 +459,7 @@
 							<div class="mt-1 h-1 overflow-hidden rounded-full bg-secondary">
 								<div
 									class="h-full rounded-full bg-primary/60"
-									style:width="{(page.views / maxViews) * 100}%"
+									style="width: {animated ? (page.views / maxViews) * 100 : 0}%; transition: width 0.8s cubic-bezier(0.16,1,0.3,1);"
 								></div>
 							</div>
 						</div>

@@ -9,6 +9,7 @@
 	import { logout } from '$lib/api/auth';
 	import { api } from '$lib/api/client';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
+	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
 	import { getUser } from '$lib/api/endpoints/users';
 	import CacheClearButton from '$lib/components/menubar/CacheClearButton.svelte';
 	import MenubarLinks from '$lib/components/menubar/MenubarLinks.svelte';
@@ -17,7 +18,7 @@
 	import type { Snippet } from 'svelte';
 	import {
 		LayoutDashboard, FileText, Image, Users, Puzzle, Palette,
-		Settings, Wrench, Monitor, FlaskConical, SlidersHorizontal,
+		Settings, Wrench, SlidersHorizontal,
 		Sun, Moon, LogOut, ChevronLeft, ChevronRight, Menu
 	} from 'lucide-svelte';
 
@@ -107,16 +108,15 @@
 	const navItems = [
 		{ href: `${base}/`, label: 'Dashboard', icon: LayoutDashboard },
 		{ href: `${base}/config`, label: 'Configuration', icon: Settings },
+		{ href: `${base}/users`, label: 'Users', icon: Users },
 		{ href: `${base}/pages`, label: 'Pages', icon: FileText },
 		{ href: `${base}/media`, label: 'Media', icon: Image },
-		{ href: `${base}/users`, label: 'Users', icon: Users },
 		{ href: `${base}/plugins`, label: 'Plugins', icon: Puzzle },
 		{ href: `${base}/themes`, label: 'Themes', icon: Palette },
 		{ href: `${base}/tools`, label: 'Tools', icon: Wrench },
-		{ href: `${base}/system`, label: 'System', icon: Monitor },
-		{ href: `${base}/settings`, label: 'Settings', icon: SlidersHorizontal },
-		{ href: `${base}/testing`, label: 'Testing', icon: FlaskConical }
 	];
+
+	const settingsItem = { href: `${base}/settings`, label: 'Settings', icon: SlidersHorizontal };
 
 	function isActive(href: string): boolean {
 		if (href === `${base}/`) return page.url.pathname === `${base}/`;
@@ -153,13 +153,8 @@
 		{collapsed ? 'w-[52px]' : 'w-56'}
 		{mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}">
 
-		<div class="flex h-12 items-center gap-2.5 border-b border-sidebar-border px-3">
-			<div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm">
-				<span class="text-xs font-bold">G</span>
-			</div>
-			{#if !collapsed}
-				<span class="text-sm font-semibold tracking-tight text-foreground">Grav</span>
-			{/if}
+		<div class="flex h-12 items-center border-b border-sidebar-border px-3">
+			<BrandLogo size="sidebar" showLabel={!collapsed} />
 		</div>
 
 		<nav class="flex-1 overflow-y-auto px-2 py-2">
@@ -169,8 +164,8 @@
 						<a href={item.href}
 							class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors
 								{isActive(item.href)
-									? 'bg-sidebar-accent text-sidebar-accent-foreground'
-									: 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
+									? 'bg-primary/10 text-primary'
+									: 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
 							onclick={() => mobileOpen = false}
 							title={collapsed ? item.label : undefined}>
 							<item.icon size={16} strokeWidth={isActive(item.href) ? 2 : 1.5} />
@@ -185,8 +180,8 @@
 							<a href="{base}{item.route}"
 								class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors
 									{isActive(`${base}${item.route}`)
-										? 'bg-sidebar-accent text-sidebar-accent-foreground'
-										: 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
+										? 'bg-primary/10 text-primary'
+										: 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
 								onclick={() => mobileOpen = false}
 								title={collapsed ? item.label : undefined}>
 								<i class="fa-solid {item.icon.startsWith('fa-') ? item.icon : 'fa-' + item.icon} w-4 text-center text-[13px]"></i>
@@ -202,6 +197,20 @@
 				{/if}
 			</ul>
 		</nav>
+
+		<!-- Settings link -->
+		<div class="border-t border-sidebar-border px-2 pt-2">
+			<a href={settingsItem.href}
+				class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors
+					{isActive(settingsItem.href)
+						? 'bg-primary/10 text-primary'
+						: 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
+				onclick={() => mobileOpen = false}
+				title={collapsed ? settingsItem.label : undefined}>
+				<settingsItem.icon size={16} strokeWidth={isActive(settingsItem.href) ? 2 : 1.5} />
+				{#if !collapsed}<span>{settingsItem.label}</span>{/if}
+			</a>
+		</div>
 
 		<!-- User profile -->
 		<div class="border-t border-sidebar-border px-2 py-2">
@@ -259,7 +268,7 @@
 			</button>
 
 			{#if auth.environment}
-				<span class="rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:border-blue-800/50 dark:bg-blue-500/10 dark:text-blue-300">{auth.environment}</span>
+				<span class="rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">{auth.environment}</span>
 			{/if}
 
 			<div class="flex-1"></div>

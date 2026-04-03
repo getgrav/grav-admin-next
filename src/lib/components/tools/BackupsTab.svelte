@@ -116,7 +116,7 @@
 		<!-- Storage Usage Bar -->
 		{#if purge}
 			<div class="px-5 pb-3">
-				<div class="relative h-8 w-full overflow-hidden rounded-md bg-muted/50">
+				<div class="relative h-8 w-full overflow-hidden rounded-md bg-primary/10">
 					<div
 						class="absolute inset-0 rounded-md"
 						style="background: linear-gradient(to right, #22c55e 0%, #22c55e 40%, #eab308 65%, #ef4444 100%); clip-path: inset(0 {100 - Math.max(usagePercent, 2)}% 0 0); transition: clip-path 0.5s ease;"
@@ -129,7 +129,7 @@
 		{/if}
 
 		<!-- Stats Row -->
-		<div class="grid grid-cols-4 divide-x divide-border border-t border-border bg-card/50">
+		<div class="grid grid-cols-4 divide-x divide-primary/10 border-t border-primary/10 bg-primary/[0.03]">
 			<div class="px-4 py-3 text-center">
 				<p class="text-2xl font-bold text-foreground">{totalCount}</p>
 				<p class="text-[11px] font-medium text-muted-foreground">Number of Backups</p>

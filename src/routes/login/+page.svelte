@@ -8,6 +8,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Sun, Moon, LogIn, Server, Globe, ChevronDown, Loader2 } from 'lucide-svelte';
 	import { theme } from '$lib/stores/theme.svelte';
+	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
 
 	const defaultUrl = import.meta.env.DEV ? 'http://localhost:5180/grav-api' : 'https://localhost/grav-api';
 	let serverUrl = $state(auth.serverUrl || defaultUrl);
@@ -85,9 +86,9 @@
 
 	<div class="w-full max-w-sm">
 		<!-- Brand -->
-		<div class="mb-8 text-center">
-			<div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary shadow-lg">
-				<span class="text-xl font-bold text-primary-foreground">G</span>
+		<div class="mb-8 flex flex-col items-center text-center">
+			<div class="mb-4">
+				<BrandLogo size="login" />
 			</div>
 			<h1 class="text-2xl font-semibold tracking-tight text-foreground">Grav Admin</h1>
 			<p class="mt-1 text-[13px] text-muted-foreground">Sign in to manage your site</p>

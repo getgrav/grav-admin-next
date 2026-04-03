@@ -11,6 +11,15 @@ export interface MenubarLink {
 	external?: boolean;
 }
 
+export type LogoMode = 'default' | 'text' | 'custom';
+
+export interface LogoConfig {
+	mode: LogoMode;
+	text: string;
+	customLight: string;
+	customDark: string;
+}
+
 interface Preferences {
 	pagesViewMode: PagesViewMode;
 	pagesPerPage: number;
@@ -19,6 +28,7 @@ interface Preferences {
 	adminLanguage: string;
 	keepAlive: boolean;
 	menubarLinks: MenubarLink[];
+	logo: LogoConfig;
 }
 
 function loadStored(): Partial<Preferences> {
@@ -40,6 +50,7 @@ function createPreferencesStore() {
 	let adminLanguage = $state(stored.adminLanguage ?? 'en');
 	let keepAlive = $state(stored.keepAlive ?? true);
 	let menubarLinks = $state<MenubarLink[]>(stored.menubarLinks ?? []);
+	let logo = $state<LogoConfig>(stored.logo ?? { mode: 'default', text: 'Grav', customLight: '', customDark: '' });
 
 	function persist() {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -50,6 +61,7 @@ function createPreferencesStore() {
 			adminLanguage,
 			keepAlive,
 			menubarLinks,
+			logo,
 		}));
 	}
 
@@ -74,6 +86,9 @@ function createPreferencesStore() {
 
 		get menubarLinks() { return menubarLinks; },
 		set menubarLinks(v: MenubarLink[]) { menubarLinks = v; persist(); },
+
+		get logo() { return logo; },
+		set logo(v: LogoConfig) { logo = v; persist(); },
 	};
 }
 

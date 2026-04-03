@@ -2,20 +2,49 @@ const THEME_STORAGE_KEY = 'grav_admin_theme';
 
 type ColorMode = 'light' | 'dark';
 
+export interface AccentColor {
+	label: string;
+	hue: number;
+	saturation: number;
+}
+
+/** Preset accent colors. Hue + saturation pairs for HSL. */
+export const ACCENT_PRESETS: AccentColor[] = [
+	{ label: 'Blue',    hue: 221, saturation: 83 },
+	{ label: 'Violet',  hue: 263, saturation: 70 },
+	{ label: 'Rose',    hue: 347, saturation: 77 },
+	{ label: 'Orange',  hue: 25,  saturation: 95 },
+	{ label: 'Amber',   hue: 38,  saturation: 92 },
+	{ label: 'Emerald', hue: 160, saturation: 84 },
+	{ label: 'Teal',    hue: 172, saturation: 66 },
+	{ label: 'Cyan',    hue: 192, saturation: 91 },
+	{ label: 'Zinc',    hue: 240, saturation: 6 },
+];
+
+const DEFAULT_HUE = 221;
+const DEFAULT_SAT = 83;
+
 interface StoredTheme {
 	colorMode: ColorMode;
 	accentHue: number;
+	accentSaturation: number;
 }
 
 function loadStored(): StoredTheme {
 	try {
 		const raw = localStorage.getItem(THEME_STORAGE_KEY);
-		if (raw) return JSON.parse(raw);
+		if (raw) {
+			const parsed = JSON.parse(raw);
+			return {
+				colorMode: parsed.colorMode ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
+				accentHue: parsed.accentHue ?? DEFAULT_HUE,
+				accentSaturation: parsed.accentSaturation ?? DEFAULT_SAT,
+			};
+		}
 	} catch { /* use defaults */ }
 
-	// Default to system preference
 	const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-	return { colorMode: prefersDark ? 'dark' : 'light', accentHue: 256 };
+	return { colorMode: prefersDark ? 'dark' : 'light', accentHue: DEFAULT_HUE, accentSaturation: DEFAULT_SAT };
 }
 
 function createThemeStore() {
@@ -23,11 +52,12 @@ function createThemeStore() {
 
 	let colorMode = $state<ColorMode>(stored.colorMode);
 	let accentHue = $state(stored.accentHue);
+	let accentSaturation = $state(stored.accentSaturation);
 
 	const isDark = $derived(colorMode === 'dark');
 
 	function persist() {
-		localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ colorMode, accentHue }));
+		localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ colorMode, accentHue, accentSaturation }));
 	}
 
 	function applyColorMode() {
@@ -39,49 +69,56 @@ function createThemeStore() {
 		}
 	}
 
-	function applyAccentHue() {
+	function applyAccent() {
 		const html = document.documentElement;
-		// Override primary color hue across the scale
-		for (const shade of [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]) {
-			const current = getComputedStyle(html).getPropertyValue(`--color-primary-${shade}`);
-			if (current) {
-				const parts = current.trim().match(/oklch\(([^ ]+) ([^ ]+) ([^)]+)\)/);
-				if (parts) {
-					html.style.setProperty(
-						`--color-primary-${shade}`,
-						`oklch(${parts[1]} ${parts[2]} ${accentHue})`
-					);
-				}
-			}
-		}
+		const h = accentHue;
+		const s = accentSaturation;
+		const dark = html.classList.contains('dark');
+		// Dark mode: brighter for visibility on dark backgrounds
+		// Light mode: darker for contrast on white backgrounds
+		const lightness = dark ? 70 : 40;
+		const sat = dark ? Math.min(s + 8, 100) : s;
+		html.style.setProperty('--primary', `hsl(${h} ${sat}% ${lightness}%)`);
+		html.style.setProperty('--ring', `hsl(${h} ${sat}% ${dark ? 60 : 50}%)`);
+	}
+
+	function applyAll() {
+		applyColorMode();
+		applyAccent();
 	}
 
 	// Apply on init
-	applyColorMode();
-	if (stored.accentHue !== 256) {
-		applyAccentHue();
-	}
+	applyAll();
 
 	return {
 		get colorMode() { return colorMode; },
 		get isDark() { return isDark; },
 		get accentHue() { return accentHue; },
+		get accentSaturation() { return accentSaturation; },
 
 		toggleColorMode() {
 			colorMode = colorMode === 'dark' ? 'light' : 'dark';
-			applyColorMode();
+			applyAll();
 			persist();
 		},
 
 		setColorMode(mode: ColorMode) {
 			colorMode = mode;
-			applyColorMode();
+			applyAll();
 			persist();
 		},
 
+		setAccent(hue: number, saturation: number) {
+			accentHue = hue;
+			accentSaturation = saturation;
+			applyAccent();
+			persist();
+		},
+
+		/** Kept for backwards compat */
 		setAccentHue(hue: number) {
 			accentHue = hue;
-			applyAccentHue();
+			applyAccent();
 			persist();
 		}
 	};

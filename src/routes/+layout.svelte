@@ -1,13 +1,14 @@
 <script lang="ts">
 	import './layout.css';
 	import '@fortawesome/fontawesome-free/css/all.min.css';
-	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { theme } from '$lib/stores/theme.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
+	import { generateFavicon } from '$lib/utils/favicon';
 	import AppShell from '$lib/components/AppShell.svelte';
 	import { Toaster } from 'svelte-sonner';
 
@@ -52,7 +53,7 @@
 	});
 </script>
 
-<svelte:head><link rel="icon" href={favicon} /></svelte:head>
+<svelte:head><link rel="icon" href={generateFavicon(theme.accentHue, theme.accentSaturation, theme.isDark)} /></svelte:head>
 
 <Toaster
 	position="bottom-right"

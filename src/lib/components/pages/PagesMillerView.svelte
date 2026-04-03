@@ -395,7 +395,7 @@
 								ondblclick={() => onEdit(page.route)}
 							>
 							{#if page.has_children}
-								<Folder size={14} class="shrink-0 {isActive ? 'text-primary-foreground/80' : 'text-amber-500'}" />
+								<Folder size={14} class="shrink-0 {isActive ? 'text-primary-foreground/80' : 'text-primary'}" />
 							{:else}
 								<File size={14} class="shrink-0 {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground'}" />
 							{/if}

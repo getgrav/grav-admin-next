@@ -1,17 +1,38 @@
 <script lang="ts">
-	import { prefs, type MenubarLink } from '$lib/stores/preferences.svelte';
-	import { theme } from '$lib/stores/theme.svelte';
+	import { prefs, type MenubarLink, type LogoMode } from '$lib/stores/preferences.svelte';
+	import { theme, ACCENT_PRESETS } from '$lib/stores/theme.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import InlineIconPicker from '$lib/components/ui/InlineIconPicker.svelte';
+	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
 	import {
-		RotateCcw, Plus, Trash2, GripVertical
+		RotateCcw, Plus, Trash2, GripVertical, Upload
 	} from 'lucide-svelte';
 
 	let confirmResetOpen = $state(false);
+
+	// Logo settings
+	function setLogoMode(mode: LogoMode) {
+		prefs.logo = { ...prefs.logo, mode };
+	}
+
+	function setLogoText(text: string) {
+		prefs.logo = { ...prefs.logo, text };
+	}
+
+	function handleLogoUpload(variant: 'customLight' | 'customDark', event: Event) {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+		const reader = new FileReader();
+		reader.onload = () => {
+			prefs.logo = { ...prefs.logo, [variant]: reader.result as string };
+		};
+		reader.readAsDataURL(file);
+	}
 
 	// Menubar links editing
 	let editingLinks = $state<MenubarLink[]>([...prefs.menubarLinks]);
@@ -56,6 +77,115 @@
 
 <div class="space-y-4 p-5">
 
+	<!-- Logo -->
+	<div class="rounded-xl border border-border bg-muted/30">
+		<div class="px-6 pt-6 pb-2">
+			<h3 class="text-base font-bold text-foreground">Logo</h3>
+			<p class="mt-1 text-sm text-muted-foreground">Customize the logo shown in the sidebar and login page</p>
+		</div>
+		<div class="space-y-5 px-6 py-5">
+			<!-- Logo Mode -->
+			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+				<div class="lg:pt-2.5">
+					<span class="text-sm font-semibold text-foreground">Logo Type</span>
+					<p class="mt-0.5 text-xs text-muted-foreground">Choose how the logo is displayed</p>
+				</div>
+				<div>
+					<div class="inline-flex rounded-md border border-border shadow-sm">
+						<button
+							class="inline-flex h-9 items-center gap-1.5 rounded-l-md px-3 text-sm font-medium transition-colors
+								{prefs.logo.mode === 'default' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
+							onclick={() => setLogoMode('default')}
+						>
+							Grav Logo
+						</button>
+						<button
+							class="inline-flex h-9 items-center gap-1.5 px-3 text-sm font-medium transition-colors
+								{prefs.logo.mode === 'text' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
+							onclick={() => setLogoMode('text')}
+						>
+							Custom Text
+						</button>
+						<button
+							class="inline-flex h-9 items-center gap-1.5 rounded-r-md px-3 text-sm font-medium transition-colors
+								{prefs.logo.mode === 'custom' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
+							onclick={() => setLogoMode('custom')}
+						>
+							Custom Image
+						</button>
+					</div>
+				</div>
+			</div>
+
+			<!-- Text input (only for text mode) -->
+			{#if prefs.logo.mode === 'text'}
+				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+					<div class="lg:pt-2.5">
+						<span class="text-sm font-semibold text-foreground">Logo Text</span>
+						<p class="mt-0.5 text-xs text-muted-foreground">The first letter becomes the icon</p>
+					</div>
+					<div>
+						<input
+							type="text"
+							class="flex h-10 w-full max-w-xs rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+							value={prefs.logo.text}
+							placeholder="Grav"
+							oninput={(e) => setLogoText((e.target as HTMLInputElement).value)}
+						/>
+					</div>
+				</div>
+			{/if}
+
+			<!-- Image uploads (only for custom mode) -->
+			{#if prefs.logo.mode === 'custom'}
+				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+					<div class="lg:pt-2.5">
+						<span class="text-sm font-semibold text-foreground">Light Mode Logo</span>
+						<p class="mt-0.5 text-xs text-muted-foreground">Used on light backgrounds</p>
+					</div>
+					<div class="flex items-center gap-3">
+						{#if prefs.logo.customLight}
+							<img src={prefs.logo.customLight} alt="Light logo" class="h-8 w-auto rounded border border-border bg-white p-1" />
+						{/if}
+						<label class="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50">
+							<Upload size={14} />
+							Upload
+							<input type="file" accept="image/svg+xml,image/png,image/jpeg,image/webp" class="hidden" onchange={(e) => handleLogoUpload('customLight', e)} />
+						</label>
+					</div>
+				</div>
+				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+					<div class="lg:pt-2.5">
+						<span class="text-sm font-semibold text-foreground">Dark Mode Logo</span>
+						<p class="mt-0.5 text-xs text-muted-foreground">Used on dark backgrounds</p>
+					</div>
+					<div class="flex items-center gap-3">
+						{#if prefs.logo.customDark}
+							<img src={prefs.logo.customDark} alt="Dark logo" class="h-8 w-auto rounded border border-border bg-zinc-900 p-1" />
+						{/if}
+						<label class="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50">
+							<Upload size={14} />
+							Upload
+							<input type="file" accept="image/svg+xml,image/png,image/jpeg,image/webp" class="hidden" onchange={(e) => handleLogoUpload('customDark', e)} />
+						</label>
+					</div>
+				</div>
+			{/if}
+
+			<!-- Preview -->
+			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+				<div class="lg:pt-2.5">
+					<span class="text-sm font-semibold text-foreground">Preview</span>
+				</div>
+				<div class="flex items-center gap-6">
+					<div class="flex items-center gap-2 rounded-lg border border-border bg-card p-3">
+						<BrandLogo size="sidebar" showLabel={true} />
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
 	<!-- Appearance -->
 	<div class="rounded-xl border border-border bg-muted/30">
 		<div class="px-6 pt-6 pb-2">
@@ -86,6 +216,31 @@
 							Dark
 						</button>
 					</div>
+				</div>
+			</div>
+
+			<!-- Accent Color -->
+			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+				<div class="lg:pt-2.5">
+					<span class="text-sm font-semibold text-foreground">Accent Color</span>
+					<p class="mt-0.5 text-xs text-muted-foreground">Primary color used for buttons, links, and highlights</p>
+				</div>
+				<div class="flex flex-wrap gap-2">
+					{#each ACCENT_PRESETS as preset (preset.label)}
+						{@const isActive = theme.accentHue === preset.hue && theme.accentSaturation === preset.saturation}
+						<button
+							class="group relative flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors
+								{isActive ? 'border-foreground/30 bg-accent text-accent-foreground' : 'border-border text-muted-foreground hover:border-foreground/20 hover:bg-accent/50'}"
+							onclick={() => theme.setAccent(preset.hue, preset.saturation)}
+							title={preset.label}
+						>
+							<span
+								class="h-3.5 w-3.5 rounded-full ring-1 ring-black/10"
+								style="background: hsl({preset.hue} {preset.saturation}% 55%)"
+							></span>
+							{preset.label}
+						</button>
+					{/each}
 				</div>
 			</div>
 		</div>

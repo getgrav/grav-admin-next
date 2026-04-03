@@ -320,9 +320,9 @@
 
 					{#if page.has_children}
 						{#if expandedRoutes.has(page.route)}
-							<FolderOpen size={14} class="shrink-0 text-amber-500" />
+							<FolderOpen size={14} class="shrink-0 text-primary" />
 						{:else}
-							<Folder size={14} class="shrink-0 text-amber-500/70" />
+							<Folder size={14} class="shrink-0 text-primary/70" />
 						{/if}
 					{:else}
 						<File size={14} class="shrink-0 text-muted-foreground" />
