@@ -83,8 +83,8 @@ export function createAutoSaveManager(options: AutoSaveManagerOptions): AutoSave
 		const entry: UndoEntry = {
 			id: nextId++,
 			path,
-			oldValue: JSON.parse(JSON.stringify(old)),
-			newValue: JSON.parse(JSON.stringify(value)),
+			oldValue: JSON.parse(JSON.stringify(old ?? null)),
+			newValue: JSON.parse(JSON.stringify(value ?? null)),
 			timestamp: Date.now(),
 			label: `Changed ${humanizePath(path)}`,
 			savedToServer: false,

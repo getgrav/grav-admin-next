@@ -506,9 +506,19 @@
 
 		createEditor();
 
+		// Listen for insert-at-cursor from floating widgets (e.g., AI chat)
+		function handleInsertAtCursor(e: CustomEvent) {
+			if (e.detail?.mode === 'insert-at-cursor' && view) {
+				const cursor = view.state.selection.main.head;
+				view.dispatch({ changes: { from: cursor, insert: e.detail.content } });
+			}
+		}
+		window.addEventListener('grav:editor:insert-content', handleInsertAtCursor as EventListener);
+
 		return () => {
 			observer.disconnect();
 			view?.destroy();
+			window.removeEventListener('grav:editor:insert-content', handleInsertAtCursor as EventListener);
 		};
 	});
 

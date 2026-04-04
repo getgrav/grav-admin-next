@@ -37,6 +37,49 @@
 		window.__GRAV_PAGE_ROUTE = route;
 		return () => { window.__GRAV_PAGE_ROUTE = ''; };
 	});
+
+	// Editor integration events for floating widgets (e.g., AI chat)
+	$effect(() => {
+		function handleGetContent() {
+			window.dispatchEvent(new CustomEvent('grav:editor:content-response', {
+				detail: { content, route, title, template },
+			}));
+		}
+		function handleInsertContent(e: CustomEvent) {
+			const { content: newContent, mode } = e.detail || {};
+			if (!newContent) return;
+
+			const oldContent = content;
+			let updatedContent: string;
+			if (mode === 'replace') {
+				updatedContent = newContent;
+			} else if (mode === 'append') {
+				updatedContent = content + '\n\n' + newContent;
+			} else {
+				return; // 'insert-at-cursor' is handled by MarkdownEditor directly
+			}
+
+			// Update Svelte state
+			content = updatedContent;
+			headerData = { ...headerData, content: updatedContent };
+
+			// Directly update any active custom editor web component (e.g., editor-pro).
+			// This mirrors admin-classic's approach of calling cm.setValue() directly.
+			const editorPro = document.querySelector('grav-editor-pro--editor-pro') as (HTMLElement & { value?: string }) | null;
+			if (editorPro) {
+				editorPro.value = updatedContent;
+			}
+
+			// Trigger auto-save commit
+			autoSave.oncommit('content', updatedContent, oldContent);
+		}
+		window.addEventListener('grav:editor:get-content', handleGetContent);
+		window.addEventListener('grav:editor:insert-content', handleInsertContent as EventListener);
+		return () => {
+			window.removeEventListener('grav:editor:get-content', handleGetContent);
+			window.removeEventListener('grav:editor:insert-content', handleInsertContent as EventListener);
+		};
+	});
 	// Provide page type context (standard vs modular) for template selectors
 	setContext('pageType', () => template?.startsWith('modular') ? 'modular' : 'standard');
 	// Provide shared media list + updater so file pickers see uploads without saving

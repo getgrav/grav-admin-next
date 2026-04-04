@@ -15,6 +15,8 @@
 	import MenubarLinks from '$lib/components/menubar/MenubarLinks.svelte';
 	import PluginMenubarItems from '$lib/components/menubar/PluginMenubarItems.svelte';
 	import { sidebarStore } from '$lib/stores/sidebar.svelte';
+	import { floatingWidgetStore } from '$lib/stores/floatingWidgets.svelte';
+	import FloatingWidgetLoader from '$lib/components/floating-widgets/FloatingWidgetLoader.svelte';
 	import type { Snippet } from 'svelte';
 	import {
 		LayoutDashboard, FileText, Image, Users, Puzzle, Palette,
@@ -79,12 +81,14 @@
 
 	onDestroy(clearTokenRefresh);
 
-	// Load plugin sidebar items on authentication
+	// Load plugin sidebar items and floating widgets on authentication
 	$effect(() => {
 		if (auth.isAuthenticated) {
 			sidebarStore.load();
+			floatingWidgetStore.load();
 		} else {
 			sidebarStore.clear();
+			floatingWidgetStore.clear();
 		}
 	});
 
@@ -295,4 +299,6 @@
 			</div>
 		</main>
 	</div>
+
+	<FloatingWidgetLoader />
 </div>
