@@ -41,14 +41,49 @@
 		field: BlueprintField;
 		value: unknown;
 		onchange: (value: unknown) => void;
+		oncommit?: (value: unknown, oldValue?: unknown) => void;
 		getValue: (path: string) => unknown;
 		onFieldChange: (path: string, value: unknown) => void;
+		onFieldCommit?: (path: string, value: unknown, oldValue?: unknown) => void;
 		filter?: string;
 		/** When true, label/help are rendered externally (e.g. by SectionField) — skip internal label */
 		externalLabel?: boolean;
 	}
 
-	let { field, value, onchange, getValue, onFieldChange, filter = '', externalLabel = false }: Props = $props();
+	let { field, value, onchange, oncommit, getValue, onFieldChange, onFieldCommit, filter = '', externalLabel = false }: Props = $props();
+
+	// --- Auto-save commit categorization ---
+	// Blur-commit: fields where user types text — commit on focusout
+	const blurCommitTypes = new Set([
+		'text', 'email', 'url', 'tel', 'password', 'number',
+		'date', 'time', 'month', 'week', 'color',
+		'textarea', 'raw', 'folder-slug', 'frontmatter', 'codemirror',
+		'markdown', 'editor', 'colorpicker', 'range',
+	]);
+	// Immediate-commit: fields where a single action completes the edit
+	const immediateCommitTypes = new Set([
+		'toggle', 'switch', 'select', 'selectize', 'checkbox', 'checkboxes',
+		'radio', 'datetime', 'dateformat',
+		'filepicker', 'mediapicker', 'pagemediaselect', 'file',
+		'pages', 'parents', 'taxonomy', 'cron', 'multilevel',
+		'iconpicker', 'permissions', 'acl_picker', 'themeselect',
+	]);
+
+	const isBlurCommit = $derived(blurCommitTypes.has(field.type));
+	const isImmediateCommit = $derived(immediateCommitTypes.has(field.type));
+
+	// For immediate-commit fields, fire oncommit BEFORE onchange
+	// so auto-save can capture the old value via getValue before data mutates
+	const committingOnchange = $derived(
+		isImmediateCommit && oncommit
+			? (val: unknown) => { oncommit(val); onchange(val); }
+			: onchange
+	);
+
+	// For blur-commit fields, capture the value when focus enters (before typing)
+	// so we can pass the correct old value to oncommit on focusout
+	let blurOldValue = $state<unknown>(undefined);
+	let hasBlurBaseline = $state(false);
 
 	// Use i18n.tMaybe for all label translation
 	const translateLabel = i18n.tMaybe;
@@ -125,8 +160,10 @@
 				field={{ ...field, label: undefined, help: undefined }}
 				{value}
 				{onchange}
+				{oncommit}
 				{getValue}
 				{onFieldChange}
+				{onFieldCommit}
 				{filter}
 				externalLabel={true}
 			/>
@@ -134,13 +171,13 @@
 	</div>
 
 {:else if field.type === 'tabs' && field.fields}
-	<TabsField {field} {getValue} {onFieldChange} {filter} />
+	<TabsField {field} {getValue} {onFieldChange} {onFieldCommit} {filter} />
 
 {:else if field.type === 'tab' && field.fields}
 	<!-- Tabs handle rendering their own tab content -->
 
 {:else if field.type === 'section' || field.type === 'fieldset'}
-	<SectionField field={hideTitleSections.has(field.name) ? { ...field, title: undefined, label: undefined } : field} {getValue} {onFieldChange} {filter} />
+	<SectionField field={hideTitleSections.has(field.name) ? { ...field, title: undefined, label: undefined } : field} {getValue} {onFieldChange} {onFieldCommit} {filter} />
 
 {:else if field.type === 'columns' && field.fields}
 	{@const processed = (() => {
@@ -215,8 +252,10 @@
 						field={childField}
 						value={getValue(childField.name)}
 						onchange={(val: unknown) => onFieldChange(childField.name, val)}
+						oncommit={onFieldCommit ? (val: unknown, old?: unknown) => onFieldCommit(childField.name, val, old) : undefined}
 						{getValue}
 						{onFieldChange}
+						{onFieldCommit}
 						{filter}
 					/>
 				{/each}
@@ -238,7 +277,9 @@
 	{/if}
 
 {:else if field.type === 'range'}
-	<div class="space-y-2">
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="space-y-2" onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
+		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
 		{#if field.label || field.help}
 			<div>
 				{#if field.label}
@@ -267,34 +308,50 @@
 	</div>
 
 {:else if field.type === 'datetime'}
-	<DateTimeField {field} {value} {onchange} />
+	<DateTimeField {field} {value} onchange={committingOnchange} />
 
 {:else if field.type === 'folder-slug'}
-	<FolderSlugField {field} {value} {onchange} {getValue} />
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
+		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
+		<FolderSlugField {field} {value} {onchange} {getValue} />
+	</div>
 
 {:else if field.type === 'text' && (field.wrapper_classes ?? '').includes('cron-selector')}
-	<CronField {field} {value} {onchange} />
+	<CronField {field} {value} onchange={committingOnchange} />
 
 {:else if inputTypes.has(field.type)}
-	<TextField {field} {value} {onchange} />
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
+		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
+		<TextField {field} {value} {onchange} />
+	</div>
 
 {:else if field.type === 'markdown' || field.type === 'editor'}
-	<MarkdownField {field} {value} {onchange} />
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
+		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
+		<MarkdownField {field} {value} {onchange} />
+	</div>
 
 {:else if field.type === 'textarea'}
-	<TextareaField {field} {value} {onchange} />
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
+		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
+		<TextareaField {field} {value} {onchange} />
+	</div>
 
 {:else if field.type === 'select'}
-	<SelectField {field} {value} {onchange} />
+	<SelectField {field} {value} onchange={committingOnchange} />
 
 {:else if field.type === 'themeselect'}
-	<ThemeSelectField {field} {value} {onchange} />
+	<ThemeSelectField {field} {value} onchange={committingOnchange} />
 
 {:else if field.type === 'dateformat'}
-	<DateFormatField {field} {value} {onchange} />
+	<DateFormatField {field} {value} onchange={committingOnchange} />
 
 {:else if field.type === 'toggle' || field.type === 'switch'}
-	<ToggleField {field} {value} {onchange} />
+	<ToggleField {field} {value} onchange={committingOnchange} />
 
 {:else if field.type === 'checkbox'}
 	<div>
@@ -303,7 +360,7 @@
 				type="checkbox"
 				class="h-[18px] w-[18px] shrink-0 appearance-none rounded border border-input bg-muted/50 checked:border-primary checked:bg-primary checked:bg-[url('data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22white%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M12.207%204.793a1%201%200%20010%201.414l-5%205a1%201%200%2001-1.414%200l-2-2a1%201%200%20011.414-1.414L6.5%209.086l4.293-4.293a1%201%200%20011.414%200z%22%2F%3E%3C%2Fsvg%3E')] checked:bg-no-repeat checked:bg-center"
 				checked={!!value}
-				onchange={(e) => onchange((e.target as HTMLInputElement).checked)}
+				onchange={(e) => { const v = (e.target as HTMLInputElement).checked; oncommit?.(v); onchange(v); }}
 			/>
 			<span class="text-sm font-semibold text-foreground">{translateLabel(field.label)}</span>
 		</label>
@@ -313,6 +370,7 @@
 	</div>
 
 {:else if field.type === 'checkboxes' && field.options}
+	{@const useKeys = field.use === 'keys'}
 	<div class="space-y-2">
 		{#if field.label || field.help}
 			<div>
@@ -326,8 +384,24 @@
 		{/if}
 		<div class="space-y-1.5">
 			{#each field.options as opt (opt.value)}
+				{@const checked = useKeys
+					? (value != null && typeof value === 'object' && !Array.isArray(value) && !!(value as Record<string, unknown>)[opt.value])
+					: (Array.isArray(value) && value.includes(opt.value))}
 				<label class="flex cursor-pointer items-center gap-2.5">
-					<input type="checkbox" class="h-[18px] w-[18px] shrink-0 appearance-none rounded border border-input bg-muted/50 checked:border-primary checked:bg-primary checked:bg-[url('data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22white%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M12.207%204.793a1%201%200%20010%201.414l-5%205a1%201%200%2001-1.414%200l-2-2a1%201%200%20011.414-1.414L6.5%209.086l4.293-4.293a1%201%200%20011.414%200z%22%2F%3E%3C%2Fsvg%3E')] checked:bg-no-repeat checked:bg-center" checked={Array.isArray(value) && value.includes(opt.value)} />
+					<input type="checkbox" class="h-[18px] w-[18px] shrink-0 appearance-none rounded border border-input bg-muted/50 checked:border-primary checked:bg-primary checked:bg-[url('data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22white%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M12.207%204.793a1%201%200%20010%201.414l-5%205a1%201%200%2001-1.414%200l-2-2a1%201%200%20011.414-1.414L6.5%209.086l4.293-4.293a1%201%200%20011.414%200z%22%2F%3E%3C%2Fsvg%3E')] checked:bg-no-repeat checked:bg-center" {checked} onchange={(e) => {
+						const isChecked = (e.target as HTMLInputElement).checked;
+						let next;
+						if (useKeys) {
+							const obj = (value != null && typeof value === 'object' && !Array.isArray(value)) ? { ...(value as Record<string, unknown>) } : {};
+							obj[opt.value] = isChecked;
+							next = obj;
+						} else {
+							const arr = Array.isArray(value) ? [...value] : [];
+							next = isChecked ? [...arr, opt.value] : arr.filter((v) => v !== opt.value);
+						}
+						oncommit?.(next);
+						onchange(next);
+					}} />
 					<span class="text-sm text-foreground">{translateLabel(opt.label)}</span>
 				</label>
 			{/each}
@@ -349,7 +423,7 @@
 		<div class="space-y-1">
 			{#each field.options as opt (opt.value)}
 				<label class="flex cursor-pointer items-center gap-2">
-					<input type="radio" class="radio" name={field.name} value={opt.value} checked={value === opt.value} onchange={() => onchange(opt.value)} />
+					<input type="radio" class="radio" name={field.name} value={opt.value} checked={value === opt.value} onchange={() => { oncommit?.(opt.value); onchange(opt.value); }} />
 					<span class="text-sm text-muted-foreground">{translateLabel(opt.label)}</span>
 				</label>
 			{/each}
@@ -357,10 +431,14 @@
 	</div>
 
 {:else if field.type === 'list' && field.fields}
-	<ListField {field} {value} {onchange} {getValue} {onFieldChange} />
+	<ListField {field} {value} {onchange} {getValue} {onFieldChange} {onFieldCommit} />
 
 {:else if field.type === 'array'}
-	<ArrayField {field} {value} {onchange} />
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
+		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
+		<ArrayField {field} {value} {onchange} />
+	</div>
 
 {:else if field.type === 'xss' || field.type === 'ignore' || field.type === 'nonce' || field.type === 'honeypot'}
 	<!-- Skip non-visible system fields -->
@@ -369,46 +447,54 @@
 	<PageMediaField />
 
 {:else if field.type === 'filepicker' || field.type === 'mediapicker' || field.type === 'pagemediaselect'}
-	<FilePickerField {field} {value} {onchange} />
+	<FilePickerField {field} {value} onchange={committingOnchange} />
 
 {:else if field.type === 'file'}
-	<FileField {field} {value} {onchange} />
+	<FileField {field} {value} onchange={committingOnchange} />
 
 {:else if field.type === 'pages' || field.type === 'parents'}
-	<PagesField {field} {value} {onchange} />
+	<PagesField {field} {value} onchange={committingOnchange} />
 
 {:else if field.type === 'taxonomy'}
-	<TaxonomyField {field} {value} {onchange} />
+	<TaxonomyField {field} {value} onchange={committingOnchange} />
 
 {:else if field.type === 'selectize'}
-	<SelectizeField {field} {value} {onchange} />
+	<SelectizeField {field} {value} onchange={committingOnchange} />
 
 {:else if field.type === 'cron'}
-	<CronField {field} {value} {onchange} />
+	<CronField {field} {value} onchange={committingOnchange} />
 
 {:else if field.type === 'multilevel'}
-	<MultilevelField {field} {value} {onchange} />
+	<MultilevelField {field} {value} onchange={committingOnchange} />
 
 {:else if field.type === 'colorpicker'}
-	<TextField field={{ ...field, type: 'color' }} {value} {onchange} />
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
+		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
+		<TextField field={{ ...field, type: 'color' }} {value} {onchange} />
+	</div>
 
 {:else if field.type === 'elements'}
-	<ElementsField {field} {value} {onchange} {getValue} {onFieldChange} />
+	<ElementsField {field} {value} {onchange} {getValue} {onFieldChange} {onFieldCommit} />
 
 {:else if field.type === 'element'}
 	<!-- Elements handle their own element children; standalone element is a no-op -->
 
 {:else if field.type === 'conditional'}
-	<ConditionalField {field} {getValue} {onFieldChange} />
+	<ConditionalField {field} {getValue} {onFieldChange} {onFieldCommit} />
 
 {:else if field.type === 'frontmatter' || field.type === 'codemirror'}
-	<FrontmatterField {field} {value} {onchange} />
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
+		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
+		<FrontmatterField {field} {value} {onchange} />
+	</div>
 
 {:else if field.type === 'iconpicker'}
-	<IconPickerField {field} {value} {onchange} />
+	<IconPickerField {field} {value} onchange={committingOnchange} />
 
 {:else if field.type === 'permissions' || field.type === 'acl_picker'}
-	<PermissionsField {field} {value} {onchange} />
+	<PermissionsField {field} {value} onchange={committingOnchange} />
 
 {:else if field.type === 'cronstatus'}
 	<CronStatusField {field} {value} {onchange} />
@@ -421,12 +507,17 @@
 	<CustomFieldWrapper
 		{field}
 		{value}
-		{onchange}
+		onchange={committingOnchange}
+		{oncommit}
 		pluginSlug={customFieldRegistry.getPluginSlug(field.type) ?? ''}
 		fieldType={field.type}
 	/>
 
 {:else}
 	<!-- Unknown field type — render as raw JSON editor -->
-	<RawField {field} {value} {onchange} />
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
+		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
+		<RawField {field} {value} {onchange} />
+	</div>
 {/if}

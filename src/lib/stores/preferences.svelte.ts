@@ -28,6 +28,9 @@ interface Preferences {
 	adminLanguage: string;
 	menubarLinks: MenubarLink[];
 	logo: LogoConfig;
+	autoSaveEnabled: boolean;
+	autoSaveToolbarUndo: boolean;
+	autoSaveBatchWindowMs: number;
 }
 
 function loadStored(): Partial<Preferences> {
@@ -49,6 +52,9 @@ function createPreferencesStore() {
 	let adminLanguage = $state(stored.adminLanguage ?? 'en');
 	let menubarLinks = $state<MenubarLink[]>(stored.menubarLinks ?? []);
 	let logo = $state<LogoConfig>(stored.logo ?? { mode: 'default', text: 'Grav', customLight: '', customDark: '' });
+	let autoSaveEnabled = $state(stored.autoSaveEnabled ?? false);
+	let autoSaveToolbarUndo = $state(stored.autoSaveToolbarUndo ?? true);
+	let autoSaveBatchWindowMs = $state(stored.autoSaveBatchWindowMs ?? 0);
 
 	function persist() {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -59,6 +65,9 @@ function createPreferencesStore() {
 			adminLanguage,
 			menubarLinks,
 			logo,
+			autoSaveEnabled,
+			autoSaveToolbarUndo,
+			autoSaveBatchWindowMs,
 		}));
 	}
 
@@ -83,6 +92,15 @@ function createPreferencesStore() {
 
 		get logo() { return logo; },
 		set logo(v: LogoConfig) { logo = v; persist(); },
+
+		get autoSaveEnabled() { return autoSaveEnabled; },
+		set autoSaveEnabled(v: boolean) { autoSaveEnabled = v; persist(); },
+
+		get autoSaveToolbarUndo() { return autoSaveToolbarUndo; },
+		set autoSaveToolbarUndo(v: boolean) { autoSaveToolbarUndo = v; persist(); },
+
+		get autoSaveBatchWindowMs() { return autoSaveBatchWindowMs; },
+		set autoSaveBatchWindowMs(v: number) { autoSaveBatchWindowMs = v; persist(); },
 	};
 }
 

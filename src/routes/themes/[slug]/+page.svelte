@@ -17,7 +17,10 @@
 
 	import { faIconClass, parseKeywords, isFirstParty } from '$lib/utils/gpm';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { prefs } from '$lib/stores/preferences.svelte';
+	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
+	import { Undo2 } from 'lucide-svelte';
 
 	const REDACTED = '********';
 
@@ -234,14 +237,43 @@
 		}
 		if ((e.metaKey || e.ctrlKey) && e.key === 's') {
 			e.preventDefault();
-			if (hasChanges && !saving) handleSave();
+			prefs.autoSaveEnabled ? autoSave.forceSave() : (hasChanges && !saving && handleSave());
+		}
+		if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey && prefs.autoSaveEnabled) {
+			const tag = (document.activeElement?.tagName ?? '').toLowerCase();
+			const isEditable = tag === 'input' || tag === 'textarea' || (document.activeElement as HTMLElement)?.isContentEditable;
+			if (!isEditable) {
+				e.preventDefault();
+				autoSave.undo();
+			}
 		}
 	}
 
-	const guard = createUnsavedGuard(() => hasChanges);
+	const guard = createUnsavedGuard(() => {
+		if (prefs.autoSaveEnabled) {
+			return hasChanges || autoSave.saving || autoSave.undoStack.some(e => !e.savedToServer);
+		}
+		return hasChanges;
+	});
+
+	const autoSave = createAutoSaveManager({
+		save: handleSave,
+		getValue: (path: string) => {
+			const parts = path.split('.');
+			let current: unknown = configData;
+			for (const part of parts) {
+				if (current === null || current === undefined || typeof current !== 'object') return undefined;
+				current = (current as Record<string, unknown>)[part];
+			}
+			return current;
+		},
+		applyChange: handleBlueprintChange,
+		formName: 'Theme',
+	});
 
 	$effect(() => {
 		slug; // track
+		autoSave.reset();
 		loadTheme();
 	});
 </script>
@@ -291,6 +323,12 @@
 		</div>
 
 		<div class="flex items-center gap-2">
+			{#if prefs.autoSaveEnabled && prefs.autoSaveToolbarUndo && autoSave.canUndo}
+				<Button variant="outline" size="sm" onclick={() => autoSave.undo()}>
+					<Undo2 size={14} />
+					Undo
+				</Button>
+			{/if}
 			{#if theme}
 				<!-- Delete button -->
 				<Button
@@ -426,6 +464,7 @@
 						fields={blueprint.fields}
 						data={configData}
 						onchange={handleBlueprintChange}
+						oncommit={autoSave.oncommit}
 					/>
 				{:else}
 					<div class="rounded-xl border border-dashed border-border p-8 text-center">

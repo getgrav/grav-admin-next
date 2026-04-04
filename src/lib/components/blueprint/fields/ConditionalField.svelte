@@ -6,9 +6,10 @@
 		field: BlueprintField;
 		getValue: (path: string) => unknown;
 		onFieldChange: (path: string, value: unknown) => void;
+		onFieldCommit?: (path: string, value: unknown, oldValue?: unknown) => void;
 	}
 
-	let { field, getValue, onFieldChange }: Props = $props();
+	let { field, getValue, onFieldChange, onFieldCommit }: Props = $props();
 
 	/**
 	 * Evaluate a simple condition string against config/form values.
@@ -59,8 +60,10 @@
 			field={childField}
 			value={getValue(childField.name)}
 			onchange={(val) => onFieldChange(childField.name, val)}
+			oncommit={onFieldCommit ? (val: unknown, old?: unknown) => onFieldCommit(childField.name, val, old) : undefined}
 			{getValue}
 			{onFieldChange}
+			{onFieldCommit}
 		/>
 	{/each}
 {/if}

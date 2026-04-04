@@ -14,9 +14,11 @@
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { prefs } from '$lib/stores/preferences.svelte';
+	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import {
-		Save, ArrowLeft, Loader2, AlertCircle, Trash2, User
+		Save, ArrowLeft, Loader2, AlertCircle, Trash2, User, Undo2
 	} from 'lucide-svelte';
 
 	const REDACTED = '********';
@@ -219,14 +221,43 @@
 	function handleKeydown(e: KeyboardEvent) {
 		if ((e.metaKey || e.ctrlKey) && e.key === 's') {
 			e.preventDefault();
-			if (hasChanges && !saving) handleSave();
+			prefs.autoSaveEnabled ? autoSave.forceSave() : (hasChanges && !saving && handleSave());
+		}
+		if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey && prefs.autoSaveEnabled) {
+			const tag = (document.activeElement?.tagName ?? '').toLowerCase();
+			const isEditable = tag === 'input' || tag === 'textarea' || (document.activeElement as HTMLElement)?.isContentEditable;
+			if (!isEditable) {
+				e.preventDefault();
+				autoSave.undo();
+			}
 		}
 	}
 
-	const guard = createUnsavedGuard(() => hasChanges);
+	const guard = createUnsavedGuard(() => {
+		if (prefs.autoSaveEnabled) {
+			return hasChanges || autoSave.saving || autoSave.undoStack.some(e => !e.savedToServer);
+		}
+		return hasChanges;
+	});
+
+	const autoSave = createAutoSaveManager({
+		save: handleSave,
+		getValue: (path: string) => {
+			const parts = path.split('.');
+			let current: unknown = configData;
+			for (const part of parts) {
+				if (current === null || current === undefined || typeof current !== 'object') return undefined;
+				current = (current as Record<string, unknown>)[part];
+			}
+			return current;
+		},
+		applyChange: handleBlueprintChange,
+		formName: 'User',
+	});
 
 	$effect(() => {
 		username; // track
+		autoSave.reset();
 		loadUser();
 	});
 </script>
@@ -262,6 +293,12 @@
 		</div>
 
 		<div class="flex items-center gap-2">
+			{#if prefs.autoSaveEnabled && prefs.autoSaveToolbarUndo && autoSave.canUndo}
+				<Button variant="outline" size="sm" onclick={() => autoSave.undo()}>
+					<Undo2 size={14} />
+					Undo
+				</Button>
+			{/if}
 			{#if user}
 				<Button
 					variant="destructive"
@@ -320,6 +357,7 @@
 						fields={filteredBlueprint.fields}
 						data={configData}
 						onchange={handleBlueprintChange}
+						oncommit={autoSave.oncommit}
 					/>
 				{/if}
 

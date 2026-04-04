@@ -8,13 +8,14 @@
 		field: BlueprintField;
 		value: unknown;
 		onchange: (value: unknown) => void;
+		oncommit?: (value: unknown) => void;
 		/** Plugin slug that provides this custom field */
 		pluginSlug: string;
 		/** Field type name (used to resolve the script URL and element tag) */
 		fieldType: string;
 	}
 
-	let { field, value, onchange, pluginSlug, fieldType }: Props = $props();
+	let { field, value, onchange, oncommit, pluginSlug, fieldType }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
 	let containerEl = $state<HTMLDivElement | null>(null);
@@ -111,6 +112,13 @@
 		// Listen for value changes from the web component
 		el.addEventListener('change', ((e: CustomEvent) => {
 			onchange(e.detail);
+			// Treat change as a commit for custom fields (immediate action)
+			oncommit?.(e.detail);
+		}) as EventListener);
+
+		// Also listen for explicit commit events from web components that distinguish commit from change
+		el.addEventListener('commit', ((e: CustomEvent) => {
+			oncommit?.(e.detail);
 		}) as EventListener);
 
 		containerEl.appendChild(el);

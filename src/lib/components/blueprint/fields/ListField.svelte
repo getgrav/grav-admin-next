@@ -10,9 +10,10 @@
 		onchange: (value: unknown) => void;
 		getValue: (path: string) => unknown;
 		onFieldChange: (path: string, value: unknown) => void;
+		onFieldCommit?: (path: string, value: unknown, oldValue?: unknown) => void;
 	}
 
-	let { field, value, onchange, getValue, onFieldChange }: Props = $props();
+	let { field, value, onchange, getValue, onFieldChange, onFieldCommit }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
 	const childFields = $derived(field.fields ?? []);
@@ -267,8 +268,10 @@
 									field={childField}
 									value={getItemFieldValue(item, childField)}
 									onchange={(val) => handleItemFieldChange(item, childField, val)}
+									oncommit={onFieldCommit ? (val: unknown, old?: unknown) => onFieldCommit(childField.name, val, old) : undefined}
 									{getValue}
 									{onFieldChange}
+									{onFieldCommit}
 								/>
 							{/each}
 						</div>

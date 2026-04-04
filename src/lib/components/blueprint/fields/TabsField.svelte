@@ -8,10 +8,11 @@
 		field: BlueprintField;
 		getValue: (path: string) => unknown;
 		onFieldChange: (path: string, value: unknown) => void;
+		onFieldCommit?: (path: string, value: unknown, oldValue?: unknown) => void;
 		filter?: string;
 	}
 
-	let { field, getValue, onFieldChange, filter = '' }: Props = $props();
+	let { field, getValue, onFieldChange, onFieldCommit, filter = '' }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
 	const tabs = $derived((field.fields ?? []).filter((f) => f.type === 'tab' || f.fields));
@@ -133,8 +134,10 @@
 									field={childField}
 									value={getValue(childField.name)}
 									onchange={(val) => onFieldChange(childField.name, val)}
+									oncommit={onFieldCommit ? (val: unknown, old?: unknown) => onFieldCommit(childField.name, val, old) : undefined}
 									{getValue}
 									{onFieldChange}
+									{onFieldCommit}
 									{filter}
 								/>
 							{/each}
@@ -175,8 +178,10 @@
 								field={childField}
 								value={getValue(childField.name)}
 								onchange={(val) => onFieldChange(childField.name, val)}
+								oncommit={onFieldCommit ? (val: unknown, old?: unknown) => onFieldCommit(childField.name, val, old) : undefined}
 								{getValue}
 								{onFieldChange}
+								{onFieldCommit}
 								{filter}
 							/>
 						{/each}

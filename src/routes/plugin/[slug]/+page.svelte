@@ -19,8 +19,10 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import { getPlugin } from '$lib/api/endpoints/gpm';
+	import { prefs } from '$lib/stores/preferences.svelte';
+	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
-	import { ArrowLeft, Loader2, AlertCircle, Save, Download, Upload } from 'lucide-svelte';
+	import { ArrowLeft, Loader2, AlertCircle, Save, Download, Upload, Undo2 } from 'lucide-svelte';
 
 	const slug = $derived(page.params.slug ?? '');
 
@@ -272,14 +274,43 @@
 	function handleKeydown(e: KeyboardEvent) {
 		if ((e.metaKey || e.ctrlKey) && e.key === 's') {
 			e.preventDefault();
-			if (hasChanges && !saving && definition?.save_endpoint) handleSave();
+			prefs.autoSaveEnabled ? autoSave.forceSave() : (hasChanges && !saving && definition?.save_endpoint && handleSave());
+		}
+		if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey && prefs.autoSaveEnabled) {
+			const tag = (document.activeElement?.tagName ?? '').toLowerCase();
+			const isEditable = tag === 'input' || tag === 'textarea' || (document.activeElement as HTMLElement)?.isContentEditable;
+			if (!isEditable) {
+				e.preventDefault();
+				autoSave.undo();
+			}
 		}
 	}
 
-	const guard = createUnsavedGuard(() => hasChanges);
+	const guard = createUnsavedGuard(() => {
+		if (prefs.autoSaveEnabled) {
+			return hasChanges || autoSave.saving || autoSave.undoStack.some(e => !e.savedToServer);
+		}
+		return hasChanges;
+	});
+
+	const autoSave = createAutoSaveManager({
+		save: handleSave,
+		getValue: (path: string) => {
+			const parts = path.split('.');
+			let current: unknown = formData;
+			for (const part of parts) {
+				if (current === null || current === undefined || typeof current !== 'object') return undefined;
+				current = (current as Record<string, unknown>)[part];
+			}
+			return current;
+		},
+		applyChange: handleBlueprintChange,
+		formName: 'Plugin Page',
+	});
 
 	$effect(() => {
 		slug; // track
+		autoSave.reset();
 		loadPage();
 	});
 </script>
@@ -314,6 +345,12 @@
 		</div>
 
 		<div class="flex items-center gap-2">
+			{#if prefs.autoSaveEnabled && prefs.autoSaveToolbarUndo && autoSave.canUndo}
+				<Button variant="outline" size="sm" onclick={() => autoSave.undo()}>
+					<Undo2 size={14} />
+					Undo
+				</Button>
+			{/if}
 			{#if definition?.actions}
 				{#each definition.actions as action (action.id)}
 					{#if action.primary}
@@ -383,6 +420,7 @@
 						fields={blueprint.fields}
 						data={formData}
 						onchange={handleBlueprintChange}
+						oncommit={autoSave.oncommit}
 					/>
 				{:else if definition.page_type === 'component'}
 					<PluginPageComponent slug={slug} />

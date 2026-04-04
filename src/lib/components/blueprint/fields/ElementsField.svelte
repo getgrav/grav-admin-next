@@ -10,9 +10,10 @@
 		onchange: (value: unknown) => void;
 		getValue: (path: string) => unknown;
 		onFieldChange: (path: string, value: unknown) => void;
+		onFieldCommit?: (path: string, value: unknown, oldValue?: unknown) => void;
 	}
 
-	let { field, value, onchange, getValue, onFieldChange }: Props = $props();
+	let { field, value, onchange, getValue, onFieldChange, onFieldCommit }: Props = $props();
 
 	const currentValue = $derived(typeof value === 'string' ? value : (field.default as string) ?? '');
 
@@ -39,8 +40,10 @@
 					field={childField}
 					value={getValue(childField.name)}
 					onchange={(val) => onFieldChange(childField.name, val)}
+					oncommit={onFieldCommit ? (val: unknown, old?: unknown) => onFieldCommit(childField.name, val, old) : undefined}
 					{getValue}
 					{onFieldChange}
+					{onFieldCommit}
 				/>
 			{/each}
 		</div>

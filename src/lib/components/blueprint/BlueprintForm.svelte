@@ -6,10 +6,11 @@
 		fields: BlueprintField[];
 		data: Record<string, unknown>;
 		onchange?: (path: string, value: unknown) => void;
+		oncommit?: (path: string, value: unknown, oldValue?: unknown) => void;
 		filter?: string;
 	}
 
-	let { fields, data, onchange, filter = '' }: Props = $props();
+	let { fields, data, onchange, oncommit, filter = '' }: Props = $props();
 
 	/**
 	 * Normalize blueprint fields: adopt orphan siblings into bare sections.
@@ -86,6 +87,10 @@
 		// Notify parent
 		onchange?.(path, value);
 	}
+
+	function handleCommit(path: string, value: unknown, oldValue?: unknown) {
+		oncommit?.(path, value, oldValue);
+	}
 </script>
 
 <div class="space-y-4">
@@ -94,8 +99,10 @@
 			{field}
 			value={getValue(field.name)}
 			onchange={(val) => handleChange(field.name, val)}
+			oncommit={oncommit ? (val: unknown, old?: unknown) => handleCommit(field.name, val, old) : undefined}
 			{getValue}
 			onFieldChange={handleChange}
+			onFieldCommit={oncommit ? handleCommit : undefined}
 			{filter}
 		/>
 	{/each}

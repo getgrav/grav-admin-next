@@ -10,7 +10,9 @@
 	import ConfigInfoPage from '$lib/components/config/ConfigInfoPage.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
-	import { Save, AlertCircle, Loader2, RefreshCw, Search, X } from 'lucide-svelte';
+	import { Save, AlertCircle, Loader2, RefreshCw, Search, X, Undo2 } from 'lucide-svelte';
+	import { prefs } from '$lib/stores/preferences.svelte';
+	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 
 	const REDACTED = '********';
@@ -148,16 +150,44 @@
 	function handleKeydown(e: KeyboardEvent) {
 		if ((e.metaKey || e.ctrlKey) && e.key === 's') {
 			e.preventDefault();
-			handleSave();
+			prefs.autoSaveEnabled ? autoSave.forceSave() : handleSave();
+		}
+		if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey && prefs.autoSaveEnabled) {
+			const tag = (document.activeElement?.tagName ?? '').toLowerCase();
+			const isEditable = tag === 'input' || tag === 'textarea' || (document.activeElement as HTMLElement)?.isContentEditable;
+			if (!isEditable) {
+				e.preventDefault();
+				autoSave.undo();
+			}
 		}
 	}
 
 	// Warn about unsaved changes on navigation
-	const guard = createUnsavedGuard(() => hasChanges);
+	const guard = createUnsavedGuard(() => {
+		if (prefs.autoSaveEnabled) {
+			return hasChanges || autoSave.saving || autoSave.undoStack.some(e => !e.savedToServer);
+		}
+		return hasChanges;
+	});
+
+	const autoSave = createAutoSaveManager({
+		save: handleSave,
+		getValue: (path: string) => {
+			const parts = path.split('.');
+			let current: unknown = configData;
+			for (const part of parts) {
+				if (current === null || current === undefined || typeof current !== 'object') return undefined;
+				current = (current as Record<string, unknown>)[part];
+			}
+			return current;
+		},
+		applyChange: handleBlueprintChange,
+		formName: 'Configuration',
+	});
 
 	// Load sections once, reload config when scope changes
 	$effect(() => { loadSections(); });
-	$effect(() => { scope; loadConfig(); });
+	$effect(() => { scope; autoSave.reset(); loadConfig(); });
 </script>
 
 <svelte:head>
@@ -176,8 +206,22 @@
 
 		{#if !isInfo}
 			<div class="flex shrink-0 items-center gap-2">
-				{#if hasChanges}
+				{#if prefs.autoSaveEnabled}
+					{#if autoSave.saving}
+						<span class="text-xs text-muted-foreground">Saving...</span>
+					{:else if autoSave.lastSavedAt}
+						<span class="text-xs text-emerald-500">Saved</span>
+					{:else if hasChanges}
+						<span class="text-xs text-amber-500">Unsaved changes</span>
+					{/if}
+				{:else if hasChanges}
 					<span class="text-xs text-amber-500">Unsaved changes</span>
+				{/if}
+				{#if prefs.autoSaveEnabled && prefs.autoSaveToolbarUndo && autoSave.canUndo}
+					<Button variant="outline" size="sm" onclick={() => autoSave.undo()}>
+						<Undo2 size={14} />
+						Undo
+					</Button>
 				{/if}
 				<Button variant="outline" size="sm" onclick={handleReload} disabled={loading || saving}>
 					<RefreshCw size={14} />
@@ -239,6 +283,7 @@
 			fields={blueprint.fields}
 			data={configData}
 			onchange={handleBlueprintChange}
+			oncommit={autoSave.oncommit}
 			{filter}
 		/>
 	{:else if !error}

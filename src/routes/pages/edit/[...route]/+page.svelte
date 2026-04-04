@@ -14,9 +14,11 @@
 	import { toast } from 'svelte-sonner';
 	import {
 		Save, Trash2, ArrowLeft, Code,
-		AlertCircle, ChevronDown, Loader2, Eye, ExternalLink, X
+		AlertCircle, ChevronDown, Loader2, Eye, ExternalLink, X, Undo2
 	} from 'lucide-svelte';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { prefs } from '$lib/stores/preferences.svelte';
+	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import MarkdownEditor from '$lib/components/editors/MarkdownEditor.svelte';
 	import PageMedia from '$lib/components/media/PageMedia.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
@@ -71,7 +73,27 @@
 		)
 	);
 
-	const guard = createUnsavedGuard(() => hasChanges);
+	const guard = createUnsavedGuard(() => {
+		if (prefs.autoSaveEnabled) {
+			return hasChanges || autoSave.saving || autoSave.undoStack.some(e => !e.savedToServer);
+		}
+		return hasChanges;
+	});
+
+	const autoSave = createAutoSaveManager({
+		save: handleSave,
+		getValue: (path: string) => {
+			const parts = path.split('.');
+			let current: unknown = headerData;
+			for (const part of parts) {
+				if (current === null || current === undefined || typeof current !== 'object') return undefined;
+				current = (current as Record<string, unknown>)[part];
+			}
+			return current;
+		},
+		applyChange: handleBlueprintChange,
+		formName: 'Page',
+	});
 
 	async function loadPage() {
 		loading = true;
@@ -230,11 +252,19 @@
 	function handleKeydown(e: KeyboardEvent) {
 		if ((e.metaKey || e.ctrlKey) && e.key === 's') {
 			e.preventDefault();
-			handleSave();
+			prefs.autoSaveEnabled ? autoSave.forceSave() : handleSave();
+		}
+		if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey && prefs.autoSaveEnabled) {
+			const tag = (document.activeElement?.tagName ?? '').toLowerCase();
+			const isEditable = tag === 'input' || tag === 'textarea' || (document.activeElement as HTMLElement)?.isContentEditable;
+			if (!isEditable) {
+				e.preventDefault();
+				autoSave.undo();
+			}
 		}
 	}
 
-	$effect(() => { loadPage(); });
+	$effect(() => { autoSave.reset(); loadPage(); });
 </script>
 
 <svelte:head>
@@ -261,8 +291,22 @@
 		</div>
 
 		<div class="flex shrink-0 items-center gap-2">
-			{#if hasChanges}
+			{#if prefs.autoSaveEnabled}
+				{#if autoSave.saving}
+					<span class="text-xs text-muted-foreground">Saving...</span>
+				{:else if autoSave.lastSavedAt}
+					<span class="text-xs text-emerald-500">Saved</span>
+				{:else if hasChanges}
+					<span class="text-xs text-amber-500">Unsaved changes</span>
+				{/if}
+			{:else if hasChanges}
 				<span class="text-xs text-amber-500">Unsaved changes</span>
+			{/if}
+			{#if prefs.autoSaveEnabled && prefs.autoSaveToolbarUndo && autoSave.canUndo}
+				<Button variant="outline" size="sm" onclick={() => autoSave.undo()}>
+					<Undo2 size={14} />
+					Undo
+				</Button>
 			{/if}
 			<Button variant="destructive" size="sm" onclick={handleDelete} disabled={loading}>
 				<Trash2 size={14} />
@@ -305,6 +349,7 @@
 							fields={blueprint.fields}
 							data={headerData}
 							onchange={handleBlueprintChange}
+							oncommit={autoSave.oncommit}
 						/>
 					{/key}
 				{:else}
