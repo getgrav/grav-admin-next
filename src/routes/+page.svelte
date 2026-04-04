@@ -483,7 +483,7 @@
 								<div class="text-[11px] text-muted-foreground">{formatBytes(backup.size)}</div>
 							</div>
 							<a
-								href="{auth.serverUrl}{auth.apiPrefix}/system/backups/{backup.filename}/download"
+								href="{auth.serverUrl}{auth.apiPrefix}/system/backups/{encodeURIComponent(backup.filename)}/download?token={auth.accessToken}"
 								class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 								title="Download {backup.filename}"
 								target="_blank"
