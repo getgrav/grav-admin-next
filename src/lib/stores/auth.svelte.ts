@@ -51,6 +51,7 @@ function createAuthStore() {
 	let fullname = $state(stored?.fullname ?? '');
 	let email = $state(stored?.email ?? '');
 	let avatarUrl = $state(stored?.avatarUrl ?? '');
+	let contentEditor = $state('');
 
 	const isAuthenticated = $derived(!!accessToken && Date.now() < expiresAt);
 	const isExpiringSoon = $derived(!!accessToken && expiresAt - Date.now() < 5 * 60 * 1000);
@@ -90,6 +91,7 @@ function createAuthStore() {
 		get fullname() { return fullname; },
 		get email() { return email; },
 		get avatarUrl() { return avatarUrl; },
+		get contentEditor() { return contentEditor; },
 
 		get isAuthenticated() { return isAuthenticated; },
 		get isExpiringSoon() { return isExpiringSoon; },
@@ -102,7 +104,7 @@ function createAuthStore() {
 			persist();
 		},
 
-		setUser(name: string, full: string, userEmail = '', avatar?: string) {
+		setUser(name: string, full: string, userEmail = '', avatar?: string, editor?: string) {
 			username = name;
 			fullname = full;
 			email = userEmail;
@@ -110,6 +112,9 @@ function createAuthStore() {
 			// avatar when the API transiently returns null (e.g. thumbnail not cached)
 			if (avatar !== undefined && avatar !== '') {
 				avatarUrl = avatar;
+			}
+			if (editor !== undefined) {
+				contentEditor = editor;
 			}
 			persist();
 		},

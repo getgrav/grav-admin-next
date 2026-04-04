@@ -101,6 +101,7 @@
 					user.fullname || user.username,
 					user.email || '',
 					user.avatar_url || undefined,
+					(user as Record<string, unknown>).content_editor as string || '',
 				);
 			}).catch(() => {});
 		}

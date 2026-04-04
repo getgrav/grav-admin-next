@@ -85,6 +85,8 @@
 			fullname: u.fullname ?? '',
 			title: u.title ?? '',
 			state: u.state,
+			language: (u as Record<string, unknown>).language ?? '',
+			content_editor: (u as Record<string, unknown>).content_editor ?? '',
 			twofa_enabled: u.twofa_enabled,
 		};
 		originalJson = JSON.stringify(configData);

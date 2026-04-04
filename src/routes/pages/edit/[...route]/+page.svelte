@@ -63,8 +63,8 @@
 			content = updatedContent;
 			headerData = { ...headerData, content: updatedContent };
 
-			// Directly update any active custom editor web component (e.g., editor-pro).
-			// This mirrors admin-classic's approach of calling cm.setValue() directly.
+			// Directly update editor-pro web component (TipTap).
+			// CodeMirror (MarkdownEditor) handles the event directly via its own listener.
 			const editorPro = document.querySelector('grav-editor-pro--editor-pro') as (HTMLElement & { value?: string }) | null;
 			if (editorPro) {
 				editorPro.value = updatedContent;

@@ -506,19 +506,26 @@
 
 		createEditor();
 
-		// Listen for insert-at-cursor from floating widgets (e.g., AI chat)
-		function handleInsertAtCursor(e: CustomEvent) {
-			if (e.detail?.mode === 'insert-at-cursor' && view) {
+		// Listen for content changes from floating widgets (e.g., AI chat)
+		function handleEditorInsert(e: CustomEvent) {
+			if (!view || !e.detail?.content) return;
+			const { content: text, mode } = e.detail;
+			if (mode === 'replace') {
+				view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
+			} else if (mode === 'append') {
+				const len = view.state.doc.length;
+				view.dispatch({ changes: { from: len, insert: '\n\n' + text } });
+			} else if (mode === 'insert-at-cursor') {
 				const cursor = view.state.selection.main.head;
-				view.dispatch({ changes: { from: cursor, insert: e.detail.content } });
+				view.dispatch({ changes: { from: cursor, insert: text } });
 			}
 		}
-		window.addEventListener('grav:editor:insert-content', handleInsertAtCursor as EventListener);
+		window.addEventListener('grav:editor:insert-content', handleEditorInsert as EventListener);
 
 		return () => {
 			observer.disconnect();
 			view?.destroy();
-			window.removeEventListener('grav:editor:insert-content', handleInsertAtCursor as EventListener);
+			window.removeEventListener('grav:editor:insert-content', handleEditorInsert as EventListener);
 		};
 	});
 

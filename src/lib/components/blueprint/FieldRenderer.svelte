@@ -36,6 +36,13 @@
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldMatches } from '$lib/utils/field-filter';
+	import { auth } from '$lib/stores/auth.svelte';
+
+	// Resolve the user's preferred content editor if it's a registered custom field
+	const preferredEditor = $derived.by(() => {
+		const pref = auth.contentEditor || '';
+		return (pref && pref !== 'default' && customFieldRegistry.has(pref)) ? pref : '';
+	});
 
 	interface Props {
 		field: BlueprintField;
@@ -326,6 +333,17 @@
 		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
 		<TextField {field} {value} {onchange} />
 	</div>
+
+{:else if field.type === 'markdown' && preferredEditor}
+	<!-- User-preferred editor (e.g., editor-pro) for markdown fields -->
+	<CustomFieldWrapper
+		{field}
+		{value}
+		onchange={committingOnchange}
+		{oncommit}
+		pluginSlug={customFieldRegistry.getPluginSlug(preferredEditor) ?? ''}
+		fieldType={preferredEditor}
+	/>
 
 {:else if field.type === 'markdown' || field.type === 'editor'}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
