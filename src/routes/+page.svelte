@@ -137,12 +137,12 @@
 		<Loader2 size={24} class="animate-spin text-muted-foreground" />
 	</div>
 {:else}
-<div class="space-y-5 p-5">
+<div class="space-y-5 p-6">
 	<!-- Header -->
-	<div class="flex items-center justify-between">
+	<div class="flex min-h-8 items-center justify-between">
 		<div>
 			<h1 class="text-xl font-semibold tracking-tight text-foreground">Dashboard</h1>
-			<p class="mt-0.5 text-[13px] text-muted-foreground">Welcome back, {auth.fullname || auth.username}</p>
+			<p class="mt-0.5 text-xs text-muted-foreground">Welcome back, {auth.fullname || auth.username}</p>
 		</div>
 		<Button variant="outline" size="sm" onclick={loadDashboard}>
 			<RefreshCw size={13} />

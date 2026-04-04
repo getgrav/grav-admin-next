@@ -62,7 +62,7 @@
 
 <div class="flex h-full flex-col">
 	<!-- Header -->
-	<div class="flex items-center justify-between border-b border-border px-6 py-3">
+	<div class="flex min-h-14 items-center justify-between border-b border-border px-6 pt-6 pb-3">
 		<div class="flex items-center gap-3">
 			<button
 				type="button"

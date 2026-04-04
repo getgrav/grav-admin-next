@@ -22,9 +22,11 @@
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
+	import { sidebarStore } from '$lib/stores/sidebar.svelte';
 	import { ArrowLeft, Loader2, AlertCircle, Save, Download, Upload, Undo2 } from 'lucide-svelte';
 
 	const slug = $derived(page.params.slug ?? '');
+	const isSidebarPage = $derived(sidebarStore.items.some(item => item.plugin === slug));
 
 	let definition = $state<PluginPageDefinition | null>(null);
 	let blueprint = $state<BlueprintSchema | null>(null);
@@ -323,15 +325,17 @@
 
 <div class="flex h-full flex-col">
 	<!-- Header -->
-	<div class="flex items-center justify-between border-b border-border px-6 py-3">
+	<div class="flex min-h-14 items-center justify-between border-b border-border px-6 pt-6 pb-3">
 		<div class="flex items-center gap-3">
-			<button
-				type="button"
-				class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-				onclick={() => goto(`${base}/`)}
-			>
-				<ArrowLeft size={16} />
-			</button>
+			{#if !isSidebarPage}
+				<button
+					type="button"
+					class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+					onclick={() => goto(`${base}/`)}
+				>
+					<ArrowLeft size={16} />
+				</button>
+			{/if}
 			{#if definition}
 				<div class="flex items-center gap-2.5">
 					{#if definition.icon}
@@ -339,7 +343,7 @@
 							<i class="fa-solid {definition.icon.startsWith('fa-') ? definition.icon : 'fa-' + definition.icon} text-sm"></i>
 						</div>
 					{/if}
-					<h1 class="text-lg font-semibold text-foreground">{definition.title}</h1>
+					<h1 class="{isSidebarPage ? 'text-xl tracking-tight' : 'text-lg'} font-semibold text-foreground">{definition.title}</h1>
 				</div>
 			{/if}
 		</div>

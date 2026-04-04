@@ -107,9 +107,9 @@
 
 <div class="flex h-full flex-col">
 	<!-- Header -->
-	<div class="flex items-center justify-between border-b border-border px-6 py-4">
+	<div class="flex min-h-14 items-center justify-between border-b border-border px-6 pt-6 pb-3">
 		<div>
-			<h1 class="text-xl font-semibold text-foreground">Themes</h1>
+			<h1 class="text-xl font-semibold tracking-tight text-foreground">Themes</h1>
 			{#if !loading}
 				<p class="mt-0.5 text-xs text-muted-foreground">{themes.length} installed</p>
 			{/if}

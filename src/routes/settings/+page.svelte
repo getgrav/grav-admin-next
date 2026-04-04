@@ -75,7 +75,14 @@
 	<title>Settings — Grav Admin</title>
 </svelte:head>
 
-<div class="space-y-4 p-5">
+<div class="space-y-4 p-6">
+	<!-- Header -->
+	<div class="flex min-h-8 items-center justify-between">
+		<div>
+			<h1 class="text-xl font-semibold tracking-tight text-foreground">Settings</h1>
+			<p class="mt-0.5 text-xs text-muted-foreground">Admin preferences and appearance</p>
+		</div>
+	</div>
 
 	<!-- Logo -->
 	<div class="rounded-xl border border-border bg-muted/30">

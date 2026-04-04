@@ -3,6 +3,7 @@
 	import { base } from '$app/paths';
 	import { deletePage } from '$lib/api/endpoints/pages';
 	import type { PageSummary } from '$lib/api/endpoints/pages';
+	import { getStats, type DashboardStats } from '$lib/api/endpoints/dashboard';
 	import { prefs, type PagesViewMode } from '$lib/stores/preferences.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
@@ -18,6 +19,16 @@
 	let reorderMode = $state(false);
 	let confirmDeleteOpen = $state(false);
 	let pendingDeletePage = $state<PageSummary | null>(null);
+	let stats = $state<DashboardStats['pages'] | null>(null);
+
+	async function loadStats() {
+		try {
+			const s = await getStats();
+			stats = s.pages;
+		} catch { /* non-critical */ }
+	}
+
+	$effect(() => { loadStats(); });
 
 	const viewModes: { mode: PagesViewMode; icon: typeof TreePine; label: string }[] = [
 		{ mode: 'tree', icon: TreePine, label: 'Tree' },
@@ -42,6 +53,7 @@
 		try {
 			await deletePage(pg.route, { children: true });
 			toast.success(`Deleted "${pg.title}"`);
+			loadStats();
 			// Force re-render
 			const current = prefs.pagesViewMode;
 			prefs.pagesViewMode = 'list';
@@ -57,14 +69,17 @@
 	<title>Pages — Grav Admin</title>
 </svelte:head>
 
-<div class="space-y-4 p-5">
+<div class="space-y-4 p-6">
 	<!-- Header -->
-	<div class="flex items-center justify-between">
+	<div class="flex min-h-8 items-center justify-between">
 		<div>
 			<h1 class="text-xl font-semibold tracking-tight text-foreground">Pages</h1>
+			<p class="mt-0.5 text-xs text-muted-foreground">
+				{#if stats}{stats.total} page{stats.total !== 1 ? 's' : ''}{:else}Manage your site content and structure{/if}
+			</p>
 		</div>
-		<Button onclick={() => goto(`${base}/pages/new`)}>
-			<Plus size={15} />
+		<Button size="sm" onclick={() => goto(`${base}/pages/new`)}>
+			<Plus size={14} />
 			Add Page
 		</Button>
 	</div>
@@ -132,6 +147,17 @@
 			<PagesListView {searchQuery} {reorderMode} onEdit={handleEdit} onDelete={handleDelete} />
 		{:else if prefs.pagesViewMode === 'miller'}
 			<PagesMillerView {searchQuery} {reorderMode} onEdit={handleEdit} />
+		{/if}
+
+		<!-- Footer stats -->
+		{#if stats}
+			<div class="flex items-center gap-4 border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
+				<span>{stats.total} total</span>
+				<span class="text-border">|</span>
+				<span>{stats.published} published</span>
+				<span class="text-border">|</span>
+				<span>{stats.total - stats.published} unpublished</span>
+			</div>
 		{/if}
 	</div>
 </div>

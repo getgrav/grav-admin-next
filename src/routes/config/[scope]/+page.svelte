@@ -196,12 +196,12 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="space-y-4 p-5">
+<div class="space-y-4 p-6">
 	<!-- Header -->
-	<div class="flex items-center justify-between gap-4">
+	<div class="flex min-h-8 items-center justify-between gap-4">
 		<div>
-			<h1 class="text-lg font-semibold text-foreground">Configuration</h1>
-			<p class="text-xs text-muted-foreground">{scopeTitle(scope)}</p>
+			<h1 class="text-xl font-semibold tracking-tight text-foreground">Configuration</h1>
+			<p class="mt-0.5 text-xs text-muted-foreground">{scopeTitle(scope)}</p>
 		</div>
 
 		{#if !isInfo}

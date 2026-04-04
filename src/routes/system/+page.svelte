@@ -2,7 +2,11 @@
 	<title>System — Grav Admin</title>
 </svelte:head>
 
-<div class="p-5">
-	<h1 class="text-2xl font-semibold text-surface-900 dark:text-surface-100">System</h1>
-	<p class="mt-1 text-sm text-surface-500">Coming soon</p>
+<div class="p-6">
+	<div class="flex min-h-8 items-center justify-between">
+		<div>
+			<h1 class="text-xl font-semibold tracking-tight text-foreground">System</h1>
+			<p class="mt-0.5 text-xs text-muted-foreground">Coming soon</p>
+		</div>
+	</div>
 </div>

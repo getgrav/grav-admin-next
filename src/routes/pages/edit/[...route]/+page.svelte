@@ -273,9 +273,9 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="space-y-4 p-5">
+<div class="space-y-4 p-6">
 	<!-- Top bar -->
-	<div class="flex items-center justify-between gap-4">
+	<div class="flex min-h-8 items-center justify-between gap-4">
 		<div class="flex min-w-0 items-center gap-3">
 			<button class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground" onclick={() => goto(`${base}/pages`)}>
 				<ArrowLeft size={16} />

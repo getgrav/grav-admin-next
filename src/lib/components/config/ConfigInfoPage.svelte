@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { api } from '$lib/api/client';
+	import { Button } from '$lib/components/ui/button';
+	import { ChevronDown, ChevronRight, Download } from 'lucide-svelte';
 
 	interface SystemInfoData {
 		grav_version: string;
@@ -9,11 +11,97 @@
 		environment: string;
 		plugins: Array<{ name: string; version: string; enabled: boolean }>;
 		themes: Array<{ name: string; version: string; active: boolean }>;
+		php_config?: Record<string, Record<string, string>>;
 	}
 
 	let info = $state<SystemInfoData | null>(null);
 	let loading = $state(true);
 	let error = $state('');
+	let expandedSections = $state<Set<string>>(new Set());
+
+	function toggleSection(name: string) {
+		const next = new Set(expandedSections);
+		if (next.has(name)) {
+			next.delete(name);
+		} else {
+			next.add(name);
+		}
+		expandedSections = next;
+	}
+
+	function expandAll() {
+		if (!info?.php_config) return;
+		expandedSections = new Set(Object.keys(info.php_config));
+	}
+
+	function collapseAll() {
+		expandedSections = new Set();
+	}
+
+	const allExpanded = $derived(
+		info?.php_config ? expandedSections.size === Object.keys(info.php_config).length : false
+	);
+
+	function exportYaml() {
+		if (!info) return;
+
+		const lines: string[] = [];
+		lines.push('# System Information');
+		lines.push(`# Exported: ${new Date().toISOString()}`);
+		lines.push('');
+
+		lines.push('server:');
+		lines.push(`  grav_version: "${info.grav_version}"`);
+		lines.push(`  php_version: "${info.php_version}"`);
+		lines.push(`  server_software: "${info.server_software}"`);
+		lines.push(`  environment: "${info.environment}"`);
+		lines.push('');
+
+		if (info.php_config) {
+			lines.push('php_config:');
+			for (const [section, values] of Object.entries(info.php_config)) {
+				const sectionKey = section.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+				lines.push(`  ${sectionKey}:`);
+				for (const [key, value] of Object.entries(values)) {
+					// Escape values that could be misinterpreted as YAML
+					const safeVal = value.includes(':') || value.includes('#') || value === '' || value === '(none)'
+						? `"${value}"`
+						: `"${value}"`;
+					lines.push(`    ${key}: ${safeVal}`);
+				}
+			}
+			lines.push('');
+		}
+
+		lines.push('php_extensions:');
+		for (const ext of [...info.php_extensions].sort()) {
+			lines.push(`  - ${ext}`);
+		}
+		lines.push('');
+
+		lines.push('plugins:');
+		for (const p of info.plugins) {
+			lines.push(`  - name: "${p.name}"`);
+			lines.push(`    version: "${p.version}"`);
+			lines.push(`    enabled: ${p.enabled}`);
+		}
+		lines.push('');
+
+		lines.push('themes:');
+		for (const t of info.themes) {
+			lines.push(`  - name: "${t.name}"`);
+			lines.push(`    version: "${t.version}"`);
+			lines.push(`    active: ${t.active}`);
+		}
+
+		const blob = new Blob([lines.join('\n')], { type: 'text/yaml' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `grav-system-info-${new Date().toISOString().slice(0, 10)}.yaml`;
+		a.click();
+		URL.revokeObjectURL(url);
+	}
 
 	async function loadInfo() {
 		loading = true;
@@ -37,6 +125,14 @@
 		{error}
 	</div>
 {:else if info}
+	<!-- Export button -->
+	<div class="flex justify-end">
+		<Button variant="outline" size="sm" onclick={exportYaml}>
+			<Download size={14} />
+			Export YAML
+		</Button>
+	</div>
+
 	<div class="grid gap-4 md:grid-cols-2">
 		<!-- Server Info -->
 		<div class="rounded-lg border border-border bg-card">
@@ -122,4 +218,48 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- PHP Configuration -->
+	{#if info.php_config}
+		<div class="mt-2">
+			<div class="mb-3 flex items-center justify-between">
+				<h3 class="text-sm font-semibold text-foreground">PHP Configuration</h3>
+				<button
+					class="text-xs text-muted-foreground transition-colors hover:text-foreground"
+					onclick={() => allExpanded ? collapseAll() : expandAll()}
+				>
+					{allExpanded ? 'Collapse all' : 'Expand all'}
+				</button>
+			</div>
+			<div class="space-y-2">
+				{#each Object.entries(info.php_config) as [section, values]}
+					{@const isExpanded = expandedSections.has(section)}
+					<div class="rounded-lg border border-border bg-card">
+						<button
+							class="flex w-full items-center gap-2 px-5 py-3 text-left transition-colors hover:bg-accent/50"
+							onclick={() => toggleSection(section)}
+						>
+							{#if isExpanded}
+								<ChevronDown size={14} class="shrink-0 text-muted-foreground" />
+							{:else}
+								<ChevronRight size={14} class="shrink-0 text-muted-foreground" />
+							{/if}
+							<span class="text-sm font-semibold text-foreground">{section}</span>
+							<span class="text-xs text-muted-foreground">({Object.keys(values).length})</span>
+						</button>
+						{#if isExpanded}
+							<dl class="divide-y divide-border border-t border-border">
+								{#each Object.entries(values) as [key, value]}
+									<div class="flex items-start justify-between gap-4 px-5 py-2.5">
+										<dt class="shrink-0 font-mono text-xs text-muted-foreground">{key}</dt>
+										<dd class="min-w-0 break-all text-right font-mono text-xs font-medium text-foreground">{value}</dd>
+									</div>
+								{/each}
+							</dl>
+						{/if}
+					</div>
+				{/each}
+			</div>
+		</div>
+	{/if}
 {/if}

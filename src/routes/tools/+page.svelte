@@ -34,8 +34,13 @@
 	<title>Tools — Grav Admin</title>
 </svelte:head>
 
-<div class="space-y-4 p-5">
-	<h1 class="text-lg font-semibold text-foreground">Tools</h1>
+<div class="space-y-4 p-6">
+	<div class="flex min-h-8 items-center justify-between">
+		<div>
+			<h1 class="text-xl font-semibold tracking-tight text-foreground">Tools</h1>
+			<p class="mt-0.5 text-xs text-muted-foreground">Backups, scheduler, logs, and diagnostics</p>
+		</div>
+	</div>
 
 	<Tabs items={tabs} active={activeTab} onchange={setTab} />
 
