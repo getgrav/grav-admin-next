@@ -20,6 +20,13 @@ export interface AutoSaveManagerOptions {
 	applyChange: (path: string, value: unknown) => void;
 	/** Human-readable form name for toast messages */
 	formName?: string;
+	/**
+	 * Optional gate — when it returns false, changes are still tracked in the
+	 * undo stack (so the dirty indicator shows), but no server save fires.
+	 * Used e.g. to block saves while viewing a translation-fallback page to
+	 * avoid clobbering the source-language file.
+	 */
+	canSave?: () => boolean;
 }
 
 export interface AutoSaveManager {
@@ -34,7 +41,7 @@ export interface AutoSaveManager {
 }
 
 export function createAutoSaveManager(options: AutoSaveManagerOptions): AutoSaveManager {
-	const { save, getValue, applyChange, formName = 'Form' } = options;
+	const { save, getValue, applyChange, formName = 'Form', canSave } = options;
 
 	let undoStack = $state<UndoEntry[]>([]);
 	let saving = $state(false);
@@ -64,6 +71,7 @@ export function createAutoSaveManager(options: AutoSaveManagerOptions): AutoSave
 	}
 
 	function scheduleSave() {
+		if (canSave && !canSave()) return;
 		if (debounceTimer) clearTimeout(debounceTimer);
 		debounceTimer = setTimeout(() => {
 			debounceTimer = null;
@@ -126,6 +134,7 @@ export function createAutoSaveManager(options: AutoSaveManagerOptions): AutoSave
 	}
 
 	async function forceSave() {
+		if (canSave && !canSave()) return;
 		if (debounceTimer) {
 			clearTimeout(debounceTimer);
 			debounceTimer = null;

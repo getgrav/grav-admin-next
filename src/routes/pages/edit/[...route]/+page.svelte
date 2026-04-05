@@ -32,6 +32,8 @@
 	import Tabs from '$lib/components/ui/Tabs.svelte';
 	import PagesField from '$lib/components/blueprint/fields/PagesField.svelte';
 	import SelectField from '$lib/components/blueprint/fields/SelectField.svelte';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { onMount } from 'svelte';
 
 	const route = $derived('/' + (page.params.route || ''));
 
@@ -221,12 +223,22 @@
 			handleBlueprintChange(path, value);
 		},
 		formName: 'Page',
+		// Block saves while viewing a translation fallback — otherwise the
+		// PATCH would clobber the source-language file. Manual Save routes
+		// to handleSaveAsTranslation instead (see Save button onclick).
+		canSave: () => !isFallback,
 	});
 
 	let saveAsOpen = $state(false);
 	// Treat null/empty language as the default language (file is e.g. default.md with no .en. extension)
 	const effectiveLang = $derived(pageData?.language || contentLang.defaultLang);
 	let isFallback = $derived(contentLang.enabled && pageData !== null && effectiveLang !== contentLang.activeLang);
+	// True when we're viewing a fallback AND the active lang can be created as
+	// a new translation. In this state the Save button creates the translation
+	// (even with no edits — copies fallback content as the seed).
+	let canCreateTranslation = $derived(
+		isFallback && !!pageData?.untranslated_languages?.includes(contentLang.activeLang)
+	);
 
 	async function loadPage(lang?: string) {
 		loading = true;
@@ -553,10 +565,25 @@
 		}
 	}
 
+	/**
+	 * Route Save to the correct action:
+	 *  - In fallback mode (viewing English while active lang is French with no
+	 *    French file yet): create the translation instead of clobbering source.
+	 *  - Otherwise: normal save path (auto-save force or manual handleSave).
+	 */
+	function triggerSave() {
+		if (canCreateTranslation) {
+			handleSaveAsTranslation(contentLang.activeLang);
+			return;
+		}
+		if (prefs.autoSaveEnabled) autoSave.forceSave();
+		else handleSave();
+	}
+
 	function handleKeydown(e: KeyboardEvent) {
 		if ((e.metaKey || e.ctrlKey) && e.key === 's') {
 			e.preventDefault();
-			prefs.autoSaveEnabled ? autoSave.forceSave() : handleSave();
+			triggerSave();
 		}
 		if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey && prefs.autoSaveEnabled) {
 			const tag = (document.activeElement?.tagName ?? '').toLowerCase();
@@ -569,6 +596,18 @@
 	}
 
 	$effect(() => { autoSave.reset(); loadPage(); });
+
+	// Refetch when this page is updated elsewhere (with dirty guard). Note we
+	// ignore our own saves — the server's X-Invalidates fires the event on us
+	// too, but `loadPage()` is a no-op after save since hasChanges is false.
+	onMount(() => {
+		const unsub = invalidations.subscribe('pages:update', (e) => {
+			if (e.id !== route) return;
+			if (!hasChanges) loadPage();
+			else toast.info('Page changed elsewhere — save to overwrite or reload');
+		});
+		return () => { unsub(); };
+	});
 </script>
 
 <svelte:head>
@@ -647,10 +686,13 @@
 			</Button>
 			<!-- Save button with Save As dropdown -->
 			<div class="relative flex">
-				<Button size="sm" class="{hasChanges ? '' : 'opacity-50 pointer-events-none'} {contentLang.enabled && pageData?.untranslated_languages && pageData.untranslated_languages.length > 0 ? 'rounded-r-none' : ''}" onclick={() => prefs.autoSaveEnabled ? autoSave.forceSave() : handleSave()} disabled={saving || loading}>
+				<Button size="sm" class="{(hasChanges || canCreateTranslation) ? '' : 'opacity-50 pointer-events-none'} {contentLang.enabled && pageData?.untranslated_languages && pageData.untranslated_languages.length > 0 ? 'rounded-r-none' : ''}" onclick={triggerSave} disabled={saving || loading}>
 					{#if saving}
 						<Loader2 size={14} class="animate-spin" />
 						Saving...
+					{:else if canCreateTranslation}
+						<Languages size={14} />
+						Save as {contentLang.getLanguageName(contentLang.activeLang)}
 					{:else}
 						<Save size={14} />
 						Save
