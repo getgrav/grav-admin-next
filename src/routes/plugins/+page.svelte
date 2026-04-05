@@ -3,6 +3,8 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
 	import { getInstalledPlugins, setPluginEnabled, checkUpdates, type PluginInfo } from '$lib/api/endpoints/gpm';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import AddPluginModal from '$lib/components/AddPluginModal.svelte';
 	import { toast } from 'svelte-sonner';
@@ -132,6 +134,15 @@
 
 	$effect(() => {
 		loadPlugins();
+	});
+
+	// Refetch when plugins change elsewhere (install, uninstall, update, enable/disable)
+	// or on tab refocus. Config updates on plugins/<slug> also emit plugins:update,
+	// so no separate config subscription is needed.
+	onMount(() => {
+		const unsubPlugins = invalidations.subscribe('plugins:*', () => loadPlugins());
+		const unsubFocus = invalidations.subscribe('*:focus', () => loadPlugins());
+		return () => { unsubPlugins(); unsubFocus(); };
 	});
 </script>
 

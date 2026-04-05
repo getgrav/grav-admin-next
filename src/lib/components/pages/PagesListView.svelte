@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { getPagesList, reorganizePages } from '$lib/api/endpoints/pages';
 	import type { PageSummary, PageListParams, ReorganizeOperation } from '$lib/api/endpoints/pages';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { onMount } from 'svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import TranslationBadges from '$lib/components/ui/TranslationBadges.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -89,6 +91,14 @@
 			currentPage = 1;
 		}
 		loadPages();
+	});
+
+	// Refetch when any page mutation happens elsewhere (other tab, action, etc.)
+	// or when tab regains focus after >30s blur.
+	onMount(() => {
+		const unsubPages = invalidations.subscribe('pages:*', () => loadPages());
+		const unsubFocus = invalidations.subscribe('*:focus', () => loadPages());
+		return () => { unsubPages(); unsubFocus(); };
 	});
 
 	function getParentRoute(page: PageSummary): string {

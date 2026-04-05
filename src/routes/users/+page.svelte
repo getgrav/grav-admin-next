@@ -2,6 +2,8 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { getUsers, type UserInfo, type UsersPage } from '$lib/api/endpoints/users';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { onMount } from 'svelte';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
@@ -102,6 +104,13 @@
 
 	$effect(() => {
 		loadUsers();
+	});
+
+	// Refetch when any user mutation happens elsewhere or on tab refocus.
+	onMount(() => {
+		const unsubUsers = invalidations.subscribe('users:*', () => loadUsers(currentPage));
+		const unsubFocus = invalidations.subscribe('*:focus', () => loadUsers(currentPage));
+		return () => { unsubUsers(); unsubFocus(); };
 	});
 </script>
 

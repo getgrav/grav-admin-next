@@ -2,6 +2,8 @@
 	import { getChildren, getPage, getPagesList, reorganizePages } from '$lib/api/endpoints/pages';
 	import type { PageSummary, PageDetail, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { onMount } from 'svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
@@ -144,6 +146,25 @@
 				loading: false,
 			}];
 		})();
+	});
+
+	// Refetch on external mutations or tab refocus — reload only the root column;
+	// downstream columns are keyed off selection and will reload on next click.
+	onMount(() => {
+		const refetch = async () => {
+			allPagesCache = null;
+			const rootPages = await loadColumn('/');
+			columns = [{
+				parentRoute: '/',
+				pages: rootPages,
+				selectedRoute: null,
+				loading: false,
+			}];
+			previewPage = null;
+		};
+		const unsubPages = invalidations.subscribe('pages:*', refetch);
+		const unsubFocus = invalidations.subscribe('*:focus', refetch);
+		return () => { unsubPages(); unsubFocus(); };
 	});
 
 	async function selectPage(colIndex: number, page: PageSummary) {

@@ -14,6 +14,8 @@
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { onMount } from 'svelte';
 
 	const REDACTED = '********';
 	const translateLabel = i18n.tMaybe;
@@ -188,6 +190,16 @@
 	// Load sections once, reload config when scope changes
 	$effect(() => { loadSections(); });
 	$effect(() => { scope; autoSave.reset(); loadConfig(); });
+
+	// Refetch when the current scope is updated elsewhere (with dirty guard).
+	onMount(() => {
+		const unsub = invalidations.subscribe('config:update', (e) => {
+			if (e.id !== scope) return;
+			if (!hasChanges) loadConfig();
+			else toast.info('Configuration changed elsewhere — save to overwrite or reload');
+		});
+		return () => { unsub(); };
+	});
 </script>
 
 <svelte:head>

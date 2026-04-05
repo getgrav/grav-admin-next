@@ -20,6 +20,8 @@
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { onMount } from 'svelte';
 	import { Undo2 } from 'lucide-svelte';
 
 	const REDACTED = '********';
@@ -295,6 +297,19 @@
 		slug; // track
 		autoSave.reset();
 		loadPlugin();
+	});
+
+	// Refetch when this plugin is updated elsewhere, but only if the user has no
+	// unsaved changes in-flight. If dirty, warn instead of clobbering.
+	// Subscribe broadly to plugins:update and filter by the current slug inside
+	// the handler since `slug` is a derived value that can change on nav.
+	onMount(() => {
+		const unsub = invalidations.subscribe('plugins:update', (e) => {
+			if (e.id !== slug) return;
+			if (!hasChanges) loadPlugin();
+			else toast.info('Plugin changed elsewhere — save to overwrite or reload');
+		});
+		return () => { unsub(); };
 	});
 </script>
 

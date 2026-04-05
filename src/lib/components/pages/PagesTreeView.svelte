@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { getChildren, reorganizePages } from '$lib/api/endpoints/pages';
 	import type { PageSummary, ReorganizeOperation } from '$lib/api/endpoints/pages';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { onMount } from 'svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import TranslationBadges from '$lib/components/ui/TranslationBadges.svelte';
 	import { toast } from 'svelte-sonner';
@@ -102,6 +104,15 @@
 			childrenCache = {};
 		}
 		loadRoot();
+	});
+
+	// Refetch on external mutations or tab refocus — clear cached children since
+	// any page could have changed.
+	onMount(() => {
+		const refetch = () => { childrenCache = {}; loadRoot(); };
+		const unsubPages = invalidations.subscribe('pages:*', refetch);
+		const unsubFocus = invalidations.subscribe('*:focus', refetch);
+		return () => { unsubPages(); unsubFocus(); };
 	});
 
 	function getPageChildren(route: string): PageSummary[] {

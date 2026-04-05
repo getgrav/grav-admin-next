@@ -17,6 +17,8 @@
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { onMount } from 'svelte';
 	import {
 		Save, ArrowLeft, Loader2, AlertCircle, Trash2, User, Undo2
 	} from 'lucide-svelte';
@@ -262,6 +264,16 @@
 		username; // track
 		autoSave.reset();
 		loadUser();
+	});
+
+	// Refetch when this user is updated elsewhere (with dirty guard).
+	onMount(() => {
+		const unsub = invalidations.subscribe('users:update', (e) => {
+			if (e.id !== username) return;
+			if (!hasChanges) loadUser();
+			else toast.info('User changed elsewhere — save to overwrite or reload');
+		});
+		return () => { unsub(); };
 	});
 </script>
 

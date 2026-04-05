@@ -4,6 +4,8 @@
 	import { deletePage } from '$lib/api/endpoints/pages';
 	import type { PageSummary } from '$lib/api/endpoints/pages';
 	import { getStats, type DashboardStats } from '$lib/api/endpoints/dashboard';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { onMount } from 'svelte';
 	import { prefs, type PagesViewMode } from '$lib/stores/preferences.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
@@ -32,6 +34,9 @@
 
 	$effect(() => { loadStats(); });
 
+	// Refresh stats when any page mutation happens.
+	onMount(() => invalidations.subscribe('pages:*', () => loadStats()));
+
 	const viewModes: { mode: PagesViewMode; icon: typeof TreePine; label: string }[] = [
 		{ mode: 'tree', icon: TreePine, label: 'Tree' },
 		{ mode: 'list', icon: List, label: 'List' },
@@ -56,11 +61,9 @@
 			await deletePage(pg.route, { children: true });
 			toast.success(`Deleted "${pg.title}"`);
 			loadStats();
-			// Force re-render
-			const current = prefs.pagesViewMode;
-			prefs.pagesViewMode = 'list';
-			await new Promise(r => setTimeout(r, 10));
-			prefs.pagesViewMode = current;
+			// Child list views subscribe to `pages:*` invalidations and refetch
+			// automatically when the X-Invalidates header fires — no need to force
+			// a re-render by toggling viewMode.
 		} catch {
 			toast.error('Failed to delete page');
 		}
