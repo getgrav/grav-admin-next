@@ -4,6 +4,8 @@
 	import XHRUpload from '@uppy/xhr-upload';
 	import ImageEditor from '@uppy/image-editor';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { api } from '$lib/api/client';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { getPageMedia, deletePageMedia, type MediaItem } from '$lib/api/endpoints/media';
 	import { toast } from 'svelte-sonner';
 	import { Upload, X, ImagePlus, GripVertical } from 'lucide-svelte';
@@ -81,6 +83,11 @@
 			},
 		});
 
+		// Pre-check token so Uppy's XHR uploads don't fail silently on expiry.
+		uppy.addPreProcessor(async () => {
+			await api.ensureAuth();
+		});
+
 		uppy.on('upload-start', () => {
 			uploading = true;
 		});
@@ -109,6 +116,8 @@
 		uppy.on('complete', () => {
 			uploading = false;
 			uploadProgress = new Map();
+			// XHRUpload bypasses our API client, so emit invalidation manually.
+			invalidations.emit([`media:update:pages/${route}`, `pages:update:/${route}`]);
 			// Refresh media list after uploads complete
 			loadMedia();
 			// Clear Uppy's file list so the dropzone is ready for new files

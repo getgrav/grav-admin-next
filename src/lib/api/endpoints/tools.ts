@@ -186,24 +186,7 @@ export async function directInstallUrl(url: string): Promise<{ message: string }
 }
 
 export async function directInstallFile(file: File): Promise<{ message: string }> {
-	const formData = new FormData();
-	formData.append('file', file);
-
-	const base = `${auth.serverUrl}${auth.apiPrefix || '/api/v1'}`;
-	const headers: Record<string, string> = {};
-	if (auth.accessToken) headers['Authorization'] = `Bearer ${auth.accessToken}`;
-
-	const response = await fetch(`${base}/gpm/direct-install`, {
-		method: 'POST',
-		headers,
-		body: formData,
+	return api.uploadFile<{ message: string }>('/gpm/direct-install', file, {
+		fieldName: 'file',
 	});
-
-	if (!response.ok) {
-		const body = await response.json().catch(() => null);
-		throw new Error(body?.detail || `Upload failed: ${response.status}`);
-	}
-
-	const body = await response.json();
-	return body.data ?? body;
 }

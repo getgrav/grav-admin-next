@@ -6,6 +6,8 @@
 	import { Uppy } from '@uppy/core';
 	import XHRUpload from '@uppy/xhr-upload';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { api } from '$lib/api/client';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { toast } from 'svelte-sonner';
 	import { Upload, X } from 'lucide-svelte';
@@ -130,6 +132,11 @@
 			headers: getAuthHeaders,
 		});
 
+		// Pre-check token so Uppy's XHR uploads don't fail silently on expiry.
+		uppy.addPreProcessor(async () => {
+			await api.ensureAuth();
+		});
+
 		uppy.on('upload-start', () => { uploading = true; });
 		uppy.on('upload-progress', (_file, progress) => {
 			const total = progress.bytesTotal ?? 0;
@@ -165,10 +172,13 @@
 			uploading = false;
 			uploadProgress = 0;
 			uppy?.cancelAll();
+			const route = getRoute?.() ?? '';
+			const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
+			// XHRUpload bypasses our API client — emit invalidation manually.
+			invalidations.emit([`media:update:pages/${cleanRoute}`, `pages:update:/${cleanRoute}`]);
 			// Refresh the shared media context so filepickers see the new file
 			if (mediaCtx) {
 				import('$lib/api/endpoints/media').then(({ getPageMedia }) => {
-					const route = getRoute?.() ?? '';
 					getPageMedia(route).then((items) => mediaCtx.update(items));
 				});
 			}

@@ -4,7 +4,7 @@
 	import { getSchedulerStatus } from '$lib/api/endpoints/tools';
 	import { Button } from '$lib/components/ui/button';
 	import { CheckCircle2, XCircle, Download, AlertTriangle } from 'lucide-svelte';
-	import { auth } from '$lib/stores/auth.svelte';
+	import { api } from '$lib/api/client';
 
 	interface Props {
 		field: BlueprintField;
@@ -31,20 +31,10 @@
 	}
 
 	async function handleInstall() {
-		// Use the GPM direct-install endpoint
 		try {
-			const base = `${auth.serverUrl}${auth.apiPrefix || '/api/v1'}`;
-			const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-			if (auth.accessToken) headers['Authorization'] = `Bearer ${auth.accessToken}`;
-			const resp = await fetch(`${base}/gpm/install`, {
-				method: 'POST',
-				headers,
-				body: JSON.stringify({ package: 'scheduler-webhook', type: 'plugin' }),
-			});
-			if (resp.ok) {
-				installed = true;
-				window.location.reload();
-			}
+			await api.post('/gpm/install', { package: 'scheduler-webhook', type: 'plugin' });
+			installed = true;
+			window.location.reload();
 		} catch {}
 	}
 

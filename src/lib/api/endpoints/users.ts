@@ -1,5 +1,4 @@
-import { api, ApiRequestError } from '../client';
-import { auth } from '$lib/stores/auth.svelte';
+import { api } from '../client';
 
 export interface UserInfo {
 	username: string;
@@ -23,30 +22,20 @@ export interface UsersPage {
 	totalPages: number;
 }
 
+interface PaginatedUsersBody {
+	data?: UserInfo[];
+	meta?: { pagination?: { total?: number; page?: number; per_page?: number; total_pages?: number } };
+}
+
 /**
- * Get paginated list of users. Uses raw fetch to preserve pagination meta.
+ * Get paginated list of users. Uses getFullBody to preserve pagination meta.
  */
 export async function getUsers(page = 1, perPage = 20): Promise<UsersPage> {
-	const baseUrl = `${auth.serverUrl}${auth.apiPrefix || '/api/v1'}`;
-	const url = `${baseUrl}/users?page=${page}&per_page=${perPage}`;
-
-	const response = await fetch(url, {
-		headers: {
-			Accept: 'application/json',
-			Authorization: `Bearer ${auth.accessToken}`,
-			...(auth.environment ? { 'X-Grav-Environment': auth.environment } : {}),
-		},
+	const body = await api.getFullBody<PaginatedUsersBody>('/users', {
+		page: String(page),
+		per_page: String(perPage),
 	});
 
-	if (!response.ok) {
-		const body = await response.json().catch(() => null);
-		throw new ApiRequestError(
-			body ?? { status: response.status, title: response.statusText, detail: 'Failed to fetch users' },
-			response,
-		);
-	}
-
-	const body = await response.json();
 	const users: UserInfo[] = body.data ?? [];
 	const meta = body.meta?.pagination ?? {};
 
@@ -101,29 +90,9 @@ export async function deleteUser(username: string): Promise<void> {
 }
 
 export async function uploadAvatar(username: string, file: File): Promise<UserInfo> {
-	const baseUrl = `${auth.serverUrl}${auth.apiPrefix || '/api/v1'}`;
-	const formData = new FormData();
-	formData.append('avatar', file);
-
-	const response = await fetch(`${baseUrl}/users/${username}/avatar`, {
-		method: 'POST',
-		headers: {
-			Authorization: `Bearer ${auth.accessToken}`,
-			...(auth.environment ? { 'X-Grav-Environment': auth.environment } : {}),
-		},
-		body: formData,
+	return api.uploadFile<UserInfo>(`/users/${username}/avatar`, file, {
+		fieldName: 'avatar',
 	});
-
-	if (!response.ok) {
-		const body = await response.json().catch(() => null);
-		throw new ApiRequestError(
-			body ?? { status: response.status, title: 'Upload Failed', detail: 'Failed to upload avatar' },
-			response,
-		);
-	}
-
-	const body = await response.json();
-	return body.data ?? body;
 }
 
 export async function deleteAvatar(username: string): Promise<UserInfo> {

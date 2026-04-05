@@ -4,6 +4,8 @@
 	import XHRUpload from '@uppy/xhr-upload';
 	import ImageEditor from '@uppy/image-editor';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { api } from '$lib/api/client';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { mediaManager } from '$lib/stores/mediaManager.svelte';
 	import type { MediaItem } from '$lib/api/endpoints/media';
 	import { toast } from 'svelte-sonner';
@@ -75,6 +77,13 @@
 			},
 		});
 
+		// Pre-check token so Uppy's XHR uploads don't fail silently on expiry.
+		// ApiClient's JWT pre-check lives inside request(); XHRUpload bypasses it,
+		// so we refresh here before each upload batch starts.
+		uppy.addPreProcessor(async () => {
+			await api.ensureAuth();
+		});
+
 		uppy.on('upload-start', () => {
 			uploading = true;
 		});
@@ -104,6 +113,9 @@
 			const count = result?.successful?.length ?? 0;
 			if (count > 0) {
 				toast.success(`Uploaded ${count} file${count !== 1 ? 's' : ''}`);
+				// XHRUpload bypasses our API client, so emit invalidation manually.
+				const path = mediaManager.currentPath || '/';
+				invalidations.emit([`media:update:${path}`, 'media:list']);
 			}
 			mediaManager.refresh();
 			uppy?.cancelAll();

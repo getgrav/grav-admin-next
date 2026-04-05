@@ -130,3 +130,27 @@ export async function deletePageMedia(route: string, filename: string): Promise<
 	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
 	return api.delete(`/pages/${cleanRoute}/media/${encodeURIComponent(filename)}`);
 }
+
+/**
+ * Upload a single file to a page. Goes through the unified API client so
+ * 401s trigger the auth flow — prefer this over direct FormData fetch.
+ *
+ * (Uppy integrations in MediaManager/PageMedia/FileField continue to use
+ * XHRUpload with a pre-refresh hook — this helper is for simpler callers.)
+ */
+export async function uploadPageMedia(route: string, file: File): Promise<MediaItem[]> {
+	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
+	return api.uploadFile<MediaItem[]>(`/pages/${cleanRoute}/media`, file, {
+		fieldName: 'file',
+	});
+}
+
+/**
+ * Upload a single file to site media (optionally into a subfolder path).
+ */
+export async function uploadSiteMedia(file: File, path?: string): Promise<MediaItem[]> {
+	const query = path ? `?path=${encodeURIComponent(path)}` : '';
+	return api.uploadFile<MediaItem[]>(`/media${query}`, file, {
+		fieldName: 'file',
+	});
+}

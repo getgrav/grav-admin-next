@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { auth } from '$lib/stores/auth.svelte';
+	import { api } from '$lib/api/client';
 	import { onMount } from 'svelte';
 
 	interface Props {
@@ -17,15 +18,8 @@
 
 	const loadingPromises: Record<string, Promise<void> | undefined> = ((window as any).__GRAV_PAGE_LOADING ??= {});
 
-	function getScriptUrl(): string {
-		return `${auth.serverUrl}${auth.apiPrefix}/gpm/plugins/${slug}/page-script`;
-	}
-
-	function getAuthHeaders(): Record<string, string> {
-		const h: Record<string, string> = {};
-		if (auth.accessToken) h['Authorization'] = `Bearer ${auth.accessToken}`;
-		if (auth.environment) h['X-Grav-Environment'] = auth.environment;
-		return h;
+	function getScriptPath(): string {
+		return `/gpm/plugins/${slug}/page-script`;
 	}
 
 	async function loadComponent() {
@@ -47,13 +41,7 @@
 		}
 
 		loadingPromises[tagName] = (async () => {
-			const headers = getAuthHeaders();
-			const response = await fetch(getScriptUrl(), { headers });
-			if (!response.ok) {
-				throw new Error(`Failed to load page component: ${response.statusText}`);
-			}
-
-			const code = await response.text();
+			const code = await api.fetchScript(getScriptPath());
 
 			window.__GRAV_API_SERVER_URL = auth.serverUrl;
 			window.__GRAV_API_PREFIX = auth.apiPrefix || '/api/v1';

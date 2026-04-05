@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { auth } from '$lib/stores/auth.svelte';
+	import { api } from '$lib/api/client';
 	import { floatingWidgetStore } from '$lib/stores/floatingWidgets.svelte';
 	import { Plus } from 'lucide-svelte';
 
@@ -29,15 +30,8 @@
 
 	const loadingPromises: Record<string, Promise<void> | undefined> = ((window as any).__GRAV_WIDGET_LOADING ??= {});
 
-	function getScriptUrl(slug: string): string {
-		return `${auth.serverUrl}${auth.apiPrefix}/gpm/plugins/${slug}/widget-script`;
-	}
-
-	function getAuthHeaders(): Record<string, string> {
-		const h: Record<string, string> = {};
-		if (auth.accessToken) h['Authorization'] = `Bearer ${auth.accessToken}`;
-		if (auth.environment) h['X-Grav-Environment'] = auth.environment;
-		return h;
+	function getScriptPath(slug: string): string {
+		return `/gpm/plugins/${slug}/widget-script`;
 	}
 
 	// Track closing animation state
@@ -97,13 +91,7 @@
 		}
 
 		loadingPromises[tagName] = (async () => {
-			const headers = getAuthHeaders();
-			const response = await fetch(getScriptUrl(slug), { headers });
-			if (!response.ok) {
-				throw new Error(`Failed to load widget: ${response.statusText}`);
-			}
-
-			const code = await response.text();
+			const code = await api.fetchScript(getScriptPath(slug));
 
 			window.__GRAV_API_SERVER_URL = auth.serverUrl;
 			window.__GRAV_API_PREFIX = auth.apiPrefix || '/api/v1';

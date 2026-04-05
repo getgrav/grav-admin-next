@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { ReportItem } from '$lib/api/endpoints/tools';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { api } from '$lib/api/client';
 	import { onMount } from 'svelte';
 
 	interface Props {
@@ -19,15 +20,8 @@
 	// Global loading lock — prevents multiple instances from loading the same script
 	const loadingPromises: Record<string, Promise<void> | undefined> = ((window as any).__GRAV_REPORT_LOADING ??= {});
 
-	function getScriptUrl(): string {
-		return `${auth.serverUrl}${auth.apiPrefix}/gpm/plugins/${report.provider}/report-script/${report.component}`;
-	}
-
-	function getAuthHeaders(): Record<string, string> {
-		const h: Record<string, string> = {};
-		if (auth.accessToken) h['Authorization'] = `Bearer ${auth.accessToken}`;
-		if (auth.environment) h['X-Grav-Environment'] = auth.environment;
-		return h;
+	function getScriptPath(): string {
+		return `/gpm/plugins/${report.provider}/report-script/${report.component}`;
 	}
 
 	async function loadComponent() {
@@ -52,13 +46,7 @@
 
 		// First instance — load the script
 		loadingPromises[tagName] = (async () => {
-			const headers = getAuthHeaders();
-			const response = await fetch(getScriptUrl(), { headers });
-			if (!response.ok) {
-				throw new Error(`Failed to load report component: ${response.statusText}`);
-			}
-
-			const code = await response.text();
+			const code = await api.fetchScript(getScriptPath());
 
 			// Expose auth context as globals for web component API calls
 			window.__GRAV_API_SERVER_URL = auth.serverUrl;

@@ -7,6 +7,9 @@
 		getPluginPageBlueprint,
 		getPluginPageData,
 		savePluginPageData,
+		executePluginPageAction,
+		uploadPluginPageFile,
+		downloadPluginPageFile,
 		type PluginPageDefinition,
 		type PluginPageAction,
 	} from '$lib/api/endpoints/pluginPages';
@@ -16,7 +19,6 @@
 	import { Button } from '$lib/components/ui/button';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { toast } from 'svelte-sonner';
-	import { auth } from '$lib/stores/auth.svelte';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import { getPlugin } from '$lib/api/endpoints/gpm';
 	import { prefs } from '$lib/stores/preferences.svelte';
@@ -124,27 +126,11 @@
 
 		actionExecuting = importAction.id;
 		try {
-			const fd = new FormData();
-			fd.append('file', file);
-
-			const baseUrl = `${auth.serverUrl}${auth.apiPrefix}`;
-			const headers: Record<string, string> = {};
-			if (auth.accessToken) headers['Authorization'] = `Bearer ${auth.accessToken}`;
-			if (auth.environment) headers['X-Grav-Environment'] = auth.environment;
-
-			const resp = await fetch(`${baseUrl}${importAction.endpoint}`, {
-				method: 'POST',
-				headers,
-				body: fd,
-			});
-			const result = await resp.json();
-			if (resp.ok) {
-				toast.success(result.data?.message ?? result.message ?? 'Import successful');
-				// Reload entire page so all components (including web components) re-fetch
-				await loadPage();
-			} else {
-				toast.error(result.detail ?? result.message ?? 'Import failed');
-			}
+			const result = await uploadPluginPageFile(importAction.endpoint, file);
+			const message = (result as { message?: string }).message ?? 'Import successful';
+			toast.success(message);
+			// Reload entire page so all components (including web components) re-fetch
+			await loadPage();
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : 'Import failed';
 			toast.error(detail);
@@ -171,23 +157,16 @@
 	}
 
 	async function doExecuteAction(action: PluginPageAction) {
+		if (!action.endpoint) return;
+		const endpoint = action.endpoint;
 
 		// Download actions
 		if (action.download) {
-			const baseUrl = `${auth.serverUrl}${auth.apiPrefix}`;
-			const url = `${baseUrl}${action.endpoint}`;
-			const headers: Record<string, string> = {};
-			if (auth.accessToken) headers['Authorization'] = `Bearer ${auth.accessToken}`;
-			if (auth.environment) headers['X-Grav-Environment'] = auth.environment;
-
 			try {
-				const resp = await fetch(url, { headers });
-				if (!resp.ok) throw new Error(resp.statusText);
-				const blob = await resp.blob();
+				const { blob, filename } = await downloadPluginPageFile(endpoint, `${slug}-export`);
 				const a = document.createElement('a');
 				a.href = URL.createObjectURL(blob);
-				const cd = resp.headers.get('Content-Disposition');
-				a.download = cd?.match(/filename="?(.+?)"?$/)?.[1] ?? `${slug}-export`;
+				a.download = filename;
 				document.body.appendChild(a);
 				a.click();
 				a.remove();
@@ -213,30 +192,14 @@
 
 				actionExecuting = action.id;
 				try {
-					const fd = new FormData();
-					fd.append('file', file);
-
-					const baseUrl = `${auth.serverUrl}${auth.apiPrefix}`;
-					const headers: Record<string, string> = {};
-					if (auth.accessToken) headers['Authorization'] = `Bearer ${auth.accessToken}`;
-					if (auth.environment) headers['X-Grav-Environment'] = auth.environment;
-
-					const resp = await fetch(`${baseUrl}${action.endpoint}`, {
-						method: 'POST',
-						headers,
-						body: fd,
-					});
-					const result = await resp.json();
-					if (resp.ok) {
-						toast.success(result.data?.message ?? result.message ?? 'Import successful');
-						// Refresh data
-						if (definition?.data_endpoint) {
-							const fresh = await getPluginPageData(definition.data_endpoint);
-							formData = fresh;
-							originalJson = JSON.stringify(fresh);
-						}
-					} else {
-						toast.error(result.detail ?? result.message ?? 'Import failed');
+					const result = await uploadPluginPageFile(endpoint, file);
+					const message = (result as { message?: string }).message ?? 'Import successful';
+					toast.success(message);
+					// Refresh data
+					if (definition?.data_endpoint) {
+						const fresh = await getPluginPageData(definition.data_endpoint);
+						formData = fresh;
+						originalJson = JSON.stringify(fresh);
 					}
 				} catch (err: unknown) {
 					const detail = err instanceof Error ? err.message : 'Import failed';
@@ -252,24 +215,9 @@
 		// Standard actions (POST/PUT/DELETE)
 		actionExecuting = action.id;
 		try {
-			const baseUrl = `${auth.serverUrl}${auth.apiPrefix}`;
-			const headers: Record<string, string> = {
-				'Content-Type': 'application/json',
-				Accept: 'application/json',
-			};
-			if (auth.accessToken) headers['Authorization'] = `Bearer ${auth.accessToken}`;
-			if (auth.environment) headers['X-Grav-Environment'] = auth.environment;
-
-			const resp = await fetch(`${baseUrl}${action.endpoint}`, {
-				method: action.method ?? 'POST',
-				headers,
-			});
-			const result = await resp.json();
-			if (resp.ok) {
-				toast.success(result.message ?? 'Action completed');
-			} else {
-				toast.error(result.detail ?? result.message ?? 'Action failed');
-			}
+			const result = await executePluginPageAction(endpoint, action.method ?? 'POST');
+			const message = (result as { message?: string }).message ?? 'Action completed';
+			toast.success(message);
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : 'Action failed';
 			toast.error(detail);
