@@ -2,8 +2,8 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { onDestroy } from 'svelte';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { authSession } from '$lib/stores/auth-session.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
 	import { logout } from '$lib/api/auth';
@@ -17,6 +17,7 @@
 	import { sidebarStore } from '$lib/stores/sidebar.svelte';
 	import { floatingWidgetStore } from '$lib/stores/floatingWidgets.svelte';
 	import FloatingWidgetLoader from '$lib/components/floating-widgets/FloatingWidgetLoader.svelte';
+	import ReauthModal from '$lib/components/auth/ReauthModal.svelte';
 	import type { Snippet } from 'svelte';
 	import {
 		LayoutDashboard, FileText, Image, Users, Puzzle, Palette,
@@ -27,59 +28,16 @@
 	interface Props { children: Snippet; }
 	let { children }: Props = $props();
 
-	// Proactive token refresh: refresh the access token before it expires
-	// so requests never hit a 401 from staleness.
-	let refreshTimer: ReturnType<typeof setTimeout> | null = null;
-
-	function scheduleTokenRefresh() {
-		clearTokenRefresh();
-		if (!auth.isAuthenticated || !auth.refreshToken) return;
-
-		// Refresh at 80% of token lifetime (e.g. 15-min token → refresh at 12 min)
-		const ttl = auth.expiresAt - Date.now();
-		const delay = Math.max(10_000, ttl * 0.8); // at least 10s
-
-		refreshTimer = setTimeout(async () => {
-			try {
-				const response = await fetch(`${auth.serverUrl}${auth.apiPrefix || '/api/v1'}/auth/refresh`, {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-					body: JSON.stringify({ refresh_token: auth.refreshToken }),
-				});
-				if (response.ok) {
-					const body = await response.json();
-					const data = body.data ?? body;
-					auth.setTokens(data.access_token, data.refresh_token, data.expires_in);
-					// Schedule the next refresh with the new token's TTL
-					scheduleTokenRefresh();
-				} else {
-					// Refresh failed — token is no longer valid
-					auth.logout();
-				}
-			} catch {
-				// Network error — try again in 30s
-				refreshTimer = setTimeout(() => scheduleTokenRefresh(), 30_000);
-			}
-		}, delay);
-	}
-
-	function clearTokenRefresh() {
-		if (refreshTimer) {
-			clearTimeout(refreshTimer);
-			refreshTimer = null;
-		}
-	}
-
+	// Proactive token refresh + focus checking is handled by authSession.
+	// It decodes the JWT exp claim, refreshes at exp-60s, and opens ReauthModal
+	// on hard expiry or refresh failure.
 	$effect(() => {
-		// Re-schedule when auth state changes (login, manual refresh, etc.)
 		if (auth.isAuthenticated) {
-			scheduleTokenRefresh();
+			authSession.start();
 		} else {
-			clearTokenRefresh();
+			authSession.stop();
 		}
 	});
-
-	onDestroy(clearTokenRefresh);
 
 	// Load plugin sidebar items and floating widgets on authentication
 	$effect(() => {
@@ -302,4 +260,5 @@
 	</div>
 
 	<FloatingWidgetLoader />
+	<ReauthModal />
 </div>

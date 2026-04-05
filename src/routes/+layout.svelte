@@ -9,6 +9,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { generateFavicon } from '$lib/utils/favicon';
 	import AppShell from '$lib/components/AppShell.svelte';
 	import { Toaster } from 'svelte-sonner';
@@ -43,21 +44,43 @@
 	$effect(() => {
 		if (auth.isAuthenticated && !customFieldsLoaded) {
 			customFieldsLoaded = true;
-			const url = `${auth.serverUrl}${auth.apiPrefix || '/api/v1'}/custom-fields`;
-			const headers: Record<string, string> = {};
-			if (auth.accessToken) headers['Authorization'] = `Bearer ${auth.accessToken}`;
-			fetch(url, { headers })
-				.then(r => r.json())
-				.then((json) => {
-					const data = json.data ?? json;
-					if (data && typeof data === 'object') {
-						for (const [fieldType, pluginSlug] of Object.entries(data)) {
-							customFieldRegistry.register(pluginSlug as string, { [fieldType]: fieldType });
+			import('$lib/api/client').then(({ api }) =>
+				api.get<Record<string, string>>('/custom-fields')
+					.then((data) => {
+						if (data && typeof data === 'object') {
+							for (const [fieldType, pluginSlug] of Object.entries(data)) {
+								customFieldRegistry.register(pluginSlug as string, { [fieldType]: fieldType });
+							}
 						}
-					}
-				})
-				.catch(() => { /* Custom fields endpoint not available */ });
+					})
+					.catch(() => { /* Custom fields endpoint not available */ })
+			);
 		}
+	});
+
+	// Focus-based invalidation safety net: if the tab was blurred for >30s,
+	// emit `*:focus` so list views can pull in any changes made elsewhere.
+	// Only emits on actual focus events, not initial page load.
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+		let lastFocus = Date.now();
+		let everBlurred = false;
+		function onFocus() {
+			if (everBlurred && Date.now() - lastFocus > 30_000) {
+				invalidations.emit({ tag: '*:focus', resource: '*', action: 'focus' });
+			}
+			lastFocus = Date.now();
+		}
+		function onBlur() {
+			everBlurred = true;
+			lastFocus = Date.now();
+		}
+		window.addEventListener('focus', onFocus);
+		window.addEventListener('blur', onBlur);
+		return () => {
+			window.removeEventListener('focus', onFocus);
+			window.removeEventListener('blur', onBlur);
+		};
 	});
 </script>
 

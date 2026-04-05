@@ -22,6 +22,25 @@ function loadStored(): StoredAuth | null {
 	}
 }
 
+/**
+ * Decode a JWT's payload (base64url) and return its `exp` claim in ms, if present.
+ * Returns null if the token is malformed or has no exp.
+ */
+export function decodeJwtExp(token: string): number | null {
+	try {
+		const parts = token.split('.');
+		if (parts.length < 2) return null;
+		// base64url → base64
+		const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+		const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+		const payload = JSON.parse(atob(padded));
+		if (typeof payload.exp !== 'number') return null;
+		return payload.exp * 1000; // seconds → ms
+	} catch {
+		return null;
+	}
+}
+
 /** Config injected by the Admin Pro plugin via window.__GRAV_CONFIG__ */
 interface GravConfig {
 	serverUrl: string;
