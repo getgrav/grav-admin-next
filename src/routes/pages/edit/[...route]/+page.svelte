@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { setContext } from 'svelte';
-	import { getPage, updatePage, deletePage } from '$lib/api/endpoints/pages';
+	import { getPage, updatePage, deletePage, movePage } from '$lib/api/endpoints/pages';
 	import { createTranslation, syncTranslation } from '$lib/api/endpoints/languages';
 	import { getPageBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { PageDetail } from '$lib/api/endpoints/pages';
@@ -29,6 +29,9 @@
 	import yaml from 'js-yaml';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
+	import Tabs from '$lib/components/ui/Tabs.svelte';
+	import PagesField from '$lib/components/blueprint/fields/PagesField.svelte';
+	import SelectField from '$lib/components/blueprint/fields/SelectField.svelte';
 
 	const route = $derived('/' + (page.params.route || ''));
 
@@ -115,6 +118,16 @@
 	let expertFrontmatter = $state('');
 	let expertFrontmatterOriginal = $state('');
 
+	// Expert mode tabs & advanced fields
+	let expertTab = $state<'content' | 'advanced'>('content');
+	let expertSlug = $state('');
+	let expertParent = $state('');
+
+	function deriveParent(route: string, slug: string): string {
+		if (route === '/' + slug) return '/';
+		return route.slice(0, route.lastIndexOf('/')) || '/';
+	}
+
 	// Sync state when switching between Normal and Expert modes
 	function switchToExpert() {
 		// Build current header from blueprint changes
@@ -133,6 +146,11 @@
 			}
 		}
 		expertFrontmatter = yaml.dump(currentHeader, { lineWidth: -1, noRefs: true }).trimEnd();
+		if (pageData) {
+			expertSlug = pageData.slug.replace(/^\.+/, '');
+			expertParent = deriveParent(pageData.route, pageData.slug);
+		}
+		expertTab = 'content';
 		prefs.editorMode = 'expert';
 	}
 
@@ -163,7 +181,9 @@
 			content !== (pageData.content ?? '') ||
 			template !== pageData.template ||
 			(prefs.editorMode === 'expert'
-				? expertFrontmatter !== expertFrontmatterOriginal
+				? expertFrontmatter !== expertFrontmatterOriginal ||
+				  expertSlug !== pageData.slug ||
+				  expertParent !== deriveParent(pageData.route, pageData.slug)
 				: title !== pageData.title || Object.keys(headerChanges).length > 0)
 		)
 	);
@@ -178,6 +198,9 @@
 	const autoSave = createAutoSaveManager({
 		save: handleSave,
 		getValue: (path: string) => {
+			if (path === 'expertSlug') return expertSlug;
+			if (path === 'expertParent') return expertParent;
+			if (path === 'expertFrontmatter') return expertFrontmatter;
 			const parts = path.split('.');
 			let current: unknown = headerData;
 			for (const part of parts) {
@@ -186,7 +209,12 @@
 			}
 			return current;
 		},
-		applyChange: handleBlueprintChange,
+		applyChange: (path: string, value: unknown) => {
+			if (path === 'expertSlug') { expertSlug = value as string; return; }
+			if (path === 'expertParent') { expertParent = value as string; return; }
+			if (path === 'expertFrontmatter') { expertFrontmatter = value as string; return; }
+			handleBlueprintChange(path, value);
+		},
 		formName: 'Page',
 	});
 
@@ -209,6 +237,11 @@
 			headerYaml = JSON.stringify(data.header ?? {}, null, 2);
 			expertFrontmatter = yaml.dump({ ...(data.header ?? {}), title: data.title }, { lineWidth: -1, noRefs: true }).trimEnd();
 			expertFrontmatterOriginal = expertFrontmatter;
+
+			// Initialize expert advanced state (strip any leading periods from slug)
+			expertSlug = data.slug.replace(/^\.+/, '');
+			expertParent = deriveParent(data.route, data.slug);
+			expertTab = 'content';
 
 			// Load blueprint for the page template (falls back to default on API side)
 			try {
@@ -319,36 +352,76 @@
 				body.header = header;
 			}
 
-			if (Object.keys(body).length === 0) {
+			// Check if a move is also needed (expert mode: slug or parent changed)
+			const expertNeedsMove = prefs.editorMode === 'expert' && pageData && (
+				expertSlug !== pageData.slug ||
+				expertParent !== deriveParent(pageData.route, pageData.slug)
+			);
+
+			if (Object.keys(body).length === 0 && !expertNeedsMove) {
 				toast.info('No changes to save');
 				return;
 			}
 
-			const activeLang = contentLang.enabled ? contentLang.activeLang : undefined;
-			const updated = await updatePage(route, body, undefined, activeLang);
-			// Preserve translation data since PATCH response doesn't include it
-			updated.translated_languages = updated.translated_languages ?? pageData!.translated_languages;
-			updated.untranslated_languages = updated.untranslated_languages ?? pageData!.untranslated_languages;
-			pageData = updated;
-			title = updated.title;
-			content = updated.content ?? content;
-			template = updated.template;
-			headerData = { header: { ...updated.header ?? {}, title: updated.title }, content: updated.content ?? '', folder: updated.slug, name: updated.template };
-			headerChanges = {};
+			// Phase 1: Save content/header/template changes
+			if (Object.keys(body).length > 0) {
+				const activeLang = contentLang.enabled ? contentLang.activeLang : undefined;
+				const updated = await updatePage(route, body, undefined, activeLang);
+				// Preserve translation data since PATCH response doesn't include it
+				updated.translated_languages = updated.translated_languages ?? pageData!.translated_languages;
+				updated.untranslated_languages = updated.untranslated_languages ?? pageData!.untranslated_languages;
+				pageData = updated;
+				title = updated.title;
+				content = updated.content ?? content;
+				template = updated.template;
+				headerData = { header: { ...updated.header ?? {}, title: updated.title }, content: updated.content ?? '', folder: updated.slug, name: updated.template };
+				headerChanges = {};
 
-			// Reload blueprint if template changed
-			if (body.template) {
-				try {
-					blueprint = await getPageBlueprint(updated.template);
-				} catch {
-					blueprint = null;
+				// Reload blueprint if template changed
+				if (body.template) {
+					try {
+						blueprint = await getPageBlueprint(updated.template);
+					} catch {
+						blueprint = null;
+					}
+				}
+
+				// Reset expert mode baseline after save
+				if (prefs.editorMode === 'expert') {
+					expertFrontmatterOriginal = expertFrontmatter;
 				}
 			}
 
-			// Reset expert mode baseline after save
-			if (prefs.editorMode === 'expert') {
+			// Phase 2: Move page if slug or parent changed (expert mode)
+			if (expertNeedsMove && pageData) {
+				const moveBody: { parent: string; slug?: string; order?: number | null } = {
+					parent: expertParent,
+				};
+				if (expertSlug !== pageData.slug) moveBody.slug = expertSlug;
+
+				const moved = await movePage(route, moveBody);
+
+				// Sync all state so hasChanges becomes false
+				pageData = moved;
+				title = moved.title ?? title;
+				content = moved.content ?? content;
+				template = moved.template ?? template;
+				expertSlug = moved.slug;
+				expertParent = deriveParent(moved.route, moved.slug);
 				expertFrontmatterOriginal = expertFrontmatter;
+				headerChanges = {};
+
+				if (moved.route !== route) {
+					toast.success('Page saved and moved');
+					guard.bypass();
+					const newEditRoute = moved.route.startsWith('/') ? moved.route.slice(1) : moved.route;
+					goto(`${base}/pages/edit/${newEditRoute}`, { replaceState: true });
+					saving = false;
+					return;
+				}
+				await loadPage();
 			}
+
 			toast.success('Page saved successfully');
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'message' in err) {
@@ -633,36 +706,98 @@
 			<!-- Main content area -->
 			<div class="space-y-4">
 				{#if prefs.editorMode === 'expert'}
-					<!-- Expert mode: raw YAML frontmatter + content editor -->
-					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<div class="overflow-hidden rounded-lg border border-border bg-card"
-						onfocusout={() => { if (prefs.autoSaveEnabled && expertFrontmatter !== expertFrontmatterOriginal) autoSave.oncommit('expertFrontmatter', expertFrontmatter, expertFrontmatterOriginal); }}
-					>
-						<div class="flex items-center gap-2 border-b border-border px-4 py-2">
-							<Code size={13} class="text-muted-foreground" />
-							<span class="text-xs font-medium text-muted-foreground">Frontmatter</span>
+					<!-- Expert mode tabs -->
+					<Tabs
+						items={[{ id: 'content', label: 'Content' }, { id: 'advanced', label: 'Advanced' }]}
+						active={expertTab}
+						onchange={(id) => { expertTab = id as 'content' | 'advanced'; }}
+					/>
+
+					{#if expertTab === 'content'}
+						<!-- Content tab: frontmatter + markdown + media -->
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<div class="overflow-hidden rounded-lg border border-border bg-card"
+							onfocusout={() => { if (prefs.autoSaveEnabled && expertFrontmatter !== expertFrontmatterOriginal) autoSave.oncommit('expertFrontmatter', expertFrontmatter, expertFrontmatterOriginal); }}
+						>
+							<div class="flex items-center gap-2 border-b border-border px-4 py-2">
+								<Code size={13} class="text-muted-foreground" />
+								<span class="text-xs font-medium text-muted-foreground">Frontmatter</span>
+							</div>
+							<CodeEditor
+								value={expertFrontmatter}
+								onchange={(v) => { expertFrontmatter = v; }}
+								language="yaml"
+								minHeight="150px"
+								maxHeight="500px"
+								class="rounded-none border-0 shadow-none"
+							/>
 						</div>
-						<CodeEditor
-							value={expertFrontmatter}
-							onchange={(v) => { expertFrontmatter = v; }}
-							language="yaml"
-							minHeight="150px"
-							maxHeight="500px"
-							class="rounded-none border-0 shadow-none"
-						/>
-					</div>
-					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<div class="overflow-hidden rounded-lg border border-border bg-card"
-						onfocusout={() => { if (prefs.autoSaveEnabled && content !== (pageData?.content ?? '')) autoSave.oncommit('content', content, pageData?.content ?? ''); }}
-					>
-						<MarkdownEditor
-							value={content}
-							onchange={(v) => { content = v; }}
-							placeholder="Write your markdown content here..."
-							minHeight="400px"
-							class="border-0 shadow-none"
-						/>
-					</div>
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<div class="overflow-hidden rounded-lg border border-border bg-card"
+							onfocusout={() => { if (prefs.autoSaveEnabled && content !== (pageData?.content ?? '')) autoSave.oncommit('content', content, pageData?.content ?? ''); }}
+						>
+							<MarkdownEditor
+								value={content}
+								onchange={(v) => { content = v; }}
+								placeholder="Write your markdown content here..."
+								minHeight="400px"
+								class="border-0 shadow-none"
+							/>
+						</div>
+						<div class="rounded-lg border border-border bg-card p-4">
+							<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} />
+						</div>
+					{:else if expertTab === 'advanced'}
+						<!-- Advanced tab: filesystem-level properties -->
+						<div class="space-y-6 rounded-lg border border-border bg-card p-6">
+							<div class="space-y-2">
+								<div>
+									<span class="text-sm font-semibold text-foreground">
+										Folder Name <span class="text-red-500">*</span>
+									</span>
+									<p class="mt-0.5 text-xs text-muted-foreground">The folder name on disk (URL slug)</p>
+								</div>
+								<input
+									type="text"
+									class="flex h-10 w-full rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+									value={expertSlug}
+									oninput={(e) => { expertSlug = (e.target as HTMLInputElement).value.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9_\-]/g, ''); }}
+									onfocusout={() => {
+										if (prefs.autoSaveEnabled && expertSlug && expertSlug !== pageData?.slug) {
+											autoSave.oncommit('expertSlug', expertSlug, pageData?.slug);
+										}
+									}}
+								/>
+							</div>
+
+							<PagesField
+								field={{ name: 'route', type: 'pages', label: 'Parent', show_root: true, show_slug: true }}
+								value={expertParent}
+								onchange={(v) => {
+									expertParent = v as string;
+									if (prefs.autoSaveEnabled && pageData) {
+										const orig = deriveParent(pageData.route, pageData.slug);
+										if (v !== orig) autoSave.oncommit('expertParent', v, orig);
+									}
+								}}
+							/>
+
+							<SelectField
+								field={{ name: 'name', type: 'select', label: 'Display Template',
+									data_options: '\\Grav\\Plugin\\AdminPlugin::pagesTypes',
+									validate: { required: true } }}
+								value={template}
+								onchange={(v) => {
+									const old = template;
+									template = v as string;
+									getPageBlueprint(v as string).then(bp => { blueprint = bp; }).catch(() => { blueprint = null; });
+									if (prefs.autoSaveEnabled && v !== pageData?.template) {
+										autoSave.oncommit('template', v, old);
+									}
+								}}
+							/>
+						</div>
+					{/if}
 				{:else if blueprint}
 					<!-- Normal mode: Blueprint-driven form -->
 					{#key blueprint.name}
@@ -846,8 +981,8 @@
 					</div>
 				{/if}
 
-				<!-- Page Media (shown when no blueprint provides a pagemedia field) -->
-				{#if !blueprint}
+				<!-- Page Media (shown when no blueprint provides a pagemedia field, not in expert mode) -->
+				{#if !blueprint && prefs.editorMode !== 'expert'}
 					<div class="rounded-lg border border-border bg-card p-4">
 						<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} />
 					</div>

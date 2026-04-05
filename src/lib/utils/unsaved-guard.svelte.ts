@@ -37,6 +37,10 @@ export function createUnsavedGuard(isDirty: () => boolean) {
 		get showModal() {
 			return showModal;
 		},
+		/** Allow the next navigation to proceed without checking isDirty. */
+		bypass() {
+			bypassing = true;
+		},
 		confirm() {
 			showModal = false;
 			if (pendingUrl) {

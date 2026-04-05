@@ -168,7 +168,7 @@ export async function deletePage(route: string, options?: { children?: boolean; 
 	return api.delete(path, undefined);
 }
 
-export async function movePage(route: string, body: { parent: string; slug?: string; order?: number }): Promise<PageDetail> {
+export async function movePage(route: string, body: { parent: string; slug?: string; order?: number | null }): Promise<PageDetail> {
 	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
 	return api.post<PageDetail>(`/pages/${cleanRoute}/move`, body);
 }
