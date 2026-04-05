@@ -155,10 +155,22 @@
 		}
 	}
 
+	let confirmActionOpen = $state(false);
+	let pendingAction = $state<PluginPageAction | null>(null);
+
 	async function executeAction(action: PluginPageAction) {
 		if (!action.endpoint) return;
 
-		if (action.confirm && !confirm(action.confirm)) return;
+		if (action.confirm) {
+			pendingAction = action;
+			confirmActionOpen = true;
+			return;
+		}
+
+		await doExecuteAction(action);
+	}
+
+	async function doExecuteAction(action: PluginPageAction) {
 
 		// Download actions
 		if (action.download) {
@@ -457,4 +469,13 @@
 	cancelLabel="Stay"
 	onconfirm={guard.confirm}
 	oncancel={guard.cancel}
+/>
+
+<ConfirmModal
+	open={confirmActionOpen}
+	title="Confirm Action"
+	message={pendingAction?.confirm ?? ''}
+	confirmLabel="Continue"
+	onconfirm={() => { confirmActionOpen = false; if (pendingAction) doExecuteAction(pendingAction); pendingAction = null; }}
+	oncancel={() => { confirmActionOpen = false; pendingAction = null; }}
 />

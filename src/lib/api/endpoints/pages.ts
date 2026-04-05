@@ -15,6 +15,8 @@ export interface PageSummary {
 	modified: string;
 	order: string | null;
 	has_children: boolean;
+	translated_languages?: Record<string, string>;
+	untranslated_languages?: string[];
 }
 
 export interface PageDetail extends PageSummary {
@@ -23,8 +25,8 @@ export interface PageDetail extends PageSummary {
 	summary?: string;
 	media?: PageMedia[];
 	children?: PageSummary[];
-	translated_languages?: Record<string, boolean>;
-	untranslated_languages?: Record<string, boolean>;
+	translated_languages?: Record<string, string>;
+	untranslated_languages?: string[];
 }
 
 export interface PageMedia {
@@ -60,15 +62,20 @@ export interface PageListParams {
 	parent?: string;
 	children_of?: string;
 	root?: boolean;
+	lang?: string;
+	translations?: boolean;
 }
 
-export async function getChildren(parentRoute: string, sort: string = 'order', order: string = 'asc'): Promise<PageSummary[]> {
-	return api.get<PageSummary[]>('/pages', {
+export async function getChildren(parentRoute: string, sort: string = 'order', order: string = 'asc', lang?: string, translations?: boolean): Promise<PageSummary[]> {
+	const params: Record<string, string> = {
 		children_of: parentRoute,
 		sort,
 		order,
-		per_page: '200'
-	});
+		per_page: '200',
+	};
+	if (lang) params.lang = lang;
+	if (translations) params.translations = 'true';
+	return api.get<PageSummary[]>('/pages', params);
 }
 
 export interface CreatePageBody {
@@ -103,6 +110,8 @@ function toParams(p: PageListParams): Record<string, string> {
 	if (p.parent) params.parent = p.parent;
 	if (p.children_of) params.children_of = p.children_of;
 	if (p.root) params.root = 'true';
+	if (p.lang) params.lang = p.lang;
+	if (p.translations) params.translations = 'true';
 	return params;
 }
 
@@ -126,7 +135,7 @@ export async function getRecentPages(limit = 5): Promise<PageSummary[]> {
 	});
 }
 
-export async function getPage(route: string, options?: { render?: boolean; summary?: boolean; summary_size?: number; children?: boolean; children_depth?: number; translations?: boolean }): Promise<PageDetail> {
+export async function getPage(route: string, options?: { render?: boolean; summary?: boolean; summary_size?: number; children?: boolean; children_depth?: number; translations?: boolean; lang?: string }): Promise<PageDetail> {
 	const params: Record<string, string> = {};
 	if (options?.render) params.render = 'true';
 	if (options?.summary) params.summary = 'true';
@@ -134,6 +143,7 @@ export async function getPage(route: string, options?: { render?: boolean; summa
 	if (options?.children) params.children = 'true';
 	if (options?.children_depth) params.children_depth = String(options.children_depth);
 	if (options?.translations) params.translations = 'true';
+	if (options?.lang) params.lang = options.lang;
 	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
 	return api.get<PageDetail>(`/pages/${cleanRoute}`, params);
 }
@@ -142,18 +152,20 @@ export async function createPage(body: CreatePageBody): Promise<PageDetail> {
 	return api.post<PageDetail>('/pages', body);
 }
 
-export async function updatePage(route: string, body: UpdatePageBody, etag?: string): Promise<PageDetail> {
+export async function updatePage(route: string, body: UpdatePageBody, etag?: string, lang?: string): Promise<PageDetail> {
 	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
+	const path = lang ? `/pages/${cleanRoute}?lang=${encodeURIComponent(lang)}` : `/pages/${cleanRoute}`;
 	// TODO: add If-Match header support for ETags
-	return api.patch<PageDetail>(`/pages/${cleanRoute}`, body);
+	return api.patch<PageDetail>(path, body);
 }
 
 export async function deletePage(route: string, options?: { children?: boolean; lang?: string }): Promise<void> {
 	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
-	const params: Record<string, string> = {};
-	if (options?.children !== undefined) params.children = String(options.children);
-	if (options?.lang) params.lang = options.lang;
-	return api.delete(`/pages/${cleanRoute}`, undefined);
+	const queryParts: string[] = [];
+	if (options?.children !== undefined) queryParts.push(`children=${options.children}`);
+	if (options?.lang) queryParts.push(`lang=${encodeURIComponent(options.lang)}`);
+	const path = queryParts.length ? `/pages/${cleanRoute}?${queryParts.join('&')}` : `/pages/${cleanRoute}`;
+	return api.delete(path, undefined);
 }
 
 export async function movePage(route: string, body: { parent: string; slug?: string; order?: number }): Promise<PageDetail> {

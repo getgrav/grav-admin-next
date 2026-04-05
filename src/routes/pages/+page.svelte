@@ -11,6 +11,8 @@
 	import PagesListView from '$lib/components/pages/PagesListView.svelte';
 	import PagesMillerView from '$lib/components/pages/PagesMillerView.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+	import { contentLang } from '$lib/stores/contentLang.svelte';
+	import LanguageSwitcher from '$lib/components/ui/LanguageSwitcher.svelte';
 	import {
 		Plus, Search, TreePine, List, Columns3, X, ArrowUpDown
 	} from 'lucide-svelte';
@@ -108,6 +110,11 @@
 
 		<div class="flex-1"></div>
 
+		<!-- Language switcher -->
+		{#if contentLang.enabled}
+			<LanguageSwitcher onchange={() => { loadStats(); }} />
+		{/if}
+
 		<!-- Reorder mode toggle -->
 		<button
 			class="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-[12px] font-medium transition-colors
@@ -142,11 +149,11 @@
 	<!-- View content -->
 	<div class="overflow-hidden rounded-lg border border-border bg-card">
 		{#if prefs.pagesViewMode === 'tree'}
-			<PagesTreeView {searchQuery} {reorderMode} onEdit={handleEdit} onDelete={handleDelete} />
+			<PagesTreeView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={handleDelete} />
 		{:else if prefs.pagesViewMode === 'list'}
-			<PagesListView {searchQuery} {reorderMode} onEdit={handleEdit} onDelete={handleDelete} />
+			<PagesListView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={handleDelete} />
 		{:else if prefs.pagesViewMode === 'miller'}
-			<PagesMillerView {searchQuery} {reorderMode} onEdit={handleEdit} />
+			<PagesMillerView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} />
 		{/if}
 
 		<!-- Footer stats -->

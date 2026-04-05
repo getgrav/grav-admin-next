@@ -14,10 +14,11 @@
 	interface Props {
 		searchQuery?: string;
 		reorderMode?: boolean;
+		lang?: string;
 		onEdit: (route: string) => void;
 	}
 
-	let { searchQuery = '', reorderMode = false, onEdit }: Props = $props();
+	let { searchQuery = '', reorderMode = false, lang, onEdit }: Props = $props();
 
 	// Drag state for Miller columns
 	let dragPage = $state<PageSummary | null>(null);
@@ -91,7 +92,7 @@
 
 	async function loadColumn(parentRoute: string): Promise<PageSummary[]> {
 		try {
-			return await getChildren(parentRoute, sortField, sortOrder);
+			return await getChildren(parentRoute, sortField, sortOrder, lang);
 		} catch {
 			return [];
 		}
@@ -126,8 +127,14 @@
 		}
 	}
 
-	// Initialize with root
+	// Initialize with root, reload when lang changes
+	let prevLang = lang;
 	$effect(() => {
+		if (lang !== prevLang) {
+			prevLang = lang;
+			previewPage = null;
+			allPagesCache = null;
+		}
 		(async () => {
 			const rootPages = await loadColumn('/');
 			columns = [{

@@ -109,6 +109,20 @@ const en: Record<string, string> = {
 	'ADMIN_NEXT.NAV.SYSTEM': 'System',
 	'ADMIN_NEXT.NAV.SETTINGS': 'Settings',
 
+	// -- Languages / Multilang --
+	'ADMIN_NEXT.LANG.SWITCH_LANGUAGE': 'Switch content language',
+	'ADMIN_NEXT.LANG.TRANSLATIONS': 'Translations',
+	'ADMIN_NEXT.LANG.TRANSLATED': 'Translated',
+	'ADMIN_NEXT.LANG.NOT_TRANSLATED': 'Not translated',
+	'ADMIN_NEXT.LANG.SAVE_AS': 'Save as {language}',
+	'ADMIN_NEXT.LANG.CREATE_TRANSLATION': 'Create {language} translation',
+	'ADMIN_NEXT.LANG.FALLBACK_NOTICE': 'No {language} translation. Showing default content.',
+	'ADMIN_NEXT.LANG.SYNC_FROM': 'Reset from {language}',
+	'ADMIN_NEXT.LANG.TRANSLATION_CREATED': '{language} translation created',
+	'ADMIN_NEXT.LANG.DELETE_TRANSLATION': 'Delete {language} translation',
+	'ADMIN_NEXT.LANG.CURRENT': 'current',
+	'ADMIN_NEXT.LANG.DEFAULT': 'default',
+
 	// -- Time --
 	'ADMIN_NEXT.TIME.JUST_NOW': 'just now',
 	'ADMIN_NEXT.TIME.MINUTES_AGO': '{n}m ago',

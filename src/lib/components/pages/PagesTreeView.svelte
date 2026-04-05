@@ -2,6 +2,7 @@
 	import { getChildren, reorganizePages } from '$lib/api/endpoints/pages';
 	import type { PageSummary, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { Badge } from '$lib/components/ui/badge';
+	import TranslationBadges from '$lib/components/ui/TranslationBadges.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
 		ChevronRight, ChevronDown, FolderOpen, Folder, File, Loader2, Trash2,
@@ -13,11 +14,12 @@
 	interface Props {
 		searchQuery?: string;
 		reorderMode?: boolean;
+		lang?: string;
 		onEdit: (route: string) => void;
 		onDelete: (page: PageSummary) => void;
 	}
 
-	let { searchQuery = '', reorderMode = false, onEdit, onDelete }: Props = $props();
+	let { searchQuery = '', reorderMode = false, lang, onEdit, onDelete }: Props = $props();
 
 	let childrenCache = $state<Record<string, PageSummary[]>>({});
 	let loadingRoutes = $state<Set<string>>(new Set());
@@ -47,7 +49,7 @@
 	async function loadRoot() {
 		rootLoading = true;
 		try {
-			rootPages = await getChildren('/', sortField, sortOrder);
+			rootPages = await getChildren('/', sortField, sortOrder, lang, !!lang);
 			childrenCache = { '/': rootPages };
 		} catch { /* handled */ }
 		finally { rootLoading = false; }
@@ -57,7 +59,7 @@
 		if (childrenCache[parentRoute]) return;
 		loadingRoutes = new Set([...loadingRoutes, parentRoute]);
 		try {
-			const children = await getChildren(parentRoute, sortField, sortOrder);
+			const children = await getChildren(parentRoute, sortField, sortOrder, lang, !!lang);
 			childrenCache = { ...childrenCache, [parentRoute]: children };
 		} catch {
 			childrenCache = { ...childrenCache, [parentRoute]: [] };
@@ -93,7 +95,14 @@
 		return date.toLocaleDateString();
 	}
 
-	$effect(() => { loadRoot(); });
+	let prevLang = lang;
+	$effect(() => {
+		if (lang !== prevLang) {
+			prevLang = lang;
+			childrenCache = {};
+		}
+		loadRoot();
+	});
 
 	function getPageChildren(route: string): PageSummary[] {
 		return childrenCache[route] ?? [];
@@ -329,7 +338,13 @@
 					{/if}
 
 					<button class="min-w-0 flex-1 text-left pl-1" onclick={() => onEdit(page.route)}>
-						<div class="truncate text-sm font-medium text-foreground group-hover:text-primary">{page.title}</div>
+						<div class="flex items-center gap-1.5">
+							<span class="truncate text-sm font-medium group-hover:text-primary
+								{lang && page.language !== lang ? 'text-muted-foreground italic' : 'text-foreground'}">{page.title}</span>
+							{#if lang && page.translated_languages}
+								<TranslationBadges translated={Object.keys(page.translated_languages)} currentLang={lang} />
+							{/if}
+						</div>
 						<div class="truncate text-[11px] text-muted-foreground">{page.route}</div>
 					</button>
 				</div>

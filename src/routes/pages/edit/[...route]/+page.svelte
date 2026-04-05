@@ -4,20 +4,24 @@
 	import { base } from '$app/paths';
 	import { setContext } from 'svelte';
 	import { getPage, updatePage, deletePage } from '$lib/api/endpoints/pages';
+	import { createTranslation, syncTranslation } from '$lib/api/endpoints/languages';
 	import { getPageBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { PageDetail } from '$lib/api/endpoints/pages';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import type { MediaItem } from '$lib/api/endpoints/media';
 	import type { PageMediaContext } from '$lib/components/media/types';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
+	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
+	import LanguageSwitcher from '$lib/components/ui/LanguageSwitcher.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
 		Save, Trash2, ArrowLeft, Code,
-		AlertCircle, ChevronDown, Loader2, Eye, ExternalLink, X, Undo2
+		AlertCircle, ChevronDown, Loader2, Eye, ExternalLink, X, Undo2, Languages
 	} from 'lucide-svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
+	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import MarkdownEditor from '$lib/components/editors/MarkdownEditor.svelte';
 	import PageMedia from '$lib/components/media/PageMedia.svelte';
@@ -138,11 +142,17 @@
 		formName: 'Page',
 	});
 
-	async function loadPage() {
+	let saveAsOpen = $state(false);
+	// Treat null/empty language as the default language (file is e.g. default.md with no .en. extension)
+	const effectiveLang = $derived(pageData?.language || contentLang.defaultLang);
+	let isFallback = $derived(contentLang.enabled && pageData !== null && effectiveLang !== contentLang.activeLang);
+
+	async function loadPage(lang?: string) {
 		loading = true;
 		error = '';
 		try {
-			const data = await getPage(route, { render: false, translations: true });
+			const activeLang = lang ?? (contentLang.enabled ? contentLang.activeLang : undefined);
+			const data = await getPage(route, { render: false, translations: true, lang: activeLang });
 			pageData = data;
 			title = data.title;
 			content = data.content ?? '';
@@ -245,7 +255,11 @@
 				return;
 			}
 
-			const updated = await updatePage(route, body);
+			const activeLang = contentLang.enabled ? contentLang.activeLang : undefined;
+			const updated = await updatePage(route, body, undefined, activeLang);
+			// Preserve translation data since PATCH response doesn't include it
+			updated.translated_languages = updated.translated_languages ?? pageData!.translated_languages;
+			updated.untranslated_languages = updated.untranslated_languages ?? pageData!.untranslated_languages;
 			pageData = updated;
 			title = updated.title;
 			content = updated.content ?? content;
@@ -272,6 +286,102 @@
 		} finally {
 			saving = false;
 		}
+	}
+
+	async function handleSaveAsTranslation(targetLang: string) {
+		if (!pageData) return;
+		saving = true;
+		saveAsOpen = false;
+		try {
+			const header = { ...pageData.header ?? {}, title };
+			if (Object.keys(headerChanges).length > 0) {
+				for (const [dotPath, val] of Object.entries(headerChanges)) {
+					const parts = dotPath.split('.');
+					let current: Record<string, unknown> = header;
+					for (let i = 0; i < parts.length - 1; i++) {
+						if (!current[parts[i]] || typeof current[parts[i]] !== 'object') {
+							current[parts[i]] = {};
+						}
+						current = current[parts[i]] as Record<string, unknown>;
+					}
+					current[parts[parts.length - 1]] = val;
+				}
+			}
+
+			await createTranslation(route, {
+				lang: targetLang,
+				title,
+				content,
+				header,
+			});
+			toast.success(`${contentLang.getLanguageName(targetLang)} translation created`);
+			autoSave.reset();
+			headerChanges = {};
+			await loadPage(targetLang);
+			contentLang.setLanguage(targetLang);
+		} catch (err: unknown) {
+			if (err && typeof err === 'object' && 'message' in err) {
+				toast.error((err as { message: string }).message);
+			} else {
+				toast.error('Failed to create translation');
+			}
+		} finally {
+			saving = false;
+		}
+	}
+
+	// Sync confirmation state
+	let confirmSyncOpen = $state(false);
+	let pendingSyncSource = $state('');
+
+	function handleSyncFrom(sourceLang: string) {
+		if (!pageData) return;
+		pendingSyncSource = sourceLang;
+		confirmSyncOpen = true;
+	}
+
+	async function confirmSync() {
+		confirmSyncOpen = false;
+		const sourceLang = pendingSyncSource;
+		const targetLang = contentLang.activeLang;
+		const sourceName = contentLang.getLanguageName(sourceLang);
+		const targetName = contentLang.getLanguageName(targetLang);
+		saving = true;
+		try {
+			await syncTranslation(route, sourceLang, targetLang);
+			toast.success(`${targetName} reset from ${sourceName}`);
+			autoSave.reset();
+			headerChanges = {};
+			await loadPage(targetLang);
+		} catch (err: unknown) {
+			if (err && typeof err === 'object' && 'message' in err) {
+				toast.error((err as { message: string }).message);
+			} else {
+				toast.error('Failed to sync translation');
+			}
+		} finally {
+			saving = false;
+		}
+	}
+
+	// Language switch with unsaved changes confirmation
+	let confirmLangSwitchOpen = $state(false);
+	let pendingLangSwitch = $state('');
+
+	function handleLanguageSwitch(lang: string) {
+		if (hasChanges) {
+			pendingLangSwitch = lang;
+			confirmLangSwitchOpen = true;
+			return;
+		}
+		doLanguageSwitch(lang);
+	}
+
+	function doLanguageSwitch(lang: string) {
+		contentLang.setLanguage(lang);
+		autoSave.reset();
+		headerChanges = {};
+		loadPage(lang);
 	}
 
 	let confirmDeleteOpen = $state(false);
@@ -327,7 +437,12 @@
 				{#if loading}
 					<div class="h-6 w-48 animate-pulse rounded bg-muted"></div>
 				{:else}
-					<h1 class="truncate text-lg font-semibold text-foreground">{title || 'Untitled'}</h1>
+					<div class="flex items-center gap-2">
+						<h1 class="truncate text-lg font-semibold text-foreground">{title || 'Untitled'}</h1>
+						{#if contentLang.enabled && effectiveLang}
+							<Badge variant={isFallback ? 'secondary' : 'default'} class="uppercase text-[10px]">{effectiveLang}</Badge>
+						{/if}
+					</div>
 					<p class="truncate text-xs text-muted-foreground">{route}</p>
 				{/if}
 			</div>
@@ -355,19 +470,50 @@
 				<Trash2 size={14} />
 				Delete
 			</Button>
+			{#if contentLang.enabled}
+				<LanguageSwitcher compact translatedLangs={pageData?.translated_languages ? Object.keys(pageData.translated_languages) : undefined} onchange={handleLanguageSwitch} />
+			{/if}
 			<Button variant="outline" size="sm" onclick={() => showFrontendPreview = true} disabled={loading || !pageData}>
 				<Eye size={14} />
 				Preview
 			</Button>
-			<Button size="sm" class={hasChanges ? '' : 'opacity-50 pointer-events-none'} onclick={handleSave} disabled={saving || loading}>
-				{#if saving}
-					<Loader2 size={14} class="animate-spin" />
-					Saving...
-				{:else}
-					<Save size={14} />
-					Save
+			<!-- Save button with Save As dropdown -->
+			<div class="relative flex">
+				<Button size="sm" class="{hasChanges ? '' : 'opacity-50 pointer-events-none'} {contentLang.enabled && pageData?.untranslated_languages && pageData.untranslated_languages.length > 0 ? 'rounded-r-none' : ''}" onclick={() => prefs.autoSaveEnabled ? autoSave.forceSave() : handleSave()} disabled={saving || loading}>
+					{#if saving}
+						<Loader2 size={14} class="animate-spin" />
+						Saving...
+					{:else}
+						<Save size={14} />
+						Save
+					{/if}
+				</Button>
+				{#if contentLang.enabled && pageData?.untranslated_languages && pageData.untranslated_languages.length > 0}
+					<button
+						class="inline-flex h-8 items-center rounded-r-md border-l border-primary-foreground/20 bg-primary px-1.5 text-primary-foreground transition-colors hover:bg-primary/90"
+						onclick={() => saveAsOpen = !saveAsOpen}
+						disabled={saving || loading}
+					>
+						<ChevronDown size={12} />
+					</button>
+					{#if saveAsOpen}
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<div class="fixed inset-0 z-40" onclick={() => saveAsOpen = false}></div>
+						<div class="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-md border border-border bg-popover py-1 shadow-md">
+							{#each pageData.untranslated_languages as lang}
+								<button
+									class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-popover-foreground transition-colors hover:bg-accent/50"
+									onclick={() => handleSaveAsTranslation(lang)}
+								>
+									<Languages size={14} class="text-muted-foreground" />
+									Save as {contentLang.getLanguageName(lang)}
+								</button>
+							{/each}
+						</div>
+					{/if}
 				{/if}
-			</Button>
+			</div>
 		</div>
 	</div>
 
@@ -375,6 +521,18 @@
 		<div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
 			<AlertCircle size={16} />
 			{error}
+		</div>
+	{/if}
+
+	{#if isFallback}
+		<div class="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-300">
+			<Languages size={16} class="shrink-0" />
+			<span>No {contentLang.getLanguageName(contentLang.activeLang)} translation exists. Viewing {contentLang.getLanguageName(effectiveLang)} fallback. Use "Save as {contentLang.getLanguageName(contentLang.activeLang)}" to create a translation you can edit.</span>
+			{#if pageData?.untranslated_languages?.includes(contentLang.activeLang)}
+				<button class="shrink-0 ml-auto text-xs font-medium underline" onclick={() => handleSaveAsTranslation(contentLang.activeLang)}>
+					Save as {contentLang.getLanguageName(contentLang.activeLang)}
+				</button>
+			{/if}
 		</div>
 	{/if}
 
@@ -494,10 +652,10 @@
 							<dt class="text-muted-foreground">Template</dt>
 							<dd class="font-medium text-foreground">{pageData.template}</dd>
 						</div>
-						{#if pageData.language}
+						{#if contentLang.enabled}
 							<div class="flex justify-between">
 								<dt class="text-muted-foreground">Language</dt>
-								<dd class="font-medium text-foreground">{pageData.language}</dd>
+								<dd class="font-medium text-foreground">{effectiveLang?.toUpperCase()}{#if isFallback} <span class="text-amber-500 text-[11px]">(fallback)</span>{/if}</dd>
 							</div>
 						{/if}
 						{#if pageData.order}
@@ -535,6 +693,60 @@
 					</dl>
 				</div>
 
+				<!-- Translations (shown when multilang enabled) -->
+				{#if contentLang.enabled && (pageData.translated_languages || pageData.untranslated_languages)}
+					<div class="rounded-lg border border-border bg-card p-4">
+						<h3 class="mb-3 text-sm font-semibold text-foreground">Translations</h3>
+						<div class="space-y-1.5">
+							{#if pageData.translated_languages}
+								{#each Object.keys(pageData.translated_languages) as lang}
+									<button
+										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors
+											{lang === contentLang.activeLang ? 'bg-accent font-medium text-accent-foreground' : 'text-foreground hover:bg-accent/50'}"
+										onclick={() => handleLanguageSwitch(lang)}
+									>
+										<span class="inline-flex h-5 w-6 items-center justify-center rounded text-[10px] font-bold uppercase
+											{lang === contentLang.activeLang ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}"
+										>{lang}</span>
+										{contentLang.getLanguageName(lang)}
+										{#if lang === contentLang.activeLang}
+											<span class="ml-auto text-[10px] text-muted-foreground">current</span>
+										{/if}
+									</button>
+								{/each}
+							{/if}
+							{#if pageData.untranslated_languages && pageData.untranslated_languages.length > 0}
+								<div class="my-1 border-t border-border"></div>
+								<p class="px-2 text-[11px] text-muted-foreground">Not translated:</p>
+								{#each pageData.untranslated_languages as lang}
+									<button
+										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+										onclick={() => handleSaveAsTranslation(lang)}
+									>
+										<span class="inline-flex h-5 w-6 items-center justify-center rounded bg-muted/50 text-[10px] font-bold uppercase text-muted-foreground/50"
+										>{lang}</span>
+										<span class="italic">Create {contentLang.getLanguageName(lang)}</span>
+									</button>
+								{/each}
+							{/if}
+							{#if !contentLang.isDefault && pageData.translated_languages && Object.keys(pageData.translated_languages).length > 1}
+								<div class="my-1 border-t border-border"></div>
+								<p class="px-2 text-[11px] text-muted-foreground">Reset content from:</p>
+								{#each Object.keys(pageData.translated_languages).filter(l => l !== contentLang.activeLang) as lang}
+									<button
+										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+										onclick={() => handleSyncFrom(lang)}
+									>
+										<span class="inline-flex h-5 w-6 items-center justify-center rounded bg-amber-500/15 text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400"
+										>{lang}</span>
+										Reset from {contentLang.getLanguageName(lang)}
+									</button>
+								{/each}
+							{/if}
+						</div>
+					</div>
+				{/if}
+
 				<!-- Page Media (shown when no blueprint provides a pagemedia field) -->
 				{#if !blueprint}
 					<div class="rounded-lg border border-border bg-card p-4">
@@ -564,6 +776,25 @@
 	cancelLabel="Stay"
 	onconfirm={guard.confirm}
 	oncancel={guard.cancel}
+/>
+
+<ConfirmModal
+	open={confirmSyncOpen}
+	title="Reset Translation"
+	message={`This will overwrite all ${contentLang.getLanguageName(contentLang.activeLang)} content and header fields with the ${contentLang.getLanguageName(pendingSyncSource)} version. You can then re-translate the content.`}
+	confirmLabel="Reset"
+	variant="destructive"
+	onconfirm={confirmSync}
+	oncancel={() => { confirmSyncOpen = false; }}
+/>
+
+<ConfirmModal
+	open={confirmLangSwitchOpen}
+	title="Unsaved Changes"
+	message="You have unsaved changes. Switch language anyway?"
+	confirmLabel="Switch"
+	onconfirm={() => { confirmLangSwitchOpen = false; doLanguageSwitch(pendingLangSwitch); }}
+	oncancel={() => { confirmLangSwitchOpen = false; }}
 />
 
 <!-- Frontend Preview Modal -->

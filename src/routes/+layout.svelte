@@ -7,6 +7,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import { generateFavicon } from '$lib/utils/favicon';
 	import AppShell from '$lib/components/AppShell.svelte';
@@ -24,10 +25,16 @@
 		}
 	});
 
-	// Load translations when authenticated
+	// Load translations and language config when authenticated
 	$effect(() => {
 		if (auth.isAuthenticated && !i18n.loaded) {
 			i18n.load();
+		}
+	});
+
+	$effect(() => {
+		if (auth.isAuthenticated && !contentLang.loaded) {
+			contentLang.load();
 		}
 	});
 

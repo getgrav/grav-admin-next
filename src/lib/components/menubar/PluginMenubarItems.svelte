@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { getMenubarItems, executeMenubarAction, type MenubarItem } from '$lib/api/endpoints/menubar';
+	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { toast } from 'svelte-sonner';
 	import { Loader2 } from 'lucide-svelte';
 
 	let items = $state<MenubarItem[]>([]);
 	let executing = $state<string | null>(null);
+	let confirmOpen = $state(false);
+	let pendingItem = $state<MenubarItem | null>(null);
 
 	async function loadItems() {
 		try {
@@ -15,8 +18,15 @@
 	}
 
 	async function handleAction(item: MenubarItem) {
-		if (item.confirm && !confirm(item.confirm)) return;
+		if (item.confirm) {
+			pendingItem = item;
+			confirmOpen = true;
+			return;
+		}
+		await doAction(item);
+	}
 
+	async function doAction(item: MenubarItem) {
 		executing = item.id;
 		try {
 			const result = await executeMenubarAction(item.plugin, item.action);
@@ -37,6 +47,15 @@
 		loadItems();
 	});
 </script>
+
+<ConfirmModal
+	open={confirmOpen}
+	title="Confirm Action"
+	message={pendingItem?.confirm ?? ''}
+	confirmLabel="Continue"
+	onconfirm={() => { confirmOpen = false; if (pendingItem) doAction(pendingItem); pendingItem = null; }}
+	oncancel={() => { confirmOpen = false; pendingItem = null; }}
+/>
 
 {#each items as item (item.id)}
 	<button
