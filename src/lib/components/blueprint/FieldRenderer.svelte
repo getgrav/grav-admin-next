@@ -329,32 +329,38 @@
 
 {:else if inputTypes.has(field.type)}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
+	<div data-translate={field.translate || undefined} data-field-name={field.translate ? field.name : undefined}
+		onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
 		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
 		<TextField {field} {value} {onchange} />
 	</div>
 
 {:else if field.type === 'markdown' && preferredEditor}
 	<!-- User-preferred editor (e.g., editor-pro) for markdown fields -->
-	<CustomFieldWrapper
-		{field}
-		{value}
-		onchange={committingOnchange}
-		{oncommit}
-		pluginSlug={customFieldRegistry.getPluginSlug(preferredEditor) ?? ''}
-		fieldType={preferredEditor}
-	/>
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div data-translate={field.translate || undefined} data-field-name={field.translate ? field.name : undefined}>
+		<CustomFieldWrapper
+			{field}
+			{value}
+			onchange={committingOnchange}
+			{oncommit}
+			pluginSlug={customFieldRegistry.getPluginSlug(preferredEditor) ?? ''}
+			fieldType={preferredEditor}
+		/>
+	</div>
 
 {:else if field.type === 'markdown' || field.type === 'editor'}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
+	<div data-translate={field.translate || undefined} data-field-name={field.translate ? field.name : undefined}
+		onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
 		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
 		<MarkdownField {field} {value} {onchange} />
 	</div>
 
 {:else if field.type === 'textarea'}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
+	<div data-translate={field.translate || undefined} data-field-name={field.translate ? field.name : undefined}
+		onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
 		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
 		<TextareaField {field} {value} {onchange} />
 	</div>
@@ -453,7 +459,8 @@
 
 {:else if field.type === 'array'}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
+	<div data-translate={field.translate || undefined} data-field-name={field.translate ? field.name : undefined}
+		onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
 		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
 		<ArrayField {field} {value} {onchange} />
 	</div>
@@ -522,14 +529,17 @@
 
 {:else if customFieldRegistry.has(field.type)}
 	<!-- Plugin-provided custom field via web component -->
-	<CustomFieldWrapper
-		{field}
-		{value}
-		onchange={committingOnchange}
-		{oncommit}
-		pluginSlug={customFieldRegistry.getPluginSlug(field.type) ?? ''}
-		fieldType={field.type}
-	/>
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div data-translate={field.translate || undefined} data-field-name={field.translate ? field.name : undefined}>
+		<CustomFieldWrapper
+			{field}
+			{value}
+			onchange={committingOnchange}
+			{oncommit}
+			pluginSlug={customFieldRegistry.getPluginSlug(field.type) ?? ''}
+			fieldType={field.type}
+		/>
+	</div>
 
 {:else}
 	<!-- Unknown field type — render as raw JSON editor -->

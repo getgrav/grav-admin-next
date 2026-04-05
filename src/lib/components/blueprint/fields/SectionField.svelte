@@ -65,8 +65,9 @@
 		const current = toggleStates[name] ?? false;
 		toggleStates = { ...toggleStates, [name]: !current };
 		if (current) {
-			// Toggling OFF — signal removal
-			onFieldChange(name, undefined);
+			// Toggling OFF — send null so JSON.stringify preserves it
+			// (undefined would be stripped, leaving the value on the server)
+			onFieldChange(name, null);
 		} else {
 			// Toggling ON — restore default value if the current value is undefined
 			const currentVal = getValue(name);

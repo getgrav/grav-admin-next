@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
+	import { replaceState } from '$app/navigation';
 	import FieldRenderer from '../FieldRenderer.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldMatches } from '$lib/utils/field-filter';
@@ -77,7 +78,7 @@
 			const myTabNames = new Set(tabs.map(t => t.name.toLowerCase()));
 			const parentParts = hashParts.filter(p => !myTabNames.has(p));
 			const newHash = [...parentParts, tabName].join('--');
-			history.replaceState(null, '', `#${newHash}`);
+			replaceState(`#${newHash}`, {});
 		}
 	}
 

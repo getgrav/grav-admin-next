@@ -46,6 +46,11 @@
 		window.__GRAV_PAGE_ROUTE = route;
 		return () => { window.__GRAV_PAGE_ROUTE = ''; };
 	});
+	// Expose active content language for plugin scripts (e.g., ai-translate)
+	$effect(() => {
+		window.__GRAV_CONTENT_LANG = contentLang.activeLang;
+		return () => { window.__GRAV_CONTENT_LANG = ''; };
+	});
 
 	// Editor integration events for floating widgets (e.g., AI chat)
 	$effect(() => {

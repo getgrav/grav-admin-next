@@ -66,6 +66,7 @@ export interface BlueprintField {
 	preview_images?: boolean;
 	folder?: string;
 	condition?: string;
+	translate?: boolean;
 }
 
 export interface BlueprintSchema {
