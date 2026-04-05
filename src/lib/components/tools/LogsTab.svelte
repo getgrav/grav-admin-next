@@ -4,6 +4,7 @@
 	import { getLogs } from '$lib/api/endpoints/tools';
 	import type { LogEntry } from '$lib/api/endpoints/tools';
 	import { Button } from '$lib/components/ui/button';
+	import { usePoll } from '$lib/utils/poll.svelte';
 	import { RefreshCw, ChevronLeft, ChevronRight, Search, X } from 'lucide-svelte';
 
 	let entries = $state<LogEntry[]>([]);
@@ -20,7 +21,7 @@
 	let searchInput = $state('');
 	let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 	let autoRefresh = $state(false);
-	let autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
+	const poller = usePoll(() => load(), 5000, { runImmediately: false });
 
 	function persistPrefs() {
 		localStorage.setItem('grav_logs_prefs', JSON.stringify({ level, perPage: Number(perPage) }));
@@ -28,15 +29,11 @@
 
 	function toggleAutoRefresh() {
 		autoRefresh = !autoRefresh;
-		if (autoRefresh) {
-			autoRefreshTimer = setInterval(load, 5000);
-		} else if (autoRefreshTimer) {
-			clearInterval(autoRefreshTimer);
-			autoRefreshTimer = null;
-		}
+		if (autoRefresh) poller.start();
+		else poller.stop();
 	}
 
-	onDestroy(() => { if (autoRefreshTimer) clearInterval(autoRefreshTimer); });
+	onDestroy(() => poller.stop());
 
 	const totalPages = $derived(Math.max(1, Math.ceil(total / perPage)));
 

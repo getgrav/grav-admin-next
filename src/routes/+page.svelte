@@ -13,6 +13,9 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { toast } from 'svelte-sonner';
+	import { usePoll } from '$lib/utils/poll.svelte';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { onMount } from 'svelte';
 	import {
 		FileText, Users, Puzzle, Palette, RefreshCw, Clock,
 		ExternalLink, ArrowUpRight, ArrowDownRight, Minus, Download,
@@ -128,6 +131,21 @@
 	const totalUpdates = $derived(updates?.total ?? 0);
 
 	$effect(() => { if (auth.isAuthenticated) loadDashboard(); });
+
+	// Poll dashboard data every 60s while the tab is visible, and refresh
+	// immediately when any mutation (page/user/plugin) happens elsewhere.
+	const poller = usePoll(loadDashboard, 60_000, { runImmediately: false });
+	onMount(() => {
+		poller.start();
+		const unsubPages = invalidations.subscribe('pages:*', () => loadDashboard());
+		const unsubUsers = invalidations.subscribe('users:*', () => loadDashboard());
+		const unsubPlugins = invalidations.subscribe('plugins:*', () => loadDashboard());
+		const unsubGpm = invalidations.subscribe('gpm:*', () => loadDashboard());
+		return () => {
+			poller.stop();
+			unsubPages(); unsubUsers(); unsubPlugins(); unsubGpm();
+		};
+	});
 </script>
 
 <svelte:head><title>Dashboard — Grav Admin</title></svelte:head>
