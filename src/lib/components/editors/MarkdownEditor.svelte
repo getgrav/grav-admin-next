@@ -350,6 +350,12 @@
 			}),
 			parent: editorContainer,
 		});
+
+		// Expose the EditorView on its root DOM element so external scripts
+		// (e.g. ai-translate's admin-next widget) can read/write the content
+		// without going through Svelte. Writing via view.dispatch() fires the
+		// updateListener which propagates back to onchange.
+		(view.dom as unknown as { __cmView?: EditorView }).__cmView = view;
 	}
 
 	// Toolbar actions — wrap/insert markdown syntax
@@ -497,6 +503,7 @@
 					}),
 					parent: editorContainer,
 				});
+				(view.dom as unknown as { __cmView?: EditorView }).__cmView = view;
 			}
 		});
 	});
