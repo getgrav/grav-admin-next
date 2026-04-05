@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, getContext } from 'svelte';
+	import { onMount, getContext, untrack } from 'svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { EditorView, keymap, placeholder as cmPlaceholder, type ViewUpdate } from '@codemirror/view';
 	import { EditorState, type Extension } from '@codemirror/state';
@@ -230,7 +230,7 @@
 			// Syntax highlighting
 			markdownHighlighting,
 
-			// Theme
+			// Theme — oneDark for dark, default highlight for light
 			dark ? shadcnDarkTheme : shadcnLightTheme,
 			dark ? oneDark : [],
 
@@ -482,19 +482,23 @@
 		}
 	});
 
-	// React to dark mode changes
+	// React to dark mode changes only — untrack to avoid re-creating on value/prop changes
 	$effect(() => {
-		if (view && editorContainer) {
-			const currentDoc = view.state.doc.toString();
-			view.destroy();
-			view = new EditorView({
-				state: EditorState.create({
-					doc: currentDoc,
-					extensions: getExtensions(isDark),
-				}),
-				parent: editorContainer,
-			});
-		}
+		isDark; // track dark mode
+		editorContainer; // track mount
+		untrack(() => {
+			if (view && editorContainer) {
+				const currentDoc = view.state.doc.toString();
+				view.destroy();
+				view = new EditorView({
+					state: EditorState.create({
+						doc: currentDoc,
+						extensions: getExtensions(isDark),
+					}),
+					parent: editorContainer,
+				});
+			}
+		});
 	});
 
 	onMount(() => {

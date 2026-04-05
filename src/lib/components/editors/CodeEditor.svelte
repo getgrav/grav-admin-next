@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import {
 		EditorView,
 		keymap,
@@ -153,7 +153,7 @@
 			extensions.push(yaml());
 		}
 
-		// Theme
+		// Theme — oneDark for dark, default highlight for light
 		if (dark) {
 			extensions.push(shadcnDarkTheme, oneDark);
 		} else {
@@ -184,10 +184,10 @@
 		}
 	});
 
-	// Recreate on dark mode change
+	// Recreate on dark mode change only — untrack to avoid re-creating on value changes
 	$effect(() => {
-		isDark; // track
-		if (containerEl) createEditor();
+		isDark; // track dark mode
+		if (containerEl) untrack(() => createEditor());
 	});
 
 	onMount(() => {

@@ -167,13 +167,14 @@
 			etag = result.etag;
 			populateForm(result.user);
 
-			// If editing your own account, update the top bar
+			// If editing your own account, update auth store
 			if (username === auth.username) {
 				auth.setUser(
 					username,
 					result.user.fullname || username,
 					result.user.email || '',
 					result.user.avatar_url || '',
+					result.user.content_editor,
 				);
 			}
 

@@ -72,6 +72,9 @@ const en: Record<string, string> = {
 	'ADMIN_NEXT.PAGES.RAW_HEADER': 'Raw Page Header (JSON)',
 	'ADMIN_NEXT.PAGES.PAGE_INFO': 'Page Info',
 	'ADMIN_NEXT.PAGES.EDIT_PAGE': 'Edit Page',
+	'ADMIN_NEXT.PAGES.MODE_NORMAL': 'Normal',
+	'ADMIN_NEXT.PAGES.MODE_EXPERT': 'Expert',
+	'ADMIN_NEXT.PAGES.FRONTMATTER': 'Frontmatter',
 
 	// -- Pages: Sidebar info --
 	'ADMIN_NEXT.PAGES.INFO_PUBLISHED': 'Published',

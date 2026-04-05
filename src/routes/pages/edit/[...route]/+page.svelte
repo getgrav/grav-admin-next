@@ -24,7 +24,9 @@
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import MarkdownEditor from '$lib/components/editors/MarkdownEditor.svelte';
+	import CodeEditor from '$lib/components/editors/CodeEditor.svelte';
 	import PageMedia from '$lib/components/media/PageMedia.svelte';
+	import yaml from 'js-yaml';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 
@@ -110,13 +112,59 @@
 	let headerData = $state<Record<string, unknown>>({});
 	let headerChanges = $state<Record<string, unknown>>({});
 	let headerYaml = $state('');
+	let expertFrontmatter = $state('');
+	let expertFrontmatterOriginal = $state('');
+
+	// Sync state when switching between Normal and Expert modes
+	function switchToExpert() {
+		// Build current header from blueprint changes
+		const currentHeader = { ...(pageData?.header ?? {}), title };
+		if (Object.keys(headerChanges).length > 0) {
+			for (const [dotPath, val] of Object.entries(headerChanges)) {
+				const parts = dotPath.split('.');
+				let current: Record<string, unknown> = currentHeader;
+				for (let i = 0; i < parts.length - 1; i++) {
+					if (!current[parts[i]] || typeof current[parts[i]] !== 'object') {
+						current[parts[i]] = {};
+					}
+					current = current[parts[i]] as Record<string, unknown>;
+				}
+				current[parts[parts.length - 1]] = val;
+			}
+		}
+		expertFrontmatter = yaml.dump(currentHeader, { lineWidth: -1, noRefs: true }).trimEnd();
+		prefs.editorMode = 'expert';
+	}
+
+	function switchToNormal() {
+		// Parse YAML back into header data
+		try {
+			const parsed = yaml.load(expertFrontmatter) as Record<string, unknown>;
+			if (parsed && typeof parsed === 'object') {
+				title = (parsed.title as string) ?? title;
+				headerData = { header: { ...parsed }, content, folder: pageData?.slug ?? '', name: template };
+				headerChanges = {};
+				// Mark all fields as changed so save picks them up
+				for (const [key, val] of Object.entries(parsed)) {
+					if (key !== 'title') {
+						headerChanges[key] = val;
+					}
+				}
+			}
+		} catch {
+			toast.error('Invalid YAML frontmatter');
+			return;
+		}
+		prefs.editorMode = 'normal';
+	}
 
 	let hasChanges = $derived(
 		pageData !== null && (
-			title !== pageData.title ||
 			content !== (pageData.content ?? '') ||
 			template !== pageData.template ||
-			Object.keys(headerChanges).length > 0
+			(prefs.editorMode === 'expert'
+				? expertFrontmatter !== expertFrontmatterOriginal
+				: title !== pageData.title || Object.keys(headerChanges).length > 0)
 		)
 	);
 
@@ -159,6 +207,8 @@
 			template = data.template;
 			headerData = { header: { ...data.header ?? {}, title: data.title }, content: data.content ?? '', folder: data.slug, name: data.template };
 			headerYaml = JSON.stringify(data.header ?? {}, null, 2);
+			expertFrontmatter = yaml.dump({ ...(data.header ?? {}), title: data.title }, { lineWidth: -1, noRefs: true }).trimEnd();
+			expertFrontmatterOriginal = expertFrontmatter;
 
 			// Load blueprint for the page template (falls back to default on API side)
 			try {
@@ -228,12 +278,31 @@
 
 		try {
 			const body: Record<string, unknown> = {};
-			if (title !== pageData.title) body.title = title;
-			if (content !== (pageData.content ?? '')) body.content = content;
-			if (template !== pageData.template) body.template = template;
 
-			// Include header changes from blueprint form fields
-			if (Object.keys(headerChanges).length > 0) {
+			if (prefs.editorMode === 'expert') {
+				// Expert mode: parse YAML frontmatter and send full header
+				try {
+					const parsed = yaml.load(expertFrontmatter) as Record<string, unknown>;
+					if (parsed && typeof parsed === 'object') {
+						body.title = (parsed.title as string) ?? title;
+						body.header = parsed;
+					}
+				} catch {
+					toast.error('Invalid YAML frontmatter — fix syntax before saving');
+					saving = false;
+					return;
+				}
+				if (content !== (pageData.content ?? '')) body.content = content;
+				if (template !== pageData.template) body.template = template;
+			} else {
+				// Normal mode: diff-based save
+				if (title !== pageData.title) body.title = title;
+				if (content !== (pageData.content ?? '')) body.content = content;
+				if (template !== pageData.template) body.template = template;
+			}
+
+			// Include header changes from blueprint form fields (normal mode only)
+			if (prefs.editorMode !== 'expert' && Object.keys(headerChanges).length > 0) {
 				// Build nested header object from dot-notation keys
 				const header: Record<string, unknown> = {};
 				for (const [dotPath, val] of Object.entries(headerChanges)) {
@@ -276,6 +345,10 @@
 				}
 			}
 
+			// Reset expert mode baseline after save
+			if (prefs.editorMode === 'expert') {
+				expertFrontmatterOriginal = expertFrontmatter;
+			}
 			toast.success('Page saved successfully');
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'message' in err) {
@@ -466,6 +539,23 @@
 					Undo
 				</Button>
 			{/if}
+			<!-- Normal / Expert toggle -->
+			<div class="inline-flex rounded-md border border-border shadow-sm">
+				<button
+					class="inline-flex h-8 items-center px-3 text-[12px] font-medium transition-colors first:rounded-l-md
+						{prefs.editorMode === 'normal'
+							? 'bg-accent text-accent-foreground'
+							: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+					onclick={() => { if (prefs.editorMode === 'expert') switchToNormal(); }}
+				>Normal</button>
+				<button
+					class="inline-flex h-8 items-center px-3 text-[12px] font-medium transition-colors last:rounded-r-md
+						{prefs.editorMode === 'expert'
+							? 'bg-accent text-accent-foreground'
+							: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+					onclick={() => { if (prefs.editorMode === 'normal') switchToExpert(); }}
+				>Expert</button>
+			</div>
 			<Button variant="destructive" size="sm" onclick={handleDelete} disabled={loading}>
 				<Trash2 size={14} />
 				Delete
@@ -540,11 +630,41 @@
 		<div class="py-20 text-center text-sm text-muted-foreground">Loading page...</div>
 	{:else if pageData}
 		<div class="grid gap-4 lg:grid-cols-[1fr_280px]">
-			<!-- Main content area — blueprint IS the form -->
+			<!-- Main content area -->
 			<div class="space-y-4">
-				{#if blueprint}
-					<!-- Blueprint-driven form renders the full editor: tabs, fields, everything -->
-					<!-- Key on template name to force full re-mount when blueprint changes -->
+				{#if prefs.editorMode === 'expert'}
+					<!-- Expert mode: raw YAML frontmatter + content editor -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div class="overflow-hidden rounded-lg border border-border bg-card"
+						onfocusout={() => { if (prefs.autoSaveEnabled && expertFrontmatter !== expertFrontmatterOriginal) autoSave.oncommit('expertFrontmatter', expertFrontmatter, expertFrontmatterOriginal); }}
+					>
+						<div class="flex items-center gap-2 border-b border-border px-4 py-2">
+							<Code size={13} class="text-muted-foreground" />
+							<span class="text-xs font-medium text-muted-foreground">Frontmatter</span>
+						</div>
+						<CodeEditor
+							value={expertFrontmatter}
+							onchange={(v) => { expertFrontmatter = v; }}
+							language="yaml"
+							minHeight="150px"
+							maxHeight="500px"
+							class="rounded-none border-0 shadow-none"
+						/>
+					</div>
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div class="overflow-hidden rounded-lg border border-border bg-card"
+						onfocusout={() => { if (prefs.autoSaveEnabled && content !== (pageData?.content ?? '')) autoSave.oncommit('content', content, pageData?.content ?? ''); }}
+					>
+						<MarkdownEditor
+							value={content}
+							onchange={(v) => { content = v; }}
+							placeholder="Write your markdown content here..."
+							minHeight="400px"
+							class="border-0 shadow-none"
+						/>
+					</div>
+				{:else if blueprint}
+					<!-- Normal mode: Blueprint-driven form -->
 					{#key blueprint.name}
 						<BlueprintForm
 							fields={blueprint.fields}
@@ -572,27 +692,6 @@
 						minHeight="400px"
 					/>
 				{/if}
-
-				<!-- Raw header editor (collapsible) -->
-				<div class="rounded-lg border border-border bg-card">
-					<button
-						class="flex w-full items-center gap-2 p-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-						onclick={() => showRawEditor = !showRawEditor}
-					>
-						<Code size={13} />
-						Raw Page Header (JSON)
-						<ChevronDown size={13} class="ml-auto transition-transform {showRawEditor ? 'rotate-180' : ''}" />
-					</button>
-					{#if showRawEditor}
-						<div class="border-t border-border">
-							<textarea
-								class="flex min-h-[200px] w-full rounded-b-md bg-transparent px-4 py-3 font-mono text-xs placeholder:text-muted-foreground focus-visible:outline-none"
-								bind:value={headerYaml}
-								style="resize: vertical;"
-							></textarea>
-						</div>
-					{/if}
-				</div>
 			</div>
 
 			<!-- Sidebar -->

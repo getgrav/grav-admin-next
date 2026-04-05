@@ -3,6 +3,7 @@ const STORAGE_KEY = 'grav_admin_prefs';
 export type PagesViewMode = 'tree' | 'list' | 'miller';
 export type MediaViewMode = 'grid' | 'list';
 export type ColorMode = 'light' | 'dark' | 'system';
+export type EditorMode = 'normal' | 'expert';
 
 export interface MenubarLink {
 	label: string;
@@ -26,6 +27,7 @@ interface Preferences {
 	mediaViewMode: MediaViewMode;
 	sidebarCollapsed: boolean;
 	adminLanguage: string;
+	editorMode: EditorMode;
 	menubarLinks: MenubarLink[];
 	logo: LogoConfig;
 	autoSaveEnabled: boolean;
@@ -50,6 +52,7 @@ function createPreferencesStore() {
 	let mediaViewMode = $state<MediaViewMode>(stored.mediaViewMode ?? 'grid');
 	let sidebarCollapsed = $state(stored.sidebarCollapsed ?? false);
 	let adminLanguage = $state(stored.adminLanguage ?? 'en');
+	let editorMode = $state<EditorMode>(stored.editorMode ?? 'normal');
 	let menubarLinks = $state<MenubarLink[]>(stored.menubarLinks ?? []);
 	let logo = $state<LogoConfig>(stored.logo ?? { mode: 'default', text: 'Grav', customLight: '', customDark: '' });
 	let autoSaveEnabled = $state(stored.autoSaveEnabled ?? false);
@@ -63,6 +66,7 @@ function createPreferencesStore() {
 			mediaViewMode,
 			sidebarCollapsed,
 			adminLanguage,
+			editorMode,
 			menubarLinks,
 			logo,
 			autoSaveEnabled,
@@ -86,6 +90,9 @@ function createPreferencesStore() {
 
 		get adminLanguage() { return adminLanguage; },
 		set adminLanguage(v: string) { adminLanguage = v; persist(); },
+
+		get editorMode() { return editorMode; },
+		set editorMode(v: EditorMode) { editorMode = v; persist(); },
 
 		get menubarLinks() { return menubarLinks; },
 		set menubarLinks(v: MenubarLink[]) { menubarLinks = v; persist(); },
