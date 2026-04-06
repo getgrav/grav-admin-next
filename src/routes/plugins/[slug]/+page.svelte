@@ -345,6 +345,9 @@
 							{#if isFirstParty(plugin.author)}
 								<BadgeCheck size={18} class="shrink-0 text-purple-500" />
 							{/if}
+							{#if plugin.premium}
+								<span class="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">Premium</span>
+							{/if}
 						</div>
 						<div class="flex items-center gap-2 text-xs text-muted-foreground">
 							<span>v{plugin.version}</span>

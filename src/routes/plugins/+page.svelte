@@ -225,6 +225,9 @@
 								{#if isFirstParty(plugin.author)}
 									<BadgeCheck size={14} class="shrink-0 text-purple-500" />
 								{/if}
+								{#if plugin.premium}
+									<span class="shrink-0 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">Premium</span>
+								{/if}
 								{#if plugin.updatable}
 									<ArrowUpCircle size={12} class="shrink-0 text-amber-500" />
 								{/if}
@@ -276,6 +279,9 @@
 									<h2 class="text-lg font-semibold text-foreground">{selectedPlugin.name}</h2>
 									{#if isFirstParty(selectedPlugin.author)}
 										<BadgeCheck size={18} class="shrink-0 text-purple-500" />
+									{/if}
+									{#if selectedPlugin.premium}
+										<span class="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">Premium</span>
 									{/if}
 								</div>
 								<div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

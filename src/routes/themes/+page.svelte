@@ -187,6 +187,9 @@
 								{#if isFirstParty(theme.author)}
 									<BadgeCheck size={14} class="shrink-0 text-purple-500" />
 								{/if}
+								{#if theme.premium}
+									<span class="shrink-0 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">Premium</span>
+								{/if}
 								{#if theme.updatable}
 									<ArrowUpCircle size={12} class="shrink-0 text-amber-500" />
 								{/if}
@@ -232,6 +235,9 @@
 									<h2 class="text-lg font-semibold text-foreground">{selectedTheme.name}</h2>
 									{#if isFirstParty(selectedTheme.author)}
 										<BadgeCheck size={18} class="shrink-0 text-purple-500" />
+									{/if}
+									{#if selectedTheme.premium}
+										<span class="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">Premium</span>
 									{/if}
 									{#if selectedTheme.enabled}
 										<span class="rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">Active</span>
