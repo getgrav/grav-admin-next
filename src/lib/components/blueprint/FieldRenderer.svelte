@@ -33,6 +33,7 @@
 	import WebhookStatusField from './fields/WebhookStatusField.svelte';
 	import WebhookExamplesField from './fields/WebhookExamplesField.svelte';
 	import CustomFieldWrapper from './fields/CustomFieldWrapper.svelte';
+	import PageExistsField from './fields/PageExistsField.svelte';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldMatches } from '$lib/utils/field-filter';
@@ -96,7 +97,7 @@
 	const translateLabel = i18n.tMaybe;
 
 	// Container types that manage their own layout
-	const containerTypes = new Set(['section', 'fieldset', 'tabs', 'tab', 'columns', 'column', 'pagemedia', 'cronstatus', 'webhook-status']);
+	const containerTypes = new Set(['section', 'fieldset', 'tabs', 'tab', 'columns', 'column', 'pagemedia', 'cronstatus', 'webhook-status', 'page-exists']);
 
 	// Should this field use the 2-column (label left, field right) layout?
 	// Only for non-container leaf fields that have a label and aren't explicitly vertical
@@ -526,6 +527,9 @@
 
 {:else if field.type === 'webhook-status'}
 	<WebhookStatusField {field} {value} {onchange} />
+
+{:else if field.type === 'page-exists' && field.fields}
+	<PageExistsField {field} {getValue} {onFieldChange} {onFieldCommit} />
 
 {:else if customFieldRegistry.has(field.type)}
 	<!-- Plugin-provided custom field via web component -->
