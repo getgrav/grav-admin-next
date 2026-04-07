@@ -119,7 +119,7 @@
 	]);
 	// Sections whose title should be hidden (content still renders)
 	const hideTitleSections = new Set(['status_title']);
-	const suppressedTypes = new Set(['order', 'blueprint']);
+	const suppressedTypes = new Set(['order', 'blueprint', 'hidden']);
 	// Fields to relocate from later columns into the first column (e.g. ordering toggle → settings)
 	const relocateToFirstColumn = new Set(['ordering']);
 
@@ -135,7 +135,6 @@
 	const inputTypes = new Set([
 		'text', 'email', 'url', 'tel', 'password', 'number',
 		'date', 'time', 'month', 'week', 'color',
-		'hidden'
 	]);
 
 </script>
