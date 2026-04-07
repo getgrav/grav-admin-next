@@ -22,9 +22,10 @@
 		(field.fields ?? []).filter((f) => f.type === 'element')
 	);
 
-	// The active element's child fields (shown based on select value)
+	// The active element's child fields (shown based on select value).
+	// Element names may be numeric (from YAML integer keys) while select values are strings.
 	const activeElement = $derived(
-		elementFields.find((f) => f.name === currentValue)
+		elementFields.find((f) => String(f.name) === currentValue)
 	);
 </script>
 
