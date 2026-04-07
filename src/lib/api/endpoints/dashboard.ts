@@ -12,6 +12,8 @@ export interface DashboardStats {
 	pages: { total: number; published: number };
 	users: { total: number };
 	plugins: { total: number; active: number };
+	themes: { total: number };
+	media: { total: number };
 	theme: string;
 	grav_version: string;
 	php_version: string;

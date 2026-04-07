@@ -15,6 +15,7 @@
 	import MenubarLinks from '$lib/components/menubar/MenubarLinks.svelte';
 	import PluginMenubarItems from '$lib/components/menubar/PluginMenubarItems.svelte';
 	import { sidebarStore } from '$lib/stores/sidebar.svelte';
+	import { navBadges } from '$lib/stores/navBadges.svelte';
 	import { floatingWidgetStore } from '$lib/stores/floatingWidgets.svelte';
 	import FloatingWidgetLoader from '$lib/components/floating-widgets/FloatingWidgetLoader.svelte';
 	import ReauthModal from '$lib/components/auth/ReauthModal.svelte';
@@ -39,14 +40,16 @@
 		}
 	});
 
-	// Load plugin sidebar items and floating widgets on authentication
+	// Load plugin sidebar items, floating widgets, and nav badges on authentication
 	$effect(() => {
 		if (auth.isAuthenticated) {
 			sidebarStore.load();
 			floatingWidgetStore.load();
+			navBadges.load();
 		} else {
 			sidebarStore.clear();
 			floatingWidgetStore.clear();
+			navBadges.clear();
 		}
 	});
 
@@ -68,14 +71,14 @@
 	let collapsed = $state(false);
 	let mobileOpen = $state(false);
 
-	const navItems = [
+	const navItems: { href: string; label: string; icon: typeof LayoutDashboard; badgeKey?: string }[] = [
 		{ href: `${base}/`, label: 'Dashboard', icon: LayoutDashboard },
 		{ href: `${base}/config`, label: 'Configuration', icon: Settings },
-		{ href: `${base}/users`, label: 'Users', icon: Users },
-		{ href: `${base}/pages`, label: 'Pages', icon: FileText },
-		{ href: `${base}/media`, label: 'Media', icon: Image },
-		{ href: `${base}/plugins`, label: 'Plugins', icon: Puzzle },
-		{ href: `${base}/themes`, label: 'Themes', icon: Palette },
+		{ href: `${base}/users`, label: 'Users', icon: Users, badgeKey: 'users' },
+		{ href: `${base}/pages`, label: 'Pages', icon: FileText, badgeKey: 'pages' },
+		{ href: `${base}/media`, label: 'Media', icon: Image, badgeKey: 'media' },
+		{ href: `${base}/plugins`, label: 'Plugins', icon: Puzzle, badgeKey: 'plugins' },
+		{ href: `${base}/themes`, label: 'Themes', icon: Palette, badgeKey: 'themes' },
 		{ href: `${base}/tools`, label: 'Tools', icon: Wrench },
 	];
 
@@ -132,7 +135,12 @@
 							onclick={() => mobileOpen = false}
 							title={collapsed ? item.label : undefined}>
 							<item.icon size={16} strokeWidth={isActive(item.href) ? 2 : 1.5} />
-							{#if !collapsed}<span>{item.label}</span>{/if}
+							{#if !collapsed}
+								<span>{item.label}</span>
+								{#if item.badgeKey && navBadges.counts[item.badgeKey] != null}
+									<span class="ml-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">{navBadges.counts[item.badgeKey]}</span>
+								{/if}
+							{/if}
 						</a>
 					</li>
 				{/each}
