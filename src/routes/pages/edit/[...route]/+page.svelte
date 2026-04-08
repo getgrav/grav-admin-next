@@ -112,6 +112,9 @@
 	let error = $state('');
 	let showRawEditor = $state(false);
 
+	// Guard against concurrent loadPage() calls — only the latest one applies
+	let loadGeneration = 0;
+
 	// Preview
 	let showFrontendPreview = $state(false);
 	const frontendPreviewUrl = $derived(pageData ? `${auth.serverUrl}${pageData.route}` : '');
@@ -243,11 +246,16 @@
 	);
 
 	async function loadPage(lang?: string) {
+		const gen = ++loadGeneration;
 		loading = true;
 		error = '';
 		try {
 			const activeLang = lang ?? (contentLang.enabled ? contentLang.activeLang : undefined);
 			const data = await getPage(route, { render: false, translations: true, lang: activeLang });
+
+			// Stale load — a newer loadPage() was triggered while this one was in flight
+			if (gen !== loadGeneration) return;
+
 			pageData = data;
 			title = data.title;
 			content = data.content ?? '';
@@ -268,14 +276,20 @@
 			} catch {
 				blueprint = null;
 			}
+
+			// Final stale check after blueprint load
+			if (gen !== loadGeneration) return;
 		} catch (err: unknown) {
+			if (gen !== loadGeneration) return;
 			if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 404) {
 				error = `Page not found: ${route}`;
 			} else {
 				error = 'Failed to load page';
 			}
 		} finally {
-			loading = false;
+			if (gen === loadGeneration) {
+				loading = false;
+			}
 		}
 	}
 
