@@ -13,6 +13,8 @@ export interface PluginPageAction {
 	confirm?: string;
 	/** Navigate to this route when clicked (component-mode pages) */
 	navigate?: string;
+	/** Sub-actions shown in a dropdown alongside the main button */
+	children?: PluginPageAction[];
 }
 
 export interface PluginPageDefinition {

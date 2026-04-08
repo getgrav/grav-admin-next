@@ -25,7 +25,7 @@
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import { sidebarStore } from '$lib/stores/sidebar.svelte';
-	import { ArrowLeft, Loader2, AlertCircle, Save, Download, Upload, Undo2 } from 'lucide-svelte';
+	import { ArrowLeft, Loader2, AlertCircle, Save, Download, Upload, Undo2, ChevronDown } from 'lucide-svelte';
 
 	const slug = $derived(page.params.slug ?? '');
 	const isSidebarPage = $derived(sidebarStore.items.some(item => item.plugin === slug));
@@ -38,6 +38,7 @@
 	let saving = $state(false);
 	let error = $state('');
 	let actionExecuting = $state<string | null>(null);
+	let openDropdown = $state<string | null>(null);
 
 	let hasChanges = $derived(JSON.stringify(formData) !== originalJson);
 
@@ -340,7 +341,57 @@
 			{/if}
 			{#if definition?.actions}
 				{#each definition.actions as action (action.id)}
-					{#if action.primary}
+					{#if action.children?.length}
+						<!-- Split button with dropdown -->
+						<div class="relative flex">
+							<Button
+								variant={action.primary ? 'default' : 'outline'}
+								size="sm"
+								class="rounded-r-none"
+								onclick={() => action.primary ? handleSave() : (action.upload ? handleImportClick() : executeAction(action))}
+								disabled={actionExecuting === action.id}
+							>
+								{#if actionExecuting === action.id}
+									<Loader2 size={14} class="mr-1.5 animate-spin" />
+								{:else}
+									{@const Icon = getActionIcon(action)}
+									{#if Icon}
+										<Icon size={14} class="mr-1.5" />
+									{:else if action.icon}
+										<i class="fa-solid {action.icon.startsWith('fa-') ? action.icon : 'fa-' + action.icon} mr-1.5 text-xs"></i>
+									{/if}
+								{/if}
+								{action.label}
+							</Button>
+							<button
+								class="inline-flex h-8 items-center rounded-r-md border border-l-0 px-1.5 transition-colors
+									{action.primary
+										? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
+										: 'border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground'}"
+								onclick={() => openDropdown = openDropdown === action.id ? null : action.id}
+							>
+								<ChevronDown size={12} />
+							</button>
+							{#if openDropdown === action.id}
+								<!-- svelte-ignore a11y_click_events_have_key_events -->
+								<!-- svelte-ignore a11y_no_static_element_interactions -->
+								<div class="fixed inset-0 z-40" onclick={() => openDropdown = null}></div>
+								<div class="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-md border border-border bg-popover py-1 shadow-md">
+									{#each action.children as child (child.id)}
+										<button
+											class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-popover-foreground transition-colors hover:bg-accent/50"
+											onclick={() => { openDropdown = null; executeAction(child); }}
+										>
+											{#if child.icon}
+												<i class="fa-solid {child.icon.startsWith('fa-') ? child.icon : 'fa-' + child.icon} w-4 text-center text-xs text-muted-foreground"></i>
+											{/if}
+											{child.label}
+										</button>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					{:else if action.primary}
 						<!-- Primary action (Save) -->
 						<Button
 							size="sm"
