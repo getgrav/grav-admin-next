@@ -376,7 +376,7 @@
 								<!-- svelte-ignore a11y_click_events_have_key_events -->
 								<!-- svelte-ignore a11y_no_static_element_interactions -->
 								<div class="fixed inset-0 z-40" onclick={() => openDropdown = null}></div>
-								<div class="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-md border border-border bg-popover py-1 shadow-md">
+								<div class="absolute right-0 top-full z-50 mt-1 min-w-[220px] rounded-md border border-border bg-popover py-1 shadow-md">
 									{#each action.children as child (child.id)}
 										<button
 											class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-popover-foreground transition-colors hover:bg-accent/50"
