@@ -6,6 +6,7 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
+	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import AddPluginModal from '$lib/components/AddPluginModal.svelte';
 	import { toast } from 'svelte-sonner';
 	import { Search, Puzzle, ExternalLink, ArrowUpCircle, ChevronRight, Loader2, Plus, RefreshCw, BadgeCheck } from 'lucide-svelte';
@@ -152,24 +153,30 @@
 
 <div class="flex h-full flex-col">
 	<!-- Header -->
-	<div class="flex min-h-14 items-center justify-between border-b border-border px-6 pt-6 pb-3">
-		<div>
-			<h1 class="text-xl font-semibold tracking-tight text-foreground">Plugins</h1>
-			{#if !loading}
-				<p class="mt-0.5 text-xs text-muted-foreground">{plugins.length} installed</p>
-			{/if}
-		</div>
-		<div class="flex items-center gap-2">
-			<Button variant="outline" size="sm" onclick={handleCheckUpdates} disabled={checkingUpdates}>
-				<RefreshCw size={13} class={checkingUpdates ? 'animate-spin' : ''} />
-				Check Updates
-			</Button>
-			<Button size="sm" onclick={() => (addModalOpen = true)}>
-				<Plus size={14} />
-				Add
-			</Button>
-		</div>
-	</div>
+	<StickyHeader noBorder>
+		{#snippet children({ scrolled })}
+			<div class="px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
+				<div class="flex items-center justify-between {scrolled ? 'min-h-6' : 'min-h-8'}">
+					<div>
+						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">Plugins</h1>
+						{#if !scrolled && !loading}
+							<p class="mt-0.5 text-xs text-muted-foreground">{plugins.length} installed</p>
+						{/if}
+					</div>
+					<div class="flex items-center gap-2">
+						<Button variant="outline" size="sm" onclick={handleCheckUpdates} disabled={checkingUpdates}>
+							<RefreshCw size={13} class={checkingUpdates ? 'animate-spin' : ''} />
+							Check Updates
+						</Button>
+						<Button size="sm" onclick={() => (addModalOpen = true)}>
+							<Plus size={14} />
+							Add
+						</Button>
+					</div>
+				</div>
+			</div>
+		{/snippet}
+	</StickyHeader>
 
 	{#if loading}
 		<div class="flex flex-1 items-center justify-center">

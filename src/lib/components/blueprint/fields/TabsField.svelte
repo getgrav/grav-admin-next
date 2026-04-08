@@ -103,7 +103,7 @@
 	<!-- Side tabs: vertical nav on left, content on right (large screens) -->
 	<div class="flex flex-col lg:flex-row lg:gap-0">
 		<!-- Vertical tab list (horizontal on small, sticky on large) -->
-		<div class="shrink-0 border-b border-border lg:w-52 lg:self-start lg:sticky lg:top-0 lg:border-b-0 lg:border-r">
+		<div class="shrink-0 border-b border-border lg:w-52 lg:self-start lg:sticky lg:border-b-0 lg:border-r" style="top: var(--sticky-header-height, 0px)">
 			<nav class="flex gap-1 overflow-x-auto p-1 lg:flex-col lg:overflow-x-visible lg:p-2">
 				{#each tabs as tab, i (tab.name)}
 					{@const hasMatch = !tabHasMatch || tabHasMatch.has(tab.name)}
@@ -151,7 +151,7 @@
 {:else}
 	<!-- Standard horizontal tabs -->
 	<div>
-		<div class="sticky z-[5] flex gap-1 border-b border-border bg-background" style="top: var(--sticky-header-height, 0px)">
+		<div class="sticky z-[8] flex gap-1 border-b border-border bg-background" style="top: var(--sticky-header-height, 0px)">
 			{#each tabs as tab, i (tab.name)}
 				{@const hasMatch = !tabHasMatch || tabHasMatch.has(tab.name)}
 				{#if !filter || hasMatch}

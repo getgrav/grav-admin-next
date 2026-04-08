@@ -157,7 +157,7 @@
 		{/snippet}
 	</StickyHeader>
 
-	<div class="space-y-4 px-6 pb-6">
+	<div class="relative z-0 space-y-4 px-6 pb-6">
 		<!-- View content -->
 	<div class="overflow-hidden rounded-lg border border-border bg-card">
 		{#if prefs.pagesViewMode === 'tree'}

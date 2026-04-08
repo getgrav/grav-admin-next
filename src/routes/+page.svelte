@@ -176,7 +176,7 @@
 		{/snippet}
 	</StickyHeader>
 
-	<div class="space-y-5 px-6 pb-6">
+	<div class="relative z-0 space-y-5 px-6 pb-6">
 		<!-- ═══ Stats Row ═══ -->
 	{#if stats}
 		<div class="grid grid-cols-2 gap-3 lg:grid-cols-4">

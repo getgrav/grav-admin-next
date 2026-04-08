@@ -14,6 +14,7 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
+	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
@@ -229,30 +230,36 @@
 
 <div class="flex h-full flex-col">
 	<!-- Header -->
-	<div class="flex min-h-14 items-center justify-between border-b border-border px-6 pt-6 pb-3">
-		<div>
-			<h1 class="text-xl font-semibold tracking-tight text-foreground">
-				{directory?.title ?? type}
-			</h1>
-			{#if data}
-				<p class="mt-0.5 text-xs text-muted-foreground">
-					{data.total} item{data.total !== 1 ? 's' : ''}
-				</p>
-			{/if}
-		</div>
-		<div class="flex items-center gap-2">
-			{#if directory?.export && Object.keys(directory.export).length > 0}
-				<Button variant="outline" size="sm" onclick={handleExport}>
-					<Download size={14} />
-					Export
-				</Button>
-			{/if}
-			<Button size="sm" onclick={() => goto(`${base}/flex-objects/${type}/new`)}>
-				<Plus size={14} />
-				Add
-			</Button>
-		</div>
-	</div>
+	<StickyHeader noBorder>
+		{#snippet children({ scrolled })}
+			<div class="px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
+				<div class="flex items-center justify-between {scrolled ? 'min-h-6' : 'min-h-8'}">
+					<div>
+						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">
+							{directory?.title ?? type}
+						</h1>
+						{#if !scrolled && data}
+							<p class="mt-0.5 text-xs text-muted-foreground">
+								{data.total} item{data.total !== 1 ? 's' : ''}
+							</p>
+						{/if}
+					</div>
+					<div class="flex items-center gap-2">
+						{#if directory?.export && Object.keys(directory.export).length > 0}
+							<Button variant="outline" size="sm" onclick={handleExport}>
+								<Download size={14} />
+								Export
+							</Button>
+						{/if}
+						<Button size="sm" onclick={() => goto(`${base}/flex-objects/${type}/new`)}>
+							<Plus size={14} />
+							Add
+						</Button>
+					</div>
+				</div>
+			</div>
+		{/snippet}
+	</StickyHeader>
 
 	<!-- Toolbar -->
 	<div class="flex items-center gap-3 border-b border-border px-4 py-2">

@@ -288,7 +288,7 @@
 		{/snippet}
 	</StickyHeader>
 
-	<div class="space-y-4 px-6 pb-6">
+	<div class="relative z-0 space-y-4 px-6 pb-6" style="overflow-anchor: none">
 		{#if error}
 		<div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
 			<AlertCircle size={16} />

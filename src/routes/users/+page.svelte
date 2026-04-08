@@ -6,6 +6,7 @@
 	import { onMount } from 'svelte';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
 	import { Button } from '$lib/components/ui/button';
+	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
 		Search, User, Plus, Loader2, ChevronRight, ChevronLeft,
@@ -120,18 +121,24 @@
 
 <div class="flex h-full flex-col">
 	<!-- Header -->
-	<div class="flex min-h-14 items-center justify-between border-b border-border px-6 pt-6 pb-3">
-		<div>
-			<h1 class="text-xl font-semibold tracking-tight text-foreground">Users</h1>
-			{#if data}
-				<p class="mt-0.5 text-xs text-muted-foreground">{data.total} account{data.total !== 1 ? 's' : ''}</p>
-			{/if}
-		</div>
-		<Button size="sm" onclick={() => goto(`${base}/users/new`)}>
-			<Plus size={14} />
-			Add User
-		</Button>
-	</div>
+	<StickyHeader noBorder>
+		{#snippet children({ scrolled })}
+			<div class="px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
+				<div class="flex items-center justify-between {scrolled ? 'min-h-6' : 'min-h-8'}">
+					<div>
+						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">Users</h1>
+						{#if !scrolled && data}
+							<p class="mt-0.5 text-xs text-muted-foreground">{data.total} account{data.total !== 1 ? 's' : ''}</p>
+						{/if}
+					</div>
+					<Button size="sm" onclick={() => goto(`${base}/users/new`)}>
+						<Plus size={14} />
+						Add User
+					</Button>
+				</div>
+			</div>
+		{/snippet}
+	</StickyHeader>
 
 	{#if loading}
 		<div class="flex flex-1 items-center justify-center">

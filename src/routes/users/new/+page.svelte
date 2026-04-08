@@ -4,6 +4,7 @@
 	import { createUser } from '$lib/api/endpoints/users';
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import { toast } from 'svelte-sonner';
 	import { ArrowLeft, Loader2, Save, UserPlus } from 'lucide-svelte';
 
@@ -62,36 +63,42 @@
 
 <div class="flex h-full flex-col">
 	<!-- Header -->
-	<div class="flex min-h-14 items-center justify-between border-b border-border px-6 pt-6 pb-3">
-		<div class="flex items-center gap-3">
-			<button
-				type="button"
-				class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-				onclick={() => goto(`${base}/users`)}
-			>
-				<ArrowLeft size={16} />
-			</button>
-			<div class="flex items-center gap-3">
-				<div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-					<UserPlus size={16} />
-				</div>
-				<h1 class="text-lg font-semibold text-foreground">New User</h1>
-			</div>
-		</div>
+	<StickyHeader>
+		{#snippet children({ scrolled })}
+			<div class="px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
+				<div class="flex items-center justify-between gap-4 {scrolled ? 'min-h-6' : 'min-h-8'}">
+					<div class="flex items-center gap-3">
+						<button
+							type="button"
+							class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+							onclick={() => goto(`${base}/users`)}
+						>
+							<ArrowLeft size={16} />
+						</button>
+						{#if !scrolled}
+							<div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+								<UserPlus size={16} />
+							</div>
+						{/if}
+						<h1 class="font-semibold text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-lg'}">New User</h1>
+					</div>
 
-		<Button
-			size="sm"
-			onclick={handleCreate}
-			disabled={!canSave || saving}
-		>
-			{#if saving}
-				<Loader2 size={14} class="mr-1.5 animate-spin" />
-			{:else}
-				<Save size={14} class="mr-1.5" />
-			{/if}
-			Create
-		</Button>
-	</div>
+					<Button
+						size="sm"
+						onclick={handleCreate}
+						disabled={!canSave || saving}
+					>
+						{#if saving}
+							<Loader2 size={14} class="mr-1.5 animate-spin" />
+						{:else}
+							<Save size={14} class="mr-1.5" />
+						{/if}
+						Create
+					</Button>
+				</div>
+			</div>
+		{/snippet}
+	</StickyHeader>
 
 	<!-- Content -->
 	<div class="flex-1 overflow-y-auto">

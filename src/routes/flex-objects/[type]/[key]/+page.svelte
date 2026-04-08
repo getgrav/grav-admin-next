@@ -15,6 +15,7 @@
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import { toast } from 'svelte-sonner';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
@@ -213,51 +214,59 @@
 
 <div class="flex h-full flex-col">
 	<!-- Header -->
-	<div class="flex min-h-14 items-center justify-between border-b border-border px-6 pt-6 pb-3">
-		<div class="flex items-center gap-3">
-			<button
-				type="button"
-				class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-				onclick={() => goto(`${base}/flex-objects/${type}`)}
-			>
-				<ArrowLeft size={16} />
-			</button>
-			<div>
-				<h1 class="text-lg font-semibold text-foreground">{editTitle}</h1>
-				<p class="text-xs text-muted-foreground">{directory?.title ?? type}</p>
-			</div>
-		</div>
+	<StickyHeader>
+		{#snippet children({ scrolled })}
+			<div class="px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
+				<div class="flex items-center justify-between gap-4 {scrolled ? 'min-h-6' : 'min-h-8'}">
+					<div class="flex min-w-0 items-center gap-3">
+						<button
+							type="button"
+							class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+							onclick={() => goto(`${base}/flex-objects/${type}`)}
+						>
+							<ArrowLeft size={16} />
+						</button>
+						<div class="min-w-0">
+							<h1 class="truncate font-semibold text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-lg'}">{editTitle}</h1>
+							{#if !scrolled}
+								<p class="text-xs text-muted-foreground">{directory?.title ?? type}</p>
+							{/if}
+						</div>
+					</div>
 
-		<div class="flex items-center gap-2">
-			{#if prefs.autoSaveEnabled && prefs.autoSaveToolbarUndo && autoSave.canUndo}
-				<Button variant="outline" size="sm" onclick={() => autoSave.undo()}>
-					<Undo2 size={14} />
-					Undo
-				</Button>
-			{/if}
-			<Button
-				variant="destructive"
-				size="sm"
-				onclick={() => (confirmDeleteOpen = true)}
-				disabled={deleting}
-			>
-				{#if deleting}
-					<Loader2 size={14} class="mr-1.5 animate-spin" />
-				{:else}
-					<Trash2 size={14} class="mr-1.5" />
-				{/if}
-				Delete
-			</Button>
-			<Button size="sm" onclick={handleSave} disabled={!hasChanges || saving}>
-				{#if saving}
-					<Loader2 size={14} class="mr-1.5 animate-spin" />
-				{:else}
-					<Save size={14} class="mr-1.5" />
-				{/if}
-				Save
-			</Button>
-		</div>
-	</div>
+					<div class="flex shrink-0 items-center gap-2">
+						{#if prefs.autoSaveEnabled && prefs.autoSaveToolbarUndo && autoSave.canUndo}
+							<Button variant="outline" size="sm" onclick={() => autoSave.undo()}>
+								<Undo2 size={14} />
+								Undo
+							</Button>
+						{/if}
+						<Button
+							variant="destructive"
+							size="sm"
+							onclick={() => (confirmDeleteOpen = true)}
+							disabled={deleting}
+						>
+							{#if deleting}
+								<Loader2 size={14} class="mr-1.5 animate-spin" />
+							{:else}
+								<Trash2 size={14} class="mr-1.5" />
+							{/if}
+							Delete
+						</Button>
+						<Button size="sm" onclick={handleSave} disabled={!hasChanges || saving}>
+							{#if saving}
+								<Loader2 size={14} class="mr-1.5 animate-spin" />
+							{:else}
+								<Save size={14} class="mr-1.5" />
+							{/if}
+							Save
+						</Button>
+					</div>
+				</div>
+			</div>
+		{/snippet}
+	</StickyHeader>
 
 	<!-- Content -->
 	{#if loading}

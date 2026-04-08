@@ -17,6 +17,7 @@
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import PluginPageComponent from '$lib/components/plugin-page/PluginPageComponent.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { toast } from 'svelte-sonner';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
@@ -309,12 +310,15 @@
 
 <div class="flex h-full flex-col">
 	<!-- Header -->
-	<div class="sticky top-0 z-10 flex min-h-14 items-center justify-between border-b border-border bg-background px-6 pt-6 pb-3">
-		<div class="flex items-center gap-3">
+	<StickyHeader>
+		{#snippet children({ scrolled })}
+		<div class="px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
+		<div class="flex items-center justify-between gap-4 {scrolled ? 'min-h-6' : 'min-h-8'}">
+		<div class="flex min-w-0 items-center gap-3">
 			{#if !isSidebarPage}
 				<button
 					type="button"
-					class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+					class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 					onclick={() => goto(`${base}/`)}
 				>
 					<ArrowLeft size={16} />
@@ -322,17 +326,17 @@
 			{/if}
 			{#if definition}
 				<div class="flex items-center gap-2.5">
-					{#if definition.icon}
+					{#if definition.icon && !scrolled}
 						<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
 							<i class="fa-solid {definition.icon.startsWith('fa-') ? definition.icon : 'fa-' + definition.icon} text-sm"></i>
 						</div>
 					{/if}
-					<h1 class="{isSidebarPage ? 'text-xl tracking-tight' : 'text-lg'} font-semibold text-foreground">{definition.title}</h1>
+					<h1 class="font-semibold text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : isSidebarPage ? 'text-xl tracking-tight' : 'text-lg'}">{definition.title}</h1>
 				</div>
 			{/if}
 		</div>
 
-		<div class="flex items-center gap-2">
+		<div class="flex shrink-0 items-center gap-2">
 			{#if prefs.autoSaveEnabled && prefs.autoSaveToolbarUndo && autoSave.canUndo}
 				<Button variant="outline" size="sm" onclick={() => autoSave.undo()}>
 					<Undo2 size={14} />
@@ -434,6 +438,9 @@
 			{/if}
 		</div>
 	</div>
+	</div>
+		{/snippet}
+	</StickyHeader>
 
 	<!-- Content -->
 	{#if loading}

@@ -92,7 +92,7 @@
 		{/snippet}
 	</StickyHeader>
 
-	<div class="space-y-4 px-6 pb-6">
+	<div class="relative z-0 space-y-4 px-6 pb-6">
 		<!-- Logo -->
 	<div class="rounded-xl border border-border bg-muted/30">
 		<div class="px-6 pt-6 pb-2">
