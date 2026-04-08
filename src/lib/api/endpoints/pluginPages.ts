@@ -11,6 +11,8 @@ export interface PluginPageAction {
 	upload?: boolean;
 	download?: boolean;
 	confirm?: string;
+	/** Navigate to this route when clicked (component-mode pages) */
+	navigate?: string;
 }
 
 export interface PluginPageDefinition {

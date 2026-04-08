@@ -11,6 +11,7 @@
 	import {
 		RotateCcw, Plus, Trash2, GripVertical, Upload
 	} from 'lucide-svelte';
+	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 
 	let confirmResetOpen = $state(false);
 
@@ -75,16 +76,24 @@
 	<title>Settings — Grav Admin</title>
 </svelte:head>
 
-<div class="space-y-4 p-6">
-	<!-- Header -->
-	<div class="flex min-h-8 items-center justify-between">
-		<div>
-			<h1 class="text-xl font-semibold tracking-tight text-foreground">Settings</h1>
-			<p class="mt-0.5 text-xs text-muted-foreground">Admin preferences and appearance</p>
-		</div>
-	</div>
+<div>
+	<StickyHeader>
+		{#snippet children({ scrolled })}
+			<div class="px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
+				<div class="flex items-center justify-between {scrolled ? 'min-h-6' : 'min-h-8'}">
+					<div>
+						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">Settings</h1>
+						{#if !scrolled}
+							<p class="mt-0.5 text-xs text-muted-foreground">Admin preferences and appearance</p>
+						{/if}
+					</div>
+				</div>
+			</div>
+		{/snippet}
+	</StickyHeader>
 
-	<!-- Logo -->
+	<div class="space-y-4 px-6 pb-6">
+		<!-- Logo -->
 	<div class="rounded-xl border border-border bg-muted/30">
 		<div class="px-6 pt-6 pb-2">
 			<h3 class="text-base font-bold text-foreground">Logo</h3>
@@ -515,6 +524,7 @@
 			<RotateCcw size={14} />
 			Reset All Preferences
 		</Button>
+	</div>
 	</div>
 </div>
 

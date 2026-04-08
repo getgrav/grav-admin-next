@@ -11,6 +11,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
 	import { Save, AlertCircle, Loader2, RefreshCw, Search, X, Undo2 } from 'lucide-svelte';
+	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
@@ -34,6 +35,7 @@
 
 	let hasChanges = $derived(JSON.stringify(configData) !== originalJson);
 	let filter = $state('');
+	let headerHeight = $state(0);
 
 	function scopeTitle(s: string): string {
 		const key = `PLUGIN_ADMIN.${s.toUpperCase()}`;
@@ -208,78 +210,86 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="space-y-4 p-6">
-	<!-- Header -->
-	<div class="flex min-h-8 items-center justify-between gap-4">
-		<div>
-			<h1 class="text-xl font-semibold tracking-tight text-foreground">Configuration</h1>
-			<p class="mt-0.5 text-xs text-muted-foreground">{scopeTitle(scope)}</p>
-		</div>
+<div style="--sticky-header-height: {headerHeight}px">
+	<StickyHeader bind:height={headerHeight}>
+		{#snippet children({ scrolled })}
+			<div class="space-y-3 px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
+				<div class="flex items-center justify-between gap-4 {scrolled ? 'min-h-6' : 'min-h-8'}">
+					<div>
+						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">{scrolled ? `Configuration: ${scopeTitle(scope)}` : 'Configuration'}</h1>
+						{#if !scrolled}
+							<p class="mt-0.5 text-xs text-muted-foreground">{scopeTitle(scope)}</p>
+						{/if}
+					</div>
 
-		{#if !isInfo}
-			<div class="flex shrink-0 items-center gap-2">
-				{#if prefs.autoSaveEnabled}
-					{#if autoSave.saving}
-						<span class="text-xs text-muted-foreground">Saving...</span>
-					{:else if autoSave.lastSavedAt}
-						<span class="text-xs text-emerald-500">Saved</span>
-					{:else if hasChanges}
-						<span class="text-xs text-amber-500">Unsaved changes</span>
+					{#if !isInfo}
+						<div class="flex shrink-0 items-center gap-2">
+							{#if prefs.autoSaveEnabled}
+								{#if autoSave.saving}
+									<span class="text-xs text-muted-foreground">Saving...</span>
+								{:else if autoSave.lastSavedAt}
+									<span class="text-xs text-emerald-500">Saved</span>
+								{:else if hasChanges}
+									<span class="text-xs text-amber-500">Unsaved changes</span>
+								{/if}
+							{:else if hasChanges}
+								<span class="text-xs text-amber-500">Unsaved changes</span>
+							{/if}
+							{#if prefs.autoSaveEnabled && prefs.autoSaveToolbarUndo && autoSave.canUndo}
+								<Button variant="outline" size="sm" onclick={() => autoSave.undo()}>
+									<Undo2 size={14} />
+									Undo
+								</Button>
+							{/if}
+							<Button variant="outline" size="sm" onclick={handleReload} disabled={loading || saving}>
+								<RefreshCw size={14} />
+								Reload
+							</Button>
+							<Button size="sm" onclick={handleSave} disabled={saving || loading || !hasChanges}>
+								{#if saving}
+									<Loader2 size={14} class="animate-spin" />
+									Saving...
+								{:else}
+									<Save size={14} />
+									Save
+								{/if}
+							</Button>
+						</div>
 					{/if}
-				{:else if hasChanges}
-					<span class="text-xs text-amber-500">Unsaved changes</span>
-				{/if}
-				{#if prefs.autoSaveEnabled && prefs.autoSaveToolbarUndo && autoSave.canUndo}
-					<Button variant="outline" size="sm" onclick={() => autoSave.undo()}>
-						<Undo2 size={14} />
-						Undo
-					</Button>
-				{/if}
-				<Button variant="outline" size="sm" onclick={handleReload} disabled={loading || saving}>
-					<RefreshCw size={14} />
-					Reload
-				</Button>
-				<Button size="sm" onclick={handleSave} disabled={saving || loading || !hasChanges}>
-					{#if saving}
-						<Loader2 size={14} class="animate-spin" />
-						Saving...
-					{:else}
-						<Save size={14} />
-						Save
+				</div>
+
+				<!-- Scope navigation tabs + filter -->
+				<div class="flex items-center gap-3">
+					<div class="flex-1">
+						<ConfigNav {sections} />
+					</div>
+					{#if !isInfo && blueprint}
+						<div class="relative">
+							<Search size={14} class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+							<input
+								type="text"
+								class="h-8 w-48 rounded-md border border-input bg-transparent pl-9 pr-8 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+								placeholder="Filter fields..."
+								bind:value={filter}
+							/>
+							{#if filter}
+								<button
+									class="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+									onclick={() => filter = ''}
+									aria-label="Clear filter"
+								>
+									<X size={14} />
+								</button>
+							{/if}
+						</div>
 					{/if}
-				</Button>
+				</div>
 			</div>
-		{/if}
-	</div>
+		{/snippet}
+	</StickyHeader>
 
-	<!-- Scope navigation tabs + filter -->
-	<div class="flex items-center gap-3">
-		<div class="flex-1">
-			<ConfigNav {sections} />
-		</div>
-		{#if !isInfo && blueprint}
-			<div class="relative">
-				<Search size={14} class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-				<input
-					type="text"
-					class="h-8 w-48 rounded-md border border-input bg-transparent pl-9 pr-8 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-					placeholder="Filter fields..."
-					bind:value={filter}
-				/>
-				{#if filter}
-					<button
-						class="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground"
-						onclick={() => filter = ''}
-						aria-label="Clear filter"
-					>
-						<X size={14} />
-					</button>
-				{/if}
-			</div>
-		{/if}
-	</div>
-
-	{#if error}
+	<div class="space-y-4 px-6 pb-6">
+		{#if error}
 		<div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
 			<AlertCircle size={16} />
 			{error}
@@ -303,6 +313,7 @@
 			No configuration blueprint available for this scope.
 		</div>
 	{/if}
+	</div>
 </div>
 
 <ConfirmModal

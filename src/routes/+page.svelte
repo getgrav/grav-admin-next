@@ -22,6 +22,7 @@
 		TrendingUp, Eye, HardDrive, Shield, Rss, Archive,
 		CheckCircle2, AlertTriangle, Loader2, Server, Activity
 	} from 'lucide-svelte';
+	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 
 	let stats = $state<DashboardStats | null>(null);
 	let systemInfo = $state<SystemInfo | null>(null);
@@ -155,20 +156,28 @@
 		<Loader2 size={24} class="animate-spin text-muted-foreground" />
 	</div>
 {:else}
-<div class="space-y-5 p-6">
-	<!-- Header -->
-	<div class="flex min-h-8 items-center justify-between">
-		<div>
-			<h1 class="text-xl font-semibold tracking-tight text-foreground">Dashboard</h1>
-			<p class="mt-0.5 text-xs text-muted-foreground">Welcome back, {auth.fullname || auth.username}</p>
-		</div>
-		<Button variant="outline" size="sm" onclick={loadDashboard}>
-			<RefreshCw size={13} />
-			Refresh
-		</Button>
-	</div>
+<div>
+	<StickyHeader>
+		{#snippet children({ scrolled })}
+			<div class="px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
+				<div class="flex items-center justify-between {scrolled ? 'min-h-6' : 'min-h-8'}">
+					<div>
+						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">Dashboard</h1>
+						{#if !scrolled}
+							<p class="mt-0.5 text-xs text-muted-foreground">Welcome back, {auth.fullname || auth.username}</p>
+						{/if}
+					</div>
+					<Button variant="outline" size="sm" onclick={loadDashboard}>
+						<RefreshCw size={13} />
+						Refresh
+					</Button>
+				</div>
+			</div>
+		{/snippet}
+	</StickyHeader>
 
-	<!-- ═══ Stats Row ═══ -->
+	<div class="space-y-5 px-6 pb-6">
+		<!-- ═══ Stats Row ═══ -->
 	{#if stats}
 		<div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
 			<a href="{base}/pages" class="group flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 transition-all hover:border-primary/30 hover:shadow-sm">
@@ -567,6 +576,7 @@
 				<p class="py-4 text-center text-[13px] text-muted-foreground">No feed items</p>
 			{/if}
 		</div>
+	</div>
 	</div>
 </div>
 {/if}

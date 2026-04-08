@@ -30,6 +30,7 @@
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import Tabs from '$lib/components/ui/Tabs.svelte';
+	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import PagesField from '$lib/components/blueprint/fields/PagesField.svelte';
 	import SelectField from '$lib/components/blueprint/fields/SelectField.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
@@ -230,6 +231,7 @@
 	});
 
 	let saveAsOpen = $state(false);
+	let headerHeight = $state(0);
 	// Treat null/empty language as the default language (file is e.g. default.md with no .en. extension)
 	const effectiveLang = $derived(pageData?.language || contentLang.defaultLang);
 	let isFallback = $derived(contentLang.enabled && pageData !== null && effectiveLang !== contentLang.activeLang);
@@ -616,29 +618,33 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="space-y-4 p-6">
-	<!-- Top bar -->
-	<div class="flex min-h-8 items-center justify-between gap-4">
-		<div class="flex min-w-0 items-center gap-3">
-			<button class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground" onclick={() => goto(`${base}/pages`)}>
-				<ArrowLeft size={16} />
-			</button>
-			<div class="min-w-0">
-				{#if loading}
-					<div class="h-6 w-48 animate-pulse rounded bg-muted"></div>
-				{:else}
-					<div class="flex items-center gap-2">
-						<h1 class="truncate text-lg font-semibold text-foreground">{title || 'Untitled'}</h1>
-						{#if contentLang.enabled && effectiveLang}
-							<Badge variant={isFallback ? 'secondary' : 'default'} class="uppercase text-[10px]">{effectiveLang}</Badge>
-						{/if}
+<div style="--sticky-header-height: {headerHeight}px">
+	<StickyHeader bind:height={headerHeight}>
+		{#snippet children({ scrolled })}
+			<div class="px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
+				<div class="flex items-center justify-between gap-4 {scrolled ? 'min-h-6' : 'min-h-8'}">
+					<div class="flex min-w-0 items-center gap-3">
+						<button class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground" onclick={() => goto(`${base}/pages`)}>
+							<ArrowLeft size={16} />
+						</button>
+						<div class="min-w-0">
+							{#if loading}
+								<div class="h-6 w-48 animate-pulse rounded bg-muted"></div>
+							{:else}
+								<div class="flex items-center gap-2">
+									<h1 class="truncate font-semibold text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-lg'}">{title || 'Untitled'}</h1>
+									{#if contentLang.enabled && effectiveLang}
+										<Badge variant={isFallback ? 'secondary' : 'default'} class="uppercase text-[10px]">{effectiveLang}</Badge>
+									{/if}
+								</div>
+								{#if !scrolled}
+									<p class="truncate text-xs text-muted-foreground">{route}</p>
+								{/if}
+							{/if}
+						</div>
 					</div>
-					<p class="truncate text-xs text-muted-foreground">{route}</p>
-				{/if}
-			</div>
-		</div>
 
-		<div class="flex shrink-0 items-center gap-2">
+					<div class="flex shrink-0 items-center gap-2">
 			{#if prefs.autoSaveEnabled}
 				{#if autoSave.saving}
 					<span class="text-xs text-muted-foreground">Saving...</span>
@@ -725,9 +731,13 @@
 				{/if}
 			</div>
 		</div>
-	</div>
+				</div>
+			</div>
+		{/snippet}
+	</StickyHeader>
 
-	{#if error}
+	<div class="space-y-4 px-6 pb-6">
+		{#if error}
 		<div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
 			<AlertCircle size={16} />
 			{error}
@@ -1037,6 +1047,7 @@
 			</div>
 		</div>
 	{/if}
+	</div>
 </div>
 
 <ConfirmModal

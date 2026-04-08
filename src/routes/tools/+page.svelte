@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import Tabs from '$lib/components/ui/Tabs.svelte';
+	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import BackupsTab from '$lib/components/tools/BackupsTab.svelte';
 	import SchedulerTab from '$lib/components/tools/SchedulerTab.svelte';
 	import LogsTab from '$lib/components/tools/LogsTab.svelte';
@@ -34,17 +35,25 @@
 	<title>Tools — Grav Admin</title>
 </svelte:head>
 
-<div class="space-y-4 p-6">
-	<div class="flex min-h-8 items-center justify-between">
-		<div>
-			<h1 class="text-xl font-semibold tracking-tight text-foreground">Tools</h1>
-			<p class="mt-0.5 text-xs text-muted-foreground">Backups, scheduler, logs, and diagnostics</p>
-		</div>
-	</div>
+<div>
+	<StickyHeader>
+		{#snippet children({ scrolled })}
+			<div class="space-y-3 px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
+				<div class="flex items-center justify-between {scrolled ? 'min-h-6' : 'min-h-8'}">
+					<div>
+						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">Tools</h1>
+						{#if !scrolled}
+							<p class="mt-0.5 text-xs text-muted-foreground">Backups, scheduler, logs, and diagnostics</p>
+						{/if}
+					</div>
+				</div>
 
-	<Tabs items={tabs} active={activeTab} onchange={setTab} />
+				<Tabs items={tabs} active={activeTab} onchange={setTab} />
+			</div>
+		{/snippet}
+	</StickyHeader>
 
-	<div class="pt-1">
+	<div class="px-6 pb-6 pt-4">
 		{#if activeTab === 'backups'}
 			<BackupsTab />
 		{:else if activeTab === 'scheduler'}

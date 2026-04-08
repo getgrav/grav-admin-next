@@ -145,6 +145,18 @@
 	let pendingAction = $state<PluginPageAction | null>(null);
 
 	async function executeAction(action: PluginPageAction) {
+		// Navigate actions — go to the specified route
+		if (action.navigate) {
+			goto(`${base}${action.navigate}`);
+			return;
+		}
+
+		// Component-mode actions without endpoint — dispatch to the web component
+		if (!action.endpoint && definition?.page_type === 'component') {
+			dispatchPageAction(action);
+			return;
+		}
+
 		if (!action.endpoint) return;
 
 		if (action.confirm) {
@@ -154,6 +166,17 @@
 		}
 
 		await doExecuteAction(action);
+	}
+
+	/** Dispatch a page-action event to the mounted web component */
+	function dispatchPageAction(action: PluginPageAction) {
+		const tagName = `grav-${slug}--page`;
+		const el = document.querySelector(tagName);
+		if (el) {
+			el.dispatchEvent(new CustomEvent('page-action', {
+				detail: { id: action.id, label: action.label },
+			}));
+		}
 	}
 
 	async function doExecuteAction(action: PluginPageAction) {
@@ -285,7 +308,7 @@
 
 <div class="flex h-full flex-col">
 	<!-- Header -->
-	<div class="flex min-h-14 items-center justify-between border-b border-border px-6 pt-6 pb-3">
+	<div class="sticky top-0 z-10 flex min-h-14 items-center justify-between border-b border-border bg-background px-6 pt-6 pb-3">
 		<div class="flex items-center gap-3">
 			{#if !isSidebarPage}
 				<button

@@ -151,7 +151,7 @@
 {:else}
 	<!-- Standard horizontal tabs -->
 	<div>
-		<div class="flex gap-1 border-b border-border">
+		<div class="sticky z-[5] flex gap-1 border-b border-border bg-background" style="top: var(--sticky-header-height, 0px)">
 			{#each tabs as tab, i (tab.name)}
 				{@const hasMatch = !tabHasMatch || tabHasMatch.has(tab.name)}
 				{#if !filter || hasMatch}

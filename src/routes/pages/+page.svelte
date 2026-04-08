@@ -18,6 +18,7 @@
 	import {
 		Plus, Search, TreePine, List, Columns3, X, ArrowUpDown
 	} from 'lucide-svelte';
+	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 
 	let searchQuery = $state('');
 	let reorderMode = $state(false);
@@ -74,23 +75,27 @@
 	<title>Pages — Grav Admin</title>
 </svelte:head>
 
-<div class="space-y-4 p-6">
-	<!-- Header -->
-	<div class="flex min-h-8 items-center justify-between">
-		<div>
-			<h1 class="text-xl font-semibold tracking-tight text-foreground">Pages</h1>
-			<p class="mt-0.5 text-xs text-muted-foreground">
-				{#if stats}{stats.total} page{stats.total !== 1 ? 's' : ''}{:else}Manage your site content and structure{/if}
-			</p>
-		</div>
-		<Button size="sm" onclick={() => goto(`${base}/pages/new`)}>
-			<Plus size={14} />
-			Add Page
-		</Button>
-	</div>
+<div>
+	<StickyHeader>
+		{#snippet children({ scrolled })}
+			<div class="space-y-3 px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
+				<div class="flex items-center justify-between {scrolled ? 'min-h-6' : 'min-h-8'}">
+					<div>
+						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">Pages</h1>
+						{#if !scrolled}
+							<p class="mt-0.5 text-xs text-muted-foreground">
+								{#if stats}{stats.total} page{stats.total !== 1 ? 's' : ''}{:else}Manage your site content and structure{/if}
+							</p>
+						{/if}
+					</div>
+					<Button size="sm" onclick={() => goto(`${base}/pages/new`)}>
+						<Plus size={14} />
+						Add Page
+					</Button>
+				</div>
 
-	<!-- Toolbar -->
-	<div class="flex items-center gap-3">
+				<!-- Toolbar -->
+				<div class="flex items-center gap-3">
 		<!-- Search -->
 		<div class="relative flex-1" style="max-width: 320px;">
 			<Search size={14} class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground" />
@@ -147,9 +152,13 @@
 				</button>
 			{/each}
 		</div>
-	</div>
+			</div>
+			</div>
+		{/snippet}
+	</StickyHeader>
 
-	<!-- View content -->
+	<div class="space-y-4 px-6 pb-6">
+		<!-- View content -->
 	<div class="overflow-hidden rounded-lg border border-border bg-card">
 		{#if prefs.pagesViewMode === 'tree'}
 			<PagesTreeView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={handleDelete} />
@@ -169,6 +178,7 @@
 				<span>{stats.total - stats.published} unpublished</span>
 			</div>
 		{/if}
+	</div>
 	</div>
 </div>
 
