@@ -105,51 +105,51 @@
 	onpointermove={onPointerMove}
 	onpointerup={onPointerUp}
 >
-	<div class="relative h-[120px] w-[120px] rounded-full border-2 border-primary/40 bg-card shadow-xl ring-1 ring-primary/10
+	<div class="relative h-[140px] w-[140px] rounded-full border-2 border-primary/40 bg-card shadow-xl ring-1 ring-primary/10
 		{dragging ? 'cursor-grabbing' : 'cursor-grab'}">
 
 		<!-- Up (parent) -->
 		<button
-			class="absolute left-1/2 top-1 -translate-x-1/2 flex h-8 w-8 items-center justify-center rounded-full transition-colors
+			class="absolute left-1/2 top-0.5 -translate-x-1/2 flex h-10 w-10 items-center justify-center rounded-full transition-colors
 				{canUp ? 'text-foreground hover:bg-accent hover:text-primary' : 'text-muted-foreground/30 cursor-not-allowed'}"
 			disabled={!canUp}
 			onclick={() => navigate(parentRoute())}
 			title={canUp ? `Parent: ${parentRoute()}` : 'No parent'}
 		>
-			<ChevronUp size={18} strokeWidth={2.5} />
+			<ChevronUp size={22} strokeWidth={2.5} />
 		</button>
 
 		<!-- Down (first child) -->
 		<button
-			class="absolute bottom-1 left-1/2 -translate-x-1/2 flex h-8 w-8 items-center justify-center rounded-full transition-colors
+			class="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex h-10 w-10 items-center justify-center rounded-full transition-colors
 				{canDown ? 'text-foreground hover:bg-accent hover:text-primary' : 'text-muted-foreground/30 cursor-not-allowed'}"
 			disabled={!canDown}
 			onclick={goDown}
 			title={canDown ? 'First child' : 'No children'}
 		>
-			<ChevronDown size={18} strokeWidth={2.5} />
+			<ChevronDown size={22} strokeWidth={2.5} />
 		</button>
 
 		<!-- Left (previous sibling) -->
 		<button
-			class="absolute left-1 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full transition-colors
+			class="absolute left-0.5 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full transition-colors
 				{canLeft ? 'text-foreground hover:bg-accent hover:text-primary' : 'text-muted-foreground/30 cursor-not-allowed'}"
 			disabled={!canLeft}
 			onclick={() => prevSibling && navigate(prevSibling.route)}
 			title={canLeft ? `Previous: ${prevSibling?.menu || prevSibling?.title}` : 'No previous sibling'}
 		>
-			<ChevronLeft size={18} strokeWidth={2.5} />
+			<ChevronLeft size={22} strokeWidth={2.5} />
 		</button>
 
 		<!-- Right (next sibling) -->
 		<button
-			class="absolute right-1 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full transition-colors
+			class="absolute right-0.5 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full transition-colors
 				{canRight ? 'text-foreground hover:bg-accent hover:text-primary' : 'text-muted-foreground/30 cursor-not-allowed'}"
 			disabled={!canRight}
 			onclick={() => nextSibling && navigate(nextSibling.route)}
 			title={canRight ? `Next: ${nextSibling?.menu || nextSibling?.title}` : 'No next sibling'}
 		>
-			<ChevronRight size={18} strokeWidth={2.5} />
+			<ChevronRight size={22} strokeWidth={2.5} />
 		</button>
 
 		<!-- Center cross lines -->
