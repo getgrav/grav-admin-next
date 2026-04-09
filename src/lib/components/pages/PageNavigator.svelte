@@ -101,63 +101,112 @@
 <div
 	class="fixed z-50 select-none"
 	style="bottom: {80 - pos.y}px; right: {80 - pos.x}px;"
-	onpointerdown={onPointerDown}
-	onpointermove={onPointerMove}
-	onpointerup={onPointerUp}
 >
-	<div class="relative h-[140px] w-[140px] rounded-full border-2 border-primary/40 bg-card shadow-xl ring-1 ring-primary/10
-		{dragging ? 'cursor-grabbing' : 'cursor-grab'}">
+	<div class="nav-pad relative h-[110px] w-[110px] rounded-full border-2 border-primary/40 bg-card shadow-xl ring-1 ring-primary/10 overflow-hidden">
 
+		<!-- Quadrant buttons — each covers a full quarter of the circle -->
 		<!-- Up (parent) -->
 		<button
-			class="absolute left-1/2 top-0.5 -translate-x-1/2 flex h-10 w-10 items-center justify-center rounded-full transition-colors
-				{canUp ? 'text-foreground hover:bg-accent hover:text-primary' : 'text-muted-foreground/30 cursor-not-allowed'}"
+			class="nav-quadrant nav-up {canUp ? '' : 'nav-disabled'}"
 			disabled={!canUp}
 			onclick={() => navigate(parentRoute())}
 			title={canUp ? `Parent: ${parentRoute()}` : 'No parent'}
 		>
-			<ChevronUp size={22} strokeWidth={2.5} />
+			<ChevronUp size={18} strokeWidth={2.5} />
 		</button>
 
 		<!-- Down (first child) -->
 		<button
-			class="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex h-10 w-10 items-center justify-center rounded-full transition-colors
-				{canDown ? 'text-foreground hover:bg-accent hover:text-primary' : 'text-muted-foreground/30 cursor-not-allowed'}"
+			class="nav-quadrant nav-down {canDown ? '' : 'nav-disabled'}"
 			disabled={!canDown}
 			onclick={goDown}
 			title={canDown ? 'First child' : 'No children'}
 		>
-			<ChevronDown size={22} strokeWidth={2.5} />
+			<ChevronDown size={18} strokeWidth={2.5} />
 		</button>
 
 		<!-- Left (previous sibling) -->
 		<button
-			class="absolute left-0.5 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full transition-colors
-				{canLeft ? 'text-foreground hover:bg-accent hover:text-primary' : 'text-muted-foreground/30 cursor-not-allowed'}"
+			class="nav-quadrant nav-left {canLeft ? '' : 'nav-disabled'}"
 			disabled={!canLeft}
 			onclick={() => prevSibling && navigate(prevSibling.route)}
 			title={canLeft ? `Previous: ${prevSibling?.menu || prevSibling?.title}` : 'No previous sibling'}
 		>
-			<ChevronLeft size={22} strokeWidth={2.5} />
+			<ChevronLeft size={18} strokeWidth={2.5} />
 		</button>
 
 		<!-- Right (next sibling) -->
 		<button
-			class="absolute right-0.5 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full transition-colors
-				{canRight ? 'text-foreground hover:bg-accent hover:text-primary' : 'text-muted-foreground/30 cursor-not-allowed'}"
+			class="nav-quadrant nav-right {canRight ? '' : 'nav-disabled'}"
 			disabled={!canRight}
 			onclick={() => nextSibling && navigate(nextSibling.route)}
 			title={canRight ? `Next: ${nextSibling?.menu || nextSibling?.title}` : 'No next sibling'}
 		>
-			<ChevronRight size={22} strokeWidth={2.5} />
+			<ChevronRight size={18} strokeWidth={2.5} />
 		</button>
 
-		<!-- Center cross lines -->
-		<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
-			<div class="h-[1px] w-8 bg-border/50"></div>
+		<!-- Divider lines -->
+		<div class="pointer-events-none absolute inset-0">
+			<div class="absolute left-0 right-0 top-1/2 h-px bg-border/60"></div>
+			<div class="absolute top-0 bottom-0 left-1/2 w-px bg-border/60"></div>
 		</div>
-		<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
-			<div class="h-8 w-[1px] bg-border/50"></div>
+
+		<!-- Center drag handle -->
+		<div
+			class="absolute left-1/2 top-1/2 z-10 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border bg-card
+				{dragging ? 'cursor-grabbing' : 'cursor-grab'}"
+			onpointerdown={onPointerDown}
+			onpointermove={onPointerMove}
+			onpointerup={onPointerUp}
+		>
+			<div class="flex h-full w-full items-center justify-center">
+				<div class="h-1 w-1 rounded-full bg-muted-foreground/50"></div>
+			</div>
 		</div>
 	</div>
 </div>
+
+<style>
+	.nav-quadrant {
+		position: absolute;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 100%;
+		border: none;
+		background: transparent;
+		color: var(--foreground);
+		cursor: pointer;
+		transition: background 0.15s;
+		padding: 0;
+	}
+	.nav-quadrant:not(:disabled):hover {
+		background: color-mix(in srgb, var(--accent, #f4f4f5) 80%, transparent);
+	}
+	.nav-quadrant:not(:disabled):active {
+		background: color-mix(in srgb, var(--primary, #3b82f6) 15%, transparent);
+	}
+	.nav-disabled {
+		color: color-mix(in srgb, var(--muted-foreground, #71717a) 25%, transparent);
+		cursor: not-allowed;
+	}
+
+	/* Clip each quadrant to its quarter of the circle, excluding center 28px circle */
+	.nav-up {
+		clip-path: polygon(0 0, 100% 0, 50% 50%);
+		padding-bottom: 30%;
+	}
+	.nav-down {
+		clip-path: polygon(0 100%, 100% 100%, 50% 50%);
+		padding-top: 30%;
+	}
+	.nav-left {
+		clip-path: polygon(0 0, 0 100%, 50% 50%);
+		padding-right: 30%;
+	}
+	.nav-right {
+		clip-path: polygon(100% 0, 100% 100%, 50% 50%);
+		padding-left: 30%;
+	}
+</style>
