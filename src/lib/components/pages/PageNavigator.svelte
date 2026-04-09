@@ -112,7 +112,7 @@
 			onclick={() => navigate(parentRoute())}
 			title={canUp ? `Parent: ${parentRoute()}` : 'No parent'}
 		>
-			<ChevronUp size={18} strokeWidth={2.5} />
+			<ChevronUp size={22} strokeWidth={2.5} />
 		</button>
 
 		<!-- Down (first child) -->
@@ -122,7 +122,7 @@
 			onclick={goDown}
 			title={canDown ? 'First child' : 'No children'}
 		>
-			<ChevronDown size={18} strokeWidth={2.5} />
+			<ChevronDown size={22} strokeWidth={2.5} />
 		</button>
 
 		<!-- Left (previous sibling) -->
@@ -132,7 +132,7 @@
 			onclick={() => prevSibling && navigate(prevSibling.route)}
 			title={canLeft ? `Previous: ${prevSibling?.menu || prevSibling?.title}` : 'No previous sibling'}
 		>
-			<ChevronLeft size={18} strokeWidth={2.5} />
+			<ChevronLeft size={22} strokeWidth={2.5} />
 		</button>
 
 		<!-- Right (next sibling) -->
@@ -142,13 +142,13 @@
 			onclick={() => nextSibling && navigate(nextSibling.route)}
 			title={canRight ? `Next: ${nextSibling?.menu || nextSibling?.title}` : 'No next sibling'}
 		>
-			<ChevronRight size={18} strokeWidth={2.5} />
+			<ChevronRight size={22} strokeWidth={2.5} />
 		</button>
 
-		<!-- Divider lines -->
+		<!-- Divider lines (45deg diagonal) -->
 		<div class="pointer-events-none absolute inset-0">
-			<div class="absolute left-0 right-0 top-1/2 h-px bg-border/60"></div>
-			<div class="absolute top-0 bottom-0 left-1/2 w-px bg-border/60"></div>
+			<div class="absolute left-1/2 top-1/2 h-px w-[141%] -translate-x-1/2 -translate-y-1/2 rotate-45 bg-border/60"></div>
+			<div class="absolute left-1/2 top-1/2 h-px w-[141%] -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-border/60"></div>
 		</div>
 
 		<!-- Center drag handle -->
