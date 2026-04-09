@@ -11,7 +11,7 @@
 		Folder, File, Loader2, ChevronRight, ExternalLink, ArrowUpDown, GripVertical
 	} from 'lucide-svelte';
 
-	type SortField = 'order' | 'title' | 'modified' | 'date';
+	type SortField = 'default' | 'order' | 'title' | 'modified' | 'date';
 
 	interface Props {
 		searchQuery?: string;
@@ -78,7 +78,7 @@
 		return pages.filter(p => visibleRoutes!.has(p.route));
 	}
 
-	let sortField = $state<SortField>('order');
+	let sortField = $state<SortField>('default');
 	let sortOrder = $state<'asc' | 'desc'>('asc');
 
 	interface Column {
@@ -368,7 +368,8 @@
 			value={`${sortField}:${sortOrder}`}
 			onchange={handleSortChange}
 		>
-			<option value="order:asc">Order</option>
+			<option value="default:asc">Default</option>
+			<option value="order:asc">Folder Order</option>
 			<option value="title:asc">Title A-Z</option>
 			<option value="title:desc">Title Z-A</option>
 			<option value="modified:desc">Newest</option>
@@ -428,7 +429,7 @@
 								<File size={14} class="shrink-0 {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground'}" />
 							{/if}
 							<div class="min-w-0 flex-1">
-								<div class="truncate text-[13px] font-medium">{page.title}</div>
+								<div class="truncate text-[13px] font-medium">{page.menu}</div>
 							</div>
 							{#if page.has_children}
 								<ChevronRight size={12} class="shrink-0 {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground/50'}" />

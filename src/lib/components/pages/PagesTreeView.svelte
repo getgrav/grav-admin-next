@@ -11,7 +11,7 @@
 		ArrowUp, ArrowDown, GripVertical
 	} from 'lucide-svelte';
 
-	type SortField = 'order' | 'title' | 'modified' | 'date' | 'slug';
+	type SortField = 'default' | 'order' | 'title' | 'modified' | 'date' | 'slug';
 
 	interface Props {
 		searchQuery?: string;
@@ -28,7 +28,7 @@
 	let expandedRoutes = $state<Set<string>>(new Set(['/']));
 	let rootPages = $state<PageSummary[]>([]);
 	let rootLoading = $state(true);
-	let sortField = $state<SortField>('order');
+	let sortField = $state<SortField>('default');
 	let sortOrder = $state<'asc' | 'desc'>('asc');
 
 	// Drag-and-drop state
@@ -351,7 +351,7 @@
 					<button class="min-w-0 flex-1 text-left pl-1" onclick={() => onEdit(page.route)}>
 						<div class="flex items-center gap-1.5">
 							<span class="truncate text-sm font-medium group-hover:text-primary
-								{lang && page.language !== lang ? 'text-muted-foreground italic' : 'text-foreground'}">{page.title}</span>
+								{lang && page.language !== lang ? 'text-muted-foreground italic' : 'text-foreground'}">{page.menu}</span>
 							{#if lang && page.translated_languages}
 								<TranslationBadges translated={Object.keys(page.translated_languages)} currentLang={lang} />
 							{/if}

@@ -3,6 +3,7 @@ import { api } from '../client';
 export interface PageSummary {
 	route: string;
 	title: string;
+	menu: string;
 	template: string;
 	slug: string;
 	language: string | null;

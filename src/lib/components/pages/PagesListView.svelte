@@ -26,8 +26,8 @@
 	let loading = $state(true);
 	let currentPage = $state(1);
 	let totalPages = $state(1);
-	let sortField = $state<PageListParams['sort']>('modified');
-	let sortOrder = $state<'asc' | 'desc'>('desc');
+	let sortField = $state<PageListParams['sort']>('order');
+	let sortOrder = $state<'asc' | 'desc'>('asc');
 	const perPage = 20;
 
 	// Drag state
@@ -79,7 +79,8 @@
 	const filteredPages = $derived(
 		searchQuery
 			? pages.filter(p =>
-				p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				p.menu.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				p.route.toLowerCase().includes(searchQuery.toLowerCase()))
 			: pages
 	);
@@ -242,7 +243,7 @@
 				<button class="min-w-0 flex-1 text-left" onclick={() => onEdit(page.route)}>
 					<div class="flex items-center gap-1.5">
 						<span class="truncate text-sm font-medium group-hover:text-primary
-							{lang && page.language !== lang ? 'text-muted-foreground italic' : 'text-foreground'}">{page.title}</span>
+							{lang && page.language !== lang ? 'text-muted-foreground italic' : 'text-foreground'}">{page.menu}</span>
 						{#if lang && page.translated_languages}
 							<TranslationBadges translated={Object.keys(page.translated_languages)} currentLang={lang} />
 						{/if}
