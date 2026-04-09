@@ -147,8 +147,8 @@
 
 		<!-- Divider lines (45deg diagonal) -->
 		<div class="pointer-events-none absolute inset-0">
-			<div class="absolute left-1/2 top-1/2 h-px w-[141%] -translate-x-1/2 -translate-y-1/2 rotate-45 bg-border"></div>
-			<div class="absolute left-1/2 top-1/2 h-px w-[141%] -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-border"></div>
+			<div class="absolute left-1/2 top-1/2 h-px w-[141%] -translate-x-1/2 -translate-y-1/2 rotate-45 bg-muted-foreground/40"></div>
+			<div class="absolute left-1/2 top-1/2 h-px w-[141%] -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-muted-foreground/40"></div>
 		</div>
 
 		<!-- Center drag handle -->
@@ -196,21 +196,21 @@
 	.nav-up {
 		clip-path: polygon(0 0, 100% 0, 50% 50%);
 		align-items: start;
-		padding-top: 12%;
+		padding-top: 8%;
 	}
 	.nav-down {
 		clip-path: polygon(0 100%, 100% 100%, 50% 50%);
 		align-items: end;
-		padding-bottom: 12%;
+		padding-bottom: 8%;
 	}
 	.nav-left {
 		clip-path: polygon(0 0, 0 100%, 50% 50%);
 		justify-content: start;
-		padding-left: 12%;
+		padding-left: 8%;
 	}
 	.nav-right {
 		clip-path: polygon(100% 0, 100% 100%, 50% 50%);
 		justify-content: end;
-		padding-right: 12%;
+		padding-right: 8%;
 	}
 </style>
