@@ -44,18 +44,21 @@
 		}
 	});
 
-	// Re-fetch badges on page save events
+	// Re-fetch badges on save events (pages, config, plugins, themes)
 	onMount(() => {
-		const unsub = invalidations.subscribe('pages:update', () => {
-			fetchBadges();
-		});
+		const unsubs = [
+			invalidations.subscribe('pages:update', () => fetchBadges()),
+			invalidations.subscribe('config:update', () => fetchBadges()),
+			invalidations.subscribe('plugins:update', () => fetchBadges()),
+			invalidations.subscribe('themes:update', () => fetchBadges()),
+		];
 
 		// Listen for revisions-changed events from web components
 		const handleChanged = () => fetchBadges();
 		window.addEventListener('grav:revisions:changed', handleChanged);
 
 		return () => {
-			unsub();
+			unsubs.forEach(u => u());
 			window.removeEventListener('grav:revisions:changed', handleChanged);
 		};
 	});
