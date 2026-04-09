@@ -192,21 +192,25 @@
 		cursor: not-allowed;
 	}
 
-	/* Clip each quadrant to its quarter of the circle, excluding center 28px circle */
+	/* Clip each quadrant to its quarter of the circle */
 	.nav-up {
 		clip-path: polygon(0 0, 100% 0, 50% 50%);
-		padding-bottom: 30%;
+		align-items: start;
+		padding-top: 12%;
 	}
 	.nav-down {
 		clip-path: polygon(0 100%, 100% 100%, 50% 50%);
-		padding-top: 30%;
+		align-items: end;
+		padding-bottom: 12%;
 	}
 	.nav-left {
 		clip-path: polygon(0 0, 0 100%, 50% 50%);
-		padding-right: 30%;
+		justify-content: start;
+		padding-left: 12%;
 	}
 	.nav-right {
 		clip-path: polygon(100% 0, 100% 100%, 50% 50%);
-		padding-left: 30%;
+		justify-content: end;
+		padding-right: 12%;
 	}
 </style>
