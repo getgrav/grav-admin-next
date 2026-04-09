@@ -59,10 +59,22 @@
 		} catch { /* ignore */ }
 	}
 
-	// Dragging state
+	// Dragging state — persist position across sessions
+	const POS_KEY = 'grav_admin_navigator_pos';
 	let dragging = $state(false);
-	let pos = $state({ x: 0, y: 0 });
+	let pos = $state(loadPos());
 	let dragStart = { x: 0, y: 0, px: 0, py: 0 };
+
+	function loadPos(): { x: number; y: number } {
+		try {
+			const raw = localStorage.getItem(POS_KEY);
+			return raw ? JSON.parse(raw) : { x: 0, y: 0 };
+		} catch { return { x: 0, y: 0 }; }
+	}
+
+	function savePos() {
+		localStorage.setItem(POS_KEY, JSON.stringify(pos));
+	}
 
 	function onPointerDown(e: PointerEvent) {
 		if ((e.target as HTMLElement).closest('button')) return;
@@ -81,6 +93,7 @@
 
 	function onPointerUp() {
 		dragging = false;
+		savePos();
 	}
 </script>
 
