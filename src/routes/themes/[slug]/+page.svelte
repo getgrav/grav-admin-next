@@ -21,6 +21,7 @@
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import { Undo2 } from 'lucide-svelte';
+	import ContextPanelTriggers from '$lib/components/context-panels/ContextPanelTriggers.svelte';
 
 	const REDACTED = '********';
 
@@ -332,6 +333,7 @@
 					Undo
 				</Button>
 			{/if}
+			<ContextPanelTriggers context="themes" route={slug} lang="" />
 			{#if theme}
 				<!-- Delete button -->
 				<Button

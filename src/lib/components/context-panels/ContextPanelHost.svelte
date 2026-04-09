@@ -98,6 +98,7 @@
 		if (ctx) {
 			el.setAttribute('route', ctx.route);
 			el.setAttribute('lang', ctx.lang);
+			el.setAttribute('type', ctx.type);
 		}
 
 		// Listen for events from the web component
@@ -143,12 +144,13 @@
 		});
 	});
 
-	// Update context attributes when route/lang changes while panel is open
+	// Update context attributes when route/lang/type changes while panel is open
 	$effect(() => {
 		const ctx = contextPanelStore.context;
 		if (mountedEl && ctx) {
 			mountedEl.setAttribute('route', ctx.route);
 			mountedEl.setAttribute('lang', ctx.lang);
+			mountedEl.setAttribute('type', ctx.type);
 		}
 	});
 

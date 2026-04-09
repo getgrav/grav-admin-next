@@ -23,6 +23,7 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
 	import { Undo2 } from 'lucide-svelte';
+	import ContextPanelTriggers from '$lib/components/context-panels/ContextPanelTriggers.svelte';
 
 	const REDACTED = '********';
 
@@ -367,6 +368,7 @@
 					Undo
 				</Button>
 			{/if}
+			<ContextPanelTriggers context="plugins" route={slug} lang="" />
 			{#if plugin}
 				<!-- Delete button -->
 				<Button

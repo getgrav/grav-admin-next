@@ -17,6 +17,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
+	import ContextPanelTriggers from '$lib/components/context-panels/ContextPanelTriggers.svelte';
 
 	const REDACTED = '********';
 	const translateLabel = i18n.tMaybe;
@@ -241,6 +242,7 @@
 									Undo
 								</Button>
 							{/if}
+							<ContextPanelTriggers context="config" route={scope} lang="" />
 							<Button variant="outline" size="sm" onclick={handleReload} disabled={loading || saving}>
 								<RefreshCw size={14} />
 								Reload

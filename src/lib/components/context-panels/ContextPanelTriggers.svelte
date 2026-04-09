@@ -26,7 +26,7 @@
 			if (!panel.badgeEndpoint) continue;
 			try {
 				const separator = panel.badgeEndpoint.includes('?') ? '&' : '?';
-				const url = `${panel.badgeEndpoint}${separator}route=${encodeURIComponent(route)}&lang=${encodeURIComponent(lang)}`;
+				const url = `${panel.badgeEndpoint}${separator}route=${encodeURIComponent(route)}&lang=${encodeURIComponent(lang)}&type=${encodeURIComponent(context)}`;
 				const result = await api.get<{ count: number }>(url);
 				contextPanelStore.setBadge(panel.id, result.count);
 			} catch {
