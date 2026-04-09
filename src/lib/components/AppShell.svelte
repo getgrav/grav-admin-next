@@ -18,6 +18,8 @@
 	import { navBadges } from '$lib/stores/navBadges.svelte';
 	import { floatingWidgetStore } from '$lib/stores/floatingWidgets.svelte';
 	import FloatingWidgetLoader from '$lib/components/floating-widgets/FloatingWidgetLoader.svelte';
+	import { contextPanelStore } from '$lib/stores/contextPanels.svelte';
+	import ContextPanelHost from '$lib/components/context-panels/ContextPanelHost.svelte';
 	import ReauthModal from '$lib/components/auth/ReauthModal.svelte';
 	import type { Snippet } from 'svelte';
 	import {
@@ -45,10 +47,12 @@
 		if (auth.isAuthenticated) {
 			sidebarStore.load();
 			floatingWidgetStore.load();
+			contextPanelStore.load();
 			navBadges.load();
 		} else {
 			sidebarStore.clear();
 			floatingWidgetStore.clear();
+			contextPanelStore.clear();
 			navBadges.clear();
 		}
 	});
@@ -267,6 +271,7 @@
 		</main>
 	</div>
 
+	<ContextPanelHost />
 	<FloatingWidgetLoader />
 	<ReauthModal />
 </div>

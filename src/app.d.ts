@@ -20,6 +20,8 @@ declare global {
 		__GRAV_CONTENT_LANG: string;
 		__GRAV_PAGE_LOADING: Record<string, Promise<void> | undefined>;
 		__GRAV_FIELD_LOADING: Record<string, Promise<void> | undefined>;
+		__GRAV_PANEL_TAG: string;
+		__GRAV_PANEL_LOADING: Record<string, Promise<void> | undefined>;
 	}
 }
 

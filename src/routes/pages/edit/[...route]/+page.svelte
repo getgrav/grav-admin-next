@@ -36,6 +36,7 @@
 	import SelectField from '$lib/components/blueprint/fields/SelectField.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
+	import ContextPanelTriggers from '$lib/components/context-panels/ContextPanelTriggers.svelte';
 
 	const route = $derived('/' + (page.params.route || ''));
 
@@ -678,6 +679,8 @@
 					Undo
 				</Button>
 			{/if}
+			<!-- Context panel triggers (e.g., revisions) -->
+			<ContextPanelTriggers context="pages" route={route} lang={contentLang.activeLang} />
 			<!-- Page navigator toggle -->
 			<button
 				class="inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors
