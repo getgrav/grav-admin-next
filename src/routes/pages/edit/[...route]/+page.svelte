@@ -17,8 +17,9 @@
 	import { toast } from 'svelte-sonner';
 	import {
 		Save, Trash2, ArrowLeft, Code,
-		AlertCircle, ChevronDown, Loader2, Eye, ExternalLink, X, Undo2, Languages
+		AlertCircle, ChevronDown, Loader2, Eye, ExternalLink, X, Undo2, Languages, Move
 	} from 'lucide-svelte';
+	import PageNavigator from '$lib/components/pages/PageNavigator.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
@@ -111,6 +112,7 @@
 	let saving = $state(false);
 	let error = $state('');
 	let showRawEditor = $state(false);
+	let showNavigator = $state(false);
 
 	// Guard against concurrent loadPage() calls — only the latest one applies
 	let loadGeneration = 0;
@@ -676,6 +678,17 @@
 					Undo
 				</Button>
 			{/if}
+			<!-- Page navigator toggle -->
+			<button
+				class="inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors
+					{showNavigator
+						? 'border-primary bg-primary/10 text-primary'
+						: 'border-border text-muted-foreground hover:bg-accent hover:text-foreground'}"
+				onclick={() => showNavigator = !showNavigator}
+				title="Toggle page navigator"
+			>
+				<Move size={14} />
+			</button>
 			<!-- Normal / Expert toggle -->
 			<div class="inline-flex rounded-md border border-border shadow-sm">
 				<button
@@ -1148,4 +1161,8 @@
 			</div>
 		</div>
 	</div>
+{/if}
+
+{#if showNavigator && pageData}
+	<PageNavigator route={route} hasChildren={pageData.has_children} />
 {/if}

@@ -129,6 +129,65 @@
 		}
 	}
 
+	// Persist selected path across reloads
+	const STORAGE_KEY = 'grav_admin_pages_miller_path';
+
+	function saveSelectionPath() {
+		const path = columns
+			.filter(c => c.selectedRoute)
+			.map(c => c.selectedRoute!);
+		if (path.length > 0) {
+			sessionStorage.setItem(STORAGE_KEY, JSON.stringify(path));
+		} else {
+			sessionStorage.removeItem(STORAGE_KEY);
+		}
+	}
+
+	function getSavedPath(): string[] {
+		try {
+			const raw = sessionStorage.getItem(STORAGE_KEY);
+			return raw ? JSON.parse(raw) : [];
+		} catch { return []; }
+	}
+
+	async function restoreColumns(savedPath: string[]) {
+		// Load root first
+		const rootPages = await loadColumn('/');
+		const result: Column[] = [{
+			parentRoute: '/',
+			pages: rootPages,
+			selectedRoute: null,
+			loading: false,
+		}];
+
+		// Walk the saved path, loading each level
+		for (const route of savedPath) {
+			const lastCol = result[result.length - 1];
+			const page = lastCol.pages.find(p => p.route === route);
+			if (!page) break; // page no longer exists — stop here
+
+			lastCol.selectedRoute = route;
+
+			if (page.has_children) {
+				const children = await loadColumn(route);
+				result.push({
+					parentRoute: route,
+					pages: children,
+					selectedRoute: null,
+					loading: false,
+				});
+			}
+		}
+
+		columns = result;
+
+		// Load preview for last selected
+		const lastRoute = savedPath[savedPath.length - 1];
+		if (lastRoute && result.some(c => c.selectedRoute === lastRoute)) {
+			loadPreview(lastRoute);
+		}
+	}
+
 	// Initialize with root, reload when lang changes
 	let prevLang = lang;
 	$effect(() => {
@@ -137,15 +196,20 @@
 			previewPage = null;
 			allPagesCache = null;
 		}
-		(async () => {
-			const rootPages = await loadColumn('/');
-			columns = [{
-				parentRoute: '/',
-				pages: rootPages,
-				selectedRoute: null,
-				loading: false,
-			}];
-		})();
+		const savedPath = getSavedPath();
+		if (savedPath.length > 0) {
+			restoreColumns(savedPath);
+		} else {
+			(async () => {
+				const rootPages = await loadColumn('/');
+				columns = [{
+					parentRoute: '/',
+					pages: rootPages,
+					selectedRoute: null,
+					loading: false,
+				}];
+			})();
+		}
 	});
 
 	// Refetch on external mutations or tab refocus — reload only the root column;
@@ -193,6 +257,9 @@
 
 		// Always load preview for selected page
 		loadPreview(page.route);
+
+		// Persist selection path for reload restoration
+		saveSelectionPath();
 	}
 
 	function formatDate(dateStr: string): string {
@@ -212,7 +279,7 @@
 			.filter(c => c.selectedRoute)
 			.map(c => {
 				const page = c.pages.find(p => p.route === c.selectedRoute);
-				return { route: c.selectedRoute!, title: page?.title ?? c.selectedRoute! };
+				return { route: c.selectedRoute!, title: page?.menu ?? page?.title ?? c.selectedRoute! };
 			})
 	);
 
