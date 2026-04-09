@@ -147,8 +147,8 @@
 
 		<!-- Divider lines (45deg diagonal) -->
 		<div class="pointer-events-none absolute inset-0">
-			<div class="absolute left-1/2 top-1/2 h-px w-[141%] -translate-x-1/2 -translate-y-1/2 rotate-45 bg-border/60"></div>
-			<div class="absolute left-1/2 top-1/2 h-px w-[141%] -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-border/60"></div>
+			<div class="absolute left-1/2 top-1/2 h-px w-[141%] -translate-x-1/2 -translate-y-1/2 rotate-45 bg-border"></div>
+			<div class="absolute left-1/2 top-1/2 h-px w-[141%] -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-border"></div>
 		</div>
 
 		<!-- Center drag handle -->
