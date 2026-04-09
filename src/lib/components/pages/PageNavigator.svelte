@@ -87,12 +87,12 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	class="fixed z-50 select-none"
-	style="bottom: {120 - pos.y}px; right: {24 - pos.x}px;"
+	style="bottom: {80 - pos.y}px; right: {80 - pos.x}px;"
 	onpointerdown={onPointerDown}
 	onpointermove={onPointerMove}
 	onpointerup={onPointerUp}
 >
-	<div class="relative h-[120px] w-[120px] rounded-full border border-border bg-card shadow-xl
+	<div class="relative h-[120px] w-[120px] rounded-full border-2 border-primary/40 bg-card shadow-xl ring-1 ring-primary/10
 		{dragging ? 'cursor-grabbing' : 'cursor-grab'}">
 
 		<!-- Up (parent) -->
