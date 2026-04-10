@@ -1,11 +1,24 @@
 import { api } from './client';
 import { auth } from '$lib/stores/auth.svelte';
+import { base } from '$app/paths';
 
 interface TokenResponse {
 	access_token: string;
 	refresh_token: string;
 	expires_in: number;
 	token_type: string;
+}
+
+interface ChallengeResponse {
+	requires_2fa: true;
+	challenge_token: string;
+	expires_in: number;
+	token_type: 'Challenge';
+}
+
+export interface LoginResult {
+	requires2fa: boolean;
+	challengeToken?: string;
 }
 
 interface UserProfile {
@@ -24,13 +37,11 @@ function parseJwtSubject(token: string): string {
 	}
 }
 
-export async function login(username: string, password: string): Promise<void> {
-	const data = await api.post<TokenResponse>('/auth/token', { username, password });
+async function finalizeLogin(data: TokenResponse, fallbackSubject: string): Promise<void> {
 	auth.setTokens(data.access_token, data.refresh_token, data.expires_in);
 
-	const sub = parseJwtSubject(data.access_token) || username;
+	const sub = parseJwtSubject(data.access_token) || fallbackSubject;
 
-	// Fetch the user's profile to get fullname, email, and avatar
 	try {
 		const profile = await api.get<UserProfile>(`/users/${sub}`);
 		auth.setUser(
@@ -42,6 +53,52 @@ export async function login(username: string, password: string): Promise<void> {
 	} catch {
 		auth.setUser(sub, sub);
 	}
+}
+
+export async function login(username: string, password: string): Promise<LoginResult> {
+	const data = await api.post<TokenResponse | ChallengeResponse>('/auth/token', {
+		username,
+		password,
+	});
+
+	if ('requires_2fa' in data && data.requires_2fa) {
+		return { requires2fa: true, challengeToken: data.challenge_token };
+	}
+
+	await finalizeLogin(data as TokenResponse, username);
+	return { requires2fa: false };
+}
+
+export async function verify2fa(challengeToken: string, code: string): Promise<void> {
+	const data = await api.post<TokenResponse>('/auth/2fa/verify', {
+		challenge_token: challengeToken,
+		code,
+	});
+	await finalizeLogin(data, '');
+}
+
+export async function forgotPassword(email: string): Promise<{ message: string }> {
+	// Send the admin-next origin + base path so the backend can build a
+	// reset link that points back into this admin UI (not the Grav frontend
+	// login plugin's /reset_password page, and not wherever the API happens
+	// to be served from — which can differ when vite proxies in dev).
+	const adminBaseUrl =
+		typeof window !== 'undefined' ? window.location.origin + base : undefined;
+	const body: Record<string, string> = { email };
+	if (adminBaseUrl) body.admin_base_url = adminBaseUrl;
+	return api.post<{ message: string }>('/auth/forgot-password', body);
+}
+
+export async function resetPassword(
+	username: string,
+	token: string,
+	password: string,
+): Promise<{ message: string }> {
+	return api.post<{ message: string }>('/auth/reset-password', {
+		username,
+		token,
+		password,
+	});
 }
 
 export async function logout(): Promise<void> {

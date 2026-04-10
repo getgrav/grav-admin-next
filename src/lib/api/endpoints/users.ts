@@ -10,6 +10,12 @@ export interface UserInfo {
 	avatar_url: string | null;
 	twofa_enabled: boolean;
 	twofa_secret: boolean;
+	/**
+	 * System capability flag — true if plugins.login.twofa_enabled is on
+	 * globally, meaning per-user 2FA is actually enforced at login. Only
+	 * set on single-user detail responses, not the list endpoint.
+	 */
+	twofa_global_enabled?: boolean;
 	created: string | null;
 	modified: string | null;
 }
@@ -106,6 +112,16 @@ export interface TwoFactorData {
 
 export async function generate2fa(username: string): Promise<TwoFactorData> {
 	return api.post<TwoFactorData>(`/users/${username}/2fa`);
+}
+
+export async function enable2fa(username: string, code: string): Promise<{ twofa_enabled: true }> {
+	return api.post<{ twofa_enabled: true }>(`/users/${username}/2fa/enable`, { code });
+}
+
+export async function disable2fa(username: string, code?: string): Promise<{ twofa_enabled: false }> {
+	const body: Record<string, string> = {};
+	if (code) body.code = code;
+	return api.post<{ twofa_enabled: false }>(`/users/${username}/2fa/disable`, body);
 }
 
 // --- API Keys ---

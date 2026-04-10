@@ -81,7 +81,10 @@
 	});
 
 	function populateForm(u: UserInfo) {
-		// Build config data from user properties for blueprint fields
+		// Build config data from user properties for blueprint fields.
+		// twofa_enabled is managed by the dedicated 2FA enroll/disable
+		// endpoints — not the user PATCH — so we intentionally omit it
+		// to keep dirty tracking accurate.
 		configData = {
 			username: u.username,
 			email: u.email ?? '',
@@ -90,7 +93,6 @@
 			state: u.state,
 			language: (u as Record<string, unknown>).language ?? '',
 			content_editor: (u as Record<string, unknown>).content_editor ?? '',
-			twofa_enabled: u.twofa_enabled,
 		};
 		originalJson = JSON.stringify(configData);
 
@@ -387,41 +389,28 @@
 					/>
 				{/if}
 
-				<!-- 2FA Section -->
-				<div class="rounded-xl border border-border bg-card p-5">
-					<h2 class="text-sm font-semibold text-foreground">2-Factor Authentication</h2>
-					<div class="mt-4 space-y-4">
-						<!-- 2FA toggle -->
-						<div class="flex items-center justify-between">
-							<div>
-								<div class="text-sm font-medium text-foreground">2FA Enabled</div>
-								<div class="text-xs text-muted-foreground">Require a one-time code on login</div>
-							</div>
-							<button
-								type="button"
-								class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
-									{configData.twofa_enabled ? 'bg-primary' : 'bg-muted'}"
-								role="switch"
-								aria-checked={!!configData.twofa_enabled}
-								onclick={() => handleBlueprintChange('twofa_enabled', !configData.twofa_enabled)}
-							>
-								<span
-									class="pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform
-										{configData.twofa_enabled ? 'translate-x-5' : 'translate-x-0'}"
-								></span>
-							</button>
-						</div>
-
-						<!-- 2FA secret / QR code -->
-						{#if user}
+				<!-- 2FA Section — only shown when 2FA is globally enabled. If the
+				     admin hasn't enabled 2FA site-wide, per-user enrollment is
+				     meaningless (the login endpoint won't challenge), so we hide
+				     the whole section to avoid a confusing dead-end. -->
+				{#if user && user.twofa_global_enabled}
+					<div class="rounded-xl border border-border bg-card p-5">
+						<h2 class="text-sm font-semibold text-foreground">2-Factor Authentication</h2>
+						<div class="mt-4">
 							<TwoFactorField
 								username={user.username}
-								twofaEnabled={!!configData.twofa_enabled}
+								twofaEnabled={user.twofa_enabled}
 								hasSecret={user.twofa_secret}
+								isAdminActor={user.username !== auth.username}
+								onstatechange={(enabled) => {
+									if (user) {
+										user = { ...user, twofa_enabled: enabled, twofa_secret: enabled };
+									}
+								}}
 							/>
-						{/if}
+						</div>
 					</div>
-				</div>
+				{/if}
 
 				<!-- Permissions (always rendered separately) -->
 				<div class="rounded-xl border border-border bg-card p-5">

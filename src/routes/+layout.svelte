@@ -16,8 +16,12 @@
 
 	let { children } = $props();
 
-	const isLoginPage = $derived(page.url.pathname === `${base}/login`);
-	const needsAuth = $derived(!isLoginPage && !auth.isAuthenticated);
+	const isAuthPage = $derived(
+		page.url.pathname === `${base}/login` ||
+		page.url.pathname === `${base}/forgot` ||
+		page.url.pathname === `${base}/reset`
+	);
+	const needsAuth = $derived(!isAuthPage && !auth.isAuthenticated);
 
 	$effect(() => {
 		if (needsAuth) {
@@ -95,7 +99,7 @@
 	}}
 />
 
-{#if isLoginPage}
+{#if isAuthPage}
 	{@render children()}
 {:else if auth.isAuthenticated}
 	<AppShell>
