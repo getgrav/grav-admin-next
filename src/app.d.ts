@@ -22,6 +22,15 @@ declare global {
 		__GRAV_FIELD_LOADING: Record<string, Promise<void> | undefined>;
 		__GRAV_PANEL_TAG: string;
 		__GRAV_PANEL_LOADING: Record<string, Promise<void> | undefined>;
+		__GRAV_DIALOGS: {
+			confirm: (options: {
+				title?: string;
+				message: string;
+				confirmLabel?: string;
+				cancelLabel?: string;
+				variant?: 'destructive' | 'default';
+			}) => Promise<boolean>;
+		};
 	}
 }
 

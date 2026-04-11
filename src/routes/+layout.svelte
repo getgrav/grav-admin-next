@@ -12,6 +12,8 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { generateFavicon } from '$lib/utils/favicon';
 	import AppShell from '$lib/components/AppShell.svelte';
+	import GlobalDialogs from '$lib/components/ui/GlobalDialogs.svelte';
+	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { Toaster } from 'svelte-sonner';
 
 	let { children } = $props();
@@ -62,6 +64,15 @@
 		}
 	});
 
+	// Expose the confirm dialog API to plugin web components via window.__GRAV_DIALOGS
+	// so they can use the admin-next ConfirmModal instead of native browser confirm().
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+		window.__GRAV_DIALOGS = {
+			confirm: (options) => dialogs.confirm(options),
+		};
+	});
+
 	// Focus-based invalidation safety net: if the tab was blurred for >30s,
 	// emit `*:focus` so list views can pull in any changes made elsewhere.
 	// Only emits on actual focus events, not initial page load.
@@ -98,6 +109,8 @@
 		class: 'grav-toast',
 	}}
 />
+
+<GlobalDialogs />
 
 {#if isAuthPage}
 	{@render children()}
