@@ -12,6 +12,9 @@
 		Search, User, Plus, Loader2, ChevronRight, ChevronLeft,
 		Mail, Shield, ShieldCheck, ShieldOff, BadgeCheck
 	} from 'lucide-svelte';
+	import { canWrite } from '$lib/utils/permissions';
+
+	const canEditUsers = $derived(canWrite('users'));
 
 	let data = $state<UsersPage | null>(null);
 	let loading = $state(true);
@@ -131,10 +134,12 @@
 							<p class="mt-0.5 text-xs text-muted-foreground">{data.total} account{data.total !== 1 ? 's' : ''}</p>
 						{/if}
 					</div>
+					{#if canEditUsers}
 					<Button size="sm" onclick={() => goto(`${base}/users/new`)}>
 						<Plus size={14} />
 						Add User
 					</Button>
+					{/if}
 				</div>
 			</div>
 		{/snippet}

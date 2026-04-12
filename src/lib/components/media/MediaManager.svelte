@@ -16,6 +16,8 @@
 	import MediaList from './MediaList.svelte';
 	import MediaInspector from './MediaInspector.svelte';
 
+	let { readonly = false }: { readonly?: boolean } = $props();
+
 	// Upload state
 	let uploading = $state(false);
 	let uploadProgress = $state<Map<string, number>>(new Map());
@@ -286,18 +288,19 @@
 
 <div class="flex h-full flex-col">
 	<MediaToolbar
-		onupload={handleUploadClick}
-		onnewfolder={handleNewFolder}
-		ondeleteselected={handleDeleteSelected}
+		onupload={readonly ? () => {} : handleUploadClick}
+		onnewfolder={readonly ? () => {} : handleNewFolder}
+		ondeleteselected={readonly ? () => {} : handleDeleteSelected}
+		{readonly}
 	/>
 
 	<!-- Main content area with drop zone -->
 	<div
 		class="relative flex flex-1 overflow-hidden"
-		ondragenter={handleDragEnter}
-		ondragleave={handleDragLeave}
-		ondragover={handleDragOver}
-		ondrop={handleDrop}
+		ondragenter={readonly ? undefined : handleDragEnter}
+		ondragleave={readonly ? undefined : handleDragLeave}
+		ondragover={readonly ? undefined : handleDragOver}
+		ondrop={readonly ? undefined : handleDrop}
 	>
 		<!-- Content panel -->
 		<div class="flex-1 overflow-y-auto">

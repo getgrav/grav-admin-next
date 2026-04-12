@@ -23,6 +23,11 @@
 	import {
 		Save, ArrowLeft, Loader2, AlertCircle, Trash2, User, Undo2
 	} from 'lucide-svelte';
+	import { canWrite } from '$lib/utils/permissions';
+	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
+
+	const canEditUsers = $derived(canWrite('users'));
+	let accessDenied = $state(false);
 
 	const REDACTED = '********';
 
@@ -103,6 +108,7 @@
 	async function loadUser() {
 		loading = true;
 		error = '';
+		accessDenied = false;
 		try {
 			const [userResult, blueprintResult] = await Promise.all([
 				getUser(username),
@@ -113,8 +119,14 @@
 			etag = userResult.etag;
 			blueprint = blueprintResult;
 			populateForm(userResult.user);
-		} catch {
-			error = `Failed to load user '${username}'.`;
+		} catch (err: unknown) {
+			const status = err && typeof err === 'object' && 'status' in err
+				? (err as { status: number }).status : 0;
+			if (status === 403) {
+				accessDenied = true;
+			} else {
+				error = `Failed to load user '${username}'.`;
+			}
 		} finally {
 			loading = false;
 		}
@@ -324,7 +336,7 @@
 								Undo
 							</Button>
 						{/if}
-						{#if user}
+						{#if user && canEditUsers}
 							<Button
 								variant="destructive"
 								size="sm"
@@ -362,6 +374,10 @@
 	{#if loading}
 		<div class="flex flex-1 items-center justify-center">
 			<Loader2 size={24} class="animate-spin text-muted-foreground" />
+		</div>
+	{:else if accessDenied}
+		<div class="px-6 py-4">
+			<AccessDenied message="You don't have permission to view this user." />
 		</div>
 	{:else if error}
 		<div class="flex flex-1 items-center justify-center">

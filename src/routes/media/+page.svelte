@@ -1,6 +1,9 @@
 <script lang="ts">
 	import MediaManager from '$lib/components/media/MediaManager.svelte';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
+	import { canWrite } from '$lib/utils/permissions';
+
+	const canEditMedia = $derived(canWrite('media'));
 </script>
 
 <svelte:head>
@@ -26,6 +29,6 @@
 
 	<!-- Manager fills remaining space -->
 	<div class="flex-1 overflow-hidden">
-		<MediaManager />
+		<MediaManager readonly={!canEditMedia} />
 	</div>
 </div>

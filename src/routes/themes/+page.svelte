@@ -9,6 +9,9 @@
 	import { Search, Palette, ExternalLink, ArrowUpCircle, ChevronRight, Loader2, Plus, RefreshCw, BadgeCheck, Check } from 'lucide-svelte';
 	import { faIconClass, parseKeywords, parseDependencies, isFirstParty } from '$lib/utils/gpm';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { canWrite } from '$lib/utils/permissions';
+
+	const canWriteGpm = $derived(canWrite('gpm'));
 
 	let themes = $state<ThemeInfo[]>([]);
 	let loading = $state(true);
@@ -118,6 +121,7 @@
 							<p class="mt-0.5 text-xs text-muted-foreground">{themes.length} installed</p>
 						{/if}
 					</div>
+					{#if canWriteGpm}
 					<div class="flex items-center gap-2">
 						<Button variant="outline" size="sm" onclick={handleCheckUpdates} disabled={checkingUpdates}>
 							<RefreshCw size={13} class={checkingUpdates ? 'animate-spin' : ''} />
@@ -128,6 +132,7 @@
 							Add
 						</Button>
 					</div>
+					{/if}
 				</div>
 			</div>
 		{/snippet}

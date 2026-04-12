@@ -55,6 +55,11 @@
 			const data = body.data ?? body;
 			auth.setTokens(data.access_token, data.refresh_token, data.expires_in);
 
+			// Update permissions if included in the token response
+			if (data.user) {
+				auth.setPermissions(data.user.super_admin ?? false, data.user.access ?? {});
+			}
+
 			// Re-schedule the refresh timer with the fresh token
 			authSession.schedule();
 			authSession.closeReauth();

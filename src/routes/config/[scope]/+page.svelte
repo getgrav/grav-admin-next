@@ -18,6 +18,8 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
 	import ContextPanelTriggers from '$lib/components/context-panels/ContextPanelTriggers.svelte';
+	import { can, canWrite } from '$lib/utils/permissions';
+	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
 
 	const REDACTED = '********';
 	const translateLabel = i18n.tMaybe;
@@ -34,7 +36,9 @@
 	let saving = $state(false);
 	let error = $state('');
 
+	let accessDenied = $state(false);
 	let hasChanges = $derived(JSON.stringify(configData) !== originalJson);
+	const canSave = $derived(canWrite('config'));
 	let filter = $state('');
 	let headerHeight = $state(0);
 
@@ -55,6 +59,7 @@
 	async function loadConfig() {
 		loading = true;
 		error = '';
+		accessDenied = false;
 		blueprint = null;
 
 		try {
@@ -73,7 +78,11 @@
 			originalJson = JSON.stringify(configResult.data);
 			etag = configResult.etag;
 		} catch (err: unknown) {
-			if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 404) {
+			const status = err && typeof err === 'object' && 'status' in err
+				? (err as { status: number }).status : 0;
+			if (status === 403) {
+				accessDenied = true;
+			} else if (status === 404) {
 				error = `Configuration scope '${scope}' not found.`;
 			} else {
 				error = 'Failed to load configuration.';
@@ -247,7 +256,7 @@
 								<RefreshCw size={14} />
 								Reload
 							</Button>
-							<Button size="sm" onclick={handleSave} disabled={saving || loading || !hasChanges}>
+							<Button size="sm" onclick={handleSave} disabled={saving || loading || !hasChanges || !canSave}>
 								{#if saving}
 									<Loader2 size={14} class="animate-spin" />
 									Saving...
@@ -291,11 +300,17 @@
 	</StickyHeader>
 
 	<div class="relative z-0 space-y-4 px-6 pb-6" style="overflow-anchor: none">
-		{#if error}
+		{#if accessDenied}
+		<AccessDenied message="You don't have permission to view configuration." />
+	{:else if error}
 		<div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
 			<AlertCircle size={16} />
 			{error}
 		</div>
+	{/if}
+
+	{#if !accessDenied && !canSave && !loading && !isInfo && !error}
+		<AccessDenied compact message="You have read-only access to configuration." />
 	{/if}
 
 	{#if loading}

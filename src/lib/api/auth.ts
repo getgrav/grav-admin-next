@@ -7,6 +7,7 @@ interface TokenResponse {
 	refresh_token: string;
 	expires_in: number;
 	token_type: string;
+	user?: UserProfile;
 }
 
 interface ChallengeResponse {
@@ -26,6 +27,9 @@ interface UserProfile {
 	email: string | null;
 	fullname: string | null;
 	avatar_url: string | null;
+	super_admin?: boolean;
+	access?: Record<string, boolean>;
+	content_editor?: string;
 }
 
 function parseJwtSubject(token: string): string {
@@ -42,6 +46,20 @@ async function finalizeLogin(data: TokenResponse, fallbackSubject: string): Prom
 
 	const sub = parseJwtSubject(data.access_token) || fallbackSubject;
 
+	// If the token response includes the user block (new API), use it directly
+	if (data.user) {
+		auth.setUser(
+			data.user.username || sub,
+			data.user.fullname || sub,
+			data.user.email || '',
+			data.user.avatar_url || '',
+			data.user.content_editor || '',
+		);
+		auth.setPermissions(data.user.super_admin ?? false, data.user.access ?? {});
+		return;
+	}
+
+	// Fallback: fetch user profile separately (older API without user block)
 	try {
 		const profile = await api.get<UserProfile>(`/users/${sub}`);
 		auth.setUser(
@@ -50,8 +68,10 @@ async function finalizeLogin(data: TokenResponse, fallbackSubject: string): Prom
 			profile.email || '',
 			profile.avatar_url || '',
 		);
+		auth.setPermissions(profile.super_admin ?? false, profile.access ?? {});
 	} catch {
 		auth.setUser(sub, sub);
+		auth.setPermissions(false, {});
 	}
 }
 
@@ -99,6 +119,26 @@ export async function resetPassword(
 		token,
 		password,
 	});
+}
+
+/**
+ * Refresh the current user's profile and resolved permissions from GET /me.
+ * Called on app startup and after re-authentication to keep permissions fresh.
+ */
+export async function refreshMe(): Promise<void> {
+	try {
+		const profile = await api.get<UserProfile>('/me');
+		auth.setUser(
+			profile.username || auth.username,
+			profile.fullname || auth.username,
+			profile.email || '',
+			profile.avatar_url || undefined,
+			profile.content_editor || '',
+		);
+		auth.setPermissions(profile.super_admin ?? false, profile.access ?? {});
+	} catch {
+		// Non-critical — keep existing permissions
+	}
 }
 
 export async function logout(): Promise<void> {

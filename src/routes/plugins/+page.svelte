@@ -12,6 +12,9 @@
 	import { Search, Puzzle, ExternalLink, ArrowUpCircle, ChevronRight, Loader2, Plus, RefreshCw, BadgeCheck } from 'lucide-svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { faIconClass, parseKeywords, parseDependencies, isFirstParty } from '$lib/utils/gpm';
+	import { canWrite } from '$lib/utils/permissions';
+
+	const canWriteGpm = $derived(canWrite('gpm'));
 
 	const translateLabel = i18n.tMaybe;
 
@@ -163,6 +166,7 @@
 							<p class="mt-0.5 text-xs text-muted-foreground">{plugins.length} installed</p>
 						{/if}
 					</div>
+					{#if canWriteGpm}
 					<div class="flex items-center gap-2">
 						<Button variant="outline" size="sm" onclick={handleCheckUpdates} disabled={checkingUpdates}>
 							<RefreshCw size={13} class={checkingUpdates ? 'animate-spin' : ''} />
@@ -173,6 +177,7 @@
 							Add
 						</Button>
 					</div>
+					{/if}
 				</div>
 			</div>
 		{/snippet}
@@ -250,7 +255,7 @@
 									? 'bg-green-500/15 text-green-600 hover:bg-green-500/25 dark:text-green-400'
 									: 'bg-muted text-muted-foreground hover:bg-muted/80'}"
 							onclick={(e) => toggleEnabled(plugin, e)}
-							disabled={togglingSlug === plugin.slug}
+							disabled={togglingSlug === plugin.slug || !canWriteGpm}
 						>
 							{#if togglingSlug === plugin.slug}
 								<Loader2 size={10} class="inline animate-spin" />

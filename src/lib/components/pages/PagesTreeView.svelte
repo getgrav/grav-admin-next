@@ -18,7 +18,7 @@
 		reorderMode?: boolean;
 		lang?: string;
 		onEdit: (route: string) => void;
-		onDelete: (page: PageSummary) => void;
+		onDelete?: (page: PageSummary) => void;
 	}
 
 	let { searchQuery = '', reorderMode = false, lang, onEdit, onDelete }: Props = $props();
@@ -377,6 +377,7 @@
 						{formatDate(page.modified)}
 					</div>
 
+					{#if onDelete}
 					<div class="flex w-10 justify-end opacity-0 transition-opacity group-hover:opacity-100">
 						<button
 							class="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
@@ -386,6 +387,7 @@
 							<Trash2 size={12} />
 						</button>
 					</div>
+					{/if}
 				{/if}
 			</div>
 

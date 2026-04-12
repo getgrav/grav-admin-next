@@ -37,6 +37,11 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
 	import ContextPanelTriggers from '$lib/components/context-panels/ContextPanelTriggers.svelte';
+	import { canWrite } from '$lib/utils/permissions';
+	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
+
+	const canEditPages = $derived(canWrite('pages'));
+	let accessDenied = $state(false);
 
 	const route = $derived('/' + (page.params.route || ''));
 
@@ -252,6 +257,7 @@
 		const gen = ++loadGeneration;
 		loading = true;
 		error = '';
+		accessDenied = false;
 		try {
 			const activeLang = lang ?? (contentLang.enabled ? contentLang.activeLang : undefined);
 			const data = await getPage(route, { render: false, translations: true, lang: activeLang });
@@ -284,7 +290,11 @@
 			if (gen !== loadGeneration) return;
 		} catch (err: unknown) {
 			if (gen !== loadGeneration) return;
-			if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 404) {
+			const status = err && typeof err === 'object' && 'status' in err
+				? (err as { status: number }).status : 0;
+			if (status === 403) {
+				accessDenied = true;
+			} else if (status === 404) {
 				error = `Page not found: ${route}`;
 			} else {
 				error = 'Failed to load page';
@@ -709,10 +719,12 @@
 					onclick={() => { if (prefs.editorMode === 'normal') switchToExpert(); }}
 				>Expert</button>
 			</div>
+			{#if canEditPages}
 			<Button variant="destructive" size="sm" onclick={handleDelete} disabled={loading}>
 				<Trash2 size={14} />
 				Delete
 			</Button>
+			{/if}
 			{#if contentLang.enabled}
 				<LanguageSwitcher compact translatedLangs={pageData?.translated_languages ? Object.keys(pageData.translated_languages) : undefined} onchange={handleLanguageSwitch} />
 			{/if}
@@ -721,6 +733,7 @@
 				Preview
 			</Button>
 			<!-- Save button with Save As dropdown -->
+			{#if canEditPages}
 			<div class="relative flex">
 				<Button size="sm" class="{(hasChanges || canCreateTranslation) ? '' : 'opacity-50 pointer-events-none'} {contentLang.enabled && pageData?.untranslated_languages && pageData.untranslated_languages.length > 0 ? 'rounded-r-none' : ''}" onclick={triggerSave} disabled={saving || loading}>
 					{#if saving}
@@ -760,6 +773,7 @@
 					{/if}
 				{/if}
 			</div>
+			{/if}
 		</div>
 				</div>
 			</div>
@@ -767,7 +781,9 @@
 	</StickyHeader>
 
 	<div class="relative z-0 space-y-4 px-6 pb-6">
-		{#if error}
+		{#if accessDenied}
+		<AccessDenied message="You don't have permission to view this page." />
+	{:else if error}
 		<div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
 			<AlertCircle size={16} />
 			{error}

@@ -11,6 +11,8 @@ interface StoredAuth {
 	fullname: string;
 	email: string;
 	avatarUrl: string;
+	superAdmin?: boolean;
+	access?: Record<string, boolean>;
 }
 
 function loadStored(): StoredAuth | null {
@@ -71,9 +73,12 @@ function createAuthStore() {
 	let email = $state(stored?.email ?? '');
 	let avatarUrl = $state(stored?.avatarUrl ?? '');
 	let contentEditor = $state('');
+	let superAdmin = $state(stored?.superAdmin ?? false);
+	let access = $state<Record<string, boolean>>(stored?.access ?? {});
 
 	const isAuthenticated = $derived(!!accessToken && Date.now() < expiresAt);
 	const isExpiringSoon = $derived(!!accessToken && expiresAt - Date.now() < 5 * 60 * 1000);
+	const isSuperAdmin = $derived(superAdmin);
 	const hasGravConfig = gravConfig !== null;
 
 	function persist() {
@@ -88,6 +93,8 @@ function createAuthStore() {
 			fullname,
 			email,
 			avatarUrl,
+			superAdmin,
+			access,
 		};
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 	}
@@ -114,6 +121,8 @@ function createAuthStore() {
 
 		get isAuthenticated() { return isAuthenticated; },
 		get isExpiringSoon() { return isExpiringSoon; },
+		get isSuperAdmin() { return isSuperAdmin; },
+		get access() { return access; },
 		get hasGravConfig() { return hasGravConfig; },
 
 		setTokens(access: string, refresh: string, expiresIn: number) {
@@ -138,6 +147,12 @@ function createAuthStore() {
 			persist();
 		},
 
+		setPermissions(isSuperAdmin: boolean, permissions: Record<string, boolean>) {
+			superAdmin = isSuperAdmin;
+			access = permissions;
+			persist();
+		},
+
 		setServer(url: string, env: string, prefix = '/api/v1') {
 			serverUrl = url.replace(/\/+$/, '');
 			environment = env;
@@ -153,6 +168,8 @@ function createAuthStore() {
 			fullname = '';
 			email = '';
 			avatarUrl = '';
+			superAdmin = false;
+			access = {};
 			persist();
 		}
 	};

@@ -6,11 +6,11 @@
 	import { authSession } from '$lib/stores/auth-session.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
-	import { logout } from '$lib/api/auth';
+	import { logout, refreshMe } from '$lib/api/auth';
 	import { api } from '$lib/api/client';
+	import { can } from '$lib/utils/permissions';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
 	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
-	import { getUser } from '$lib/api/endpoints/users';
 	import CacheClearButton from '$lib/components/menubar/CacheClearButton.svelte';
 	import MenubarLinks from '$lib/components/menubar/MenubarLinks.svelte';
 	import PluginMenubarItems from '$lib/components/menubar/PluginMenubarItems.svelte';
@@ -57,34 +57,34 @@
 		}
 	});
 
-	// Refresh user profile on mount to keep avatar URL fresh
+	// Refresh user profile and permissions on mount
 	$effect(() => {
 		if (auth.isAuthenticated && auth.username) {
-			getUser(auth.username).then(({ user }) => {
-				auth.setUser(
-					user.username,
-					user.fullname || user.username,
-					user.email || '',
-					user.avatar_url || undefined,
-					(user as Record<string, unknown>).content_editor as string || '',
-				);
-			}).catch(() => {});
+			refreshMe();
 		}
 	});
 
 	let collapsed = $state(false);
 	let mobileOpen = $state(false);
 
-	const navItems: { href: string; label: string; icon: typeof LayoutDashboard; badgeKey?: string }[] = [
+	const navItems: { href: string; label: string; icon: typeof LayoutDashboard; badgeKey?: string; permission?: string }[] = [
 		{ href: `${base}/`, label: 'Dashboard', icon: LayoutDashboard },
-		{ href: `${base}/config`, label: 'Configuration', icon: Settings },
-		{ href: `${base}/users`, label: 'Users', icon: Users, badgeKey: 'users' },
-		{ href: `${base}/pages`, label: 'Pages', icon: FileText, badgeKey: 'pages' },
-		{ href: `${base}/media`, label: 'Media', icon: Image, badgeKey: 'media' },
-		{ href: `${base}/plugins`, label: 'Plugins', icon: Puzzle, badgeKey: 'plugins' },
-		{ href: `${base}/themes`, label: 'Themes', icon: Palette, badgeKey: 'themes' },
-		{ href: `${base}/tools`, label: 'Tools', icon: Wrench },
+		{ href: `${base}/config`, label: 'Configuration', icon: Settings, permission: 'api.config.read' },
+		{ href: `${base}/users`, label: 'Users', icon: Users, badgeKey: 'users', permission: 'api.users.read' },
+		{ href: `${base}/pages`, label: 'Pages', icon: FileText, badgeKey: 'pages', permission: 'api.pages.read' },
+		{ href: `${base}/media`, label: 'Media', icon: Image, badgeKey: 'media', permission: 'api.media.read' },
+		{ href: `${base}/plugins`, label: 'Plugins', icon: Puzzle, badgeKey: 'plugins', permission: 'api.gpm.read' },
+		{ href: `${base}/themes`, label: 'Themes', icon: Palette, badgeKey: 'themes', permission: 'api.gpm.read' },
+		{ href: `${base}/tools`, label: 'Tools', icon: Wrench, permission: 'api.system.read' },
 	];
+
+	const visibleNavItems = $derived(
+		navItems.filter(item => !item.permission || can(item.permission))
+	);
+
+	const visiblePluginItems = $derived(
+		sidebarStore.items
+	);
 
 	const settingsItem = { href: `${base}/settings`, label: 'Settings', icon: SlidersHorizontal };
 
@@ -129,7 +129,7 @@
 
 		<nav class="flex-1 overflow-y-auto px-2 py-2">
 			<ul class="space-y-0.5">
-				{#each navItems as item}
+				{#each visibleNavItems as item}
 					<li>
 						<a href={item.href}
 							class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors
@@ -148,9 +148,9 @@
 						</a>
 					</li>
 				{/each}
-				{#if sidebarStore.items.length > 0}
+				{#if visiblePluginItems.length > 0}
 					<li class="my-1 border-t border-sidebar-border"></li>
-					{#each sidebarStore.items as item (item.id)}
+					{#each visiblePluginItems as item (item.id)}
 						<li>
 							<a href="{base}{item.route}"
 								class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors

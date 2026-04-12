@@ -10,9 +10,10 @@
 		onupload: () => void;
 		onnewfolder: () => void;
 		ondeleteselected: () => void;
+		readonly?: boolean;
 	}
 
-	let { onupload, onnewfolder, ondeleteselected }: Props = $props();
+	let { onupload, onnewfolder, ondeleteselected, readonly = false }: Props = $props();
 
 	let searchInput = $state('');
 	let searchTimer: ReturnType<typeof setTimeout> | null = null;
@@ -168,6 +169,7 @@
 	<!-- Separator -->
 	<div class="h-5 w-px bg-border"></div>
 
+	{#if !readonly}
 	<!-- Bulk actions -->
 	{#if selectionCount > 0}
 		<button
@@ -197,4 +199,5 @@
 		<Upload size={13} />
 		<span class="hidden md:inline">Upload</span>
 	</button>
+	{/if}
 </div>

@@ -19,6 +19,9 @@
 		Plus, Search, TreePine, List, Columns3, X, ArrowUpDown
 	} from 'lucide-svelte';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
+	import { canWrite } from '$lib/utils/permissions';
+
+	const canEditPages = $derived(canWrite('pages'));
 
 	let searchQuery = $state('');
 	let reorderMode = $state(false);
@@ -88,10 +91,12 @@
 							</p>
 						{/if}
 					</div>
+					{#if canEditPages}
 					<Button size="sm" onclick={() => goto(`${base}/pages/new`)}>
 						<Plus size={14} />
 						Add Page
 					</Button>
+					{/if}
 				</div>
 
 				<!-- Toolbar -->
@@ -124,6 +129,7 @@
 		{/if}
 
 		<!-- Reorder mode toggle -->
+		{#if canEditPages}
 		<button
 			class="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-[12px] font-medium transition-colors
 				{reorderMode
@@ -135,6 +141,7 @@
 			<ArrowUpDown size={14} />
 			<span class="hidden sm:inline">{reorderMode ? 'Done' : 'Reorder / Move'}</span>
 		</button>
+		{/if}
 
 		<!-- View mode toggle -->
 		<div class="inline-flex rounded-md border border-border shadow-sm">
@@ -161,9 +168,9 @@
 		<!-- View content -->
 	<div class="overflow-hidden rounded-lg border border-border bg-card">
 		{#if prefs.pagesViewMode === 'tree'}
-			<PagesTreeView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={handleDelete} />
+			<PagesTreeView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} />
 		{:else if prefs.pagesViewMode === 'list'}
-			<PagesListView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={handleDelete} />
+			<PagesListView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} />
 		{:else if prefs.pagesViewMode === 'miller'}
 			<PagesMillerView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} />
 		{/if}
