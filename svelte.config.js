@@ -6,10 +6,13 @@ import { fileURLToPath } from 'node:url';
 const isPluginBuild = !!process.env.ADMIN2_PLUGIN_BUILD;
 const pluginAppDir = dirname(fileURLToPath(import.meta.url)) + '/../grav-plugin-admin2/app';
 
-// Base path is a placeholder token that the admin2 PHP plugin substitutes in
-// the built assets the first time a request comes in (and whenever the
-// configured route changes). This lets the plugin be mounted at any route
-// without needing a rebuild.
+// When building for the plugin, the base path is a placeholder token that
+// the admin2 PHP plugin substitutes in materialized assets on first request
+// per-site (and whenever the configured route or site root changes). This
+// lets the plugin be mounted at any route without rebuilding.
+//
+// For standalone dev / build (no plugin), base stays empty so the app runs
+// at root — e.g. `npm run dev` serves at http://localhost:5173/ as normal.
 const BASE_PLACEHOLDER = '/__GRAV_ADMIN2_BASE__';
 
 /** @type {import('@sveltejs/kit').Config} */
@@ -31,7 +34,7 @@ const config = {
 			...(isPluginBuild && { pages: pluginAppDir, assets: pluginAppDir })
 		}),
 		paths: {
-			base: BASE_PLACEHOLDER,
+			base: isPluginBuild ? BASE_PLACEHOLDER : '',
 			relative: false
 		}
 	}
