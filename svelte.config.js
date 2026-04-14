@@ -2,8 +2,8 @@ import adapter from '@sveltejs/adapter-static';
 import { relative, sep, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const isPluginBuild = !!process.env.ADMIN_PRO_BASE;
-const pluginAppDir = dirname(fileURLToPath(import.meta.url)) + '/../grav-plugin-admin-pro/app';
+const isPluginBuild = !!process.env.ADMIN2_BASE;
+const pluginAppDir = dirname(fileURLToPath(import.meta.url)) + '/../grav-plugin-admin2/app';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -24,7 +24,7 @@ const config = {
 			...(isPluginBuild && { pages: pluginAppDir, assets: pluginAppDir })
 		}),
 		paths: {
-			base: process.env.ADMIN_PRO_BASE || '',
+			base: process.env.ADMIN2_BASE || '',
 			relative: false
 		}
 	}
