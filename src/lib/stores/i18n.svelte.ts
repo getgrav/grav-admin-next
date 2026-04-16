@@ -1,8 +1,9 @@
 import { getTranslations } from '$lib/api/endpoints/translations';
 import { getLocalStrings } from '$lib/i18n';
+import { scopedKey } from '$lib/utils/scopedStorage';
 
-const CACHE_KEY = 'grav_admin_i18n';
-const CACHE_CHECKSUM_KEY = 'grav_admin_i18n_checksum';
+const CACHE_KEY = scopedKey('grav_admin_i18n');
+const CACHE_CHECKSUM_KEY = scopedKey('grav_admin_i18n_checksum');
 
 interface CachedTranslations {
 	lang: string;

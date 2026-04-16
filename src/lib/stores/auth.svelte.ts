@@ -1,4 +1,6 @@
-const STORAGE_KEY = 'grav_admin_auth';
+import { scopedKey } from '$lib/utils/scopedStorage';
+
+const STORAGE_KEY = scopedKey('grav_admin_auth');
 
 interface StoredAuth {
 	serverUrl: string;

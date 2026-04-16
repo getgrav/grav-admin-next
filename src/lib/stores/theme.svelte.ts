@@ -1,4 +1,6 @@
-const THEME_STORAGE_KEY = 'grav_admin_theme';
+import { scopedKey } from '$lib/utils/scopedStorage';
+
+const THEME_STORAGE_KEY = scopedKey('grav_admin_theme');
 
 type ColorMode = 'light' | 'dark';
 

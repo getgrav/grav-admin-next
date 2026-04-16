@@ -1,6 +1,7 @@
 import { getSiteLanguages, type LanguageInfo } from '$lib/api/endpoints/languages';
+import { scopedKey } from '$lib/utils/scopedStorage';
 
-const STORAGE_KEY = 'grav_admin_content_lang';
+const STORAGE_KEY = scopedKey('grav_admin_content_lang');
 
 function loadStored(): { activeLang?: string } {
 	try {
