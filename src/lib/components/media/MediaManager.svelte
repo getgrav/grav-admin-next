@@ -44,7 +44,7 @@
 
 	function getAuthHeaders(): Record<string, string> {
 		const h: Record<string, string> = {};
-		if (auth.accessToken) h['Authorization'] = `Bearer ${auth.accessToken}`;
+		if (auth.accessToken) h['X-API-Token'] = auth.accessToken;
 		if (auth.environment) h['X-Grav-Environment'] = auth.environment;
 		return h;
 	}

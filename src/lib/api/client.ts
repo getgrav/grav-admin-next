@@ -49,9 +49,13 @@ class ApiClient {
 			Accept: 'application/json'
 		};
 
+		// Use X-API-Token instead of Authorization: Bearer. FPM / FastCGI /
+		// CGI setups (notably MAMP) silently strip the Authorization header
+		// before it reaches PHP; any X-* header passes through cleanly. The
+		// server also accepts Authorization: Bearer for external clients.
 		const token = auth.accessToken;
 		if (token) {
-			h['Authorization'] = `Bearer ${token}`;
+			h['X-API-Token'] = token;
 		}
 
 		const env = auth.environment;
@@ -65,7 +69,7 @@ class ApiClient {
 	private get authHeaders(): Record<string, string> {
 		const h: Record<string, string> = { Accept: 'application/json' };
 		const token = auth.accessToken;
-		if (token) h['Authorization'] = `Bearer ${token}`;
+		if (token) h['X-API-Token'] = token;
 		const env = auth.environment;
 		if (env) h['X-Grav-Environment'] = env;
 		return h;

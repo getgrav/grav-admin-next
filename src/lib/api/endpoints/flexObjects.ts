@@ -149,7 +149,7 @@ export async function getFlexBlueprint(type: string): Promise<BlueprintSchema> {
  */
 export async function exportObjects(type: string): Promise<{ blob: Blob; filename: string }> {
 	const headers: Record<string, string> = { Accept: 'application/x-yaml' };
-	if (auth.accessToken) headers['Authorization'] = `Bearer ${auth.accessToken}`;
+	if (auth.accessToken) headers['X-API-Token'] = auth.accessToken;
 	const response = await fetch(`${api.baseUrl}/flex-objects/${type}/export`, { headers });
 	if (!response.ok) throw new Error('Export failed');
 	const disposition = response.headers.get('content-disposition') ?? '';
