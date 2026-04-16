@@ -29,6 +29,27 @@
 		}
 	});
 
+	// If the backend has no user accounts (e.g. the account backing the stored
+	// token was removed), reauth can never succeed — bounce the user to the
+	// first-run setup wizard instead of letting them sit on a dead modal.
+	$effect(() => {
+		if (!authSession.reauthOpen) return;
+		const baseUrl = `${auth.serverUrl}${auth.apiPrefix || '/api/v1'}`;
+		fetch(`${baseUrl}/auth/setup`, { headers: { Accept: 'application/json' } })
+			.then((r) => (r.ok ? r.json() : null))
+			.then((body) => {
+				const data = body?.data ?? body;
+				if (data?.setup_required) {
+					authSession.rejectPending(new Error('Setup required'));
+					authSession.closeReauth();
+					authSession.stop();
+					auth.logout();
+					goto(`${base}/setup`);
+				}
+			})
+			.catch(() => { /* best-effort — fall through to password prompt */ });
+	});
+
 	async function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
 		if (submitting || !password.trim()) return;

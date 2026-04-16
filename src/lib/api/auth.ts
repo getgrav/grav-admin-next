@@ -89,6 +89,23 @@ export async function login(username: string, password: string): Promise<LoginRe
 	return { requires2fa: false };
 }
 
+export async function getSetupStatus(): Promise<boolean> {
+	const data = await api.get<{ setup_required: boolean }>('/auth/setup');
+	return Boolean(data?.setup_required);
+}
+
+export interface SetupData {
+	username: string;
+	password: string;
+	email: string;
+	fullname?: string;
+}
+
+export async function setupFirstUser(input: SetupData): Promise<void> {
+	const data = await api.post<TokenResponse>('/auth/setup', input);
+	await finalizeLogin(data, input.username);
+}
+
 export async function verify2fa(challengeToken: string, code: string): Promise<void> {
 	const data = await api.post<TokenResponse>('/auth/2fa/verify', {
 		challenge_token: challengeToken,

@@ -4,7 +4,7 @@
 	import { page } from '$app/state';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { login, verify2fa } from '$lib/api/auth';
+	import { login, verify2fa, getSetupStatus } from '$lib/api/auth';
 	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
 	import { Sun, Moon, LogIn, Server, Globe, ChevronDown, Loader2, ShieldCheck, ArrowLeft } from 'lucide-svelte';
@@ -35,6 +35,19 @@
 			i18n.loadPrefix('PLUGIN_LOGIN').then(() => {
 				i18n.loadAllInBackground();
 			});
+		}
+	});
+
+	// Probe for a fresh install with no user accounts — redirect to /setup so
+	// the operator can create the first super-admin. Silently ignore failures
+	// (e.g. server URL not yet configured) and fall through to the login form.
+	$effect(() => {
+		if (auth.serverUrl) {
+			getSetupStatus()
+				.then((setupRequired) => {
+					if (setupRequired) goto(`${base}/setup`);
+				})
+				.catch(() => { /* no-op — probe is best-effort */ });
 		}
 	});
 

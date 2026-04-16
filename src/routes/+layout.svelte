@@ -21,7 +21,8 @@
 	const isAuthPage = $derived(
 		page.url.pathname === `${base}/login` ||
 		page.url.pathname === `${base}/forgot` ||
-		page.url.pathname === `${base}/reset`
+		page.url.pathname === `${base}/reset` ||
+		page.url.pathname === `${base}/setup`
 	);
 	const needsAuth = $derived(!isAuthPage && !auth.isAuthenticated);
 
