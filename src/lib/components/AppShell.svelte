@@ -225,11 +225,11 @@
 		</div>
 
 		<!-- Versions + Collapse toggle -->
-		<div class="flex items-center gap-2 border-t border-sidebar-border px-2 py-1.5">
+		<div class="flex items-center gap-2 border-t border-sidebar-border px-4 py-1.5">
 			{#if !collapsed && (auth.gravVersion || auth.adminVersion)}
-				<div class="flex-1 px-1.5 text-[10px] leading-tight text-sidebar-foreground/40">
-					{#if auth.gravVersion}<div>Grav v{auth.gravVersion}</div>{/if}
-					{#if auth.adminVersion}<div>Admin v{auth.adminVersion}</div>{/if}
+				<div class="flex-1 text-xs leading-tight">
+					{#if auth.gravVersion}<div class="text-sidebar-foreground/60">Grav v{auth.gravVersion}</div>{/if}
+					{#if auth.adminVersion}<div class="text-sidebar-foreground/50">Admin v{auth.adminVersion}</div>{/if}
 				</div>
 			{/if}
 			<button
