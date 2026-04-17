@@ -60,6 +60,20 @@ export async function createTranslation(
 	return api.post<PageDetail>(`/pages/${cleanRoute}/translate`, body);
 }
 
+/**
+ * Claim an existing untyped base page file (e.g. `default.md`) as the
+ * specified language by renaming it in place to `default.<lang>.md`.
+ * Fails if the page already has an explicit file for that language or no
+ * untyped base file exists.
+ */
+export async function adoptPageLanguage(
+	route: string,
+	lang: string,
+): Promise<PageDetail> {
+	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
+	return api.post<PageDetail>(`/pages/${cleanRoute}/adopt-language`, { lang });
+}
+
 export async function syncTranslation(
 	route: string,
 	sourceLang: string,

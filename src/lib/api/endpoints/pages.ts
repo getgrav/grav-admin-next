@@ -18,6 +18,10 @@ export interface PageSummary {
 	has_children: boolean;
 	translated_languages?: Record<string, string>;
 	untranslated_languages?: string[];
+	/** True when the page has an untyped base file (e.g. `default.md`) that acts as implicit default-language content. */
+	has_default_file?: boolean;
+	/** Language codes that have an explicit `{template}.{lang}.md` file on disk. Languages in `translated_languages` but NOT in this list are served by the implicit `default.md` fallback. */
+	explicit_language_files?: string[];
 }
 
 export interface PageDetail extends PageSummary {
@@ -28,6 +32,8 @@ export interface PageDetail extends PageSummary {
 	children?: PageSummary[];
 	translated_languages?: Record<string, string>;
 	untranslated_languages?: string[];
+	has_default_file?: boolean;
+	explicit_language_files?: string[];
 }
 
 export interface PageMedia {
@@ -65,6 +71,7 @@ export interface PageListParams {
 	root?: boolean;
 	lang?: string;
 	translations?: boolean;
+	search?: string;
 }
 
 export async function getChildren(parentRoute: string, sort: string = 'order', order: string = 'asc', lang?: string, translations?: boolean): Promise<PageSummary[]> {
@@ -113,6 +120,7 @@ function toParams(p: PageListParams): Record<string, string> {
 	if (p.root) params.root = 'true';
 	if (p.lang) params.lang = p.lang;
 	if (p.translations) params.translations = 'true';
+	if (p.search) params.search = p.search;
 	return params;
 }
 
@@ -126,6 +134,22 @@ export async function getPages(params: PageListParams = {}): Promise<PaginatedPa
 
 export async function getPagesList(params: PageListParams = {}): Promise<PageSummary[]> {
 	return api.get<PageSummary[]>('/pages', toParams(params));
+}
+
+/**
+ * Full-site page search (server-side). Queries against title, route, template.
+ * Returns a flat list of matching pages across the entire site.
+ */
+export async function searchPages(
+	query: string,
+	options?: { lang?: string; translations?: boolean; per_page?: number },
+): Promise<PageSummary[]> {
+	return api.get<PageSummary[]>('/pages', toParams({
+		search: query,
+		per_page: options?.per_page ?? 500,
+		lang: options?.lang,
+		translations: options?.translations,
+	}));
 }
 
 export async function getRecentPages(limit = 5): Promise<PageSummary[]> {

@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { getPagesList, reorganizePages } from '$lib/api/endpoints/pages';
+	import { getPagesList, reorganizePages, searchPages } from '$lib/api/endpoints/pages';
 	import type { PageSummary, PageListParams, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import TranslationBadges from '$lib/components/ui/TranslationBadges.svelte';
+	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
 	import {
@@ -38,18 +39,42 @@
 	async function loadPages() {
 		loading = true;
 		try {
-			pages = await getPagesList({
-				page: currentPage,
-				per_page: perPage,
-				sort: sortField,
-				order: sortOrder,
-				lang,
-				translations: !!lang,
-			});
-			totalPages = pages.length < perPage ? currentPage : currentPage + 1;
+			const q = searchQuery.trim();
+			if (q) {
+				// Server-side full-site search. Pagination is suspended while searching —
+				// results come back flat across the entire site (up to per_page cap).
+				pages = await searchPages(q, {
+					lang: lang || undefined,
+					translations: !!lang,
+				});
+				totalPages = 1;
+			} else {
+				pages = await getPagesList({
+					page: currentPage,
+					per_page: perPage,
+					sort: sortField,
+					order: sortOrder,
+					lang,
+					translations: !!lang,
+				});
+				totalPages = pages.length < perPage ? currentPage : currentPage + 1;
+			}
 		} catch { /* handled */ }
 		finally { loading = false; }
 	}
+
+	// Debounced reload on search input change.
+	let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+	let prevSearch = searchQuery;
+	$effect(() => {
+		if (searchQuery === prevSearch) return;
+		prevSearch = searchQuery;
+		if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+		searchDebounceTimer = setTimeout(() => {
+			currentPage = 1;
+			loadPages();
+		}, 250);
+	});
 
 	function toggleSort(field: PageListParams['sort']) {
 		if (sortField === field) {
@@ -220,6 +245,17 @@
 {:else}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	{#each filteredPages as page, index (page.route)}
+		{@const explicitFiles = page.explicit_language_files ?? []}
+		{@const translatedKeys = page.translated_languages ? Object.keys(page.translated_languages) : []}
+		{@const hasImplicitDefault = !!page.has_default_file && !!contentLang.defaultLang}
+		{@const badgeKeys = hasImplicitDefault && !translatedKeys.includes(contentLang.defaultLang)
+			? [contentLang.defaultLang, ...translatedKeys]
+			: translatedKeys}
+		{@const hasAnyContent = translatedKeys.length > 0 || hasImplicitDefault}
+		{@const hasContentInLang = !lang
+			|| translatedKeys.includes(lang)
+			|| (hasImplicitDefault && lang === contentLang.defaultLang)}
+		{@const isUntranslated = lang && hasAnyContent && !hasContentInLang}
 		{#if reorderMode && dropIndex === index && dragPage?.route !== page.route}
 			<div class="mx-4 h-0.5 rounded bg-primary"></div>
 		{/if}
@@ -243,9 +279,12 @@
 				<button class="min-w-0 flex-1 text-left" onclick={() => onEdit(page.route)}>
 					<div class="flex items-center gap-1.5">
 						<span class="truncate text-sm font-medium group-hover:text-primary
-							{lang && page.language !== lang ? 'text-muted-foreground italic' : 'text-foreground'}">{page.menu}</span>
-						{#if lang && page.translated_languages}
-							<TranslationBadges translated={Object.keys(page.translated_languages)} currentLang={lang} />
+							{isUntranslated ? 'text-muted-foreground italic' : 'text-foreground'}">{page.menu}</span>
+						{#if lang && badgeKeys.length > 0}
+							<TranslationBadges
+								translated={badgeKeys}
+								currentLang={explicitFiles.includes(lang) ? lang : undefined}
+							/>
 						{/if}
 					</div>
 					<div class="truncate text-[11px] text-muted-foreground">{page.route}</div>

@@ -6,6 +6,8 @@
 	import { onMount } from 'svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
+	import TranslationBadges from '$lib/components/ui/TranslationBadges.svelte';
+	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
 		Folder, File, Loader2, ChevronRight, ExternalLink, ArrowUpDown, GripVertical
@@ -463,6 +465,17 @@
 					{@const isActive = isSelected && colIndex === activeColumnIndex}
 					{@const isPath = isSelected && colIndex !== activeColumnIndex}
 					{@const isDragged = dragPage?.route === page.route}
+					{@const explicitFiles = page.explicit_language_files ?? []}
+					{@const translatedKeys = page.translated_languages ? Object.keys(page.translated_languages) : []}
+					{@const hasImplicitDefault = !!page.has_default_file && !!contentLang.defaultLang}
+					{@const badgeKeys = hasImplicitDefault && !translatedKeys.includes(contentLang.defaultLang)
+						? [contentLang.defaultLang, ...translatedKeys]
+						: translatedKeys}
+					{@const hasAnyContent = translatedKeys.length > 0 || hasImplicitDefault}
+					{@const hasContentInLang = !lang
+						|| translatedKeys.includes(lang)
+						|| (hasImplicitDefault && lang === contentLang.defaultLang)}
+					{@const isUntranslated = lang && hasAnyContent && !hasContentInLang}
 					{#if reorderMode && dropTarget?.colIndex === colIndex && dropTarget?.index === pageIndex && !isDragged}
 						<div class="mx-2 h-0.5 rounded bg-primary"></div>
 					{/if}
@@ -496,7 +509,17 @@
 								<File size={14} class="shrink-0 {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground'}" />
 							{/if}
 							<div class="min-w-0 flex-1">
-								<div class="truncate text-[13px] font-medium">{page.menu}</div>
+								<div class="flex items-center gap-1.5">
+									<div class="truncate text-[13px] font-medium
+										{isUntranslated ? (isActive ? 'text-primary-foreground/60 italic' : 'text-muted-foreground italic') : ''}">{page.menu}</div>
+									{#if lang && badgeKeys.length > 0}
+										<TranslationBadges
+											translated={badgeKeys}
+											currentLang={explicitFiles.includes(lang) ? lang : undefined}
+										/>
+									{/if}
+								</div>
+								<div class="truncate text-[11px] {isActive ? 'text-primary-foreground/70' : 'text-muted-foreground'}">{page.route}</div>
 							</div>
 							{#if page.has_children}
 								<ChevronRight size={12} class="shrink-0 {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground/50'}" />

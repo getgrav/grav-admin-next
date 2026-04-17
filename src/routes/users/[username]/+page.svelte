@@ -11,6 +11,7 @@
 	import ApiKeysField from '$lib/components/ApiKeysField.svelte';
 	import UserAvatarCard from '$lib/components/UserAvatarCard.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import { toast } from 'svelte-sonner';
@@ -330,6 +331,12 @@
 					</div>
 
 					<div class="flex shrink-0 items-center gap-2">
+						<UnsavedIndicator
+							hasChanges={hasChanges}
+							saving={autoSave.saving}
+							lastSavedAt={autoSave.lastSavedAt}
+							autoSaveEnabled={prefs.autoSaveEnabled}
+						/>
 						{#if prefs.autoSaveEnabled && prefs.autoSaveToolbarUndo && autoSave.canUndo}
 							<Button variant="outline" size="sm" onclick={() => autoSave.undo()}>
 								<Undo2 size={14} />

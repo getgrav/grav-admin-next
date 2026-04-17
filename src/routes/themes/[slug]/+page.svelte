@@ -8,6 +8,7 @@
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
 	import {
@@ -353,6 +354,12 @@
 		</div>
 
 		<div class="flex items-center gap-2">
+			<UnsavedIndicator
+				hasChanges={hasChanges}
+				saving={autoSave.saving}
+				lastSavedAt={autoSave.lastSavedAt}
+				autoSaveEnabled={prefs.autoSaveEnabled}
+			/>
 			{#if prefs.autoSaveEnabled && prefs.autoSaveToolbarUndo && autoSave.canUndo}
 				<Button variant="outline" size="sm" onclick={() => autoSave.undo()}>
 					<Undo2 size={14} />

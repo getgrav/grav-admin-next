@@ -4,7 +4,7 @@
 	import { base } from '$app/paths';
 	import { setContext } from 'svelte';
 	import { getPage, updatePage, deletePage, movePage } from '$lib/api/endpoints/pages';
-	import { createTranslation, syncTranslation } from '$lib/api/endpoints/languages';
+	import { createTranslation, syncTranslation, adoptPageLanguage } from '$lib/api/endpoints/languages';
 	import { getPageBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { PageDetail } from '$lib/api/endpoints/pages';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
@@ -29,6 +29,7 @@
 	import PageMedia from '$lib/components/media/PageMedia.svelte';
 	import yaml from 'js-yaml';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import Tabs from '$lib/components/ui/Tabs.svelte';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
@@ -252,6 +253,25 @@
 	let canCreateTranslation = $derived(
 		isFallback && !!pageData?.untranslated_languages?.includes(contentLang.activeLang)
 	);
+
+	// Languages offered in the "Save as …" dropdown. Combines the page's
+	// untranslated_languages (server view) with an "adopt" entry for the site
+	// default language when the page is backed by a bare `default.md` and the
+	// default lang doesn't yet have an explicit `default.<lang>.md` — without
+	// this, Grav reports the default lang as "translated" (because default.md
+	// falls back for it) and the dropdown would never let the user convert
+	// legacy single-language pages into proper language-suffixed files.
+	const saveAsLanguages = $derived.by(() => {
+		if (!pageData || !contentLang.enabled) return [] as string[];
+		const untranslated = pageData.untranslated_languages ?? [];
+		const explicitFiles = pageData.explicit_language_files ?? [];
+		const out = [...untranslated];
+		const def = contentLang.defaultLang;
+		if (pageData.has_default_file && def && !explicitFiles.includes(def) && !out.includes(def)) {
+			out.unshift(def);
+		}
+		return out;
+	});
 
 	async function loadPage(lang?: string) {
 		const gen = ++loadGeneration;
@@ -485,6 +505,27 @@
 		saving = true;
 		saveAsOpen = false;
 		try {
+			// Special case: page has a bare `default.md` (implicit default-lang
+			// content) and the user is claiming it as the site's default language.
+			// Rename the file in place (default.md → default.<defaultLang>.md)
+			// instead of creating a copy that would leave the untyped base file
+			// behind as a fallback. Key signal: no explicit default.<lang>.md
+			// file exists yet — regardless of whether Grav reports the lang as
+			// "translated" (it will, because default.md covers it).
+			const explicitFiles = pageData.explicit_language_files ?? [];
+			const isAdoptCase = !!pageData.has_default_file
+				&& targetLang === contentLang.defaultLang
+				&& !explicitFiles.includes(targetLang);
+			if (isAdoptCase) {
+				await adoptPageLanguage(route, targetLang);
+				toast.success(`Saved as ${contentLang.getLanguageName(targetLang)}`);
+				autoSave.reset();
+				headerChanges = {};
+				await loadPage(targetLang);
+				contentLang.setLanguage(targetLang);
+				return;
+			}
+
 			const header = { ...pageData.header ?? {}, title };
 			if (Object.keys(headerChanges).length > 0) {
 				for (const [dotPath, val] of Object.entries(headerChanges)) {
@@ -672,17 +713,12 @@
 					</div>
 
 					<div class="flex shrink-0 items-center gap-2">
-			{#if prefs.autoSaveEnabled}
-				{#if autoSave.saving}
-					<span class="text-xs text-muted-foreground">Saving...</span>
-				{:else if autoSave.lastSavedAt}
-					<span class="text-xs text-emerald-500">Saved</span>
-				{:else if hasChanges}
-					<span class="text-xs text-amber-500">Unsaved changes</span>
-				{/if}
-			{:else if hasChanges}
-				<span class="text-xs text-amber-500">Unsaved changes</span>
-			{/if}
+			<UnsavedIndicator
+				hasChanges={hasChanges}
+				saving={autoSave.saving}
+				lastSavedAt={autoSave.lastSavedAt}
+				autoSaveEnabled={prefs.autoSaveEnabled}
+			/>
 			{#if prefs.autoSaveEnabled && prefs.autoSaveToolbarUndo && autoSave.canUndo}
 				<Button variant="outline" size="sm" onclick={() => autoSave.undo()}>
 					<Undo2 size={14} />
@@ -735,7 +771,7 @@
 			<!-- Save button with Save As dropdown -->
 			{#if canEditPages}
 			<div class="relative flex">
-				<Button size="sm" class="{(hasChanges || canCreateTranslation) ? '' : 'opacity-50 pointer-events-none'} {contentLang.enabled && pageData?.untranslated_languages && pageData.untranslated_languages.length > 0 ? 'rounded-r-none' : ''}" onclick={triggerSave} disabled={saving || loading}>
+				<Button size="sm" class="{(hasChanges || canCreateTranslation) ? '' : 'opacity-50 pointer-events-none'} {saveAsLanguages.length > 0 ? 'rounded-r-none' : ''}" onclick={triggerSave} disabled={saving || loading}>
 					{#if saving}
 						<Loader2 size={14} class="animate-spin" />
 						Saving...
@@ -747,7 +783,7 @@
 						Save
 					{/if}
 				</Button>
-				{#if contentLang.enabled && pageData?.untranslated_languages && pageData.untranslated_languages.length > 0}
+				{#if saveAsLanguages.length > 0}
 					<button
 						class="inline-flex h-8 items-center rounded-r-md border-l border-primary-foreground/20 bg-primary px-1.5 text-primary-foreground transition-colors hover:bg-primary/90"
 						onclick={() => saveAsOpen = !saveAsOpen}
@@ -760,7 +796,7 @@
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<div class="fixed inset-0 z-40" onclick={() => saveAsOpen = false}></div>
 						<div class="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-md border border-border bg-popover py-1 shadow-md">
-							{#each pageData.untranslated_languages as lang}
+							{#each saveAsLanguages as lang}
 								<button
 									class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-popover-foreground transition-colors hover:bg-accent/50"
 									onclick={() => handleSaveAsTranslation(lang)}

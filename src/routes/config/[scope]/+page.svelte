@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import { getConfig, saveConfig, getConfigSections } from '$lib/api/endpoints/config';
 	import { getConfigBlueprint } from '$lib/api/endpoints/blueprints';
@@ -234,17 +235,12 @@
 
 					{#if !isInfo}
 						<div class="flex shrink-0 items-center gap-2">
-							{#if prefs.autoSaveEnabled}
-								{#if autoSave.saving}
-									<span class="text-xs text-muted-foreground">Saving...</span>
-								{:else if autoSave.lastSavedAt}
-									<span class="text-xs text-emerald-500">Saved</span>
-								{:else if hasChanges}
-									<span class="text-xs text-amber-500">Unsaved changes</span>
-								{/if}
-							{:else if hasChanges}
-								<span class="text-xs text-amber-500">Unsaved changes</span>
-							{/if}
+							<UnsavedIndicator
+								hasChanges={hasChanges}
+								saving={autoSave.saving}
+								lastSavedAt={autoSave.lastSavedAt}
+								autoSaveEnabled={prefs.autoSaveEnabled}
+							/>
 							{#if prefs.autoSaveEnabled && prefs.autoSaveToolbarUndo && autoSave.canUndo}
 								<Button variant="outline" size="sm" onclick={() => autoSave.undo()}>
 									<Undo2 size={14} />

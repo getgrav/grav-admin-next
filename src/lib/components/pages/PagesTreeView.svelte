@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { getChildren, reorganizePages } from '$lib/api/endpoints/pages';
+	import { getChildren, reorganizePages, searchPages } from '$lib/api/endpoints/pages';
 	import type { PageSummary, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import TranslationBadges from '$lib/components/ui/TranslationBadges.svelte';
+	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
 		ChevronRight, ChevronDown, FolderOpen, Folder, File, Loader2, Trash2,
@@ -28,6 +29,9 @@
 	let expandedRoutes = $state<Set<string>>(new Set(['/']));
 	let rootPages = $state<PageSummary[]>([]);
 	let rootLoading = $state(true);
+	let searchResults = $state<PageSummary[]>([]);
+	let searchLoading = $state(false);
+	let searchActive = $derived(searchQuery.trim().length > 0);
 	let sortField = $state<SortField>('default');
 	let sortOrder = $state<'asc' | 'desc'>('asc');
 
@@ -104,6 +108,32 @@
 			childrenCache = {};
 		}
 		loadRoot();
+	});
+
+	// Server-side search across the whole site (debounced). When the input is
+	// non-empty, render a flat list of server matches instead of the tree.
+	let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+	$effect(() => {
+		const q = searchQuery.trim();
+		if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+		if (!q) {
+			searchResults = [];
+			searchLoading = false;
+			return;
+		}
+		searchLoading = true;
+		searchDebounceTimer = setTimeout(async () => {
+			try {
+				searchResults = await searchPages(q, {
+					lang: lang || undefined,
+					translations: !!lang,
+				});
+			} catch {
+				searchResults = [];
+			} finally {
+				searchLoading = false;
+			}
+		}, 250);
 	});
 
 	// Refetch on external mutations or tab refocus — clear cached children since
@@ -301,6 +331,17 @@
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	{#snippet treeRow(page: PageSummary, depth: number, parentRoute: string, index: number)}
 		{#if matchesSearch(page)}
+			{@const explicitFiles = page.explicit_language_files ?? []}
+			{@const translatedKeys = page.translated_languages ? Object.keys(page.translated_languages) : []}
+			{@const hasImplicitDefault = !!page.has_default_file && !!contentLang.defaultLang}
+			{@const badgeKeys = hasImplicitDefault && !translatedKeys.includes(contentLang.defaultLang)
+				? [contentLang.defaultLang, ...translatedKeys]
+				: translatedKeys}
+			{@const hasAnyContent = translatedKeys.length > 0 || hasImplicitDefault}
+			{@const hasContentInLang = !lang
+				|| translatedKeys.includes(lang)
+				|| (hasImplicitDefault && lang === contentLang.defaultLang)}
+			{@const isUntranslated = lang && hasAnyContent && !hasContentInLang}
 			{#if reorderMode && isDropTarget(parentRoute, index) && !isDragging(page)}
 				<div class="mx-4 h-0.5 rounded bg-primary transition-all" style="margin-left: {16 + depth * 20}px"></div>
 			{/if}
@@ -351,9 +392,12 @@
 					<button class="min-w-0 flex-1 text-left pl-1" onclick={() => onEdit(page.route)}>
 						<div class="flex items-center gap-1.5">
 							<span class="truncate text-sm font-medium group-hover:text-primary
-								{lang && page.language !== lang ? 'text-muted-foreground italic' : 'text-foreground'}">{page.menu}</span>
-							{#if lang && page.translated_languages}
-								<TranslationBadges translated={Object.keys(page.translated_languages)} currentLang={lang} />
+								{isUntranslated ? 'text-muted-foreground italic' : 'text-foreground'}">{page.menu}</span>
+							{#if lang && badgeKeys.length > 0}
+								<TranslationBadges
+									translated={badgeKeys}
+									currentLang={explicitFiles.includes(lang) ? lang : undefined}
+								/>
 							{/if}
 						</div>
 						<div class="truncate text-[11px] text-muted-foreground">{page.route}</div>
@@ -391,7 +435,7 @@
 				{/if}
 			</div>
 
-			{#if page.has_children && expandedRoutes.has(page.route)}
+			{#if !searchActive && page.has_children && expandedRoutes.has(page.route)}
 				{#each getPageChildren(page.route) as child, childIndex (child.route)}
 					{@render treeRow(child, depth + 1, page.route, childIndex)}
 				{/each}
@@ -402,15 +446,35 @@
 		{/if}
 	{/snippet}
 
-	{#each rootPages as page, index (page.route)}
-		{@render treeRow(page, 0, '/', index)}
-	{/each}
+	{#if searchActive}
+		{#if searchLoading}
+			<div class="py-12 text-center text-sm text-muted-foreground">
+				<Loader2 size={16} class="mx-auto mb-2 animate-spin" />
+				Searching…
+			</div>
+		{:else if searchResults.length === 0}
+			<div class="py-12 text-center text-sm text-muted-foreground">
+				No pages match "{searchQuery}"
+			</div>
+		{:else}
+			{#each searchResults as page (page.route)}
+				{@render treeRow(page, 0, '/', -1)}
+			{/each}
+			<div class="px-4 py-2 text-[11px] text-muted-foreground">
+				{searchResults.length} match{searchResults.length !== 1 ? 'es' : ''} across all pages
+			</div>
+		{/if}
+	{:else}
+		{#each rootPages as page, index (page.route)}
+			{@render treeRow(page, 0, '/', index)}
+		{/each}
 
-	{#if reorderMode && rootPages.length > 0 && isDropTarget('/', rootPages.length)}
-		<div class="mx-4 h-0.5 rounded bg-primary"></div>
-	{/if}
+		{#if reorderMode && rootPages.length > 0 && isDropTarget('/', rootPages.length)}
+			<div class="mx-4 h-0.5 rounded bg-primary"></div>
+		{/if}
 
-	{#if rootPages.length === 0}
-		<div class="py-12 text-center text-sm text-muted-foreground">No pages found</div>
+		{#if rootPages.length === 0}
+			<div class="py-12 text-center text-sm text-muted-foreground">No pages found</div>
+		{/if}
 	{/if}
 {/if}
