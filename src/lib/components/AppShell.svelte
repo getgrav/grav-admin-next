@@ -14,6 +14,7 @@
 	import CacheClearButton from '$lib/components/menubar/CacheClearButton.svelte';
 	import MenubarLinks from '$lib/components/menubar/MenubarLinks.svelte';
 	import PluginMenubarItems from '$lib/components/menubar/PluginMenubarItems.svelte';
+	import ViewSiteButton from '$lib/components/menubar/ViewSiteButton.svelte';
 	import { sidebarStore } from '$lib/stores/sidebar.svelte';
 	import { navBadges } from '$lib/stores/navBadges.svelte';
 	import { floatingWidgetStore } from '$lib/stores/floatingWidgets.svelte';
@@ -256,6 +257,7 @@
 
 			<!-- Menubar -->
 			<div class="flex items-center gap-1">
+				<ViewSiteButton />
 				<PluginMenubarItems />
 				<MenubarLinks />
 				<CacheClearButton />
