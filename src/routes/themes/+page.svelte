@@ -7,7 +7,7 @@
 	import AddThemeModal from '$lib/components/AddThemeModal.svelte';
 	import { toast } from 'svelte-sonner';
 	import { Search, Palette, ExternalLink, ArrowUpCircle, ChevronRight, Loader2, Plus, RefreshCw, BadgeCheck, Check, CornerDownRight } from 'lucide-svelte';
-	import { faIconClass, parseKeywords, parseDependencies, isFirstParty } from '$lib/utils/gpm';
+	import { faIconClass, parseKeywords, parseDependencies, isFirstParty, descriptionText } from '$lib/utils/gpm';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
@@ -268,7 +268,7 @@
 									<ArrowUpCircle size={12} class="shrink-0 text-amber-500" />
 								{/if}
 							</div>
-							<p class="truncate text-xs text-muted-foreground">{theme.description ?? ''}</p>
+							<p class="truncate text-xs text-muted-foreground">{descriptionText(theme)}</p>
 						</div>
 
 						<!-- Symlink indicator -->
@@ -366,9 +366,15 @@
 
 						<!-- Description -->
 						{#if selectedTheme.description}
-							<p class="mt-4 text-sm leading-relaxed text-muted-foreground">
-								{selectedTheme.description}
-							</p>
+							{#if selectedTheme.description_html}
+								<div class="prose prose-sm dark:prose-invert mt-4 max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">
+									{@html selectedTheme.description_html}
+								</div>
+							{:else}
+								<p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+									{selectedTheme.description}
+								</p>
+							{/if}
 						{/if}
 
 						<!-- Metadata grid -->

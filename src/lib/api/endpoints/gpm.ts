@@ -12,6 +12,8 @@ export interface PluginInfo {
 	version: string;
 	type: 'plugin' | 'theme';
 	description: string | null;
+	/** Description rendered to safe HTML (inline markdown resolved). Null if no description. */
+	description_html?: string | null;
 	author: PackageAuthor | null;
 	homepage: string | null;
 	enabled: boolean;
@@ -97,6 +99,8 @@ export interface RepositoryPlugin {
 	version: string;
 	type: 'plugin' | 'theme';
 	description: string | null;
+	/** Description rendered to safe HTML (inline markdown resolved). Null if no description. */
+	description_html?: string | null;
 	author: PackageAuthor | null;
 	homepage: string | null;
 	installed: boolean;
@@ -185,6 +189,8 @@ export interface ThemeInfo {
 	version: string;
 	type: 'theme';
 	description: string | null;
+	/** Description rendered to safe HTML (inline markdown resolved). Null if no description. */
+	description_html?: string | null;
 	author: PackageAuthor | null;
 	homepage: string | null;
 	enabled: boolean;
@@ -248,6 +254,8 @@ export interface RepositoryTheme {
 	version: string;
 	type: 'theme';
 	description: string | null;
+	/** Description rendered to safe HTML (inline markdown resolved). Null if no description. */
+	description_html?: string | null;
 	author: PackageAuthor | null;
 	homepage: string | null;
 	installed: boolean;

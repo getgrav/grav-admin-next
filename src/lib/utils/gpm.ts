@@ -406,6 +406,18 @@ export interface PackageDep {
 	version?: string;
 }
 
+/**
+ * Strip HTML tags from a `description_html` value to produce plain text suitable
+ * for truncated list-card display. Falls back to the raw markdown string when
+ * the server hasn't provided an HTML rendering.
+ */
+export function descriptionText(pkg: { description?: string | null; description_html?: string | null }): string {
+	if (pkg.description_html) {
+		return pkg.description_html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+	}
+	return (pkg.description ?? '').replace(/\s+/g, ' ').trim();
+}
+
 export function parseDependencies(deps: unknown): PackageDep[] {
 	if (!Array.isArray(deps)) return [];
 	return deps.map((d) => {

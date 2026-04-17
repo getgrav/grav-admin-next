@@ -480,7 +480,13 @@
 						{/if}
 						<div class="min-w-0 flex-1">
 							{#if theme.description}
-								<p class="text-sm leading-relaxed text-muted-foreground">{theme.description}</p>
+								{#if theme.description_html}
+									<div class="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">
+										{@html theme.description_html}
+									</div>
+								{:else}
+									<p class="text-sm leading-relaxed text-muted-foreground">{theme.description}</p>
+								{/if}
 							{/if}
 							<div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
 								{#if theme.homepage}

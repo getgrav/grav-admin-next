@@ -3,7 +3,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
 	import { Search, X, Puzzle, ExternalLink, Download, Loader2, Check, ShoppingCart, BadgeCheck } from 'lucide-svelte';
-	import { faIconClass, parseKeywords, parseDependencies, isFirstParty } from '$lib/utils/gpm';
+	import { faIconClass, parseKeywords, parseDependencies, isFirstParty, descriptionText } from '$lib/utils/gpm';
 
 	interface Props {
 		open: boolean;
@@ -214,7 +214,7 @@
 											<span class="shrink-0 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">Premium</span>
 										{/if}
 									</div>
-									<p class="truncate text-xs text-muted-foreground">{plugin.description ?? ''}</p>
+									<p class="truncate text-xs text-muted-foreground">{descriptionText(plugin)}</p>
 								</div>
 
 								<!-- Install / Buy button (inline) -->
@@ -286,9 +286,15 @@
 
 								<!-- Description -->
 								{#if selectedPlugin.description}
-									<p class="mt-4 text-sm leading-relaxed text-muted-foreground">
-										{selectedPlugin.description}
-									</p>
+									{#if selectedPlugin.description_html}
+										<div class="prose prose-sm dark:prose-invert mt-4 max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">
+											{@html selectedPlugin.description_html}
+										</div>
+									{:else}
+										<p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+											{selectedPlugin.description}
+										</p>
+									{/if}
 								{/if}
 
 								<!-- Metadata grid -->

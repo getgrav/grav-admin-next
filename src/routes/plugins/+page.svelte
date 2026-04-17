@@ -12,7 +12,7 @@
 	import { toast } from 'svelte-sonner';
 	import { Search, Puzzle, ExternalLink, ArrowUpCircle, ChevronRight, Loader2, Plus, RefreshCw, BadgeCheck, CornerDownRight } from 'lucide-svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { faIconClass, parseKeywords, parseDependencies, isFirstParty } from '$lib/utils/gpm';
+	import { faIconClass, parseKeywords, parseDependencies, isFirstParty, descriptionText } from '$lib/utils/gpm';
 	import { canWrite } from '$lib/utils/permissions';
 
 	const canWriteGpm = $derived(canWrite('gpm'));
@@ -306,7 +306,7 @@
 									<ArrowUpCircle size={12} class="shrink-0 text-amber-500" />
 								{/if}
 							</div>
-							<p class="truncate text-xs text-muted-foreground">{plugin.description ?? ''}</p>
+							<p class="truncate text-xs text-muted-foreground">{descriptionText(plugin)}</p>
 						</div>
 
 						<!-- Symlink indicator -->
@@ -407,9 +407,15 @@
 
 						<!-- Description -->
 						{#if selectedPlugin.description}
-							<p class="mt-4 text-sm leading-relaxed text-muted-foreground">
-								{selectedPlugin.description}
-							</p>
+							{#if selectedPlugin.description_html}
+								<div class="prose prose-sm dark:prose-invert mt-4 max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">
+									{@html selectedPlugin.description_html}
+								</div>
+							{:else}
+								<p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+									{selectedPlugin.description}
+								</p>
+							{/if}
 						{/if}
 
 						<!-- Metadata grid -->
