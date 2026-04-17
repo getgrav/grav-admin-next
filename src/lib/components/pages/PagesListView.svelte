@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getPagesList, reorganizePages, searchPages } from '$lib/api/endpoints/pages';
+	import { getPagesList, reorganizePages, searchPages, pageApiRoute } from '$lib/api/endpoints/pages';
 	import type { PageSummary, PageListParams, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
@@ -276,7 +276,7 @@
 			{/if}
 			<div class="flex min-w-0 flex-1 items-center gap-2">
 				<File size={14} class="shrink-0 text-muted-foreground" />
-				<button class="min-w-0 flex-1 text-left" onclick={() => onEdit(page.route)}>
+				<button class="min-w-0 flex-1 text-left" onclick={() => onEdit(pageApiRoute(page))}>
 					<div class="flex items-center gap-1.5">
 						<span class="truncate text-sm font-medium group-hover:text-primary
 							{isUntranslated ? 'text-muted-foreground italic' : 'text-foreground'}">{page.menu}</span>

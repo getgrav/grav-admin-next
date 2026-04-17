@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getChildren, getPage, getPagesList, reorganizePages } from '$lib/api/endpoints/pages';
+	import { getChildren, getPage, getPagesList, reorganizePages, pageApiRoute } from '$lib/api/endpoints/pages';
 	import type { PageSummary, PageDetail, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
@@ -186,7 +186,8 @@
 		// Load preview for last selected
 		const lastRoute = savedPath[savedPath.length - 1];
 		if (lastRoute && result.some(c => c.selectedRoute === lastRoute)) {
-			loadPreview(lastRoute);
+			const lastPage = result.flatMap(c => c.pages).find(p => p.route === lastRoute);
+			loadPreview(lastPage ? pageApiRoute(lastPage) : lastRoute);
 		}
 	}
 
@@ -258,7 +259,7 @@
 		}
 
 		// Always load preview for selected page
-		loadPreview(page.route);
+		loadPreview(pageApiRoute(page));
 
 		// Persist selection path for reload restoration
 		saveSelectionPath();
@@ -501,7 +502,7 @@
 							<button
 								class="flex min-w-0 flex-1 items-center gap-2 text-left"
 								onclick={() => selectPage(colIndex, page)}
-								ondblclick={() => onEdit(page.route)}
+								ondblclick={() => onEdit(pageApiRoute(page))}
 							>
 							{#if page.has_children}
 								<Folder size={14} class="shrink-0 {isActive ? 'text-primary-foreground/80' : 'text-primary'}" />
@@ -553,7 +554,7 @@
 							<h3 class="text-base font-semibold text-foreground">{previewPage.title}</h3>
 							<p class="mt-0.5 text-[11px] text-muted-foreground">{previewPage.route}</p>
 						</div>
-						<Button size="sm" onclick={() => onEdit(previewPage!.route)} class="shrink-0">
+						<Button size="sm" onclick={() => onEdit(pageApiRoute(previewPage!))} class="shrink-0">
 							<ExternalLink size={13} />
 							Edit
 						</Button>

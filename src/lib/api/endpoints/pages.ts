@@ -2,6 +2,13 @@ import { api } from '../client';
 
 export interface PageSummary {
 	route: string;
+	/**
+	 * Structural route for the page — for the home page this is the actual
+	 * folder route (e.g. `/home`) rather than the public alias `/`. All API
+	 * calls that address a specific page must use this value. `route` is the
+	 * public URL and is only meant for display or for matching visible state.
+	 */
+	raw_route?: string;
 	title: string;
 	menu: string;
 	template: string;
@@ -22,6 +29,15 @@ export interface PageSummary {
 	has_default_file?: boolean;
 	/** Language codes that have an explicit `{template}.{lang}.md` file on disk. Languages in `translated_languages` but NOT in this list are served by the implicit `default.md` fallback. */
 	explicit_language_files?: string[];
+}
+
+/**
+ * Returns the route that should be used when calling the API for a specific
+ * page (fetching, editing, moving, copying, etc). Prefers `raw_route` so the
+ * home page resolves to `/home` instead of its public alias `/`.
+ */
+export function pageApiRoute(page: { route: string; raw_route?: string | null }): string {
+	return page.raw_route || page.route;
 }
 
 export interface PageDetail extends PageSummary {

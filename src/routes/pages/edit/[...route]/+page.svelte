@@ -279,6 +279,19 @@
 		error = '';
 		accessDenied = false;
 		try {
+			// Home-page alias: `/` is the public route but the API requires the
+			// structural route (raw_route, typically `/home`). Resolve it via the
+			// children-of-root listing and redirect so subsequent loads use the
+			// canonical URL.
+			if (route === '/' || route === '') {
+				const roots = await getChildren('/');
+				const home = roots.find((p) => p.route === '/' && p.raw_route);
+				if (home?.raw_route) {
+					const target = home.raw_route.startsWith('/') ? home.raw_route.slice(1) : home.raw_route;
+					goto(`${base}/pages/edit/${target}`, { replaceState: true });
+					return;
+				}
+			}
 			const activeLang = lang ?? (contentLang.enabled ? contentLang.activeLang : undefined);
 			const data = await getPage(route, { render: false, translations: true, lang: activeLang });
 

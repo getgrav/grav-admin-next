@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { getChildren } from '$lib/api/endpoints/pages';
+	import { getChildren, pageApiRoute } from '$lib/api/endpoints/pages';
 	import type { PageSummary } from '$lib/api/endpoints/pages';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-svelte';
@@ -54,7 +54,7 @@
 		try {
 			const children = await getChildren(route, 'default', 'asc', contentLang.activeLang || undefined);
 			if (children.length > 0) {
-				navigate(children[0].route);
+				navigate(pageApiRoute(children[0]));
 			}
 		} catch { /* ignore */ }
 	}
@@ -129,7 +129,7 @@
 		<button
 			class="nav-quadrant nav-left {canLeft ? '' : 'nav-disabled'}"
 			disabled={!canLeft}
-			onclick={() => prevSibling && navigate(prevSibling.route)}
+			onclick={() => prevSibling && navigate(pageApiRoute(prevSibling))}
 			title={canLeft ? `Previous: ${prevSibling?.menu || prevSibling?.title}` : 'No previous sibling'}
 		>
 			<ChevronLeft size={22} strokeWidth={2.5} />
@@ -139,7 +139,7 @@
 		<button
 			class="nav-quadrant nav-right {canRight ? '' : 'nav-disabled'}"
 			disabled={!canRight}
-			onclick={() => nextSibling && navigate(nextSibling.route)}
+			onclick={() => nextSibling && navigate(pageApiRoute(nextSibling))}
 			title={canRight ? `Next: ${nextSibling?.menu || nextSibling?.title}` : 'No next sibling'}
 		>
 			<ChevronRight size={22} strokeWidth={2.5} />
