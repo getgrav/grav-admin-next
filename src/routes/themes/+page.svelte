@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { getInstalledThemes, checkUpdates, type ThemeInfo } from '$lib/api/endpoints/gpm';
+	import { getInstalledThemes, checkUpdates, updatePackage, updateAllPackages, type ThemeInfo } from '$lib/api/endpoints/gpm';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import AddThemeModal from '$lib/components/AddThemeModal.svelte';
@@ -20,6 +20,10 @@
 	let selectedSlug = $state<string | null>(null);
 	let addModalOpen = $state(false);
 	let checkingUpdates = $state(false);
+	let updatingSlug = $state<string | null>(null);
+	let updatingAll = $state(false);
+
+	const updatableCount = $derived(themes.filter((t) => t.updatable).length);
 
 	const filtered = $derived.by(() => {
 		let list = [...themes];
@@ -96,6 +100,41 @@
 		}
 	}
 
+	async function handleUpdateTheme(theme: ThemeInfo, e: Event) {
+		e.stopPropagation();
+		updatingSlug = theme.slug;
+		try {
+			await updatePackage(theme.slug);
+			toast.success(`${theme.name} updated`);
+			await loadThemes();
+		} catch (err: unknown) {
+			const detail = err instanceof Error ? err.message : String(err);
+			toast.error(`Failed to update ${theme.name}: ${detail}`);
+		} finally {
+			updatingSlug = null;
+		}
+	}
+
+	async function handleUpdateAll() {
+		updatingAll = true;
+		try {
+			const result = await updateAllPackages();
+			const ok = result.updated.length;
+			const bad = result.failed.length;
+			if (bad === 0) {
+				toast.success(`Updated ${ok} package${ok !== 1 ? 's' : ''}`);
+			} else {
+				toast.error(`Updated ${ok}, failed ${bad}: ${result.failed.map((f) => f.package).join(', ')}`);
+			}
+			await loadThemes();
+		} catch (err: unknown) {
+			const detail = err instanceof Error ? err.message : String(err);
+			toast.error(`Update failed: ${detail}`);
+		} finally {
+			updatingAll = false;
+		}
+	}
+
 	function handleThemeInstalled() {
 		loadThemes();
 	}
@@ -123,10 +162,20 @@
 					</div>
 					{#if canWriteGpm}
 					<div class="flex items-center gap-2">
-						<Button variant="outline" size="sm" onclick={handleCheckUpdates} disabled={checkingUpdates}>
+						<Button variant="outline" size="sm" onclick={handleCheckUpdates} disabled={checkingUpdates || updatingAll}>
 							<RefreshCw size={13} class={checkingUpdates ? 'animate-spin' : ''} />
 							Check Updates
 						</Button>
+						{#if updatableCount > 0}
+							<Button variant="outline" size="sm" onclick={handleUpdateAll} disabled={updatingAll}>
+								{#if updatingAll}
+									<Loader2 size={13} class="animate-spin" />
+								{:else}
+									<ArrowUpCircle size={13} />
+								{/if}
+								Update All ({updatableCount})
+							</Button>
+						{/if}
 						<Button size="sm" onclick={() => (addModalOpen = true)}>
 							<Plus size={14} />
 							Add
@@ -267,14 +316,31 @@
 									{/if}
 								</div>
 							</div>
-							<button
-								type="button"
-								class="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-								onclick={() => openThemeConfig(selectedTheme.slug)}
-							>
-								Configure
-								<ChevronRight size={14} />
-							</button>
+							<div class="flex items-center gap-2">
+								{#if selectedTheme.updatable && canWriteGpm}
+									<Button
+										variant="outline"
+										size="sm"
+										onclick={(e: Event) => handleUpdateTheme(selectedTheme, e)}
+										disabled={updatingSlug === selectedTheme.slug || updatingAll}
+									>
+										{#if updatingSlug === selectedTheme.slug}
+											<Loader2 size={14} class="mr-1.5 animate-spin" />
+										{:else}
+											<ArrowUpCircle size={14} class="mr-1.5" />
+										{/if}
+										Update to v{selectedTheme.available_version}
+									</Button>
+								{/if}
+								<button
+									type="button"
+									class="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+									onclick={() => openThemeConfig(selectedTheme.slug)}
+								>
+									Configure
+									<ChevronRight size={14} />
+								</button>
+							</div>
 						</div>
 
 						<!-- Description -->

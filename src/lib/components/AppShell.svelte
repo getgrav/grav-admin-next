@@ -224,10 +224,16 @@
 			{/if}
 		</div>
 
-		<!-- Collapse toggle -->
-		<div class="border-t border-sidebar-border px-2 py-1.5">
+		<!-- Versions + Collapse toggle -->
+		<div class="flex items-center gap-2 border-t border-sidebar-border px-2 py-1.5">
+			{#if !collapsed && (auth.gravVersion || auth.adminVersion)}
+				<div class="flex-1 px-1.5 text-[10px] leading-tight text-sidebar-foreground/40">
+					{#if auth.gravVersion}<div>Grav v{auth.gravVersion}</div>{/if}
+					{#if auth.adminVersion}<div>Admin v{auth.adminVersion}</div>{/if}
+				</div>
+			{/if}
 			<button
-				class="hidden w-full items-center justify-center rounded-md p-1.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground lg:flex"
+				class="ml-auto hidden h-7 w-7 shrink-0 items-center justify-center rounded-md p-1.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground lg:flex {collapsed ? 'mx-auto' : ''}"
 				onclick={() => collapsed = !collapsed}
 				aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
 				{#if collapsed}<ChevronRight size={14} />{:else}<ChevronLeft size={14} />{/if}

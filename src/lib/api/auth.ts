@@ -30,6 +30,8 @@ interface UserProfile {
 	super_admin?: boolean;
 	access?: Record<string, boolean>;
 	content_editor?: string;
+	grav_version?: string;
+	admin_version?: string;
 }
 
 function parseJwtSubject(token: string): string {
@@ -153,6 +155,7 @@ export async function refreshMe(): Promise<void> {
 			profile.content_editor || '',
 		);
 		auth.setPermissions(profile.super_admin ?? false, profile.access ?? {});
+		auth.setVersions(profile.grav_version, profile.admin_version);
 	} catch {
 		// Non-critical — keep existing permissions
 	}

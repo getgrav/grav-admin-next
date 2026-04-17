@@ -136,6 +136,44 @@ export async function checkUpdates(flush = true): Promise<{ total: number }> {
 	return api.get<{ total: number }>('/gpm/updates', { flush: flush ? 'true' : 'false' });
 }
 
+export interface UpdatePackageResult {
+	message: string;
+	package: string;
+	type: 'plugin' | 'theme';
+}
+
+export interface UpdateAllResult {
+	updated: string[];
+	failed: { package: string; error: string }[];
+}
+
+export interface GravUpgradeResult {
+	message: string;
+	previous_version: string;
+	new_version: string;
+}
+
+/**
+ * Update a single package (plugin or theme). Type is auto-detected server-side.
+ */
+export async function updatePackage(slug: string): Promise<UpdatePackageResult> {
+	return api.post<UpdatePackageResult>('/gpm/update', { package: slug });
+}
+
+/**
+ * Update all updatable plugins and themes in a single request.
+ */
+export async function updateAllPackages(): Promise<UpdateAllResult> {
+	return api.post<UpdateAllResult>('/gpm/update-all', {});
+}
+
+/**
+ * Self-upgrade Grav core. Refuses when Grav is installed via symlink.
+ */
+export async function upgradeGrav(): Promise<GravUpgradeResult> {
+	return api.post<GravUpgradeResult>('/gpm/upgrade', {});
+}
+
 // ---------------------------------------------------------------------------
 // Themes
 // ---------------------------------------------------------------------------

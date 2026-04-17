@@ -15,6 +15,8 @@ interface StoredAuth {
 	avatarUrl: string;
 	superAdmin?: boolean;
 	access?: Record<string, boolean>;
+	gravVersion?: string;
+	adminVersion?: string;
 }
 
 function loadStored(): StoredAuth | null {
@@ -77,6 +79,8 @@ function createAuthStore() {
 	let contentEditor = $state('');
 	let superAdmin = $state(stored?.superAdmin ?? false);
 	let access = $state<Record<string, boolean>>(stored?.access ?? {});
+	let gravVersion = $state(stored?.gravVersion ?? '');
+	let adminVersion = $state(stored?.adminVersion ?? '');
 
 	const isAuthenticated = $derived(!!accessToken && Date.now() < expiresAt);
 	const isExpiringSoon = $derived(!!accessToken && expiresAt - Date.now() < 5 * 60 * 1000);
@@ -97,6 +101,8 @@ function createAuthStore() {
 			avatarUrl,
 			superAdmin,
 			access,
+			gravVersion,
+			adminVersion,
 		};
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 	}
@@ -126,6 +132,8 @@ function createAuthStore() {
 		get isSuperAdmin() { return isSuperAdmin; },
 		get access() { return access; },
 		get hasGravConfig() { return hasGravConfig; },
+		get gravVersion() { return gravVersion; },
+		get adminVersion() { return adminVersion; },
 
 		setTokens(access: string, refresh: string, expiresIn: number) {
 			accessToken = access;
@@ -152,6 +160,12 @@ function createAuthStore() {
 		setPermissions(isSuperAdmin: boolean, permissions: Record<string, boolean>) {
 			superAdmin = isSuperAdmin;
 			access = permissions;
+			persist();
+		},
+
+		setVersions(grav?: string, admin?: string) {
+			if (grav) gravVersion = grav;
+			if (admin) adminVersion = admin;
 			persist();
 		},
 

@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { getTheme, getThemeConfig, saveThemeConfig, setActiveTheme, removeTheme, getThemeReadme, getThemeChangelog, type ThemeInfo } from '$lib/api/endpoints/gpm';
+	import { getTheme, getThemeConfig, saveThemeConfig, setActiveTheme, removeTheme, getThemeReadme, getThemeChangelog, updatePackage, type ThemeInfo } from '$lib/api/endpoints/gpm';
 	import { getThemeBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
@@ -12,7 +12,7 @@
 	import { toast } from 'svelte-sonner';
 	import {
 		Save, ArrowLeft, Loader2, AlertCircle, Trash2, BadgeCheck,
-		Palette, ExternalLink, Power, BookOpen, FileText
+		Palette, ExternalLink, Power, BookOpen, FileText, ArrowUpCircle
 	} from 'lucide-svelte';
 
 	import { faIconClass, parseKeywords, isFirstParty } from '$lib/utils/gpm';
@@ -36,6 +36,7 @@
 	let saving = $state(false);
 	let activating = $state(false);
 	let deleting = $state(false);
+	let updating = $state(false);
 	let error = $state('');
 
 	let hasChanges = $derived(JSON.stringify(configData) !== originalJson);
@@ -231,6 +232,21 @@
 		}
 	}
 
+	async function handleUpdate() {
+		if (!theme || !theme.updatable) return;
+		updating = true;
+		try {
+			await updatePackage(slug);
+			toast.success(`${theme.name} updated`);
+			await loadTheme();
+		} catch (err: unknown) {
+			const detail = err instanceof Error ? err.message : String(err);
+			toast.error(`Failed to update ${theme.name}: ${detail}`);
+		} finally {
+			updating = false;
+		}
+	}
+
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && screenshotOpen) {
 			screenshotOpen = false;
@@ -335,6 +351,23 @@
 			{/if}
 			<ContextPanelTriggers context="themes" route={slug} lang="" />
 			{#if theme}
+				<!-- Update button -->
+				{#if theme.updatable}
+					<Button
+						variant="outline"
+						size="sm"
+						onclick={handleUpdate}
+						disabled={updating}
+					>
+						{#if updating}
+							<Loader2 size={14} class="mr-1.5 animate-spin" />
+						{:else}
+							<ArrowUpCircle size={14} class="mr-1.5" />
+						{/if}
+						Update to v{theme.available_version}
+					</Button>
+				{/if}
+
 				<!-- Delete button -->
 				<Button
 					variant="destructive"

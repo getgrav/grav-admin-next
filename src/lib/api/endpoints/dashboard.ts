@@ -95,6 +95,7 @@ export interface UpdatesData {
 		current: string;
 		available: string | null;
 		updatable: boolean;
+		is_symlink?: boolean;
 	};
 	plugins: { slug: string; name: string; available_version: string; updatable: boolean }[];
 	themes: { slug: string; name: string; available_version: string; updatable: boolean }[];

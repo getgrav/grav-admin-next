@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { getPlugin, getPluginConfig, savePluginConfig, setPluginEnabled, removePlugin, getPluginReadme, getPluginChangelog, type PluginInfo } from '$lib/api/endpoints/gpm';
+	import { getPlugin, getPluginConfig, savePluginConfig, setPluginEnabled, removePlugin, getPluginReadme, getPluginChangelog, updatePackage, type PluginInfo } from '$lib/api/endpoints/gpm';
 	import { getPluginBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
@@ -12,7 +12,7 @@
 	import { toast } from 'svelte-sonner';
 	import {
 		Save, ArrowLeft, Loader2, AlertCircle, Trash2, BadgeCheck,
-		Puzzle, ExternalLink, Power, PowerOff, BookOpen, FileText
+		Puzzle, ExternalLink, Power, PowerOff, BookOpen, FileText, ArrowUpCircle
 	} from 'lucide-svelte';
 
 	import { faIconClass, parseKeywords, parseDependencies, isFirstParty } from '$lib/utils/gpm';
@@ -38,6 +38,7 @@
 	let saving = $state(false);
 	let toggling = $state(false);
 	let deleting = $state(false);
+	let updating = $state(false);
 	let error = $state('');
 
 	let hasChanges = $derived(JSON.stringify(configData) !== originalJson);
@@ -255,6 +256,21 @@
 		}
 	}
 
+	async function handleUpdate() {
+		if (!plugin || !plugin.updatable) return;
+		updating = true;
+		try {
+			await updatePackage(slug);
+			toast.success(`${plugin.name} updated`);
+			await loadPlugin();
+		} catch (err: unknown) {
+			const detail = err instanceof Error ? err.message : String(err);
+			toast.error(`Failed to update ${plugin.name}: ${detail}`);
+		} finally {
+			updating = false;
+		}
+	}
+
 	// Keyboard shortcut: Cmd+S to save, Cmd+Z to undo
 	function handleKeydown(e: KeyboardEvent) {
 		if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -370,6 +386,23 @@
 			{/if}
 			<ContextPanelTriggers context="plugins" route={slug} lang="" />
 			{#if plugin}
+				<!-- Update button -->
+				{#if plugin.updatable}
+					<Button
+						variant="outline"
+						size="sm"
+						onclick={handleUpdate}
+						disabled={updating}
+					>
+						{#if updating}
+							<Loader2 size={14} class="mr-1.5 animate-spin" />
+						{:else}
+							<ArrowUpCircle size={14} class="mr-1.5" />
+						{/if}
+						Update to v{plugin.available_version}
+					</Button>
+				{/if}
+
 				<!-- Delete button -->
 				<Button
 					variant="destructive"

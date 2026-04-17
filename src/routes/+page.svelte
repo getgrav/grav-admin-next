@@ -6,6 +6,8 @@
 		type DashboardStats, type Notification, type PopularityData,
 		type FeedItem, type BackupInfo, type UpdatesData, type SystemInfoOverview
 	} from '$lib/api/endpoints/dashboard';
+	import { updateAllPackages, upgradeGrav } from '$lib/api/endpoints/gpm';
+	import { canWrite } from '$lib/utils/permissions';
 	import { getSystemInfo } from '$lib/api/endpoints/system';
 	import { getRecentPages } from '$lib/api/endpoints/pages';
 	import type { SystemInfo } from '$lib/api/endpoints/system';
@@ -20,7 +22,7 @@
 		FileText, Users, Puzzle, Palette, RefreshCw, Clock,
 		ExternalLink, ArrowUpRight, ArrowDownRight, Minus, Download,
 		TrendingUp, Eye, HardDrive, Shield, Rss, Archive,
-		CheckCircle2, AlertTriangle, Loader2, Server, Activity
+		CheckCircle2, AlertTriangle, Loader2, Server, Activity, ArrowUpCircle
 	} from 'lucide-svelte';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 
@@ -35,6 +37,10 @@
 	let reports = $state<SystemInfoOverview | null>(null);
 	let loading = $state(true);
 	let animated = $state(false);
+	let updatingAll = $state(false);
+	let upgradingGrav = $state(false);
+
+	const canWriteGpm = $derived(canWrite('gpm'));
 
 	// Animated counter — tweens from 0 to target over duration
 	function useTween(target: () => number, duration = 700) {
@@ -130,6 +136,44 @@
 	);
 
 	const totalUpdates = $derived(updates?.total ?? 0);
+	const hasPackageUpdates = $derived(
+		(updates?.plugins?.some((p) => p.updatable) ?? false) ||
+		(updates?.themes?.some((t) => t.updatable) ?? false),
+	);
+
+	async function handleUpdateAll() {
+		updatingAll = true;
+		try {
+			const result = await updateAllPackages();
+			const ok = result.updated.length;
+			const bad = result.failed.length;
+			if (bad === 0) {
+				toast.success(`Updated ${ok} package${ok !== 1 ? 's' : ''}`);
+			} else {
+				toast.error(`Updated ${ok}, failed ${bad}: ${result.failed.map((f) => f.package).join(', ')}`);
+			}
+			await loadDashboard();
+		} catch (err: unknown) {
+			const detail = err instanceof Error ? err.message : String(err);
+			toast.error(`Update failed: ${detail}`);
+		} finally {
+			updatingAll = false;
+		}
+	}
+
+	async function handleUpgradeGrav() {
+		upgradingGrav = true;
+		try {
+			const result = await upgradeGrav();
+			toast.success(`Grav upgraded to v${result.new_version}`);
+			await loadDashboard();
+		} catch (err: unknown) {
+			const detail = err instanceof Error ? err.message : String(err);
+			toast.error(`Grav upgrade failed: ${detail}`);
+		} finally {
+			upgradingGrav = false;
+		}
+	}
 
 	$effect(() => { if (auth.isAuthenticated) loadDashboard(); });
 
@@ -360,12 +404,36 @@
 						</div>
 						<ul class="mt-2 space-y-1 text-[12px] text-muted-foreground">
 							{#if updates.grav.updatable}
-								<li>Grav {updates.grav.available}</li>
+								<li>Grav {updates.grav.available}{updates.grav.is_symlink ? ' (symlink)' : ''}</li>
 							{/if}
 							{#each updates.plugins.filter(p => p.updatable).slice(0, 3) as p}
 								<li>{p.name} {p.available_version}</li>
 							{/each}
 						</ul>
+						{#if canWriteGpm}
+							<div class="mt-3 flex flex-wrap gap-2">
+								{#if hasPackageUpdates}
+									<Button variant="outline" size="sm" onclick={handleUpdateAll} disabled={updatingAll || upgradingGrav}>
+										{#if updatingAll}
+											<Loader2 size={13} class="animate-spin" />
+										{:else}
+											<ArrowUpCircle size={13} />
+										{/if}
+										Update All
+									</Button>
+								{/if}
+								{#if updates.grav.updatable && !updates.grav.is_symlink}
+									<Button variant="outline" size="sm" onclick={handleUpgradeGrav} disabled={updatingAll || upgradingGrav}>
+										{#if upgradingGrav}
+											<Loader2 size={13} class="animate-spin" />
+										{:else}
+											<ArrowUpCircle size={13} />
+										{/if}
+										Upgrade Grav
+									</Button>
+								{/if}
+							</div>
+						{/if}
 					{/if}
 				</div>
 			{/if}
