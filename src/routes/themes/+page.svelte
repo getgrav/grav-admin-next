@@ -6,10 +6,11 @@
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import AddThemeModal from '$lib/components/AddThemeModal.svelte';
 	import { toast } from 'svelte-sonner';
-	import { Search, Palette, ExternalLink, ArrowUpCircle, ChevronRight, Loader2, Plus, RefreshCw, BadgeCheck, Check } from 'lucide-svelte';
+	import { Search, Palette, ExternalLink, ArrowUpCircle, ChevronRight, Loader2, Plus, RefreshCw, BadgeCheck, Check, CornerDownRight } from 'lucide-svelte';
 	import { faIconClass, parseKeywords, parseDependencies, isFirstParty } from '$lib/utils/gpm';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { canWrite } from '$lib/utils/permissions';
+	import { dialogs } from '$lib/stores/dialogs.svelte';
 
 	const canWriteGpm = $derived(canWrite('gpm'));
 
@@ -102,6 +103,12 @@
 
 	async function handleUpdateTheme(theme: ThemeInfo, e: Event) {
 		e.stopPropagation();
+		const ok = await dialogs.confirm({
+			title: 'Update theme?',
+			message: `Update ${theme.name} to v${theme.available_version}?`,
+			confirmLabel: 'Update',
+		});
+		if (!ok) return;
 		updatingSlug = theme.slug;
 		try {
 			await updatePackage(theme.slug);
@@ -116,15 +123,21 @@
 	}
 
 	async function handleUpdateAll() {
+		const ok = await dialogs.confirm({
+			title: 'Update all packages?',
+			message: `This will update ${updatableCount} package${updatableCount !== 1 ? 's' : ''} (plugins and themes). Continue?`,
+			confirmLabel: 'Update All',
+		});
+		if (!ok) return;
 		updatingAll = true;
 		try {
 			const result = await updateAllPackages();
-			const ok = result.updated.length;
+			const okCount = result.updated.length;
 			const bad = result.failed.length;
 			if (bad === 0) {
-				toast.success(`Updated ${ok} package${ok !== 1 ? 's' : ''}`);
+				toast.success(`Updated ${okCount} package${okCount !== 1 ? 's' : ''}`);
 			} else {
-				toast.error(`Updated ${ok}, failed ${bad}: ${result.failed.map((f) => f.package).join(', ')}`);
+				toast.error(`Updated ${okCount}, failed ${bad}: ${result.failed.map((f) => f.package).join(', ')}`);
 			}
 			await loadThemes();
 		} catch (err: unknown) {
@@ -258,6 +271,11 @@
 							<p class="truncate text-xs text-muted-foreground">{theme.description ?? ''}</p>
 						</div>
 
+						<!-- Symlink indicator -->
+						{#if theme.is_symlink}
+							<span class="inline-flex shrink-0" title="Symlinked"><CornerDownRight size={14} class="text-muted-foreground/60" aria-label="Symlinked" /></span>
+						{/if}
+
 						<!-- Active badge -->
 						{#if theme.enabled}
 							<span class="shrink-0 rounded-full bg-green-500/15 px-2.5 py-0.5 text-[10px] font-medium text-green-600 dark:text-green-400">
@@ -296,6 +314,9 @@
 									<h2 class="text-lg font-semibold text-foreground">{selectedTheme.name}</h2>
 									{#if isFirstParty(selectedTheme.author)}
 										<BadgeCheck size={18} class="shrink-0 text-purple-500" />
+									{/if}
+									{#if selectedTheme.is_symlink}
+										<span class="inline-flex shrink-0" title="Symlinked"><CornerDownRight size={14} class="text-muted-foreground/60" aria-label="Symlinked" /></span>
 									{/if}
 									{#if selectedTheme.premium}
 										<span class="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">Premium</span>

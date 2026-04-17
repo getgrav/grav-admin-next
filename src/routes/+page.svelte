@@ -8,6 +8,7 @@
 	} from '$lib/api/endpoints/dashboard';
 	import { updateAllPackages, upgradeGrav } from '$lib/api/endpoints/gpm';
 	import { canWrite } from '$lib/utils/permissions';
+	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { getSystemInfo } from '$lib/api/endpoints/system';
 	import { getRecentPages } from '$lib/api/endpoints/pages';
 	import type { SystemInfo } from '$lib/api/endpoints/system';
@@ -22,7 +23,8 @@
 		FileText, Users, Puzzle, Palette, RefreshCw, Clock,
 		ExternalLink, ArrowUpRight, ArrowDownRight, Minus, Download,
 		TrendingUp, Eye, HardDrive, Shield, Rss, Archive,
-		CheckCircle2, AlertTriangle, Loader2, Server, Activity, ArrowUpCircle
+		CheckCircle2, AlertTriangle, Loader2, Server, Activity, ArrowUpCircle,
+		ArrowRight
 	} from 'lucide-svelte';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 
@@ -142,15 +144,23 @@
 	);
 
 	async function handleUpdateAll() {
+		const n = (updates?.plugins?.filter((p) => p.updatable).length ?? 0) +
+			(updates?.themes?.filter((t) => t.updatable).length ?? 0);
+		const ok = await dialogs.confirm({
+			title: 'Update all packages?',
+			message: `This will update ${n} package${n !== 1 ? 's' : ''}. Continue?`,
+			confirmLabel: 'Update All',
+		});
+		if (!ok) return;
 		updatingAll = true;
 		try {
 			const result = await updateAllPackages();
-			const ok = result.updated.length;
+			const okCount = result.updated.length;
 			const bad = result.failed.length;
 			if (bad === 0) {
-				toast.success(`Updated ${ok} package${ok !== 1 ? 's' : ''}`);
+				toast.success(`Updated ${okCount} package${okCount !== 1 ? 's' : ''}`);
 			} else {
-				toast.error(`Updated ${ok}, failed ${bad}: ${result.failed.map((f) => f.package).join(', ')}`);
+				toast.error(`Updated ${okCount}, failed ${bad}: ${result.failed.map((f) => f.package).join(', ')}`);
 			}
 			await loadDashboard();
 		} catch (err: unknown) {
@@ -162,6 +172,13 @@
 	}
 
 	async function handleUpgradeGrav() {
+		const target = updates?.grav?.available ?? '';
+		const ok = await dialogs.confirm({
+			title: 'Upgrade Grav core?',
+			message: `This will upgrade Grav from v${updates?.grav?.current ?? ''} to v${target}. The site may be briefly unavailable during the upgrade.`,
+			confirmLabel: 'Upgrade Grav',
+		});
+		if (!ok) return;
 		upgradingGrav = true;
 		try {
 			const result = await upgradeGrav();
@@ -387,50 +404,105 @@
 		<div class="space-y-3">
 			<!-- Updates status -->
 			{#if updates}
+				{@const updatablePlugins = updates.plugins.filter((p) => p.updatable)}
+				{@const updatableThemes = updates.themes.filter((t) => t.updatable)}
+				{@const packageCount = updatablePlugins.length + updatableThemes.length}
 				<div class="rounded-lg border border-border bg-card p-4">
-					<h2 class="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
-						<Shield size={15} />
-						Updates
-					</h2>
+					<div class="mb-2 flex items-center justify-between">
+						<h2 class="flex items-center gap-2 text-sm font-semibold text-foreground">
+							<Shield size={15} />
+							Updates
+						</h2>
+						{#if totalUpdates > 0}
+							<span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+								{totalUpdates} available
+							</span>
+						{/if}
+					</div>
+
 					{#if totalUpdates === 0}
 						<div class="flex items-center gap-2 text-[13px] text-emerald-600 dark:text-emerald-400">
 							<CheckCircle2 size={14} />
 							Everything up to date
 						</div>
 					{:else}
-						<div class="flex items-center gap-2 text-[13px] text-amber-600 dark:text-amber-400">
-							<AlertTriangle size={14} />
-							{totalUpdates} update{totalUpdates > 1 ? 's' : ''} available
-						</div>
-						<ul class="mt-2 space-y-1 text-[12px] text-muted-foreground">
-							{#if updates.grav.updatable}
-								<li>Grav {updates.grav.available}{updates.grav.is_symlink ? ' (symlink)' : ''}</li>
-							{/if}
-							{#each updates.plugins.filter(p => p.updatable).slice(0, 3) as p}
-								<li>{p.name} {p.available_version}</li>
-							{/each}
-						</ul>
-						{#if canWriteGpm}
-							<div class="mt-3 flex flex-wrap gap-2">
-								{#if hasPackageUpdates}
-									<Button variant="outline" size="sm" onclick={handleUpdateAll} disabled={updatingAll || upgradingGrav}>
-										{#if updatingAll}
-											<Loader2 size={13} class="animate-spin" />
+						<!-- Grav core upgrade — featured prominently -->
+						{#if updates.grav.updatable}
+							<div class="relative mb-3 overflow-hidden rounded-lg border border-purple-500/30 bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent p-3 shadow-sm">
+								<div class="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-purple-500/10 blur-2xl"></div>
+								<div class="relative">
+									<div class="flex items-center gap-2 text-[13px] font-semibold text-purple-600 dark:text-purple-400">
+										<ArrowUpCircle size={13} />
+										Grav Update Available
+									</div>
+									<div class="mt-1.5 flex items-center gap-1.5 text-[12px] text-muted-foreground">
+										<span class="tabular-nums">v{updates.grav.current}</span>
+										<ArrowRight size={11} class="text-purple-500" />
+										<span class="font-semibold tabular-nums text-purple-600 dark:text-purple-400">v{updates.grav.available}</span>
+									</div>
+									{#if canWriteGpm}
+										{#if updates.grav.is_symlink}
+											<div class="mt-2 text-[11px] italic text-muted-foreground">
+												Grav is installed via symlink — upgrade manually.
+											</div>
 										{:else}
-											<ArrowUpCircle size={13} />
+											<button
+												type="button"
+												class="mt-2.5 inline-flex h-8 items-center gap-1.5 rounded-md bg-purple-600 px-3 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-purple-700 disabled:opacity-60 dark:bg-purple-500 dark:hover:bg-purple-600"
+												onclick={handleUpgradeGrav}
+												disabled={updatingAll || upgradingGrav}
+											>
+												{#if upgradingGrav}
+													<Loader2 size={12} class="animate-spin" />
+												{:else}
+													<ArrowUpCircle size={12} />
+												{/if}
+												Upgrade Grav
+											</button>
+										{/if}
+									{/if}
+								</div>
+							</div>
+						{/if}
+
+						<!-- Plugin / theme updates -->
+						{#if packageCount > 0}
+							<div class="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+								<div class="flex items-center gap-2 text-[13px] font-medium text-amber-600 dark:text-amber-400">
+									<AlertTriangle size={13} />
+									{packageCount} package{packageCount > 1 ? 's' : ''} outdated
+								</div>
+								<ul class="mt-2 space-y-0.5 text-[12px] text-muted-foreground">
+									{#each updatablePlugins.slice(0, 4) as p}
+										<li class="flex items-center justify-between gap-2">
+											<span class="truncate">{p.name}</span>
+											<span class="shrink-0 font-medium tabular-nums text-amber-600/80 dark:text-amber-400/80">v{p.available_version}</span>
+										</li>
+									{/each}
+									{#each updatableThemes.slice(0, Math.max(0, 4 - updatablePlugins.length)) as t}
+										<li class="flex items-center justify-between gap-2">
+											<span class="truncate">{t.name}</span>
+											<span class="shrink-0 font-medium tabular-nums text-amber-600/80 dark:text-amber-400/80">v{t.available_version}</span>
+										</li>
+									{/each}
+									{#if packageCount > 4}
+										<li class="text-[11px] italic text-muted-foreground/70">+ {packageCount - 4} more…</li>
+									{/if}
+								</ul>
+								{#if canWriteGpm}
+									<button
+										type="button"
+										class="mt-2.5 inline-flex h-8 items-center gap-1.5 rounded-md bg-amber-500 px-3 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 disabled:opacity-60"
+										onclick={handleUpdateAll}
+										disabled={updatingAll || upgradingGrav}
+									>
+										{#if updatingAll}
+											<Loader2 size={12} class="animate-spin" />
+										{:else}
+											<ArrowUpCircle size={12} />
 										{/if}
 										Update All
-									</Button>
-								{/if}
-								{#if updates.grav.updatable && !updates.grav.is_symlink}
-									<Button variant="outline" size="sm" onclick={handleUpgradeGrav} disabled={updatingAll || upgradingGrav}>
-										{#if upgradingGrav}
-											<Loader2 size={13} class="animate-spin" />
-										{:else}
-											<ArrowUpCircle size={13} />
-										{/if}
-										Upgrade Grav
-									</Button>
+									</button>
 								{/if}
 							</div>
 						{/if}

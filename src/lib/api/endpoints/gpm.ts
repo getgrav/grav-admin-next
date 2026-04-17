@@ -18,6 +18,7 @@ export interface PluginInfo {
 	available_version?: string;
 	updatable?: boolean;
 	premium?: boolean;
+	is_symlink?: boolean;
 	dependencies?: string[];
 	keywords?: string[];
 	icon?: string;
@@ -190,6 +191,7 @@ export interface ThemeInfo {
 	available_version?: string;
 	updatable?: boolean;
 	premium?: boolean;
+	is_symlink?: boolean;
 	dependencies?: string[];
 	keywords?: string[];
 	icon?: string;

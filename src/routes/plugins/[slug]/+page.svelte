@@ -12,7 +12,7 @@
 	import { toast } from 'svelte-sonner';
 	import {
 		Save, ArrowLeft, Loader2, AlertCircle, Trash2, BadgeCheck,
-		Puzzle, ExternalLink, Power, PowerOff, BookOpen, FileText, ArrowUpCircle
+		Puzzle, ExternalLink, Power, PowerOff, BookOpen, FileText, ArrowUpCircle, CornerDownRight
 	} from 'lucide-svelte';
 
 	import { faIconClass, parseKeywords, parseDependencies, isFirstParty } from '$lib/utils/gpm';
@@ -21,6 +21,7 @@
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { onMount } from 'svelte';
 	import { Undo2 } from 'lucide-svelte';
 	import ContextPanelTriggers from '$lib/components/context-panels/ContextPanelTriggers.svelte';
@@ -258,6 +259,12 @@
 
 	async function handleUpdate() {
 		if (!plugin || !plugin.updatable) return;
+		const ok = await dialogs.confirm({
+			title: 'Update plugin?',
+			message: `Update ${plugin.name} to v${plugin.available_version}?`,
+			confirmLabel: 'Update',
+		});
+		if (!ok) return;
 		updating = true;
 		try {
 			await updatePackage(slug);
@@ -361,6 +368,9 @@
 							<h1 class="text-lg font-semibold text-foreground">{plugin.name}</h1>
 							{#if isFirstParty(plugin.author)}
 								<BadgeCheck size={18} class="shrink-0 text-purple-500" />
+							{/if}
+							{#if plugin.is_symlink}
+								<span class="inline-flex shrink-0" title="Symlinked"><CornerDownRight size={14} class="text-muted-foreground/60" aria-label="Symlinked" /></span>
 							{/if}
 							{#if plugin.premium}
 								<span class="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">Premium</span>

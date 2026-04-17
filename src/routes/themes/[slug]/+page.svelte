@@ -12,7 +12,7 @@
 	import { toast } from 'svelte-sonner';
 	import {
 		Save, ArrowLeft, Loader2, AlertCircle, Trash2, BadgeCheck,
-		Palette, ExternalLink, Power, BookOpen, FileText, ArrowUpCircle
+		Palette, ExternalLink, Power, BookOpen, FileText, ArrowUpCircle, CornerDownRight
 	} from 'lucide-svelte';
 
 	import { faIconClass, parseKeywords, isFirstParty } from '$lib/utils/gpm';
@@ -20,6 +20,7 @@
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
+	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { Undo2 } from 'lucide-svelte';
 	import ContextPanelTriggers from '$lib/components/context-panels/ContextPanelTriggers.svelte';
 
@@ -234,6 +235,12 @@
 
 	async function handleUpdate() {
 		if (!theme || !theme.updatable) return;
+		const ok = await dialogs.confirm({
+			title: 'Update theme?',
+			message: `Update ${theme.name} to v${theme.available_version}?`,
+			confirmLabel: 'Update',
+		});
+		if (!ok) return;
 		updating = true;
 		try {
 			await updatePackage(slug);
@@ -326,6 +333,9 @@
 							<h1 class="text-lg font-semibold text-foreground">{theme.name}</h1>
 							{#if isFirstParty(theme.author)}
 								<BadgeCheck size={18} class="shrink-0 text-purple-500" />
+							{/if}
+							{#if theme.is_symlink}
+								<span class="inline-flex shrink-0" title="Symlinked"><CornerDownRight size={14} class="text-muted-foreground/60" aria-label="Symlinked" /></span>
 							{/if}
 							{#if theme.premium}
 								<span class="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">Premium</span>
