@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { setContext } from 'svelte';
-	import { getPage, updatePage, deletePage, movePage } from '$lib/api/endpoints/pages';
+	import { getPage, updatePage, deletePage, movePage, copyPage, getChildren } from '$lib/api/endpoints/pages';
 	import { createTranslation, syncTranslation, adoptPageLanguage } from '$lib/api/endpoints/languages';
 	import { getPageBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { PageDetail } from '$lib/api/endpoints/pages';
@@ -16,7 +16,7 @@
 	import LanguageSwitcher from '$lib/components/ui/LanguageSwitcher.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
-		Save, Trash2, ArrowLeft, Code,
+		Save, Trash2, ArrowLeft, Code, FileText, Copy as CopyIcon,
 		AlertCircle, ChevronDown, Loader2, Eye, ExternalLink, X, Undo2, Languages, Move
 	} from 'lucide-svelte';
 	import PageNavigator from '$lib/components/pages/PageNavigator.svelte';
@@ -635,6 +635,54 @@
 		}
 	}
 
+	let copying = $state(false);
+
+	/**
+	 * Duplicate the current page, mirroring admin-classic's taskCopy() behavior:
+	 * pick the next free `slug-N` under the same parent, copy the folder, then
+	 * increment the trailing number in the title (or append ` 2`).
+	 */
+	async function handleCopy() {
+		if (!pageData || !canEditPages || copying) return;
+		copying = true;
+		try {
+			const originalRoute = pageData.route;
+			const originalSlug = pageData.slug;
+			const parentRoute = originalRoute === '/' ? '/' : (originalRoute.substring(0, originalRoute.lastIndexOf('/')) || '/');
+
+			// Strip a trailing -N from the current slug to get the base, then start numbering from N+1 (or 2 if none).
+			const slugMatch = originalSlug.match(/^(.*?)(?:-(\d+))?$/);
+			const baseSlug = slugMatch?.[1] || originalSlug;
+			const startN = slugMatch?.[2] ? Number(slugMatch[2]) + 1 : 2;
+
+			const siblings = await getChildren(parentRoute);
+			const existingSlugs = new Set(siblings.map((p) => p.slug));
+			let n = startN;
+			while (existingSlugs.has(`${baseSlug}-${n}`)) n++;
+			const newSlug = `${baseSlug}-${n}`;
+			const destination = parentRoute === '/' ? `/${newSlug}` : `${parentRoute}/${newSlug}`;
+
+			const newPage = await copyPage(originalRoute, destination);
+
+			// Increment trailing number in the title (matches admin-classic).
+			const titleMatch = pageData.title.match(/^(.*?)(\d+)\s*$/);
+			const newTitle = titleMatch ? `${titleMatch[1]}${Number(titleMatch[2]) + 1}` : `${pageData.title} 2`;
+			try {
+				await updatePage(newPage.route, { title: newTitle });
+			} catch {
+				// Non-fatal: folder was copied, title update failed.
+			}
+
+			toast.success('Page copied');
+			goto(`${base}/pages/edit${newPage.route}`);
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err);
+			toast.error(`Copy failed: ${msg}`);
+		} finally {
+			copying = false;
+		}
+	}
+
 	/**
 	 * Route Save to the correct action:
 	 *  - In fallback mode (viewing English while active lang is French with no
@@ -690,7 +738,7 @@
 	<StickyHeader bind:height={headerHeight}>
 		{#snippet children({ scrolled })}
 			<div class="px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
-				<div class="flex items-center justify-between gap-4 {scrolled ? 'min-h-6' : 'min-h-8'}">
+				<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 {scrolled ? 'sm:min-h-6' : 'sm:min-h-8'}">
 					<div class="flex min-w-0 items-center gap-3">
 						<button class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground" onclick={() => goto(`${base}/pages`)}>
 							<ArrowLeft size={16} />
@@ -712,7 +760,7 @@
 						</div>
 					</div>
 
-					<div class="flex shrink-0 items-center gap-2">
+					<div class="flex shrink-0 flex-wrap items-center gap-2">
 			<UnsavedIndicator
 				hasChanges={hasChanges}
 				saving={autoSave.saving}
@@ -720,9 +768,9 @@
 				autoSaveEnabled={prefs.autoSaveEnabled}
 			/>
 			{#if prefs.autoSaveEnabled && prefs.autoSaveToolbarUndo && autoSave.canUndo}
-				<Button variant="outline" size="sm" onclick={() => autoSave.undo()}>
+				<Button variant="outline" size="sm" class="px-2 lg:px-3" title="Undo" onclick={() => autoSave.undo()}>
 					<Undo2 size={14} />
-					Undo
+					<span class="hidden lg:inline">Undo</span>
 				</Button>
 			{/if}
 			<!-- Context panel triggers (e.g., revisions) -->
@@ -738,49 +786,63 @@
 			>
 				<Move size={14} />
 			</button>
+			<!-- Preview, Copy, Delete — always icon-only -->
+			<Button variant="outline" size="icon" class="h-8 w-8" title="Preview page" onclick={() => showFrontendPreview = true} disabled={loading || !pageData}>
+				<Eye size={14} />
+			</Button>
+			{#if canEditPages}
+				<Button variant="outline" size="icon" class="h-8 w-8" title="Copy page" onclick={handleCopy} disabled={loading || copying || !pageData}>
+					{#if copying}
+						<Loader2 size={14} class="animate-spin" />
+					{:else}
+						<CopyIcon size={14} />
+					{/if}
+				</Button>
+				<Button variant="destructive" size="icon" class="h-8 w-8" title="Delete page" onclick={handleDelete} disabled={loading}>
+					<Trash2 size={14} />
+				</Button>
+			{/if}
 			<!-- Normal / Expert toggle -->
 			<div class="inline-flex rounded-md border border-border shadow-sm">
 				<button
-					class="inline-flex h-8 items-center px-3 text-[12px] font-medium transition-colors first:rounded-l-md
+					class="inline-flex h-8 items-center gap-1.5 px-2 lg:px-3 text-[12px] font-medium transition-colors first:rounded-l-md
 						{prefs.editorMode === 'normal'
 							? 'bg-accent text-accent-foreground'
 							: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+					title="Normal mode"
 					onclick={() => { if (prefs.editorMode === 'expert') switchToNormal(); }}
-				>Normal</button>
+				>
+					<FileText size={14} />
+					<span class="hidden lg:inline">Normal</span>
+				</button>
 				<button
-					class="inline-flex h-8 items-center px-3 text-[12px] font-medium transition-colors last:rounded-r-md
+					class="inline-flex h-8 items-center gap-1.5 px-2 lg:px-3 text-[12px] font-medium transition-colors last:rounded-r-md
 						{prefs.editorMode === 'expert'
 							? 'bg-accent text-accent-foreground'
 							: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+					title="Expert mode"
 					onclick={() => { if (prefs.editorMode === 'normal') switchToExpert(); }}
-				>Expert</button>
+				>
+					<Code size={14} />
+					<span class="hidden lg:inline">Expert</span>
+				</button>
 			</div>
-			{#if canEditPages}
-			<Button variant="destructive" size="sm" onclick={handleDelete} disabled={loading}>
-				<Trash2 size={14} />
-				Delete
-			</Button>
-			{/if}
 			{#if contentLang.enabled}
 				<LanguageSwitcher compact translatedLangs={pageData?.translated_languages ? Object.keys(pageData.translated_languages) : undefined} onchange={handleLanguageSwitch} />
 			{/if}
-			<Button variant="outline" size="sm" onclick={() => showFrontendPreview = true} disabled={loading || !pageData}>
-				<Eye size={14} />
-				Preview
-			</Button>
 			<!-- Save button with Save As dropdown -->
 			{#if canEditPages}
 			<div class="relative flex">
-				<Button size="sm" class="{(hasChanges || canCreateTranslation) ? '' : 'opacity-50 pointer-events-none'} {saveAsLanguages.length > 0 ? 'rounded-r-none' : ''}" onclick={triggerSave} disabled={saving || loading}>
+				<Button size="sm" class="px-2 lg:px-3 {(hasChanges || canCreateTranslation) ? '' : 'opacity-50 pointer-events-none'} {saveAsLanguages.length > 0 ? 'rounded-r-none' : ''}" title={saving ? 'Saving…' : canCreateTranslation ? `Save as ${contentLang.getLanguageName(contentLang.activeLang)}` : 'Save'} onclick={triggerSave} disabled={saving || loading}>
 					{#if saving}
 						<Loader2 size={14} class="animate-spin" />
-						Saving...
+						<span class="hidden lg:inline">Saving...</span>
 					{:else if canCreateTranslation}
 						<Languages size={14} />
-						Save as {contentLang.getLanguageName(contentLang.activeLang)}
+						<span class="hidden lg:inline">Save as {contentLang.getLanguageName(contentLang.activeLang)}</span>
 					{:else}
 						<Save size={14} />
-						Save
+						<span class="hidden lg:inline">Save</span>
 					{/if}
 				</Button>
 				{#if saveAsLanguages.length > 0}
