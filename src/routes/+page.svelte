@@ -68,7 +68,7 @@
 	const tweenUsers = useTween(() => stats?.users.total ?? 0);
 	const tweenPlugins = useTween(() => stats?.plugins.total ?? 0);
 
-	async function loadDashboard() {
+	async function loadDashboard(flushGpm = false) {
 		loading = true;
 		try {
 			const results = await Promise.allSettled([
@@ -79,7 +79,7 @@
 				getPopularity(),
 				getFeed(),
 				getBackups(),
-				getUpdates(),
+				getUpdates(flushGpm),
 				getSystemInfoOverview(),
 			]);
 			if (results[0].status === 'fulfilled') stats = results[0].value;
@@ -228,7 +228,7 @@
 							<p class="mt-0.5 text-xs text-muted-foreground">Welcome back, {auth.fullname || auth.username}</p>
 						{/if}
 					</div>
-					<Button variant="outline" size="sm" onclick={loadDashboard}>
+					<Button variant="outline" size="sm" onclick={() => loadDashboard(true)}>
 						<RefreshCw size={13} />
 						Refresh
 					</Button>

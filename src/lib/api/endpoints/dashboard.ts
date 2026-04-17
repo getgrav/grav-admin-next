@@ -102,8 +102,8 @@ export interface UpdatesData {
 	total: number;
 }
 
-export async function getUpdates(): Promise<UpdatesData> {
-	return api.get<UpdatesData>('/gpm/updates');
+export async function getUpdates(flush = false): Promise<UpdatesData> {
+	return api.get<UpdatesData>('/gpm/updates', flush ? { flush: 'true' } : undefined);
 }
 
 export interface SystemInfoOverview {
