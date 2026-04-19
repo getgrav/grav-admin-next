@@ -381,15 +381,15 @@
 
 					{#if page.has_children}
 						{#if expandedRoutes.has(page.route)}
-							<FolderOpen size={14} class="shrink-0 text-primary" />
+							<FolderOpen size={14} class="shrink-0 {page.visible ? 'text-primary' : 'text-muted-foreground'}" />
 						{:else}
-							<Folder size={14} class="shrink-0 text-primary/70" />
+							<Folder size={14} class="shrink-0 {page.visible ? 'text-primary/70' : 'text-muted-foreground'}" />
 						{/if}
 					{:else}
-						<File size={14} class="shrink-0 text-muted-foreground" />
+						<File size={14} class="shrink-0 {page.visible ? 'text-primary/70' : 'text-muted-foreground'}" />
 					{/if}
 
-					<button class="min-w-0 flex-1 text-left pl-1 {!page.visible ? 'opacity-60' : ''}" onclick={() => onEdit(pageApiRoute(page))}>
+					<button class="min-w-0 flex-1 text-left pl-1" onclick={() => onEdit(pageApiRoute(page))}>
 						<div class="flex items-center gap-1.5">
 							<span class="truncate text-sm font-medium group-hover:text-primary
 								{isUntranslated ? 'text-muted-foreground italic' : 'text-foreground'}">{page.menu}</span>

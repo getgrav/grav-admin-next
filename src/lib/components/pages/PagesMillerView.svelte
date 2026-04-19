@@ -500,14 +500,14 @@
 								</span>
 							{/if}
 							<button
-								class="flex min-w-0 flex-1 items-center gap-2 text-left {!page.visible ? 'opacity-60' : ''}"
+								class="flex min-w-0 flex-1 items-center gap-2 text-left"
 								onclick={() => selectPage(colIndex, page)}
 								ondblclick={() => onEdit(pageApiRoute(page))}
 							>
 							{#if page.has_children}
-								<Folder size={14} class="shrink-0 {isActive ? 'text-primary-foreground/80' : 'text-primary'}" />
+								<Folder size={14} class="shrink-0 {isActive ? 'text-primary-foreground/80' : (page.visible ? 'text-primary' : 'text-muted-foreground')}" />
 							{:else}
-								<File size={14} class="shrink-0 {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground'}" />
+								<File size={14} class="shrink-0 {isActive ? 'text-primary-foreground/60' : (page.visible ? 'text-primary/70' : 'text-muted-foreground')}" />
 							{/if}
 							<div class="min-w-0 flex-1">
 								<div class="flex items-center gap-1.5">
