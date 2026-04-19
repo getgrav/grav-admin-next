@@ -6,6 +6,30 @@ export type PagesViewMode = 'tree' | 'list' | 'miller';
 export type MediaViewMode = 'grid' | 'list';
 export type ColorMode = 'light' | 'dark' | 'system';
 export type EditorMode = 'normal' | 'expert';
+export type FontFamily = 'inter' | 'google-sans' | 'public-sans' | 'nunito-sans' | 'jost';
+
+export interface FontOption {
+	value: FontFamily;
+	label: string;
+	stack: string;
+}
+
+export const FONT_OPTIONS: FontOption[] = [
+	{ value: 'google-sans',  label: 'Google Sans',  stack: "'Google Sans', ui-sans-serif, system-ui, -apple-system, sans-serif" },
+	{ value: 'inter',        label: 'Inter',        stack: "'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif" },
+	{ value: 'public-sans',  label: 'Public Sans',  stack: "'Public Sans', ui-sans-serif, system-ui, -apple-system, sans-serif" },
+	{ value: 'nunito-sans',  label: 'Nunito Sans',  stack: "'Nunito Sans', ui-sans-serif, system-ui, -apple-system, sans-serif" },
+	{ value: 'jost',         label: 'Jost',         stack: "'Jost', ui-sans-serif, system-ui, -apple-system, sans-serif" },
+];
+
+function fontStack(value: FontFamily): string {
+	return (FONT_OPTIONS.find(f => f.value === value) ?? FONT_OPTIONS[0]).stack;
+}
+
+function applyFont(value: FontFamily) {
+	if (typeof document === 'undefined') return;
+	document.documentElement.style.setProperty('--font-sans', fontStack(value));
+}
 
 export interface MenubarLink {
 	label: string;
@@ -35,6 +59,7 @@ interface Preferences {
 	autoSaveEnabled: boolean;
 	autoSaveToolbarUndo: boolean;
 	autoSaveBatchWindowMs: number;
+	fontFamily: FontFamily;
 }
 
 function loadStored(): Partial<Preferences> {
@@ -60,6 +85,9 @@ function createPreferencesStore() {
 	let autoSaveEnabled = $state(stored.autoSaveEnabled ?? false);
 	let autoSaveToolbarUndo = $state(stored.autoSaveToolbarUndo ?? true);
 	let autoSaveBatchWindowMs = $state(stored.autoSaveBatchWindowMs ?? 0);
+	let fontFamily = $state<FontFamily>(stored.fontFamily ?? 'google-sans');
+
+	applyFont(fontFamily);
 
 	function persist() {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -74,6 +102,7 @@ function createPreferencesStore() {
 			autoSaveEnabled,
 			autoSaveToolbarUndo,
 			autoSaveBatchWindowMs,
+			fontFamily,
 		}));
 	}
 
@@ -110,6 +139,9 @@ function createPreferencesStore() {
 
 		get autoSaveBatchWindowMs() { return autoSaveBatchWindowMs; },
 		set autoSaveBatchWindowMs(v: number) { autoSaveBatchWindowMs = v; persist(); },
+
+		get fontFamily() { return fontFamily; },
+		set fontFamily(v: FontFamily) { fontFamily = v; applyFont(v); persist(); },
 	};
 }
 

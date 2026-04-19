@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { prefs, type MenubarLink, type LogoMode } from '$lib/stores/preferences.svelte';
+	import { prefs, type MenubarLink, type LogoMode, FONT_OPTIONS } from '$lib/stores/preferences.svelte';
 	import { theme, ACCENT_PRESETS } from '$lib/stores/theme.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -307,6 +307,28 @@
 							</div>
 						</div>
 					{/if}
+				</div>
+			</div>
+
+			<!-- Font -->
+			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+				<div class="lg:pt-2.5">
+					<span class="text-sm font-semibold text-foreground">Font</span>
+					<p class="mt-0.5 text-xs text-muted-foreground">Typeface used throughout the admin</p>
+				</div>
+				<div class="flex flex-wrap gap-2">
+					{#each FONT_OPTIONS as font (font.value)}
+						{@const isActive = prefs.fontFamily === font.value}
+						<button
+							class="group relative flex h-9 items-center gap-2 rounded-md border px-3 text-sm transition-colors
+								{isActive ? 'border-foreground/30 bg-accent text-accent-foreground' : 'border-border text-muted-foreground hover:border-foreground/20 hover:bg-accent/50'}"
+							style="font-family: {font.stack}"
+							onclick={() => prefs.fontFamily = font.value}
+							title={font.label}
+						>
+							{font.label}
+						</button>
+					{/each}
 				</div>
 			</div>
 		</div>
