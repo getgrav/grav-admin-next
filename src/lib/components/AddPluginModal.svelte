@@ -78,19 +78,28 @@
 	async function handleInstall(slug: string) {
 		installingSlug = slug;
 		try {
-			await installPlugin(slug);
-			// Mark as installed locally
-			const idx = allPlugins.findIndex((p) => p.slug === slug);
-			if (idx !== -1) {
-				allPlugins[idx] = { ...allPlugins[idx], installed: true };
-				allPlugins = [...allPlugins];
+			const result = await installPlugin(slug);
+			// Mark main package + dependencies as installed locally
+			const installedSlugs = [slug, ...(result.dependencies ?? [])];
+			for (const s of installedSlugs) {
+				const idx = allPlugins.findIndex((p) => p.slug === s);
+				if (idx !== -1) {
+					allPlugins[idx] = { ...allPlugins[idx], installed: true };
+				}
 			}
+			allPlugins = [...allPlugins];
 			// Select next available or clear selection
 			if (selectedSlug === slug) {
 				const next = available.find((p) => p.slug !== slug);
 				selectedSlug = next?.slug ?? null;
 			}
-			toast.success(`Plugin '${allPlugins.find((p) => p.slug === slug)?.name ?? slug}' installed`);
+			// One toast per installed package (dependencies first, then the main one)
+			for (const depSlug of result.dependencies ?? []) {
+				const name = allPlugins.find((p) => p.slug === depSlug)?.name ?? depSlug;
+				toast.success(`Plugin '${name}' installed (dependency)`);
+			}
+			const mainName = allPlugins.find((p) => p.slug === slug)?.name ?? slug;
+			toast.success(`Plugin '${mainName}' installed`);
 			oninstalled();
 		} catch {
 			toast.error(`Failed to install '${slug}'`);

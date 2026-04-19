@@ -147,7 +147,10 @@
 		if (!ok) return;
 		updatingSlug = plugin.slug;
 		try {
-			await updatePackage(plugin.slug);
+			const result = await updatePackage(plugin.slug);
+			for (const depSlug of result.dependencies ?? []) {
+				toast.success(`Plugin '${depSlug}' installed (dependency)`);
+			}
 			toast.success(`${plugin.name} updated`);
 			await loadPlugins();
 		} catch (err: unknown) {

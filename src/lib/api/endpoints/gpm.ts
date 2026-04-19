@@ -120,11 +120,20 @@ export async function getRepositoryPlugins(): Promise<RepositoryPlugin[]> {
 	return api.get<RepositoryPlugin[]>('/gpm/repository/plugins', { per_page: '500' });
 }
 
+export interface InstallPackageResult {
+	message: string;
+	package: string;
+	type: 'plugin' | 'theme';
+	/** Slugs of dependency packages that were installed alongside the main package. */
+	dependencies: string[];
+}
+
 /**
- * Install a plugin by slug.
+ * Install a plugin by slug. Returns the installed package plus any dependencies
+ * that were also installed.
  */
-export async function installPlugin(slug: string): Promise<void> {
-	await api.post('/gpm/install', { package: slug, type: 'plugin' });
+export async function installPlugin(slug: string): Promise<InstallPackageResult> {
+	return api.post<InstallPackageResult>('/gpm/install', { package: slug, type: 'plugin' });
 }
 
 /**
@@ -145,6 +154,8 @@ export interface UpdatePackageResult {
 	message: string;
 	package: string;
 	type: 'plugin' | 'theme';
+	/** Slugs of dependency packages that were installed alongside the updated package. */
+	dependencies: string[];
 }
 
 export interface UpdateAllResult {
@@ -272,8 +283,8 @@ export async function getRepositoryThemes(): Promise<RepositoryTheme[]> {
 	return api.get<RepositoryTheme[]>('/gpm/repository/themes', { per_page: '500' });
 }
 
-export async function installTheme(slug: string): Promise<void> {
-	await api.post('/gpm/install', { package: slug, type: 'theme' });
+export async function installTheme(slug: string): Promise<InstallPackageResult> {
+	return api.post<InstallPackageResult>('/gpm/install', { package: slug, type: 'theme' });
 }
 
 export async function removeTheme(slug: string): Promise<void> {

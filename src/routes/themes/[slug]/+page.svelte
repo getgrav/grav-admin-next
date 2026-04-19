@@ -244,7 +244,10 @@
 		if (!ok) return;
 		updating = true;
 		try {
-			await updatePackage(slug);
+			const result = await updatePackage(slug);
+			for (const depSlug of result.dependencies ?? []) {
+				toast.success(`Plugin '${depSlug}' installed (dependency)`);
+			}
 			toast.success(`${theme.name} updated`);
 			await loadTheme();
 		} catch (err: unknown) {

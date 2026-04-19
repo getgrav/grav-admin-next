@@ -69,7 +69,7 @@
 	async function handleInstall(slug: string) {
 		installingSlug = slug;
 		try {
-			await installTheme(slug);
+			const result = await installTheme(slug);
 			const idx = allThemes.findIndex((t) => t.slug === slug);
 			if (idx !== -1) {
 				allThemes[idx] = { ...allThemes[idx], installed: true };
@@ -78,6 +78,10 @@
 			if (selectedSlug === slug) {
 				const next = available.find((t) => t.slug !== slug);
 				selectedSlug = next?.slug ?? null;
+			}
+			// Dependencies are typically plugins — emit one toast each, then the main theme
+			for (const depSlug of result.dependencies ?? []) {
+				toast.success(`Plugin '${depSlug}' installed (dependency)`);
 			}
 			toast.success(`Theme '${allThemes.find((t) => t.slug === slug)?.name ?? slug}' installed`);
 			oninstalled();
