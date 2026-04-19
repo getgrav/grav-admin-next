@@ -68,8 +68,14 @@
 	const tweenUsers = useTween(() => stats?.users.total ?? 0);
 	const tweenPlugins = useTween(() => stats?.plugins.total ?? 0);
 
-	async function loadDashboard(flushGpm = false) {
-		loading = true;
+	interface LoadDashboardOptions {
+		flushGpm?: boolean;
+		silent?: boolean;
+	}
+
+	async function loadDashboard(options: LoadDashboardOptions = {}) {
+		const { flushGpm = false, silent = false } = options;
+		if (!silent) loading = true;
 		try {
 			const results = await Promise.allSettled([
 				getStats(),
@@ -94,9 +100,11 @@
 		} catch {
 			// Individual failures handled above
 		} finally {
-			loading = false;
-			animated = false;
-			requestAnimationFrame(() => requestAnimationFrame(() => { animated = true; }));
+			if (!silent) {
+				loading = false;
+				animated = false;
+				requestAnimationFrame(() => requestAnimationFrame(() => { animated = true; }));
+			}
 		}
 	}
 
@@ -162,7 +170,7 @@
 			} else {
 				toast.error(`Updated ${okCount}, failed ${bad}: ${result.failed.map((f) => f.package).join(', ')}`);
 			}
-			await loadDashboard();
+			await loadDashboard({ silent: true });
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
 			toast.error(`Update failed: ${detail}`);
@@ -183,7 +191,7 @@
 		try {
 			const result = await upgradeGrav();
 			toast.success(`Grav upgraded to v${result.new_version}`);
-			await loadDashboard();
+			await loadDashboard({ silent: true });
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
 			toast.error(`Grav upgrade failed: ${detail}`);
@@ -196,13 +204,14 @@
 
 	// Poll dashboard data every 60s while the tab is visible, and refresh
 	// immediately when any mutation (page/user/plugin) happens elsewhere.
-	const poller = usePoll(loadDashboard, 60_000, { runImmediately: false });
+	// Background refreshes run silently — no skeleton, no counter re-tween.
+	const poller = usePoll(() => loadDashboard({ silent: true }), 60_000, { runImmediately: false });
 	onMount(() => {
 		poller.start();
-		const unsubPages = invalidations.subscribe('pages:*', () => loadDashboard());
-		const unsubUsers = invalidations.subscribe('users:*', () => loadDashboard());
-		const unsubPlugins = invalidations.subscribe('plugins:*', () => loadDashboard());
-		const unsubGpm = invalidations.subscribe('gpm:*', () => loadDashboard());
+		const unsubPages = invalidations.subscribe('pages:*', () => loadDashboard({ silent: true }));
+		const unsubUsers = invalidations.subscribe('users:*', () => loadDashboard({ silent: true }));
+		const unsubPlugins = invalidations.subscribe('plugins:*', () => loadDashboard({ silent: true }));
+		const unsubGpm = invalidations.subscribe('gpm:*', () => loadDashboard({ silent: true }));
 		return () => {
 			poller.stop();
 			unsubPages(); unsubUsers(); unsubPlugins(); unsubGpm();
@@ -228,7 +237,7 @@
 							<p class="mt-0.5 text-xs text-muted-foreground">Welcome back, {auth.fullname || auth.username}</p>
 						{/if}
 					</div>
-					<Button variant="outline" size="sm" onclick={() => loadDashboard(true)}>
+					<Button variant="outline" size="sm" onclick={() => loadDashboard({ flushGpm: true })}>
 						<RefreshCw size={13} />
 						Refresh
 					</Button>

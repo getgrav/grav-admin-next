@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getChildren, reorganizePages, searchPages, pageApiRoute } from '$lib/api/endpoints/pages';
+	import { getChildren, reorganizePages, searchPages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
 	import type { PageSummary, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
@@ -136,12 +136,37 @@
 		}, 250);
 	});
 
-	// Refetch on external mutations or tab refocus — clear cached children since
-	// any page could have changed.
+	// Silent targeted refresh — refetches only the affected parent(s) into the
+	// cache without flipping rootLoading, so the tree doesn't re-skeleton on
+	// unrelated mutations or tab-refocus events.
+	async function silentRefresh(parentRoutes: string[]) {
+		await Promise.all(parentRoutes.map(async (parent) => {
+			try {
+				const children = await getChildren(parent, sortField, sortOrder, lang, !!lang);
+				childrenCache = { ...childrenCache, [parent]: children };
+				if (parent === '/') rootPages = children;
+			} catch { /* ignore; poll will retry */ }
+		}));
+	}
+
 	onMount(() => {
-		const refetch = () => { childrenCache = {}; loadRoot(); };
-		const unsubPages = invalidations.subscribe('pages:*', refetch);
-		const unsubFocus = invalidations.subscribe('*:focus', refetch);
+		const onPages = (e: { id?: string }) => {
+			if (!e.id) {
+				// No id on the event — refresh every parent we're currently showing.
+				silentRefresh(Object.keys(childrenCache));
+				return;
+			}
+			const parent = parentRouteOf(e.id);
+			const targets: string[] = [];
+			if (childrenCache[parent]) targets.push(parent);
+			// Root might also need to know about new top-level pages. Always
+			// keep root fresh if it's loaded.
+			if (parent !== '/' && childrenCache['/']) targets.push('/');
+			if (targets.length > 0) silentRefresh(targets);
+		};
+		const onFocus = () => silentRefresh(Object.keys(childrenCache));
+		const unsubPages = invalidations.subscribe('pages:*', onPages);
+		const unsubFocus = invalidations.subscribe('*:focus', onFocus);
 		return () => { unsubPages(); unsubFocus(); };
 	});
 

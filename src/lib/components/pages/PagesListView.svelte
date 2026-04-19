@@ -36,8 +36,8 @@
 	let dropIndex = $state<number | null>(null);
 	let saving = $state(false);
 
-	async function loadPages() {
-		loading = true;
+	async function loadPages(silent = false) {
+		if (!silent) loading = true;
 		try {
 			const q = searchQuery.trim();
 			if (q) {
@@ -60,7 +60,7 @@
 				totalPages = pages.length < perPage ? currentPage : currentPage + 1;
 			}
 		} catch { /* handled */ }
-		finally { loading = false; }
+		finally { if (!silent) loading = false; }
 	}
 
 	// Debounced reload on search input change.
@@ -119,11 +119,13 @@
 		loadPages();
 	});
 
-	// Refetch when any page mutation happens elsewhere (other tab, action, etc.)
-	// or when tab regains focus after >30s blur.
+	// Silent refresh on external mutations and tab refocus — no skeleton flip.
+	// We always refetch the current page silently; the API call is cheap and
+	// avoids the edge-case logic of deciding whether the affected page is on
+	// this page of results.
 	onMount(() => {
-		const unsubPages = invalidations.subscribe('pages:*', () => loadPages());
-		const unsubFocus = invalidations.subscribe('*:focus', () => loadPages());
+		const unsubPages = invalidations.subscribe('pages:*', () => loadPages(true));
+		const unsubFocus = invalidations.subscribe('*:focus', () => loadPages(true));
 		return () => { unsubPages(); unsubFocus(); };
 	});
 

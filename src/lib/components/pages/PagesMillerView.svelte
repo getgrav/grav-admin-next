@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getChildren, getPage, getPagesList, reorganizePages, pageApiRoute } from '$lib/api/endpoints/pages';
+	import { getChildren, getPage, getPagesList, reorganizePages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
 	import type { PageSummary, PageDetail, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
@@ -215,22 +215,40 @@
 		}
 	});
 
-	// Refetch on external mutations or tab refocus — reload only the root column;
-	// downstream columns are keyed off selection and will reload on next click.
+	// Silent targeted refresh — refetches only the columns that contain the
+	// affected page, preserving the user's selection trail and downstream
+	// columns. No per-column loading flip, so there's no visible skeleton.
+	async function silentRefreshColumn(parentRoute: string) {
+		try {
+			const pages = await loadColumn(parentRoute);
+			columns = columns.map(col =>
+				col.parentRoute === parentRoute ? { ...col, pages } : col
+			);
+		} catch { /* ignore */ }
+	}
+
 	onMount(() => {
-		const refetch = async () => {
+		const onPages = (e: { id?: string }) => {
 			allPagesCache = null;
-			const rootPages = await loadColumn('/');
-			columns = [{
-				parentRoute: '/',
-				pages: rootPages,
-				selectedRoute: null,
-				loading: false,
-			}];
-			previewPage = null;
+			if (!e.id) {
+				for (const col of columns) silentRefreshColumn(col.parentRoute);
+				return;
+			}
+			const parent = parentRouteOf(e.id);
+			if (columns.some(c => c.parentRoute === parent)) {
+				silentRefreshColumn(parent);
+			}
+			// Root can also change (new top-level pages) — keep it fresh too.
+			if (parent !== '/' && columns.some(c => c.parentRoute === '/')) {
+				silentRefreshColumn('/');
+			}
 		};
-		const unsubPages = invalidations.subscribe('pages:*', refetch);
-		const unsubFocus = invalidations.subscribe('*:focus', refetch);
+		const onFocus = () => {
+			allPagesCache = null;
+			for (const col of columns) silentRefreshColumn(col.parentRoute);
+		};
+		const unsubPages = invalidations.subscribe('pages:*', onPages);
+		const unsubFocus = invalidations.subscribe('*:focus', onFocus);
 		return () => { unsubPages(); unsubFocus(); };
 	});
 

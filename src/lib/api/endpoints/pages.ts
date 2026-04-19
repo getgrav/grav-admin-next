@@ -90,6 +90,13 @@ export interface PageListParams {
 	search?: string;
 }
 
+/** Strip the last segment of a route to get its parent. Root is '/'. */
+export function parentRouteOf(route: string): string {
+	const parts = route.split('/').filter(Boolean);
+	if (parts.length <= 1) return '/';
+	return '/' + parts.slice(0, -1).join('/');
+}
+
 export async function getChildren(parentRoute: string, sort: string = 'order', order: string = 'asc', lang?: string, translations?: boolean): Promise<PageSummary[]> {
 	const params: Record<string, string> = {
 		children_of: parentRoute,
