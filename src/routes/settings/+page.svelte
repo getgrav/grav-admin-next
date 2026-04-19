@@ -14,6 +14,7 @@
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 
 	let confirmResetOpen = $state(false);
+	let customOpen = $state(!ACCENT_PRESETS.some(p => p.hue === theme.accentHue && p.saturation === theme.accentSaturation));
 
 	// Logo settings
 	function setLogoMode(mode: LogoMode) {
@@ -241,22 +242,71 @@
 					<span class="text-sm font-semibold text-foreground">Accent Color</span>
 					<p class="mt-0.5 text-xs text-muted-foreground">Primary color used for buttons, links, and highlights</p>
 				</div>
-				<div class="flex flex-wrap gap-2">
-					{#each ACCENT_PRESETS as preset (preset.label)}
-						{@const isActive = theme.accentHue === preset.hue && theme.accentSaturation === preset.saturation}
-						<button
+				<div class="space-y-3">
+					<div class="flex flex-wrap gap-2">
+						{#each ACCENT_PRESETS as preset (preset.label)}
+							{@const isActive = !customOpen && theme.accentHue === preset.hue && theme.accentSaturation === preset.saturation}
+							<button
+								class="group relative flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors
+									{isActive ? 'border-foreground/30 bg-accent text-accent-foreground' : 'border-border text-muted-foreground hover:border-foreground/20 hover:bg-accent/50'}"
+								onclick={() => { customOpen = false; theme.setAccent(preset.hue, preset.saturation); }}
+								title={preset.label}
+							>
+								<span
+									class="h-3.5 w-3.5 rounded-full ring-1 ring-black/10"
+									style="background: hsl({preset.hue} {preset.saturation}% 55%)"
+								></span>
+								{preset.label}
+							</button>
+						{/each}
+							<button
 							class="group relative flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors
-								{isActive ? 'border-foreground/30 bg-accent text-accent-foreground' : 'border-border text-muted-foreground hover:border-foreground/20 hover:bg-accent/50'}"
-							onclick={() => theme.setAccent(preset.hue, preset.saturation)}
-							title={preset.label}
+								{customOpen || !ACCENT_PRESETS.some(p => p.hue === theme.accentHue && p.saturation === theme.accentSaturation) ? 'border-foreground/30 bg-accent text-accent-foreground' : 'border-border text-muted-foreground hover:border-foreground/20 hover:bg-accent/50'}"
+							onclick={() => customOpen = !customOpen}
+							title="Custom"
 						>
 							<span
 								class="h-3.5 w-3.5 rounded-full ring-1 ring-black/10"
-								style="background: hsl({preset.hue} {preset.saturation}% 55%)"
+								style="background: conic-gradient(from 0deg, hsl(0 80% 55%), hsl(60 80% 55%), hsl(120 80% 55%), hsl(180 80% 55%), hsl(240 80% 55%), hsl(300 80% 55%), hsl(360 80% 55%))"
 							></span>
-							{preset.label}
+							Custom
 						</button>
-					{/each}
+					</div>
+
+					{#if customOpen || !ACCENT_PRESETS.some(p => p.hue === theme.accentHue && p.saturation === theme.accentSaturation)}
+						<div class="rounded-md border border-border bg-background/50 p-4 space-y-3">
+							<div class="flex items-center gap-3">
+								<label for="hue-slider" class="w-20 shrink-0 text-xs font-medium text-muted-foreground">Hue</label>
+								<input
+									id="hue-slider"
+									type="range"
+									min="0"
+									max="360"
+									step="1"
+									value={theme.accentHue}
+									class="h-2 flex-1 cursor-pointer appearance-none rounded-full accent-primary"
+									style="background: linear-gradient(to right, hsl(0 {theme.accentSaturation}% 55%), hsl(60 {theme.accentSaturation}% 55%), hsl(120 {theme.accentSaturation}% 55%), hsl(180 {theme.accentSaturation}% 55%), hsl(240 {theme.accentSaturation}% 55%), hsl(300 {theme.accentSaturation}% 55%), hsl(360 {theme.accentSaturation}% 55%))"
+									oninput={(e) => theme.setAccent(Number((e.target as HTMLInputElement).value), theme.accentSaturation)}
+								/>
+								<span class="w-10 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{theme.accentHue}°</span>
+							</div>
+							<div class="flex items-center gap-3">
+								<label for="sat-slider" class="w-20 shrink-0 text-xs font-medium text-muted-foreground">Saturation</label>
+								<input
+									id="sat-slider"
+									type="range"
+									min="0"
+									max="100"
+									step="1"
+									value={theme.accentSaturation}
+									class="h-2 flex-1 cursor-pointer appearance-none rounded-full accent-primary"
+									style="background: linear-gradient(to right, hsl({theme.accentHue} 0% 55%), hsl({theme.accentHue} 100% 55%))"
+									oninput={(e) => theme.setAccent(theme.accentHue, Number((e.target as HTMLInputElement).value))}
+								/>
+								<span class="w-10 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{theme.accentSaturation}%</span>
+							</div>
+						</div>
+					{/if}
 				</div>
 			</div>
 		</div>

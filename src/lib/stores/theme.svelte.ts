@@ -12,6 +12,7 @@ export interface AccentColor {
 
 /** Preset accent colors. Hue + saturation pairs for HSL. */
 export const ACCENT_PRESETS: AccentColor[] = [
+	{ label: 'Grav',    hue: 271, saturation: 91 },
 	{ label: 'Blue',    hue: 221, saturation: 83 },
 	{ label: 'Violet',  hue: 263, saturation: 70 },
 	{ label: 'Rose',    hue: 347, saturation: 77 },
@@ -23,8 +24,8 @@ export const ACCENT_PRESETS: AccentColor[] = [
 	{ label: 'Zinc',    hue: 240, saturation: 6 },
 ];
 
-const DEFAULT_HUE = 221;
-const DEFAULT_SAT = 83;
+const DEFAULT_HUE = 271;
+const DEFAULT_SAT = 91;
 
 interface StoredTheme {
 	colorMode: ColorMode;
