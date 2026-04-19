@@ -77,12 +77,11 @@ function createThemeStore() {
 		const h = accentHue;
 		const s = accentSaturation;
 		const dark = html.classList.contains('dark');
-		// Dark mode: brighter for visibility on dark backgrounds
-		// Light mode: darker for contrast on white backgrounds
-		const lightness = dark ? 70 : 40;
-		const sat = dark ? Math.min(s + 8, 100) : s;
-		html.style.setProperty('--primary', `hsl(${h} ${sat}% ${lightness}%)`);
-		html.style.setProperty('--ring', `hsl(${h} ${sat}% ${dark ? 60 : 50}%)`);
+		// Dark mode L=65 ≈ Tailwind-500 (e.g. purple-500 #A855F7)
+		// Light mode L=40 ≈ Tailwind-700 — kept darker for contrast on white
+		const lightness = dark ? 65 : 40;
+		html.style.setProperty('--primary', `hsl(${h} ${s}% ${lightness}%)`);
+		html.style.setProperty('--ring', `hsl(${h} ${s}% ${dark ? 60 : 50}%)`);
 	}
 
 	function applyAll() {
