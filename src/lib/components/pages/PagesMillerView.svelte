@@ -500,7 +500,7 @@
 								</span>
 							{/if}
 							<button
-								class="flex min-w-0 flex-1 items-center gap-2 text-left"
+								class="flex min-w-0 flex-1 items-center gap-2 text-left {!page.visible ? 'opacity-60' : ''}"
 								onclick={() => selectPage(colIndex, page)}
 								ondblclick={() => onEdit(pageApiRoute(page))}
 							>
@@ -513,6 +513,13 @@
 								<div class="flex items-center gap-1.5">
 									<div class="truncate text-[13px] font-medium
 										{isUntranslated ? (isActive ? 'text-primary-foreground/60 italic' : 'text-muted-foreground italic') : ''}">{page.menu}</div>
+									{#if !page.published}
+										<span
+											class="inline-flex h-4 shrink-0 items-center rounded px-1 text-[9px] font-bold uppercase leading-none
+												{isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'}"
+											title="Draft (unpublished)"
+										>Draft</span>
+									{/if}
 									{#if lang && badgeKeys.length > 0}
 										<TranslationBadges
 											translated={badgeKeys}
@@ -567,6 +574,9 @@
 							<Badge variant="success">Published</Badge>
 						{:else}
 							<Badge variant="secondary">Draft</Badge>
+						{/if}
+						{#if previewPage.visible}
+							<Badge variant="success">Visible</Badge>
 						{/if}
 						{#if previewPage.has_children}
 							<Badge variant="secondary">Has children</Badge>
