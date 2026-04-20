@@ -101,8 +101,9 @@
 			const mainName = allPlugins.find((p) => p.slug === slug)?.name ?? slug;
 			toast.success(`Plugin '${mainName}' installed`);
 			oninstalled();
-		} catch {
-			toast.error(`Failed to install '${slug}'`);
+		} catch (err: unknown) {
+			const detail = err instanceof Error ? err.message : String(err);
+			toast.error(`Failed to install '${slug}': ${detail}`);
 		} finally {
 			installingSlug = null;
 		}

@@ -85,8 +85,9 @@
 			}
 			toast.success(`Theme '${allThemes.find((t) => t.slug === slug)?.name ?? slug}' installed`);
 			oninstalled();
-		} catch {
-			toast.error(`Failed to install '${slug}'`);
+		} catch (err: unknown) {
+			const detail = err instanceof Error ? err.message : String(err);
+			toast.error(`Failed to install '${slug}': ${detail}`);
 		} finally {
 			installingSlug = null;
 		}
