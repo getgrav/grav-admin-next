@@ -728,14 +728,17 @@
 
 	$effect(() => { autoSave.reset(); loadPage(); });
 
-	// Refetch when this page is updated elsewhere (with dirty guard). Note we
-	// ignore our own saves — the server's X-Invalidates fires the event on us
-	// too, but `loadPage()` is a no-op after save since hasChanges is false.
+	// Refetch when this page is updated elsewhere (with dirty guard). The
+	// dirtyGuard skips our own saves — the server's X-Invalidates fires the
+	// event back at us before handleSave has cleared hasChanges, which would
+	// otherwise toast on every save.
 	onMount(() => {
 		const unsub = invalidations.subscribe('pages:update', (e) => {
 			if (e.id !== route) return;
 			if (!hasChanges) loadPage();
 			else toast.info('Page changed elsewhere — save to overwrite or reload');
+		}, {
+			dirtyGuard: () => saving || autoSave.saving,
 		});
 		return () => { unsub(); };
 	});

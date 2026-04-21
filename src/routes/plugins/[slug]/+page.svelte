@@ -336,6 +336,10 @@
 			if (e.id !== slug) return;
 			if (!hasChanges) loadPlugin();
 			else toast.info('Plugin changed elsewhere — save to overwrite or reload');
+		}, {
+			// Skip self-echo: our own PATCH emits this same event before handleSave
+			// has cleared hasChanges, which would otherwise toast on every save.
+			dirtyGuard: () => saving || toggling,
 		});
 		return () => { unsub(); };
 	});

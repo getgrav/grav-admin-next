@@ -200,6 +200,10 @@
 		const unsub = invalidations.subscribe(`flex-objects:${type}:update:${key}`, () => {
 			if (!hasChanges) loadData();
 			else toast.info('Object changed elsewhere — save to overwrite or reload');
+		}, {
+			// Skip self-echo: our own PATCH emits this same event before handleSave
+			// has cleared hasChanges, which would otherwise toast on every save.
+			dirtyGuard: () => saving || autoSave.saving,
 		});
 		return () => {
 			unsub();

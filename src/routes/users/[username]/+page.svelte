@@ -288,6 +288,10 @@
 			if (e.id !== username) return;
 			if (!hasChanges) loadUser();
 			else toast.info('User changed elsewhere — save to overwrite or reload');
+		}, {
+			// Skip self-echo: our own PATCH emits this same event before handleSave
+			// has cleared hasChanges, which would otherwise toast on every save.
+			dirtyGuard: () => saving || autoSave.saving,
 		});
 		return () => { unsub(); };
 	});
