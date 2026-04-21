@@ -356,6 +356,10 @@
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	{#snippet treeRow(page: PageSummary, depth: number, parentRoute: string, index: number)}
 		{#if matchesSearch(page)}
+			<!-- Use raw_route for identity keys so the home page (public route '/')
+			     doesn't collide with the root-parent marker '/', which would cause
+			     the snippet to recurse into itself. -->
+			{@const apiRoute = pageApiRoute(page)}
 			{@const explicitFiles = page.explicit_language_files ?? []}
 			{@const translatedKeys = page.translated_languages ? Object.keys(page.translated_languages) : []}
 			{@const hasImplicitDefault = !!page.has_default_file && !!contentLang.defaultLang}
@@ -390,11 +394,11 @@
 					{#if page.has_children}
 						<button
 							class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
-							onclick={() => toggleExpand(page.route)}
+							onclick={() => toggleExpand(apiRoute)}
 						>
-							{#if loadingRoutes.has(page.route)}
+							{#if loadingRoutes.has(apiRoute)}
 								<Loader2 size={13} class="animate-spin" />
-							{:else if expandedRoutes.has(page.route)}
+							{:else if expandedRoutes.has(apiRoute)}
 								<ChevronDown size={14} />
 							{:else}
 								<ChevronRight size={14} />
@@ -405,7 +409,7 @@
 					{/if}
 
 					{#if page.has_children}
-						{#if expandedRoutes.has(page.route)}
+						{#if expandedRoutes.has(apiRoute)}
 							<FolderOpen size={14} class="shrink-0 {page.visible ? 'text-primary' : 'text-muted-foreground'}" />
 						{:else}
 							<Folder size={14} class="shrink-0 {page.visible ? 'text-primary/70' : 'text-muted-foreground'}" />
@@ -460,11 +464,11 @@
 				{/if}
 			</div>
 
-			{#if !searchActive && page.has_children && expandedRoutes.has(page.route)}
-				{#each getPageChildren(page.route) as child, childIndex (child.route)}
-					{@render treeRow(child, depth + 1, page.route, childIndex)}
+			{#if !searchActive && page.has_children && expandedRoutes.has(apiRoute)}
+				{#each getPageChildren(apiRoute) as child, childIndex (child.route)}
+					{@render treeRow(child, depth + 1, apiRoute, childIndex)}
 				{/each}
-				{#if reorderMode && isDropTarget(page.route, getPageChildren(page.route).length)}
+				{#if reorderMode && isDropTarget(apiRoute, getPageChildren(apiRoute).length)}
 					<div class="mx-4 h-0.5 rounded bg-primary transition-all" style="margin-left: {16 + (depth + 1) * 20}px"></div>
 				{/if}
 			{/if}
