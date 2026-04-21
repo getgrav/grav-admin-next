@@ -1,5 +1,6 @@
 import { auth, decodeJwtExp } from '$lib/stores/auth.svelte';
 import { authSession, type PendingRequest } from '$lib/stores/auth-session.svelte';
+import { configEnv } from '$lib/stores/configEnvironment.svelte';
 import { invalidations } from '$lib/stores/invalidation.svelte';
 
 export interface ApiError {
@@ -63,6 +64,11 @@ class ApiClient {
 			h['X-Grav-Environment'] = env;
 		}
 
+		const configEnvTarget = configEnv.target;
+		if (configEnvTarget) {
+			h['X-Config-Environment'] = configEnvTarget;
+		}
+
 		return h;
 	}
 
@@ -72,6 +78,8 @@ class ApiClient {
 		if (token) h['X-API-Token'] = token;
 		const env = auth.environment;
 		if (env) h['X-Grav-Environment'] = env;
+		const configEnvTarget = configEnv.target;
+		if (configEnvTarget) h['X-Config-Environment'] = configEnvTarget;
 		return h;
 	}
 

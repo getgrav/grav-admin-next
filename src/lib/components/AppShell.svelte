@@ -11,6 +11,7 @@
 	import { can } from '$lib/utils/permissions';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
 	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
+	import EnvironmentSwitcher from '$lib/components/ui/EnvironmentSwitcher.svelte';
 	import CacheClearButton from '$lib/components/menubar/CacheClearButton.svelte';
 	import MenubarLinks from '$lib/components/menubar/MenubarLinks.svelte';
 	import PluginMenubarItems from '$lib/components/menubar/PluginMenubarItems.svelte';
@@ -249,9 +250,7 @@
 				<Menu size={18} />
 			</button>
 
-			{#if auth.environment}
-				<span class="rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">{auth.environment}</span>
-			{/if}
+			<EnvironmentSwitcher />
 
 			<div class="flex-1"></div>
 
