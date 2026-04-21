@@ -3,6 +3,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api/client';
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { onMount } from 'svelte';
 
 	interface Props {
@@ -119,6 +120,14 @@
 		if (el && 'value' in el) {
 			el.value = value;
 		}
+	});
+
+	// Keep the active content language exposed as a global so custom fields can
+	// read the current lang without reaching into our site-scoped localStorage.
+	// Runs reactively — switching languages updates the global immediately, so
+	// fields that re-read on each API call pick up the change without reload.
+	$effect(() => {
+		window.__GRAV_CONTENT_LANG = contentLang.activeLang;
 	});
 
 	onMount(() => {
