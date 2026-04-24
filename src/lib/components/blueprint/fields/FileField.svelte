@@ -9,6 +9,7 @@
 	import { api } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { useFormCommit } from '$lib/utils/form-commit.svelte';
 	import { toast } from 'svelte-sonner';
 	import { Upload, X } from 'lucide-svelte';
 
@@ -34,6 +35,25 @@
 	const translateLabel = i18n.tMaybe;
 	const getRoute = getContext<(() => string) | undefined>('pageRoute');
 	const mediaCtx = getContext<PageMediaContext | undefined>('pageMediaItems');
+	// Owning scope for `self@:` resolution on the blueprint-upload endpoint.
+	// Set by the host route (plugins/<slug>, themes/<slug>, pages/<route>,
+	// users/<username>). Undefined when a destination isn't needed (legacy
+	// page-media path still works without scope context).
+	const getBlueprintScope = getContext<(() => string) | undefined>('blueprintScope');
+	// Defer on-disk deletes until the enclosing form actually saves — eager
+	// deletes leave orphan state when the user cancels (YAML still references
+	// the file, file is gone).
+	const formCommit = useFormCommit();
+
+	// Paths the user has clicked ✕ on but haven't been saved yet. Committed
+	// via formCommit.register() when the containing form saves.
+	const pendingDeletes = new Set<string>();
+
+	// `destination` on the blueprint field routes uploads through the
+	// destination-aware endpoint; absent, we fall back to the legacy
+	// page-media endpoint (which requires a page route).
+	const destination = $derived(field.destination ?? '');
+	const useBlueprintUpload = $derived(destination !== '');
 
 	let uploading = $state(false);
 	let uploadProgress = $state(0);
@@ -90,6 +110,9 @@
 	}
 
 	function getUploadEndpoint(): string {
+		if (useBlueprintUpload) {
+			return `${auth.serverUrl}${auth.apiPrefix}/blueprint-upload`;
+		}
 		const route = getRoute?.() ?? '';
 		const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
 		return `${auth.serverUrl}${auth.apiPrefix}/pages/${cleanRoute}/media`;
@@ -126,10 +149,21 @@
 			},
 		});
 
+		// When using the blueprint-upload endpoint we also need to pass the
+		// destination + scope on every request so the server can resolve
+		// `self@:` relative to the owning plugin/theme/page. XHRUpload supports
+		// `formData: true` + `metaFields` for this — we just stuff the two
+		// values into Uppy meta and whitelist them for upload.
+		if (useBlueprintUpload) {
+			uppy.setMeta({ destination, scope: getBlueprintScope?.() ?? '' });
+		}
+
 		uppy.use(XHRUpload, {
 			endpoint: getUploadEndpoint(),
 			fieldName: 'file',
 			headers: getAuthHeaders,
+			formData: true,
+			allowedMetaFields: useBlueprintUpload ? ['destination', 'scope'] : [],
 		});
 
 		// Pre-check token so Uppy's XHR uploads don't fail silently on expiry.
@@ -143,24 +177,33 @@
 			uploadProgress = total > 0 ? Math.round((progress.bytesUploaded / total) * 100) : 0;
 		});
 
-		uppy.on('upload-success', (file) => {
-			if (file) {
-				const path = buildPath(file.name);
-				const newEntry = {
-					key: path,
-					entry: {
-						name: file.name,
-						type: file.type ?? 'application/octet-stream',
-						size: file.size ?? 0,
-						path,
-					},
-				};
+		uppy.on('upload-success', (file, response) => {
+			if (!file) return;
 
-				if (field.multiple) {
-					onchange(buildGravValue([...fileEntries, newEntry]));
-				} else {
-					onchange(buildGravValue([newEntry]));
-				}
+			// For blueprint uploads the server returns the authoritative
+			// Grav-root-relative path; use it directly so deletes can round-
+			// trip. For page-media uploads, fall back to the heuristic path.
+			let path = buildPath(file.name);
+			if (useBlueprintUpload) {
+				const body = response?.body as { data?: Array<{ path?: string; name?: string }> } | undefined;
+				const saved = body?.data?.find((d) => d.name === file.name) ?? body?.data?.[0];
+				if (saved?.path) path = saved.path;
+			}
+
+			const newEntry = {
+				key: path,
+				entry: {
+					name: file.name,
+					type: file.type ?? 'application/octet-stream',
+					size: file.size ?? 0,
+					path,
+				},
+			};
+
+			if (field.multiple) {
+				onchange(buildGravValue([...fileEntries, newEntry]));
+			} else {
+				onchange(buildGravValue([newEntry]));
 			}
 		});
 
@@ -172,6 +215,13 @@
 			uploading = false;
 			uploadProgress = 0;
 			uppy?.cancelAll();
+
+			// Page-media path: invalidate the page's media + refresh the
+			// shared context so filepickers in the same form see the new
+			// file. Blueprint-upload path writes outside page media, so
+			// neither of those is meaningful here.
+			if (useBlueprintUpload) return;
+
 			const route = getRoute?.() ?? '';
 			const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
 			// XHRUpload bypasses our API client — emit invalidation manually.
@@ -211,13 +261,45 @@
 	}
 
 	function removeFile(key: string) {
+		// Capture the path BEFORE mutating state — fileEntries is $derived
+		// from value, so once we call onchange() the entry is already gone
+		// from fileEntries and the lookup below would find nothing.
+		const removed = fileEntries.find((e) => e.key === key);
+		const removedPath = removed?.entry.path ?? '';
+
 		const remaining = fileEntries.filter((e) => e.key !== key);
 		if (remaining.length === 0) {
 			onchange({});
 		} else {
 			onchange(buildGravValue(remaining));
 		}
+
+		// For blueprint uploads, defer the actual unlink to the form's save
+		// commit. If the user cancels / reloads before saving, the YAML still
+		// references the file — so the file must still exist, or the form
+		// will show a broken reference. Page-media uploads are managed by
+		// the page itself and don't queue for deletion.
+		if (useBlueprintUpload && removedPath) {
+			pendingDeletes.add(removedPath);
+		}
 	}
+
+	$effect(() => {
+		if (!formCommit) return;
+		return formCommit.register(async () => {
+			if (pendingDeletes.size === 0) return;
+			const paths = [...pendingDeletes];
+			pendingDeletes.clear();
+			const { deleteBlueprintFile } = await import('$lib/api/endpoints/media');
+			for (const path of paths) {
+				try {
+					await deleteBlueprintFile(path);
+				} catch (err) {
+					console.warn('[FileField] Failed to delete file on server:', err);
+				}
+			}
+		});
+	});
 
 	// Auto-remove entries whose files no longer exist in media
 	$effect(() => {

@@ -1,4 +1,5 @@
 import { api } from '../client';
+import { extractEtag } from '$lib/utils/etag';
 
 export interface UserInfo {
 	username: string;
@@ -58,7 +59,7 @@ export async function getUser(username: string): Promise<{ user: UserInfo; etag:
 	const { data, headers } = await api.requestRaw<UserInfo>('GET', `/users/${username}`);
 	return {
 		user: data,
-		etag: headers.get('etag')?.replace(/"/g, '') ?? '',
+		etag: extractEtag(headers),
 	};
 }
 
@@ -87,7 +88,7 @@ export async function updateUser(
 	});
 	return {
 		user: result.data,
-		etag: result.headers.get('etag')?.replace(/"/g, '') ?? '',
+		etag: extractEtag(result.headers),
 	};
 }
 

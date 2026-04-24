@@ -2,6 +2,8 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { setContext } from 'svelte';
+	import { provideFormCommit } from '$lib/utils/form-commit.svelte';
 	import { getPlugin, getPluginConfig, savePluginConfig, setPluginEnabled, removePlugin, getPluginReadme, getPluginChangelog, updatePackage, type PluginInfo } from '$lib/api/endpoints/gpm';
 	import { getPluginBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
@@ -30,6 +32,10 @@
 	const REDACTED = '********';
 
 	const slug = $derived(page.params.slug ?? '');
+	// Scope for blueprint-upload destination resolution (`self@:` → plugin dir).
+	setContext('blueprintScope', () => slug ? 'plugins/' + slug : '');
+	// Bus for leaf fields that defer side effects to the save commit.
+	const formCommit = provideFormCommit();
 
 	let plugin = $state<PluginInfo | null>(null);
 	let blueprint = $state<BlueprintSchema | null>(null);
@@ -184,6 +190,8 @@
 			configData = fresh.data;
 			originalJson = JSON.stringify(fresh.data);
 			etag = fresh.etag;
+
+			await formCommit.emit();
 
 			toast.success(`${plugin?.name ?? slug} configuration saved`);
 		} catch (err: unknown) {

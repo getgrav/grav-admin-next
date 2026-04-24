@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { setContext } from 'svelte';
+	import { provideFormCommit } from '$lib/utils/form-commit.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
@@ -26,6 +28,12 @@
 	const translateLabel = i18n.tMaybe;
 
 	const scope = $derived(page.params.scope ?? 'system');
+	// Scope for blueprint-upload destination resolution. `self@:` on core
+	// config scopes (system/site) has no natural owner; destinations pointing
+	// at a stream (`user://...`, `account://...`) still work without scope.
+	setContext('blueprintScope', () => 'config/' + scope);
+	// Bus for leaf fields that defer side effects to the save commit.
+	const formCommit = provideFormCommit();
 	const isInfo = $derived(scope === 'info');
 
 	let sections = $state<string[]>(['system', 'site', 'media', 'security', 'info']);
@@ -138,6 +146,7 @@
 			configData = result.data;
 			originalJson = JSON.stringify(result.data);
 			etag = result.etag;
+			await formCommit.emit();
 			toast.success('Configuration saved successfully');
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err) {

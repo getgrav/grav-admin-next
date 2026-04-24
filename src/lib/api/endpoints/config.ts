@@ -1,4 +1,5 @@
 import { api } from '../client';
+import { extractEtag } from '$lib/utils/etag';
 
 export interface ConfigResponse {
 	data: Record<string, unknown>;
@@ -22,7 +23,7 @@ export async function getConfig(scope: string): Promise<ConfigResponse> {
 	);
 	return {
 		data,
-		etag: headers.get('etag')?.replace(/"/g, '') ?? ''
+		etag: extractEtag(headers)
 	};
 }
 

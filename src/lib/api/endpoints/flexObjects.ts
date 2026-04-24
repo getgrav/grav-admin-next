@@ -1,5 +1,6 @@
 import { api } from '../client';
 import { auth } from '$lib/stores/auth.svelte';
+import { extractEtag } from '$lib/utils/etag';
 import type { BlueprintSchema } from './blueprints';
 
 // --- Directory config types ---
@@ -106,7 +107,7 @@ export async function getObject(
 	);
 	return {
 		object: data,
-		etag: headers.get('etag')?.replace(/"/g, '') ?? '',
+		etag: extractEtag(headers),
 	};
 }
 
@@ -132,7 +133,7 @@ export async function updateObject(
 	);
 	return {
 		object: result.data,
-		etag: result.headers.get('etag')?.replace(/"/g, '') ?? '',
+		etag: extractEtag(result.headers),
 	};
 }
 

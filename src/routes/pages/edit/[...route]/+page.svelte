@@ -52,6 +52,8 @@
 
 	// Provide page route to child components (used by PageMedia field, etc.)
 	setContext('pageRoute', () => route);
+	// Scope for blueprint-upload destination resolution (`self@:` → page dir).
+	setContext('blueprintScope', () => 'pages/' + route.replace(/^\//, ''));
 	// Expose page route globally for custom field web components (e.g., editor-pro)
 	$effect(() => {
 		window.__GRAV_PAGE_ROUTE = route;

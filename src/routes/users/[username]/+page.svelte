@@ -2,6 +2,8 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { setContext } from 'svelte';
+	import { provideFormCommit } from '$lib/utils/form-commit.svelte';
 	import { getUser, updateUser, deleteUser, type UserInfo } from '$lib/api/endpoints/users';
 	import { getUserBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
@@ -36,6 +38,10 @@
 	const SUPPRESSED_TYPES = new Set(['permissions', 'userinfo', '2fa_secret', 'api_keys']);
 
 	const username = $derived(page.params.username ?? '');
+	// Scope for blueprint-upload destination resolution (e.g. avatar field).
+	setContext('blueprintScope', () => username ? 'users/' + username : '');
+	// Bus for leaf fields that defer side effects to the save commit.
+	const formCommit = provideFormCommit();
 
 	let user = $state<UserInfo | null>(null);
 	let blueprint = $state<BlueprintSchema | null>(null);
@@ -196,6 +202,7 @@
 				);
 			}
 
+			await formCommit.emit();
 			toast.success(`User '${username}' saved`);
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {

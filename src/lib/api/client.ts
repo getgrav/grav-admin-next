@@ -30,10 +30,37 @@ interface RequestOptions {
 	headers?: Record<string, string>;
 	/** Internal — disables refresh retry on recursion. */
 	retry?: boolean;
+	/** Internal — disables method-override retry on recursion. */
+	overrideRetry?: boolean;
 }
 
 /** Refresh proactively if the access token expires within this window. */
 const PRE_EXPIRY_MS = 60_000;
+
+/**
+ * Methods that shared-hosting nginx configs occasionally 405 before the
+ * request reaches PHP. We retry these as POST + X-HTTP-Method-Override on the
+ * first 405 and remember the fallback for the rest of the session so the
+ * double round-trip only happens once.
+ */
+const OVERRIDABLE_METHODS = new Set(['DELETE', 'PATCH', 'PUT']);
+const METHOD_OVERRIDE_FLAG = 'grav_admin_method_override';
+
+function methodOverrideNeeded(): boolean {
+	try {
+		return sessionStorage.getItem(METHOD_OVERRIDE_FLAG) === '1';
+	} catch {
+		return false;
+	}
+}
+
+function rememberMethodOverride(): void {
+	try {
+		sessionStorage.setItem(METHOD_OVERRIDE_FLAG, '1');
+	} catch {
+		/* storage disabled — retry-per-request still works, just without the cache */
+	}
+}
 
 class ApiClient {
 	private refreshPromise: Promise<boolean> | null = null;
@@ -156,9 +183,24 @@ class ApiClient {
 			url += `?${searchParams.toString()}`;
 		}
 
+		// If a prior request in this session already hit a proxy that 405s
+		// mutation verbs, go straight to POST + override. Skips the wasted
+		// first round-trip on every subsequent DELETE/PATCH/PUT.
+		const upperMethod = method.toUpperCase();
+		const useOverride =
+			OVERRIDABLE_METHODS.has(upperMethod) && methodOverrideNeeded();
+
+		const headers: Record<string, string> = {
+			...this.headers,
+			...options.headers,
+		};
+		if (useOverride) {
+			headers['X-HTTP-Method-Override'] = upperMethod;
+		}
+
 		const fetchOptions: RequestInit = {
-			method,
-			headers: { ...this.headers, ...options.headers }
+			method: useOverride ? 'POST' : method,
+			headers,
 		};
 
 		if (options.body !== undefined) {
@@ -187,6 +229,19 @@ class ApiClient {
 			}
 			// Hard expiry — enqueue for modal retry instead of logging out.
 			return this.enqueueForReauth<T>(method, path, options);
+		}
+
+		// Proxy 405 fallback: some nginx configs on shared hosting reject
+		// DELETE/PATCH/PUT at the edge. Retry once as POST + override before
+		// surfacing the failure.
+		if (
+			response.status === 405 &&
+			!useOverride &&
+			OVERRIDABLE_METHODS.has(upperMethod) &&
+			options.overrideRetry !== false
+		) {
+			rememberMethodOverride();
+			return this.request<T>(method, path, { ...options, overrideRetry: false });
 		}
 
 		return this.handleResponse<T>(response);

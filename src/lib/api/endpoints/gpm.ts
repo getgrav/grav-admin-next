@@ -1,4 +1,5 @@
 import { api } from '../client';
+import { extractEtag } from '$lib/utils/etag';
 
 export interface PackageAuthor {
 	name: string | null;
@@ -72,7 +73,7 @@ export async function getPluginConfig(slug: string): Promise<{ data: Record<stri
 	const { data, headers } = await api.requestRaw<Record<string, unknown>>('GET', `/config/plugins/${slug}`);
 	return {
 		data,
-		etag: headers.get('etag')?.replace(/"/g, '') ?? '',
+		etag: extractEtag(headers),
 	};
 }
 
@@ -245,7 +246,7 @@ export async function getThemeConfig(slug: string): Promise<{ data: Record<strin
 	const { data, headers } = await api.requestRaw<Record<string, unknown>>('GET', `/config/themes/${slug}`);
 	return {
 		data,
-		etag: headers.get('etag')?.replace(/"/g, '') ?? '',
+		etag: extractEtag(headers),
 	};
 }
 

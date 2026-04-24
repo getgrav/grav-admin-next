@@ -118,8 +118,22 @@ export async function renameFolder(from: string, to: string): Promise<FolderInfo
 /**
  * Get all media files for a page
  */
+/**
+ * Normalize a route for page-media API calls. Returns `null` for empty or
+ * root (`/`) routes — those can't address a real page via the media
+ * endpoints (a bare `/pages//media` collapses to `/pages/media` on the wire
+ * and 404s / 405s). Callers should skip the request in that case; the host
+ * page is expected to redirect the user to the home alias's structural
+ * route (e.g. `/home`) before issuing media calls.
+ */
+function normalizePageRoute(route: string): string | null {
+	const trimmed = route.startsWith('/') ? route.slice(1) : route;
+	return trimmed === '' ? null : trimmed;
+}
+
 export async function getPageMedia(route: string): Promise<MediaItem[]> {
-	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
+	const cleanRoute = normalizePageRoute(route);
+	if (cleanRoute === null) return [];
 	return api.get<MediaItem[]>(`/pages/${cleanRoute}/media`);
 }
 
@@ -127,7 +141,10 @@ export async function getPageMedia(route: string): Promise<MediaItem[]> {
  * Delete a media file from a page
  */
 export async function deletePageMedia(route: string, filename: string): Promise<void> {
-	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
+	const cleanRoute = normalizePageRoute(route);
+	if (cleanRoute === null) {
+		throw new Error('Cannot delete page media: route is not resolved yet.');
+	}
 	return api.delete(`/pages/${cleanRoute}/media/${encodeURIComponent(filename)}`);
 }
 
@@ -139,7 +156,10 @@ export async function deletePageMedia(route: string, filename: string): Promise<
  * XHRUpload with a pre-refresh hook — this helper is for simpler callers.)
  */
 export async function uploadPageMedia(route: string, file: File): Promise<MediaItem[]> {
-	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
+	const cleanRoute = normalizePageRoute(route);
+	if (cleanRoute === null) {
+		throw new Error('Cannot upload page media: route is not resolved yet.');
+	}
 	return api.uploadFile<MediaItem[]>(`/pages/${cleanRoute}/media`, file, {
 		fieldName: 'file',
 	});
@@ -153,4 +173,44 @@ export async function uploadSiteMedia(file: File, path?: string): Promise<MediaI
 	return api.uploadFile<MediaItem[]>(`/media${query}`, file, {
 		fieldName: 'file',
 	});
+}
+
+/** File descriptor returned by a blueprint-upload write. */
+export interface BlueprintUploadedFile {
+	name: string;
+	path: string;
+	size: number;
+	type: string;
+	url: string | null;
+}
+
+/**
+ * Upload a file to the destination declared by a blueprint `type: file` field.
+ *
+ * @param destination  Raw blueprint destination: a Grav stream (`user://...`,
+ *                     `theme://...`, `account://...`), a `self@:subpath` form
+ *                     relative to the owning plugin/theme/page, or a plain
+ *                     relative path under `user/`.
+ * @param scope        Owner hint used to resolve `self@:`:
+ *                     `plugins/<slug>`, `themes/<slug>`, `pages/<route>`,
+ *                     `users/<username>`. Required when destination uses
+ *                     `self@:`; otherwise the empty string is fine.
+ */
+export async function uploadBlueprintFile(
+	destination: string,
+	scope: string,
+	file: File,
+): Promise<BlueprintUploadedFile[]> {
+	return api.uploadFile<BlueprintUploadedFile[]>(`/blueprint-upload`, file, {
+		fieldName: 'file',
+		fields: { destination, scope },
+	});
+}
+
+/**
+ * Delete a file previously written by uploadBlueprintFile. `path` is the
+ * Grav-root-relative path that the upload response returned.
+ */
+export async function deleteBlueprintFile(path: string): Promise<void> {
+	await api.delete(`/blueprint-upload`, { path });
 }

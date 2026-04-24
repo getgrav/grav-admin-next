@@ -41,7 +41,17 @@
 	let dropzoneEl: HTMLDivElement;
 	let fileInputEl: HTMLInputElement;
 
+	// `route` starts out as `/` when the user lands on `/pages/edit/` without
+	// an explicit slug — the host page resolves the home alias and replaces
+	// the URL with the structural route (`/home`). Until that resolves we
+	// treat the route as "not yet ready": API calls are skipped and Uppy's
+	// endpoint is an unreachable placeholder (the user can't drop files
+	// during that short window anyway because the dropzone hasn't mounted
+	// fully yet).
+	const routeReady = $derived(route !== '' && route !== '/');
+
 	function getUploadEndpoint() {
+		if (!routeReady) return `${auth.serverUrl}${auth.apiPrefix}/pages/__unresolved__/media`;
 		const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
 		return `${auth.serverUrl}${auth.apiPrefix}/pages/${cleanRoute}/media`;
 	}
@@ -134,6 +144,12 @@
 	}
 
 	async function loadMedia() {
+		if (!routeReady) {
+			// Host is still resolving the home alias; defer until route is
+			// a concrete structural path. An $effect below re-fires loadMedia
+			// the moment it becomes ready.
+			return;
+		}
 		try {
 			mediaItems = await getPageMedia(route);
 			onMediaChange?.(mediaItems);
@@ -143,6 +159,18 @@
 			loading = false;
 		}
 	}
+
+	// Re-load whenever the route flips from placeholder (`/`) to a real
+	// structural path, and keep Uppy's endpoint in sync.
+	$effect(() => {
+		if (routeReady) {
+			loadMedia();
+			const xhr = uppy?.getPlugin('XHRUpload');
+			if (xhr && typeof xhr.setOptions === 'function') {
+				xhr.setOptions({ endpoint: getUploadEndpoint() });
+			}
+		}
+	});
 
 	async function handleDelete(item: MediaItem) {
 		try {
@@ -257,6 +285,8 @@
 
 	onMount(() => {
 		initUppy();
+		// Initial load — `loadMedia` is a no-op if the route isn't resolved
+		// yet. The $effect above re-fires it once routeReady flips true.
 		loadMedia();
 		return () => {
 			uppy?.cancelAll();

@@ -2,6 +2,8 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { setContext } from 'svelte';
+	import { provideFormCommit } from '$lib/utils/form-commit.svelte';
 	import { getTheme, getThemeConfig, saveThemeConfig, setActiveTheme, removeTheme, getThemeReadme, getThemeChangelog, updatePackage, type ThemeInfo } from '$lib/api/endpoints/gpm';
 	import { getThemeBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
@@ -28,6 +30,11 @@
 	const REDACTED = '********';
 
 	const slug = $derived(page.params.slug ?? '');
+	// Scope for blueprint-upload destination resolution (`self@:` → theme dir).
+	setContext('blueprintScope', () => slug ? 'themes/' + slug : '');
+	// Bus for leaf fields that defer side effects to the save commit
+	// (FileField uses this to unlink removed files once the form persists).
+	const formCommit = provideFormCommit();
 
 	let theme = $state<ThemeInfo | null>(null);
 	let blueprint = $state<BlueprintSchema | null>(null);
@@ -178,6 +185,10 @@
 			configData = fresh.data;
 			originalJson = JSON.stringify(fresh.data);
 			etag = fresh.etag;
+
+			// Flush deferred field-level side effects now that the save is
+			// persisted (e.g. FileField unlinking files the user removed).
+			await formCommit.emit();
 
 			toast.success(`${theme?.name ?? slug} configuration saved`);
 		} catch (err: unknown) {
