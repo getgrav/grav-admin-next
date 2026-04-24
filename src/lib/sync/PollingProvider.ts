@@ -16,24 +16,20 @@
 import { api } from '$lib/api/client';
 import type { Peer, RemoteUpdateHandler, StatusHandler, SyncProvider, SyncProviderOptions, PeersHandler, SyncStatus } from './SyncProvider';
 
+// The admin2 API client already unwraps the outer `{ data: … }` envelope
+// (see client.ts:169), so these types describe the inner shape directly.
 type PullResponse = {
-	data: {
-		updates: string[];
-		offset: number;
-		size: number;
-		peers: Peer[];
-		room: string;
-		serverTimeMs: number;
-	};
+	updates: string[];
+	offset: number;
+	size: number;
+	peers: Peer[];
+	room: string;
+	serverTimeMs: number;
 };
 
-type PushResponse = {
-	data: { ok: boolean; offset: number; bytes: number };
-};
+type PushResponse = { ok: boolean; offset: number; bytes: number };
 
-type PresenceResponse = {
-	data: { peers: Peer[] };
-};
+type PresenceResponse = { peers: Peer[] };
 
 function b64ToBytes(b64: string): Uint8Array {
 	const bin = atob(b64);
@@ -219,12 +215,11 @@ export class PollingProvider implements SyncProvider {
 	}
 
 	private async pullOnce(): Promise<void> {
-		const res = await api.post<PullResponse>(this.pullPath(), {
+		const { updates, offset, peers } = await api.post<PullResponse>(this.pullPath(), {
 			since: this.offset,
 			clientId: this.clientId,
 			lang: this.lang,
 		});
-		const { updates, offset, peers } = res.data;
 		this.offset = offset;
 		this.emitPeers(peers);
 		if (updates.length > 0) {
@@ -236,13 +231,13 @@ export class PollingProvider implements SyncProvider {
 	}
 
 	private async heartbeatOnce(): Promise<void> {
-		const res = await api.post<PresenceResponse>(this.presencePath(), {
+		const { peers } = await api.post<PresenceResponse>(this.presencePath(), {
 			clientId: this.clientId,
 			user: this.user,
 			meta: this.awareness ?? {},
 			lang: this.lang,
 		});
-		this.emitPeers(res.data.peers);
+		this.emitPeers(peers);
 	}
 
 	private emitPeers(peers: Peer[]): void {
