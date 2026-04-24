@@ -80,9 +80,18 @@ export function createContentBinding(mgr: YDocManager): ContentBinding {
 
 	function seed(initialValue: string): void {
 		if (ytext.length > 0) return; // doc already has content, don't clobber
+		// Seed with local origin so the initial insert is pushed to the
+		// server. If we didn't push, each browser would seed into its own
+		// disjoint Yjs state (different clientIDs) and subsequent edits
+		// would reference items the other browser doesn't have — updates
+		// apply but produce no visible change.
+		//
+		// Race window: two browsers can both seed an empty room at once.
+		// The result is a concatenated document ("foofoo"). Acceptable for
+		// MVP; Phase 4 will add server-side init-once semantics.
 		mgr.doc.transact(() => {
 			ytext.insert(0, initialValue);
-		}, ORIGIN_REMOTE); // seed counts as non-local so it doesn't push
+		}, mgr.localOrigin);
 		lastSeen = ytext.toString();
 	}
 
