@@ -465,6 +465,34 @@
 					</select>
 				</div>
 			{/if}
+
+			<!-- Real-time Collaboration (experimental) -->
+			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+				<div class="lg:pt-2.5">
+					<span class="text-sm font-semibold text-foreground">Real-time Collaboration</span>
+					<p class="mt-0.5 text-xs text-muted-foreground">
+						Live multi-user editing with presence. Requires the <code>sync</code> plugin on the server. Experimental.
+					</p>
+				</div>
+				<div>
+					<div class="inline-flex rounded-md border border-border shadow-sm">
+						<button
+							class="inline-flex h-9 items-center gap-1.5 rounded-l-md px-3 text-sm font-medium transition-colors
+								{!prefs.collabEnabled ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
+							onclick={() => prefs.collabEnabled = false}
+						>
+							Off
+						</button>
+						<button
+							class="inline-flex h-9 items-center gap-1.5 rounded-r-md px-3 text-sm font-medium transition-colors
+								{prefs.collabEnabled ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
+							onclick={() => prefs.collabEnabled = true}
+						>
+							On
+						</button>
+					</div>
+				</div>
+			</div>
 		</div>
 	</div>
 

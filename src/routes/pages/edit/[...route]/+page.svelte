@@ -40,6 +40,12 @@
 	import ContextPanelTriggers from '$lib/components/context-panels/ContextPanelTriggers.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
+	import { PollingProvider } from '$lib/sync/PollingProvider';
+	import { YDocManager } from '$lib/sync/YDocManager';
+	import { createContentBinding, type ContentBinding } from '$lib/sync/bindings/contentBinding';
+	import type { Peer, SyncStatus } from '$lib/sync/SyncProvider';
+	import PresenceAvatars from '$lib/components/sync/PresenceAvatars.svelte';
+	import SyncStatusBadge from '$lib/components/sync/SyncStatusBadge.svelte';
 
 	const canEditPages = $derived(canWrite('pages'));
 	let accessDenied = $state(false);
@@ -144,6 +150,90 @@
 	let expertTab = $state<'content' | 'advanced'>('content');
 	let expertSlug = $state('');
 	let expertParent = $state('');
+
+	// --- Collaborative editing (sync plugin) --------------------------
+	// Per-tab stable client id so presence dedupes across reloads of the same tab.
+	const syncClientId = (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+		? crypto.randomUUID()
+		: Math.random().toString(36).slice(2);
+	let syncBinding: ContentBinding | null = null;
+	let syncReady = $state(false);
+	let syncStatus = $state<SyncStatus>('idle');
+	let syncDetail = $state<string | undefined>(undefined);
+	let syncPeers = $state<Peer[]>([]);
+
+	// Drive a Y.Doc for this page whenever collab is enabled and the page is
+	// loaded. Teardown on route change / disable / unmount.
+	$effect(() => {
+		const enabled = prefs.collabEnabled;
+		const loaded = !loading && pageData !== null;
+		const currentRoute = route;
+		const currentLang = contentLang.enabled ? contentLang.activeLang : null;
+		const currentTemplate = template || 'default';
+
+		if (!enabled || !loaded || !currentRoute) return;
+
+		const roomId = currentLang
+			? `${currentRoute.replace(/^\//, '')}.${currentLang}@${currentTemplate}`
+			: `${currentRoute.replace(/^\//, '')}@${currentTemplate}`;
+
+		const provider = new PollingProvider({
+			roomId,
+			route: currentRoute,
+			lang: currentLang,
+			clientId: syncClientId,
+			user: auth.fullname || auth.username || null,
+		});
+		provider.onStatus((s, d) => { syncStatus = s; syncDetail = d; });
+		provider.onPeers((p) => { syncPeers = p; });
+
+		const mgr = new YDocManager({
+			roomId,
+			clientId: syncClientId,
+			user: auth.fullname || auth.username || null,
+			provider,
+		});
+		const binding = createContentBinding(mgr);
+		const offRemote = binding.onRemote((v) => { content = v; });
+
+		let cancelled = false;
+		(async () => {
+			try {
+				await mgr.connect();
+				if (cancelled) return;
+				// Seed only if nothing came back from the server pull AND we have
+				// local content. Otherwise the pulled state is authoritative.
+				if (binding.getValue() === '' && content !== '') {
+					binding.seed(content);
+				} else if (binding.getValue() !== '' && binding.getValue() !== content) {
+					// Server had content we didn't — adopt it.
+					content = binding.getValue();
+				}
+				syncBinding = binding;
+				syncReady = true;
+			} catch {
+				// Errors surface via syncStatus already; leave room cold.
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+			offRemote();
+			syncReady = false;
+			syncBinding = null;
+			syncStatus = 'idle';
+			syncPeers = [];
+			binding.dispose();
+			mgr.dispose();
+		};
+	});
+
+	// Local content → Y.Text. The binding's internal diff makes this a no-op
+	// when content === ytext (which includes the echo after a remote apply).
+	$effect(() => {
+		if (!syncReady || !syncBinding) return;
+		syncBinding.pushLocal(content);
+	});
 
 	function deriveParent(route: string, slug: string): string {
 		if (route === '/' + slug) return '/';
@@ -779,6 +869,10 @@
 					</div>
 
 					<div class="flex shrink-0 flex-wrap items-center gap-2">
+			{#if prefs.collabEnabled && syncReady}
+				<PresenceAvatars peers={syncPeers} clientId={syncClientId} />
+				<SyncStatusBadge status={syncStatus} detail={syncDetail} peerCount={syncPeers.filter((p) => p.clientId !== syncClientId).length} />
+			{/if}
 			<UnsavedIndicator
 				hasChanges={hasChanges}
 				saving={autoSave.saving}

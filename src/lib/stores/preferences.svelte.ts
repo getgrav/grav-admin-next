@@ -60,6 +60,7 @@ interface Preferences {
 	autoSaveToolbarUndo: boolean;
 	autoSaveBatchWindowMs: number;
 	fontFamily: FontFamily;
+	collabEnabled: boolean;
 }
 
 function loadStored(): Partial<Preferences> {
@@ -86,6 +87,7 @@ function createPreferencesStore() {
 	let autoSaveToolbarUndo = $state(stored.autoSaveToolbarUndo ?? true);
 	let autoSaveBatchWindowMs = $state(stored.autoSaveBatchWindowMs ?? 0);
 	let fontFamily = $state<FontFamily>(stored.fontFamily ?? 'google-sans');
+	let collabEnabled = $state(stored.collabEnabled ?? false);
 
 	applyFont(fontFamily);
 
@@ -103,6 +105,7 @@ function createPreferencesStore() {
 			autoSaveToolbarUndo,
 			autoSaveBatchWindowMs,
 			fontFamily,
+			collabEnabled,
 		}));
 	}
 
@@ -142,6 +145,9 @@ function createPreferencesStore() {
 
 		get fontFamily() { return fontFamily; },
 		set fontFamily(v: FontFamily) { fontFamily = v; applyFont(v); persist(); },
+
+		get collabEnabled() { return collabEnabled; },
+		set collabEnabled(v: boolean) { collabEnabled = v; persist(); },
 	};
 }
 
