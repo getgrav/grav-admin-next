@@ -194,7 +194,14 @@
 			provider,
 		});
 		const binding = createContentBinding(mgr);
-		const offRemote = binding.onRemote((v) => { content = v; });
+		// Remote updates are absorbed into the baseline: we only want
+		// hasChanges to reflect THIS user's local unsaved edits, not edits
+		// arriving via Yjs from collaborators. Otherwise the unsaved-guard
+		// cancels every navigation as soon as a peer types anything.
+		const offRemote = binding.onRemote((v) => {
+			content = v;
+			if (pageData) pageData.content = v;
+		});
 
 		let cancelled = false;
 		(async () => {
