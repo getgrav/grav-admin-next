@@ -8,6 +8,9 @@
 	import { Sun, Moon, Server, Globe, ChevronDown, Loader2, UserPlus } from 'lucide-svelte';
 	import { theme } from '$lib/stores/theme.svelte';
 	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
+	import PasswordField from '$lib/components/ui/PasswordField.svelte';
+	import { passwordPolicy } from '$lib/stores/passwordPolicy.svelte';
+	import { evaluatePassword } from '$lib/utils/passwordStrength';
 
 	const defaultUrl = import.meta.env.DEV ? 'http://localhost:5180/grav-api' : 'https://localhost/grav-api';
 	let serverUrl = $state(auth.serverUrl || defaultUrl);
@@ -26,7 +29,8 @@
 
 	const usernameInvalid = $derived(attempted && !/^[a-z0-9_-]{3,64}$/i.test(username));
 	const emailInvalid = $derived(attempted && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
-	const passwordInvalid = $derived(attempted && password.length < 8);
+	const passwordResult = $derived(evaluatePassword(password, passwordPolicy.current));
+	const passwordInvalid = $derived(attempted && !passwordResult.allRulesMet);
 	const confirmInvalid = $derived(attempted && password !== confirmPassword);
 
 	// Guard: if setup is not actually required, bounce to login. This also
@@ -36,11 +40,12 @@
 			auth.setServer(serverUrl, environment);
 		}
 		getSetupStatus()
-			.then((required) => {
-				if (!required) {
+			.then((status) => {
+				if (!status.setup_required) {
 					goto(`${base}/login`);
 					return;
 				}
+				passwordPolicy.seed(status.password_policy);
 				checking = false;
 			})
 			.catch(() => {
@@ -213,21 +218,15 @@
 						{/if}
 					</div>
 
-					<div class="space-y-1.5">
-						<label for="password" class="text-[13px] font-medium text-foreground">Password</label>
-						<input
-							id="password"
-							type="password"
-							class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
-								{passwordInvalid ? 'border-red-500 ring-1 ring-red-500/30' : 'border-input'}"
-							bind:value={password}
-							autocomplete="new-password"
-							disabled={loading}
-						/>
-						{#if passwordInvalid}
-							<p class="text-xs text-red-500">Password must be at least 8 characters</p>
-						{/if}
-					</div>
+					<PasswordField
+						id="password"
+						label="Password"
+						bind:value={password}
+						policy={passwordPolicy.current}
+						disabled={loading}
+						invalid={passwordInvalid}
+						invalidMessage="Password does not meet the required policy"
+					/>
 
 					<div class="space-y-1.5">
 						<label for="confirm" class="text-[13px] font-medium text-foreground">Confirm password</label>

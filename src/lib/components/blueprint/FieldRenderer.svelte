@@ -5,6 +5,7 @@
 	import SectionField from './fields/SectionField.svelte';
 	import SpacerField from './fields/SpacerField.svelte';
 	import TextField from './fields/TextField.svelte';
+	import PasswordBlueprintField from './fields/PasswordField.svelte';
 	import TextareaField from './fields/TextareaField.svelte';
 	import MarkdownField from './fields/MarkdownField.svelte';
 	import SelectField from './fields/SelectField.svelte';
@@ -326,6 +327,14 @@
 
 {:else if field.type === 'text' && (field.wrapper_classes ?? '').includes('cron-selector')}
 	<CronField {field} {value} onchange={committingOnchange} />
+
+{:else if field.type === 'password'}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div data-translate={field.translate || undefined} data-field-name={field.translate ? field.name : undefined}
+		onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
+		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
+		<PasswordBlueprintField {field} {value} {onchange} />
+	</div>
 
 {:else if inputTypes.has(field.type)}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->

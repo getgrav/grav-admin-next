@@ -1,6 +1,7 @@
 import { api } from './client';
 import { auth } from '$lib/stores/auth.svelte';
 import { base } from '$app/paths';
+import type { PasswordPolicy } from '$lib/utils/passwordStrength';
 
 interface TokenResponse {
 	access_token: string;
@@ -91,9 +92,21 @@ export async function login(username: string, password: string): Promise<LoginRe
 	return { requires2fa: false };
 }
 
-export async function getSetupStatus(): Promise<boolean> {
-	const data = await api.get<{ setup_required: boolean }>('/auth/setup');
-	return Boolean(data?.setup_required);
+export interface SetupStatus {
+	setup_required: boolean;
+	password_policy?: PasswordPolicy;
+}
+
+export async function getSetupStatus(): Promise<SetupStatus> {
+	const data = await api.get<SetupStatus>('/auth/setup');
+	return {
+		setup_required: Boolean(data?.setup_required),
+		password_policy: data?.password_policy,
+	};
+}
+
+export async function getPasswordPolicy(): Promise<PasswordPolicy> {
+	return api.get<PasswordPolicy>('/auth/password-policy');
 }
 
 export interface SetupData {

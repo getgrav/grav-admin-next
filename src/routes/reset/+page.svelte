@@ -8,6 +8,9 @@
 	import { Sun, Moon, KeyRound, ArrowLeft, Loader2 } from 'lucide-svelte';
 	import { theme } from '$lib/stores/theme.svelte';
 	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
+	import PasswordField from '$lib/components/ui/PasswordField.svelte';
+	import { passwordPolicy } from '$lib/stores/passwordPolicy.svelte';
+	import { evaluatePassword } from '$lib/utils/passwordStrength';
 
 	const username = $derived(page.url.searchParams.get('user') ?? '');
 	const token = $derived(page.url.searchParams.get('token') ?? '');
@@ -18,6 +21,13 @@
 	let passwordInvalid = $state(false);
 	let confirmInvalid = $state(false);
 
+	$effect(() => {
+		passwordPolicy.load().catch(() => {
+			// Non-critical: field falls back to a generic validator when
+			// the policy endpoint is unreachable.
+		});
+	});
+
 	const missingParams = $derived(!username || !token);
 
 	async function handleSubmit(e: Event) {
@@ -25,7 +35,8 @@
 		passwordInvalid = false;
 		confirmInvalid = false;
 
-		if (!password || password.length < 8) {
+		const result = evaluatePassword(password, passwordPolicy.current);
+		if (!password || !result.allRulesMet) {
 			passwordInvalid = true;
 			return;
 		}
@@ -98,23 +109,15 @@
 				</div>
 			{:else}
 				<form onsubmit={handleSubmit} class="space-y-4 px-6 py-5" novalidate>
-					<div class="space-y-1.5">
-						<label for="password" class="text-[13px] font-medium text-foreground">New password</label>
-						<input
-							id="password"
-							type="password"
-							autocomplete="new-password"
-							class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
-								{passwordInvalid
-									? 'border-red-500 ring-1 ring-red-500/30 animate-[shake_0.3s_ease-in-out]'
-									: 'border-input'}"
-							bind:value={password}
-							disabled={loading}
-						/>
-						{#if passwordInvalid}
-							<p class="text-xs text-red-500">Password must be at least 8 characters</p>
-						{/if}
-					</div>
+					<PasswordField
+						id="password"
+						label="New password"
+						bind:value={password}
+						policy={passwordPolicy.current}
+						disabled={loading}
+						invalid={passwordInvalid}
+						invalidMessage="Password does not meet the required policy"
+					/>
 
 					<div class="space-y-1.5">
 						<label for="confirm" class="text-[13px] font-medium text-foreground">Confirm password</label>
