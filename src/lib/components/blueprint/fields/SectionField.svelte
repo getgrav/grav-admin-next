@@ -45,41 +45,25 @@
 		return f.style === 'vertical' || fullWidthTypes.has(f.type);
 	}
 
-	// Track toggleable field states — initialize eagerly (not in $effect)
-	// to avoid state_unsafe_mutation when template reads during first render
-	const initToggleStates = (): Record<string, boolean> => {
-		const initial: Record<string, boolean> = {};
-		if (field.fields) {
-			for (const f of field.fields) {
-				if (f.toggleable) {
-					const val = getValue(f.name);
-					initial[f.name] = val !== undefined && val !== null;
-				}
-			}
-		}
-		return initial;
-	};
-	let toggleStates = $state<Record<string, boolean>>(initToggleStates());
-
-	function toggleField(name: string, fieldDef: BlueprintField) {
-		const current = toggleStates[name] ?? false;
-		toggleStates = { ...toggleStates, [name]: !current };
-		if (current) {
-			// Toggling OFF — send null so JSON.stringify preserves it
-			// (undefined would be stripped, leaving the value on the server)
-			onFieldChange(name, null);
-		} else {
-			// Toggling ON — restore default value if the current value is undefined
-			const currentVal = getValue(name);
-			if (currentVal === undefined || currentVal === null) {
-				onFieldChange(name, fieldDef.default ?? '');
-			}
-		}
-	}
-
+	// Toggle state is derived from the field's value — a null/undefined
+	// value means the field is disabled. Deriving (rather than tracking
+	// separately) means remote collaboration updates that null-out a
+	// field also collapse its UI automatically.
 	function isToggleOn(f: BlueprintField): boolean {
 		if (!f.toggleable) return true;
-		return toggleStates[f.name] ?? false;
+		const val = getValue(f.name);
+		return val !== null && val !== undefined;
+	}
+
+	function toggleField(name: string, fieldDef: BlueprintField) {
+		if (isToggleOn(fieldDef)) {
+			// Toggling OFF — send null so JSON.stringify preserves it
+			// (undefined would be stripped, leaving the value on the server).
+			onFieldChange(name, null);
+		} else {
+			// Toggling ON — restore the default value.
+			onFieldChange(name, fieldDef.default ?? '');
+		}
 	}
 
 	function highlight(text: string): string {

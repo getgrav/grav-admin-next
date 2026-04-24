@@ -12,7 +12,7 @@
  * Usage (Svelte):
  *   const mgr = new YDocManager({ roomId, route, clientId, user, provider })
  *   await mgr.connect()
- *   // bind mgr.content to Svelte state via `createContentBinding`
+ *   // attach a binding (e.g. createFormBinding) to mgr.doc
  *   // ...
  *   await mgr.dispose()
  */

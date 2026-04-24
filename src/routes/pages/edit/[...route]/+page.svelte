@@ -42,7 +42,7 @@
 	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
 	import { PollingProvider } from '$lib/sync/PollingProvider';
 	import { YDocManager } from '$lib/sync/YDocManager';
-	import { createContentBinding, type ContentBinding } from '$lib/sync/bindings/contentBinding';
+	import { createFormBinding, type FormBinding } from '$lib/sync/bindings/formBinding';
 	import type { Peer, SyncStatus } from '$lib/sync/SyncProvider';
 	import PresenceAvatars from '$lib/components/sync/PresenceAvatars.svelte';
 	import SyncStatusBadge from '$lib/components/sync/SyncStatusBadge.svelte';
@@ -156,8 +156,16 @@
 	const syncClientId = (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
 		? crypto.randomUUID()
 		: Math.random().toString(36).slice(2);
-	let syncBinding: ContentBinding | null = null;
+	let syncBinding: FormBinding | null = null;
 	let syncReady = $state(false);
+	/**
+	 * Guard flag: set while we're applying a remote sync snapshot to Svelte
+	 * state so our own $effect watchers don't push the same values back out
+	 * on the wire. Not needed for the (path, value) push-on-change callers
+	 * (they only fire for user-driven changes), but important for the
+	 * `content` prop-change watcher.
+	 */
+	let applyingRemote = false;
 	let syncStatus = $state<SyncStatus>('idle');
 	let syncDetail = $state<string | undefined>(undefined);
 	let syncPeers = $state<Peer[]>([]);
@@ -193,49 +201,79 @@
 			user: auth.fullname || auth.username || null,
 			provider,
 		});
-		const binding = createContentBinding(mgr);
-		// Remote updates are absorbed into the baseline: we only want
-		// hasChanges to reflect THIS user's local unsaved edits, not edits
-		// arriving via Yjs from collaborators. Otherwise the unsaved-guard
-		// cancels every navigation as soon as a peer types anything.
-		const offRemote = binding.onRemote((v) => {
-			const prevContent = content;
-			content = v;
-			if (pageData) pageData.content = v;
-			// Normal-mode editing renders the content field via BlueprintForm
-			// reading from headerData, so propagate there too. Otherwise the
-			// visible editor stays stale even though `content` is current.
-			headerData = { ...headerData, content: v };
-			// Direct pokes for editors whose internal state isn't driven by
-			// Svelte prop reactivity — editor-pro is a web component (sets
-			// .value imperatively) and CodeMirror exposes __cmView for
-			// external dispatches. Both no-op when already in sync.
-			const editorPro = document.querySelector('grav-editor-pro--editor-pro') as (HTMLElement & { value?: string }) | null;
-			if (editorPro && editorPro.value !== v) editorPro.value = v;
-			type CmViewHandle = { state: { doc: { toString(): string; length: number } }; dispatch(tr: unknown): void };
-			document.querySelectorAll<HTMLElement & { __cmView?: CmViewHandle }>('.cm-editor').forEach((el) => {
-				const cm = el.__cmView;
-				if (!cm) return;
-				const doc = cm.state.doc.toString();
-				// Only patch the CM instance that was displaying the prior
-				// content — don't clobber the YAML / frontmatter editors.
-				if (doc !== prevContent || doc === v) return;
-				cm.dispatch({ changes: { from: 0, to: cm.state.doc.length, insert: v } });
-			});
+		const binding = createFormBinding({
+			doc: mgr.doc,
+			blueprint,
+			// Content is rendered outside the blueprint (expert-mode tab +
+			// fallback when no blueprint), so we flag it explicitly so it
+			// gets Y.Text semantics. Title stays a scalar because blueprint
+			// declares it as `type: text` and LWW is fine for a short field.
+			extraRichTextPaths: ['content'],
+			localOrigin: mgr.localOrigin,
+			remoteOrigin: Symbol('ydoc:remote-unused'),
 		});
+
+		/**
+		 * Walk a nested snapshot object and apply it to Svelte state in
+		 * one guarded pass. Mutates top-level state (headerData, content,
+		 * title, template, pageData.content) and pokes the imperative
+		 * editors whose internal state isn't driven by prop reactivity.
+		 */
+		async function applyRemoteSnapshot(snap: Record<string, unknown>): Promise<void> {
+			applyingRemote = true;
+			try {
+				const prevContent = content;
+				const newContent = typeof snap.content === 'string' ? snap.content : content;
+				const newHeader = (snap.header && typeof snap.header === 'object')
+					? (snap.header as Record<string, unknown>)
+					: {};
+				const newTitle = typeof newHeader.title === 'string' ? newHeader.title : title;
+				const newTemplate = typeof snap.name === 'string' ? snap.name : template;
+
+				content = newContent;
+				title = newTitle;
+				headerData = { ...snap };
+				if (pageData) pageData.content = newContent;
+
+				// Template change: reload the blueprint for the new template so
+				// the form reshapes correctly. Rare; only fires when a peer
+				// actually changes the template selection.
+				if (newTemplate !== template) {
+					template = newTemplate;
+					try { blueprint = await getPageBlueprint(newTemplate); } catch { blueprint = null; }
+				}
+
+				// Imperative editor reconciliation — web-component + CM6 don't
+				// always repaint from Svelte prop updates mid-transaction.
+				const editorPro = document.querySelector('grav-editor-pro--editor-pro') as (HTMLElement & { value?: string }) | null;
+				if (editorPro && editorPro.value !== newContent) editorPro.value = newContent;
+				type CmViewHandle = { state: { doc: { toString(): string; length: number } }; dispatch(tr: unknown): void };
+				document.querySelectorAll<HTMLElement & { __cmView?: CmViewHandle }>('.cm-editor').forEach((el) => {
+					const cm = el.__cmView;
+					if (!cm) return;
+					const doc = cm.state.doc.toString();
+					if (doc !== prevContent || doc === newContent) return;
+					cm.dispatch({ changes: { from: 0, to: cm.state.doc.length, insert: newContent } });
+				});
+			} finally {
+				applyingRemote = false;
+			}
+		}
+
+		const offRemote = binding.onRemote((snap) => { void applyRemoteSnapshot(snap); });
 
 		let cancelled = false;
 		(async () => {
 			try {
 				await mgr.connect();
 				if (cancelled) return;
-				// Seed only if nothing came back from the server pull AND we have
-				// local content. Otherwise the pulled state is authoritative.
-				if (binding.getValue() === '' && content !== '') {
-					binding.seed(content);
-				} else if (binding.getValue() !== '' && binding.getValue() !== content) {
-					// Server had content we didn't — adopt it.
-					content = binding.getValue();
+				// If the room is fresh (map is empty), seed from our local
+				// headerData + content. Otherwise the pulled state is
+				// authoritative and we adopt it into our state tree.
+				if (binding.map.size === 0) {
+					binding.seed({ ...headerData, content });
+				} else {
+					await applyRemoteSnapshot(binding.getValue());
 				}
 				syncBinding = binding;
 				syncReady = true;
@@ -256,11 +294,13 @@
 		};
 	});
 
-	// Local content → Y.Text. The binding's internal diff makes this a no-op
-	// when content === ytext (which includes the echo after a remote apply).
+	// Expert-mode content editor writes directly to the `content` state
+	// (bypassing handleBlueprintChange). Keep this $effect so those edits
+	// still propagate through Yjs. Normal-mode field edits go through
+	// handleBlueprintChange which calls syncBinding.pushLocal directly.
 	$effect(() => {
-		if (!syncReady || !syncBinding) return;
-		syncBinding.pushLocal(content);
+		if (!syncReady || !syncBinding || applyingRemote) return;
+		syncBinding.pushLocal('content', content);
 	});
 
 	function deriveParent(route: string, slug: string): string {
@@ -460,6 +500,21 @@
 	}
 
 	async function handleBlueprintChange(path: string, value: unknown) {
+		// While we're applying a remote sync snapshot, treat any blueprint
+		// onchange as an echo of the new prop value we just set — not a
+		// real user edit. Short-circuit so it doesn't fight the snapshot:
+		//   - pushLocal would race the concurrent Y.Map update
+		//   - headerChanges / headerData mutations below would clobber the
+		//     snapshot-derived headerData we're trying to install
+		if (applyingRemote) return;
+
+		// Collab: every blueprint field change is pushed into the Y.Map so
+		// peers receive it. The FormBinding no-ops when the value hasn't
+		// actually changed (internal equality / text-diff check).
+		if (syncReady && syncBinding) {
+			syncBinding.pushLocal(path, value);
+		}
+
 		// Sync special fields back to their state variables
 		if (path === 'content') {
 			content = value as string;
