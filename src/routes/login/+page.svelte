@@ -44,8 +44,8 @@
 	$effect(() => {
 		if (auth.serverUrl) {
 			getSetupStatus()
-				.then((setupRequired) => {
-					if (setupRequired) goto(`${base}/setup`);
+				.then((status) => {
+					if (status.setup_required) goto(`${base}/setup`);
 				})
 				.catch(() => { /* no-op — probe is best-effort */ });
 		}
