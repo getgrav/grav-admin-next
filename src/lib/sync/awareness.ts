@@ -13,7 +13,7 @@
 import type { Peer } from './SyncProvider';
 
 export class Awareness {
-	#peers = $state<Peer[]>([]);
+	#peers: Peer[] = [];
 	#localMeta: Record<string, unknown> = {};
 	#listeners = new Set<(peers: Peer[]) => void>();
 
