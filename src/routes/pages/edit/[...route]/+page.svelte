@@ -199,8 +199,29 @@
 		// arriving via Yjs from collaborators. Otherwise the unsaved-guard
 		// cancels every navigation as soon as a peer types anything.
 		const offRemote = binding.onRemote((v) => {
+			const prevContent = content;
 			content = v;
 			if (pageData) pageData.content = v;
+			// Normal-mode editing renders the content field via BlueprintForm
+			// reading from headerData, so propagate there too. Otherwise the
+			// visible editor stays stale even though `content` is current.
+			headerData = { ...headerData, content: v };
+			// Direct pokes for editors whose internal state isn't driven by
+			// Svelte prop reactivity — editor-pro is a web component (sets
+			// .value imperatively) and CodeMirror exposes __cmView for
+			// external dispatches. Both no-op when already in sync.
+			const editorPro = document.querySelector('grav-editor-pro--editor-pro') as (HTMLElement & { value?: string }) | null;
+			if (editorPro && editorPro.value !== v) editorPro.value = v;
+			type CmViewHandle = { state: { doc: { toString(): string; length: number } }; dispatch(tr: unknown): void };
+			document.querySelectorAll<HTMLElement & { __cmView?: CmViewHandle }>('.cm-editor').forEach((el) => {
+				const cm = el.__cmView;
+				if (!cm) return;
+				const doc = cm.state.doc.toString();
+				// Only patch the CM instance that was displaying the prior
+				// content — don't clobber the YAML / frontmatter editors.
+				if (doc !== prevContent || doc === v) return;
+				cm.dispatch({ changes: { from: 0, to: cm.state.doc.length, insert: v } });
+			});
 		});
 
 		let cancelled = false;
