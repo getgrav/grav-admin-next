@@ -7,6 +7,7 @@
 	} from '$lib/api/endpoints/dashboard';
 	import { getWidgets, saveUserLayout, saveSiteLayout } from '$lib/api/endpoints/dashboard-widgets';
 	import { updateAllPackages, upgradeGrav } from '$lib/api/endpoints/gpm';
+	import { createBackup } from '$lib/api/endpoints/tools';
 	import { canWrite } from '$lib/utils/permissions';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { getSystemInfo, type SystemInfo } from '$lib/api/endpoints/system';
@@ -18,11 +19,13 @@
 	import { onMount } from 'svelte';
 	import { RefreshCw, Loader2 } from 'lucide-svelte';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
+	import TopProgressBar from '$lib/components/ui/TopProgressBar.svelte';
 	import DashboardGrid from '$lib/components/dashboard/DashboardGrid.svelte';
 	import EditModeToolbar from '$lib/components/dashboard/EditModeToolbar.svelte';
 	import WidgetPicker from '$lib/components/dashboard/WidgetPicker.svelte';
 	import TopBanner from '$lib/components/dashboard/TopBanner.svelte';
 	import { setDashboardData, type DashboardData } from '$lib/dashboard/context';
+	import { formatBytes } from '$lib/dashboard/format';
 	import type { ResolvedWidget, DashboardLayout } from '$lib/dashboard/types';
 	import type { PresetDef } from '$lib/dashboard/presets';
 
@@ -43,6 +46,7 @@
 	let animated = $state(false);
 	let updatingAll = $state(false);
 	let upgradingGrav = $state(false);
+	let creatingBackup = $state(false);
 
 	let editMode = $state(false);
 	let saving = $state(false);
@@ -50,12 +54,14 @@
 	const dirty = $derived(JSON.stringify(widgets) !== JSON.stringify(savedWidgetsSnapshot));
 
 	const canWriteGpm = $derived(canWrite('gpm'));
+	const canWriteSystem = $derived(canWrite('system'));
 
 	setDashboardData((): DashboardData => ({
 		stats, systemInfo, notifications, recentPages, popularity, feed, backups, updates, reports,
-		animated, updatingAll, upgradingGrav, canWriteGpm,
+		animated, updatingAll, upgradingGrav, creatingBackup, canWriteGpm, canWriteSystem,
 		onUpdateAll: handleUpdateAll,
 		onUpgradeGrav: handleUpgradeGrav,
+		onCreateBackup: handleCreateBackup,
 	}));
 
 	interface LoadDashboardOptions {
@@ -200,23 +206,25 @@
 		});
 		if (!ok) return;
 		updatingAll = true;
+		const toastId = toast.loading(`Updating ${n} package${n !== 1 ? 's' : ''}…`);
 		try {
 			const result = await updateAllPackages();
 			const okCount = result.updated.length;
 			const bad = result.failed.length;
 			if (bad === 0) {
-				toast.success(`Updated ${okCount} package${okCount !== 1 ? 's' : ''}`);
+				toast.success(`Updated ${okCount} package${okCount !== 1 ? 's' : ''}`, { id: toastId });
 			} else {
 				const reasons = result.failed.map(f => `${f.package}: ${f.error}`).join('\n');
 				toast.error(
 					okCount > 0
 						? `Updated ${okCount}, failed ${bad}.\n${reasons}`
 						: `${bad} update${bad !== 1 ? 's' : ''} failed.\n${reasons}`,
+					{ id: toastId },
 				);
 			}
 			await loadDashboard({ silent: true });
 		} catch (err: unknown) {
-			toast.error(`Update failed: ${err instanceof Error ? err.message : String(err)}`);
+			toast.error(`Update failed: ${err instanceof Error ? err.message : String(err)}`, { id: toastId });
 		} finally {
 			updatingAll = false;
 		}
@@ -231,14 +239,29 @@
 		});
 		if (!ok) return;
 		upgradingGrav = true;
+		const toastId = toast.loading(`Upgrading Grav to v${target}…`);
 		try {
 			const result = await upgradeGrav();
-			toast.success(`Grav upgraded to v${result.new_version}`);
+			toast.success(`Grav upgraded to v${result.new_version}`, { id: toastId });
 			await loadDashboard({ silent: true });
 		} catch (err: unknown) {
-			toast.error(`Grav upgrade failed: ${err instanceof Error ? err.message : String(err)}`);
+			toast.error(`Grav upgrade failed: ${err instanceof Error ? err.message : String(err)}`, { id: toastId });
 		} finally {
 			upgradingGrav = false;
+		}
+	}
+
+	async function handleCreateBackup() {
+		creatingBackup = true;
+		const toastId = toast.loading('Creating backup…');
+		try {
+			const result = await createBackup();
+			toast.success(`Backup created (${formatBytes(result.size)})`, { id: toastId });
+			await loadDashboard({ silent: true });
+		} catch (err: unknown) {
+			toast.error(`Backup failed: ${err instanceof Error ? err.message : String(err)}`, { id: toastId });
+		} finally {
+			creatingBackup = false;
 		}
 	}
 
@@ -259,6 +282,8 @@
 </script>
 
 <svelte:head><title>Dashboard — Grav Admin</title></svelte:head>
+
+<TopProgressBar active={updatingAll || upgradingGrav || creatingBackup} />
 
 {#if loading}
 	<div class="flex h-64 items-center justify-center">

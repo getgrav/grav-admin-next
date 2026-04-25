@@ -24,9 +24,12 @@ export interface DashboardData {
 	animated: boolean;
 	updatingAll: boolean;
 	upgradingGrav: boolean;
+	creatingBackup: boolean;
 	canWriteGpm: boolean;
+	canWriteSystem: boolean;
 	onUpdateAll: () => void | Promise<void>;
 	onUpgradeGrav: () => void | Promise<void>;
+	onCreateBackup: () => void | Promise<void>;
 }
 
 const KEY = Symbol('dashboard-data');

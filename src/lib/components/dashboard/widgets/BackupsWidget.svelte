@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Archive, Download } from 'lucide-svelte';
+	import { Archive, Download, Plus, Loader2 } from 'lucide-svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { getDashboardData } from '$lib/dashboard/context';
 	import { formatDate, formatBytes } from '$lib/dashboard/format';
@@ -11,10 +11,29 @@
 </script>
 
 <div class="h-full rounded-lg border border-border bg-card p-4">
-	<h2 class="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-		<Archive size={15} />
-		Backups
-	</h2>
+	<div class="mb-3 flex items-center justify-between gap-2">
+		<h2 class="flex items-center gap-2 text-sm font-semibold text-foreground">
+			<Archive size={15} />
+			Backups
+		</h2>
+		{#if data().canWriteSystem}
+			<button
+				type="button"
+				class="inline-flex h-6 items-center gap-1 rounded-md bg-primary px-2 text-[11px] font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:opacity-60"
+				onclick={() => data().onCreateBackup()}
+				disabled={data().creatingBackup}
+				title="Create a new backup now"
+			>
+				{#if data().creatingBackup}
+					<Loader2 size={11} class="animate-spin" />
+					Backing up…
+				{:else}
+					<Plus size={11} />
+					Backup Now
+				{/if}
+			</button>
+		{/if}
+	</div>
 	{#if backups.length > 0}
 		<div class="-mx-4 divide-y divide-border">
 			{#each backups.slice(0, max) as backup}

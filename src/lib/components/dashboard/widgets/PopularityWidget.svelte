@@ -1,12 +1,18 @@
 <script lang="ts">
 	import { TrendingUp } from 'lucide-svelte';
+	import { tweened } from 'svelte/motion';
+	import { cubicOut } from 'svelte/easing';
 	import { getDashboardData } from '$lib/dashboard/context';
 	import { formatNumber } from '$lib/dashboard/format';
 
 	let { size = 'lg' } = $props();
 	const data = getDashboardData();
 	const popularity = $derived(data().popularity);
+	const animated = $derived(data().animated);
 	const chartMax = $derived(popularity?.chart ? Math.max(...popularity.chart.map(p => p.views), 1) : 1);
+
+	const progress = tweened(0, { duration: 900, easing: cubicOut });
+	$effect(() => { progress.set(animated ? 1 : 0); });
 </script>
 
 <div class="flex h-full min-h-[300px] flex-col rounded-lg border border-border bg-card p-5">
@@ -42,7 +48,8 @@
 		{@const chartData = popularity.chart}
 		{@const pts = chartData.map((p, i) => {
 			const step = 650 / Math.max(chartData.length - 1, 1);
-			return { x: 45 + i * step, y: 250 - (chartMax > 0 ? (p.views / chartMax) * 220 : 0) };
+			const targetY = 250 - (chartMax > 0 ? (p.views / chartMax) * 220 : 0);
+			return { x: 45 + i * step, y: 250 + (targetY - 250) * $progress };
 		})}
 		{@const linePath = pts.map((p, i) => {
 			if (i === 0) return `M ${p.x},${p.y}`;
