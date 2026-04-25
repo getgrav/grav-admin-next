@@ -41,10 +41,12 @@
 	import { canWrite } from '$lib/utils/permissions';
 	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
 	import { PollingProvider } from '$lib/sync/PollingProvider';
+	import { MercureProvider } from '$lib/sync/MercureProvider';
 	import { YDocManager } from '$lib/sync/YDocManager';
 	import { createFormBinding, type FormBinding } from '$lib/sync/bindings/formBinding';
 	import { createEditorBinding, type EditorCollab } from '$lib/sync/bindings/editorBinding';
-	import type { Peer, SyncStatus } from '$lib/sync/SyncProvider';
+	import type { Peer, SyncProvider, SyncStatus } from '$lib/sync/SyncProvider';
+	import { api as apiClient } from '$lib/api/client';
 	import PresenceAvatars from '$lib/components/sync/PresenceAvatars.svelte';
 	import SyncStatusBadge from '$lib/components/sync/SyncStatusBadge.svelte';
 
@@ -197,117 +199,121 @@
 			? `${currentRoute.replace(/^\//, '')}.${currentLang}@${currentTemplate}`
 			: `${currentRoute.replace(/^\//, '')}@${currentTemplate}`;
 
-		const provider = new PollingProvider({
-			roomId,
-			route: currentRoute,
-			lang: currentLang,
-			clientId: syncClientId,
-			user: auth.fullname || auth.username || null,
-		});
-		provider.onStatus((s, d) => { syncStatus = s; syncDetail = d; });
-		provider.onPeers((p) => { syncPeers = p; });
+		// All construction below happens inside an async IIFE because the
+		// capability fetch (Polling vs Mercure) needs to settle before we
+		// can pick a provider. References used by the cleanup closure are
+		// declared in this outer scope so teardown can null-check them
+		// regardless of which await point we were at.
+		type Capabilities = {
+			transports?: string[];
+			preferred?: string;
+			mercure?: { hub: string };
+		};
 
-		const mgr = new YDocManager({
-			roomId,
-			clientId: syncClientId,
-			user: auth.fullname || auth.username || null,
-			provider,
-		});
-		const binding = createFormBinding({
-			doc: mgr.doc,
-			blueprint,
-			// Content is rendered outside the blueprint (expert-mode tab +
-			// fallback when no blueprint), so we flag it explicitly so it
-			// gets Y.Text semantics. Title stays a scalar because blueprint
-			// declares it as `type: text` and LWW is fine for a short field.
-			extraRichTextPaths: ['content'],
-			localOrigin: mgr.localOrigin,
-			remoteOrigin: Symbol('ydoc:remote-unused'),
-		});
-
-		// Phase 6 collab artifacts (Y.XmlFragment, Y.Text, Awareness) are
-		// built AFTER the seed/adopt step below, since they depend on a
-		// populated Y.Text. Declared here so the cleanup closure can see
-		// the binding handle.
+		let provider: SyncProvider | null = null;
+		let mgr: YDocManager | null = null;
+		let binding: FormBinding | null = null;
 		let editorBoundary: ReturnType<typeof createEditorBinding> | null = null;
-
-		/**
-		 * Walk a nested snapshot object and apply it to Svelte state in
-		 * one guarded pass. Mutates top-level state (headerData, content,
-		 * title, template, pageData.content) and pokes the imperative
-		 * editors whose internal state isn't driven by prop reactivity.
-		 */
-		async function applyRemoteSnapshot(snap: Record<string, unknown>): Promise<void> {
-			applyingRemote = true;
-			try {
-				const prevContent = content;
-				const newContent = typeof snap.content === 'string' ? snap.content : content;
-				const newHeader = (snap.header && typeof snap.header === 'object')
-					? (snap.header as Record<string, unknown>)
-					: {};
-				const newTitle = typeof newHeader.title === 'string' ? newHeader.title : title;
-				const newTemplate = typeof snap.name === 'string' ? snap.name : template;
-
-				if (newContent !== content) content = newContent;
-				if (newTitle !== title) title = newTitle;
-				// Avoid replacing headerData when nothing structural changed
-				// (yCollab-driven Y.Text edits fire deep observers on every
-				// keystroke; without this guard we'd thrash BlueprintForm
-				// re-renders for character-level changes the editor itself
-				// is already showing).
-				const snapJson = JSON.stringify(snap);
-				if (snapJson !== JSON.stringify(headerData)) {
-					headerData = { ...snap };
-				}
-				if (pageData && pageData.content !== newContent) pageData.content = newContent;
-
-				// Template change: reload the blueprint for the new template so
-				// the form reshapes correctly. Rare; only fires when a peer
-				// actually changes the template selection.
-				if (newTemplate !== template) {
-					template = newTemplate;
-					try { blueprint = await getPageBlueprint(newTemplate); } catch { blueprint = null; }
-				}
-
-				// Imperative editor reconciliation. With Phase 6 collaborative
-				// editing, the Y.Text / Y.XmlFragment own the editor state
-				// directly, so we DON'T need to manually dispatch into CM
-				// or set editor-pro.value. Skip both pokes when collab is
-				// active — they would race the CRDT plugins.
-				if (!editorCollab) {
-					const editorPro = document.querySelector('grav-editor-pro--editor-pro') as (HTMLElement & { value?: string }) | null;
-					if (editorPro && editorPro.value !== newContent) editorPro.value = newContent;
-					type CmViewHandle = { state: { doc: { toString(): string; length: number } }; dispatch(tr: unknown): void };
-					document.querySelectorAll<HTMLElement & { __cmView?: CmViewHandle }>('.cm-editor').forEach((el) => {
-						const cm = el.__cmView;
-						if (!cm) return;
-						const doc = cm.state.doc.toString();
-						if (doc !== prevContent || doc === newContent) return;
-						cm.dispatch({ changes: { from: 0, to: cm.state.doc.length, insert: newContent } });
-					});
-				}
-			} finally {
-				applyingRemote = false;
-			}
-		}
-
-		const offRemote = binding.onRemote((snap) => { void applyRemoteSnapshot(snap); });
+		let offRemote: (() => void) | null = null;
 
 		let cancelled = false;
+
 		(async () => {
+			// 1) Pick the transport. Mercure when the API advertises it;
+			//    polling otherwise. Capability fetch is best-effort — any
+			//    failure cleanly falls back to polling.
+			let useMercure = false;
+			try {
+				const caps = await apiClient.get<Capabilities>('/sync/capabilities');
+				useMercure =
+					caps.preferred === 'mercure' &&
+					Array.isArray(caps.transports) &&
+					caps.transports.includes('mercure') &&
+					!!caps.mercure?.hub;
+			} catch { /* fall back to polling */ }
+			if (cancelled) return;
+
+			const providerOpts = {
+				roomId,
+				route: currentRoute,
+				lang: currentLang,
+				clientId: syncClientId,
+				user: auth.fullname || auth.username || null,
+			};
+			provider = useMercure ? new MercureProvider(providerOpts) : new PollingProvider(providerOpts);
+			provider.onStatus((s, d) => { syncStatus = s; syncDetail = d; });
+			provider.onPeers((p) => { syncPeers = p; });
+
+			// 2) Wire the YDocManager + FormBinding around the chosen provider.
+			mgr = new YDocManager({
+				roomId,
+				clientId: syncClientId,
+				user: auth.fullname || auth.username || null,
+				provider,
+			});
+			binding = createFormBinding({
+				doc: mgr.doc,
+				blueprint,
+				extraRichTextPaths: ['content'],
+				localOrigin: mgr.localOrigin,
+				remoteOrigin: Symbol('ydoc:remote-unused'),
+			});
+
+			// 3) Snapshot apply path. Defined here (closes over the local
+			//    `editorBoundary` ref so the editor-active guard reads the
+			//    right value).
+			async function applyRemoteSnapshot(snap: Record<string, unknown>): Promise<void> {
+				applyingRemote = true;
+				try {
+					const prevContent = content;
+					const newContent = typeof snap.content === 'string' ? snap.content : content;
+					const newHeader = (snap.header && typeof snap.header === 'object')
+						? (snap.header as Record<string, unknown>)
+						: {};
+					const newTitle = typeof newHeader.title === 'string' ? newHeader.title : title;
+					const newTemplate = typeof snap.name === 'string' ? snap.name : template;
+
+					if (newContent !== content) content = newContent;
+					if (newTitle !== title) title = newTitle;
+					const snapJson = JSON.stringify(snap);
+					if (snapJson !== JSON.stringify(headerData)) {
+						headerData = { ...snap };
+					}
+					if (pageData && pageData.content !== newContent) pageData.content = newContent;
+
+					if (newTemplate !== template) {
+						template = newTemplate;
+						try { blueprint = await getPageBlueprint(newTemplate); } catch { blueprint = null; }
+					}
+
+					if (!editorCollab) {
+						const editorPro = document.querySelector('grav-editor-pro--editor-pro') as (HTMLElement & { value?: string }) | null;
+						if (editorPro && editorPro.value !== newContent) editorPro.value = newContent;
+						type CmViewHandle = { state: { doc: { toString(): string; length: number } }; dispatch(tr: unknown): void };
+						document.querySelectorAll<HTMLElement & { __cmView?: CmViewHandle }>('.cm-editor').forEach((el) => {
+							const cm = el.__cmView;
+							if (!cm) return;
+							const doc = cm.state.doc.toString();
+							if (doc !== prevContent || doc === newContent) return;
+							cm.dispatch({ changes: { from: 0, to: cm.state.doc.length, insert: newContent } });
+						});
+					}
+				} finally {
+					applyingRemote = false;
+				}
+			}
+
+			offRemote = binding.onRemote((snap) => { void applyRemoteSnapshot(snap); });
+
+			// 4) Connect, seed-or-adopt, then build per-editor collab.
 			try {
 				await mgr.connect();
 				if (cancelled) return;
-				// If the room is fresh (map is empty), seed from our local
-				// headerData + content. Otherwise the pulled state is
-				// authoritative and we adopt it into our state tree.
 				if (binding.map.size === 0) {
 					binding.seed({ ...headerData, content });
 				} else {
 					await applyRemoteSnapshot(binding.getValue());
 				}
-				// Now that the form Y.Map carries the content Y.Text, build
-				// the per-editor collab artifacts that depend on it.
 				const contentText = binding.getText('content');
 				if (contentText) {
 					editorBoundary = createEditorBinding({
@@ -317,30 +323,26 @@
 						contentText,
 					});
 					editorCollab = editorBoundary.collab;
-					// Hand the Awareness to the polling provider so peer
-					// cursor / selection state actually propagates. Without
-					// this hook-up the y-prosemirror / y-codemirror cursor
-					// plugins have nothing to render.
-					provider.setAwareness(editorBoundary.collab.awareness);
+					provider.setAwareness?.(editorBoundary.collab.awareness);
 				}
 				syncBinding = binding;
 				syncReady = true;
 			} catch {
-				// Errors surface via syncStatus already; leave room cold.
+				/* leave room cold; status already reflects error */
 			}
 		})();
 
 		return () => {
 			cancelled = true;
-			offRemote();
+			offRemote?.();
 			syncReady = false;
 			syncBinding = null;
 			editorCollab = null;
 			syncStatus = 'idle';
 			syncPeers = [];
-			binding.dispose();
+			binding?.dispose();
 			editorBoundary?.dispose();
-			mgr.dispose();
+			mgr?.dispose();
 		};
 	});
 

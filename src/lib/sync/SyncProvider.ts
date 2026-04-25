@@ -56,6 +56,14 @@ export interface SyncProvider {
 	/** Set or clear this client's awareness payload (cursor, selection, etc.). */
 	updateAwareness(meta: Record<string, unknown> | null): void;
 
+	/**
+	 * Attach a y-protocols Awareness instance so the provider can encode
+	 * its local state on outbound traffic and apply peers' deltas as
+	 * they arrive. Optional — providers may implement this as a no-op
+	 * when they don't need a separate awareness channel.
+	 */
+	setAwareness?(awareness: import('y-protocols/awareness').Awareness): void;
+
 	onRemoteUpdate(handler: RemoteUpdateHandler): void;
 	onPeers(handler: PeersHandler): void;
 	onStatus(handler: StatusHandler): void;
