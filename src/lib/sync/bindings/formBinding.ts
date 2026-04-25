@@ -59,6 +59,13 @@ export interface FormBinding {
 	readonly map: Y.Map<unknown>;
 	/** Is a given path currently a Y.Text (for caller optimization)? */
 	isText(path: string): boolean;
+	/**
+	 * Resolve a dot path to the Y.Text living there, creating it if the
+	 * path is text-shaped and absent. Used by editor bindings (CodeMirror
+	 * yCollab, ProseMirror y-text bridges) that want to share the same
+	 * Y.Text instance the form is mirroring rather than holding a copy.
+	 */
+	getText(path: string): Y.Text | null;
 	dispose(): void;
 }
 
@@ -249,6 +256,17 @@ export function createFormBinding(opts: FormBindingOptions): FormBinding {
 		return () => remoteHandlers.delete(handler);
 	}
 
+	function getText(path: string): Y.Text | null {
+		if (!isText(path)) return null;
+		const target = resolveForWrite(path);
+		if (!target) return null;
+		const existing = target.parent.get(target.key);
+		// Important: do NOT materialize a Y.Text when missing — that
+		// would push map.size above zero before seed runs and trip the
+		// "map.size === 0 → seed" check the caller relies on.
+		return existing instanceof Y.Text ? existing : null;
+	}
+
 	function dispose(): void {
 		map.unobserveDeep(observer);
 		remoteHandlers.clear();
@@ -259,7 +277,7 @@ export function createFormBinding(opts: FormBindingOptions): FormBinding {
 	// apply external updates programmatically.
 	void remoteOrigin;
 
-	return { pushLocal, seed, getValue, onRemote, map, isText, dispose };
+	return { pushLocal, seed, getValue, onRemote, map, isText, getText, dispose };
 }
 
 // ---- helpers -----------------------------------------------------------

@@ -25,6 +25,10 @@
 	} from 'lucide-svelte';
 	import { marked } from 'marked';
 
+	import type * as Y from 'yjs';
+	import type { Awareness } from 'y-protocols/awareness';
+	import { yCollab } from 'y-codemirror.next';
+
 	interface Props {
 		value?: string;
 		onchange?: (value: string) => void;
@@ -34,6 +38,16 @@
 		class?: string;
 		disabled?: boolean;
 		readonly?: boolean;
+		/**
+		 * Optional collaborative editing context. When `yText` is set,
+		 * the editor binds CodeMirror to that Y.Text via y-codemirror.next's
+		 * yCollab plugin — value/onchange become advisory (the Y.Text is
+		 * the source of truth) and the external-value reconcile $effect
+		 * is suppressed because yCollab handles inbound remote ops.
+		 */
+		yText?: Y.Text | null;
+		yAwareness?: Awareness | null;
+		yUser?: { name: string; color: string } | null;
 	}
 
 	let {
@@ -45,6 +59,9 @@
 		class: className,
 		disabled = false,
 		readonly: isReadonly = false,
+		yText = null,
+		yAwareness = null,
+		yUser = null,
 	}: Props = $props();
 
 	let showPreview = $state(false);
@@ -337,6 +354,14 @@
 			})
 		);
 
+		// Collaborative editing (Phase 6). When the page editor passes a
+		// shared Y.Text, attach y-codemirror.next's yCollab plugin which
+		// applies remote ops as ChangeSets on this CM view and writes
+		// local edits back to the Y.Text. Awareness powers live cursors.
+		if (yText) {
+			extensions.push(yCollab(yText, yAwareness ?? null));
+		}
+
 		return extensions;
 	}
 
@@ -479,8 +504,12 @@
 	function doUndo() { if (view) { undo(view); view.focus(); } }
 	function doRedo() { if (view) { redo(view); view.focus(); } }
 
-	// Sync external value changes to editor
+	// Sync external value changes to editor — but only when yCollab isn't
+	// in charge. With yCollab active, the Y.Text owns the document state
+	// and any view.dispatch driven by an external `value` prop would
+	// conflict with the CRDT operations the plugin is applying.
 	$effect(() => {
+		if (yText) return;
 		if (view && value !== view.state.doc.toString()) {
 			view.dispatch({
 				changes: { from: 0, to: view.state.doc.length, insert: value ?? '' },

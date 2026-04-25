@@ -14,6 +14,8 @@
  */
 
 import { api } from '$lib/api/client';
+import type { Awareness } from 'y-protocols/awareness';
+import { encodeAwarenessUpdate, applyAwarenessUpdate } from 'y-protocols/awareness';
 import type { Peer, RemoteUpdateHandler, StatusHandler, SyncProvider, SyncProviderOptions, PeersHandler, SyncStatus } from './SyncProvider';
 
 // The admin2 API client already unwraps the outer `{ data: … }` envelope
@@ -66,7 +68,16 @@ export class PollingProvider implements SyncProvider {
 
 	private offset = 0;
 	private peers: Peer[] = [];
-	private awareness: Record<string, unknown> | null = null;
+	private awarenessMeta: Record<string, unknown> | null = null;
+	/**
+	 * Optional Awareness instance (y-protocols/awareness). When set, every
+	 * heartbeat carries a base64-encoded delta of our local awareness state
+	 * in the presence meta, and we decode peers' deltas on the way back to
+	 * keep our local Awareness map populated with their cursor / selection
+	 * info. y-prosemirror's yCursorPlugin and y-codemirror's cursor layer
+	 * read from this Awareness to render remote carets.
+	 */
+	private awareness: Awareness | null = null;
 
 	private remoteUpdateHandlers = new Set<RemoteUpdateHandler>();
 	private peerHandlers = new Set<PeersHandler>();
@@ -134,8 +145,18 @@ export class PollingProvider implements SyncProvider {
 	}
 
 	updateAwareness(meta: Record<string, unknown> | null): void {
-		this.awareness = meta;
+		this.awarenessMeta = meta;
 		// Don't spam presence on every cursor move; heartbeat cadence handles it.
+	}
+
+	/**
+	 * Attach a y-protocols Awareness so heartbeats carry its encoded state
+	 * to peers and incoming peer awareness updates flow back into it.
+	 * Call once after creating the provider — it can be set after `connect()`
+	 * since editor bindings are typically wired post-seed.
+	 */
+	setAwareness(awareness: Awareness): void {
+		this.awareness = awareness;
 	}
 
 	onRemoteUpdate(handler: RemoteUpdateHandler): void {
@@ -231,12 +252,41 @@ export class PollingProvider implements SyncProvider {
 	}
 
 	private async heartbeatOnce(): Promise<void> {
+		// Build outbound meta. If a y-protocols Awareness is attached,
+		// piggyback its encoded delta so peers can render our cursor.
+		const meta: Record<string, unknown> = { ...(this.awarenessMeta ?? {}) };
+		if (this.awareness) {
+			try {
+				const update = encodeAwarenessUpdate(this.awareness, [this.awareness.clientID]);
+				meta.awarenessUpdate = bytesToB64(update);
+				meta.awarenessClientId = this.awareness.clientID;
+			} catch {
+				/* don't let awareness encoding kill the heartbeat */
+			}
+		}
+
 		const { peers } = await api.post<PresenceResponse>(this.presencePath(), {
 			clientId: this.clientId,
 			user: this.user,
-			meta: this.awareness ?? {},
+			meta,
 			lang: this.lang,
 		});
+
+		// Apply remote awareness deltas before emitting peers so any
+		// downstream listener that consults Awareness reads the latest.
+		if (this.awareness) {
+			for (const peer of peers) {
+				if (peer.clientId === this.clientId) continue;
+				const updateB64 = (peer.meta as Record<string, unknown> | undefined)?.awarenessUpdate;
+				if (typeof updateB64 !== 'string' || updateB64.length === 0) continue;
+				try {
+					applyAwarenessUpdate(this.awareness, b64ToBytes(updateB64), peer.clientId);
+				} catch {
+					/* skip malformed updates */
+				}
+			}
+		}
+
 		this.emitPeers(peers);
 	}
 

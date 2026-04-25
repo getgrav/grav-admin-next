@@ -4,7 +4,22 @@
 	import { api } from '$lib/api/client';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
-	import { onMount } from 'svelte';
+	import { getContext, onMount } from 'svelte';
+
+	/**
+	 * Optional collaborative-editing context. The page editor provides a
+	 * lookup `(fieldName) => collab | null` so we can set Yjs collab
+	 * properties on web-component fields (editor-pro, etc.) when collab
+	 * is active for the current route. The factory returns null for
+	 * fields that shouldn't participate (e.g. non-content fields).
+	 */
+	interface EditorCollab {
+		fragment: unknown;
+		awareness: unknown;
+		user: { name: string; color: string };
+	}
+	type CollabCtx = (fieldName: string) => EditorCollab | null;
+	const collabCtx = getContext<CollabCtx | undefined>('editorCollab');
 
 	interface Props {
 		field: BlueprintField;
@@ -92,7 +107,22 @@
 		const el = document.createElement(tagName) as HTMLElement & {
 			field?: BlueprintField;
 			value?: unknown;
+			yFragment?: unknown;
+			yAwareness?: unknown;
+			yUser?: unknown;
 		};
+
+		// Collaboration (Phase 6): if the page editor's provider has a
+		// shared Y.XmlFragment for this field, hand it over BEFORE the
+		// element is connected to the DOM so the web component picks
+		// it up in connectedCallback and builds the editor with the
+		// y-prosemirror extension from the start.
+		const collab = collabCtx?.(field.name);
+		if (collab) {
+			el.yFragment = collab.fragment;
+			el.yAwareness = collab.awareness;
+			el.yUser = collab.user;
+		}
 
 		// Set properties
 		el.field = field;

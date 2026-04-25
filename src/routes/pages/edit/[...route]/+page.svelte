@@ -43,6 +43,7 @@
 	import { PollingProvider } from '$lib/sync/PollingProvider';
 	import { YDocManager } from '$lib/sync/YDocManager';
 	import { createFormBinding, type FormBinding } from '$lib/sync/bindings/formBinding';
+	import { createEditorBinding, type EditorCollab } from '$lib/sync/bindings/editorBinding';
 	import type { Peer, SyncStatus } from '$lib/sync/SyncProvider';
 	import PresenceAvatars from '$lib/components/sync/PresenceAvatars.svelte';
 	import SyncStatusBadge from '$lib/components/sync/SyncStatusBadge.svelte';
@@ -157,6 +158,17 @@
 		? crypto.randomUUID()
 		: Math.random().toString(36).slice(2);
 	let syncBinding: FormBinding | null = null;
+	/**
+	 * Phase 6: editor-level collab artifacts (Y.XmlFragment + Awareness).
+	 * Provided to web-component editors via Svelte context so y-prosemirror
+	 * can take over TipTap's document state. Null when collab is off.
+	 */
+	let editorCollab = $state<EditorCollab | null>(null);
+	setContext('editorCollab', (fieldName: string): EditorCollab | null => {
+		// Only the 'content' field is collaborative at this time. Other
+		// custom fields (icon pickers, pages fields, etc.) are unaffected.
+		return fieldName === 'content' ? editorCollab : null;
+	});
 	let syncReady = $state(false);
 	/**
 	 * Guard flag: set while we're applying a remote sync snapshot to Svelte
@@ -213,6 +225,12 @@
 			remoteOrigin: Symbol('ydoc:remote-unused'),
 		});
 
+		// Phase 6 collab artifacts (Y.XmlFragment, Y.Text, Awareness) are
+		// built AFTER the seed/adopt step below, since they depend on a
+		// populated Y.Text. Declared here so the cleanup closure can see
+		// the binding handle.
+		let editorBoundary: ReturnType<typeof createEditorBinding> | null = null;
+
 		/**
 		 * Walk a nested snapshot object and apply it to Svelte state in
 		 * one guarded pass. Mutates top-level state (headerData, content,
@@ -230,10 +248,18 @@
 				const newTitle = typeof newHeader.title === 'string' ? newHeader.title : title;
 				const newTemplate = typeof snap.name === 'string' ? snap.name : template;
 
-				content = newContent;
-				title = newTitle;
-				headerData = { ...snap };
-				if (pageData) pageData.content = newContent;
+				if (newContent !== content) content = newContent;
+				if (newTitle !== title) title = newTitle;
+				// Avoid replacing headerData when nothing structural changed
+				// (yCollab-driven Y.Text edits fire deep observers on every
+				// keystroke; without this guard we'd thrash BlueprintForm
+				// re-renders for character-level changes the editor itself
+				// is already showing).
+				const snapJson = JSON.stringify(snap);
+				if (snapJson !== JSON.stringify(headerData)) {
+					headerData = { ...snap };
+				}
+				if (pageData && pageData.content !== newContent) pageData.content = newContent;
 
 				// Template change: reload the blueprint for the new template so
 				// the form reshapes correctly. Rare; only fires when a peer
@@ -243,18 +269,23 @@
 					try { blueprint = await getPageBlueprint(newTemplate); } catch { blueprint = null; }
 				}
 
-				// Imperative editor reconciliation — web-component + CM6 don't
-				// always repaint from Svelte prop updates mid-transaction.
-				const editorPro = document.querySelector('grav-editor-pro--editor-pro') as (HTMLElement & { value?: string }) | null;
-				if (editorPro && editorPro.value !== newContent) editorPro.value = newContent;
-				type CmViewHandle = { state: { doc: { toString(): string; length: number } }; dispatch(tr: unknown): void };
-				document.querySelectorAll<HTMLElement & { __cmView?: CmViewHandle }>('.cm-editor').forEach((el) => {
-					const cm = el.__cmView;
-					if (!cm) return;
-					const doc = cm.state.doc.toString();
-					if (doc !== prevContent || doc === newContent) return;
-					cm.dispatch({ changes: { from: 0, to: cm.state.doc.length, insert: newContent } });
-				});
+				// Imperative editor reconciliation. With Phase 6 collaborative
+				// editing, the Y.Text / Y.XmlFragment own the editor state
+				// directly, so we DON'T need to manually dispatch into CM
+				// or set editor-pro.value. Skip both pokes when collab is
+				// active — they would race the CRDT plugins.
+				if (!editorCollab) {
+					const editorPro = document.querySelector('grav-editor-pro--editor-pro') as (HTMLElement & { value?: string }) | null;
+					if (editorPro && editorPro.value !== newContent) editorPro.value = newContent;
+					type CmViewHandle = { state: { doc: { toString(): string; length: number } }; dispatch(tr: unknown): void };
+					document.querySelectorAll<HTMLElement & { __cmView?: CmViewHandle }>('.cm-editor').forEach((el) => {
+						const cm = el.__cmView;
+						if (!cm) return;
+						const doc = cm.state.doc.toString();
+						if (doc !== prevContent || doc === newContent) return;
+						cm.dispatch({ changes: { from: 0, to: cm.state.doc.length, insert: newContent } });
+					});
+				}
 			} finally {
 				applyingRemote = false;
 			}
@@ -275,6 +306,23 @@
 				} else {
 					await applyRemoteSnapshot(binding.getValue());
 				}
+				// Now that the form Y.Map carries the content Y.Text, build
+				// the per-editor collab artifacts that depend on it.
+				const contentText = binding.getText('content');
+				if (contentText) {
+					editorBoundary = createEditorBinding({
+						doc: mgr.doc,
+						clientId: syncClientId,
+						userName: auth.fullname || auth.username || 'Anonymous',
+						contentText,
+					});
+					editorCollab = editorBoundary.collab;
+					// Hand the Awareness to the polling provider so peer
+					// cursor / selection state actually propagates. Without
+					// this hook-up the y-prosemirror / y-codemirror cursor
+					// plugins have nothing to render.
+					provider.setAwareness(editorBoundary.collab.awareness);
+				}
 				syncBinding = binding;
 				syncReady = true;
 			} catch {
@@ -287,9 +335,11 @@
 			offRemote();
 			syncReady = false;
 			syncBinding = null;
+			editorCollab = null;
 			syncStatus = 'idle';
 			syncPeers = [];
 			binding.dispose();
+			editorBoundary?.dispose();
 			mgr.dispose();
 		};
 	});
@@ -1132,13 +1182,18 @@
 						<div class="overflow-hidden rounded-lg border border-border bg-card"
 							onfocusout={() => { if (prefs.autoSaveEnabled && content !== (pageData?.content ?? '')) autoSave.oncommit('content', content, pageData?.content ?? ''); }}
 						>
-							<MarkdownEditor
-								value={content}
-								onchange={(v) => { content = v; }}
-								placeholder="Write your markdown content here..."
-								minHeight="400px"
-								class="border-0 shadow-none"
-							/>
+							{#key editorCollab ? 'collab' : 'solo'}
+								<MarkdownEditor
+									value={content}
+									onchange={(v) => { content = v; }}
+									placeholder="Write your markdown content here..."
+									minHeight="400px"
+									class="border-0 shadow-none"
+									yText={editorCollab?.yText ?? null}
+									yAwareness={editorCollab?.awareness ?? null}
+									yUser={editorCollab?.user ?? null}
+								/>
+							{/key}
 						</div>
 						<div class="rounded-lg border border-border bg-card p-4">
 							<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} />
@@ -1195,8 +1250,10 @@
 						</div>
 					{/if}
 				{:else if blueprint}
-					<!-- Normal mode: Blueprint-driven form -->
-					{#key blueprint.name}
+					<!-- Normal mode: Blueprint-driven form. Re-key on collab
+					     transition so MarkdownField's CodeMirror remounts and
+					     picks up the now-available yText prop. -->
+					{#key blueprint.name + (editorCollab ? '|collab' : '|solo')}
 						<BlueprintForm
 							fields={blueprint.fields}
 							data={headerData}
@@ -1216,12 +1273,17 @@
 							/>
 						</label>
 					</div>
-					<MarkdownEditor
-						value={content}
-						onchange={(v) => { content = v; }}
-						placeholder="Write your markdown content here..."
-						minHeight="400px"
-					/>
+					{#key editorCollab ? 'collab' : 'solo'}
+						<MarkdownEditor
+							value={content}
+							onchange={(v) => { content = v; }}
+							placeholder="Write your markdown content here..."
+							minHeight="400px"
+							yText={editorCollab?.yText ?? null}
+							yAwareness={editorCollab?.awareness ?? null}
+							yUser={editorCollab?.user ?? null}
+						/>
+					{/key}
 				{/if}
 			</div>
 
