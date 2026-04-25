@@ -83,6 +83,8 @@ export class PollingProvider implements SyncProvider {
 	private peerHandlers = new Set<PeersHandler>();
 	private statusHandlers = new Set<StatusHandler>();
 	private status: SyncStatus = 'idle';
+	private editorType: string | null;
+	private unloadHandler: (() => void) | null = null;
 
 	constructor(opts: SyncProviderOptions) {
 		this.roomId = opts.roomId;
@@ -90,6 +92,7 @@ export class PollingProvider implements SyncProvider {
 		this.lang = opts.lang ?? null;
 		this.clientId = opts.clientId;
 		this.user = opts.user ?? null;
+		this.editorType = opts.editorType ?? null;
 		this.idleMs = opts.idleIntervalMs ?? 4000;
 		this.activeMs = opts.activeIntervalMs ?? 1000;
 		// Awareness can afford to be slower than doc pulls.
@@ -100,6 +103,7 @@ export class PollingProvider implements SyncProvider {
 	async connect(): Promise<void> {
 		if (this.disposed) return;
 		this.setStatus('connecting');
+		this.installUnloadHandler();
 		try {
 			await this.pullOnce();
 			await this.heartbeatOnce();
@@ -118,6 +122,7 @@ export class PollingProvider implements SyncProvider {
 		if (this.pullTimer) clearTimeout(this.pullTimer);
 		if (this.presenceTimer) clearTimeout(this.presenceTimer);
 		this.pullTimer = this.presenceTimer = null;
+		this.uninstallUnloadHandler();
 		// Best-effort leave; ignore errors.
 		try {
 			await api.post(this.presencePath(), { clientId: this.clientId, leave: true, lang: this.lang });
@@ -125,6 +130,41 @@ export class PollingProvider implements SyncProvider {
 			/* ignore */
 		}
 		this.setStatus('idle');
+	}
+
+	/**
+	 * Fire a leave on `pagehide` so the editor-type lock (and presence
+	 * generally) releases immediately when the user closes the tab,
+	 * navigates away externally, or hits Cmd-W. Without this we'd be
+	 * relying purely on the server-side TTL to expire the entry, which
+	 * leaves a "ghost" peer hogging the editor lock for up to 30s.
+	 *
+	 * The leave goes via `keepalive`-fetch (see ApiClient.beaconPost)
+	 * because regular fetches get cancelled during page unload.
+	 */
+	private installUnloadHandler(): void {
+		if (typeof window === 'undefined' || this.unloadHandler) return;
+		const handler = () => {
+			if (this.disposed) return;
+			api.beaconPost(this.presencePath(), {
+				clientId: this.clientId,
+				leave: true,
+				lang: this.lang,
+			});
+		};
+		this.unloadHandler = handler;
+		// `pagehide` is the most reliable across modern browsers (covers
+		// bfcache, mobile suspend, tab close). `beforeunload` is a
+		// secondary catch for older Firefox / corner cases.
+		window.addEventListener('pagehide', handler);
+		window.addEventListener('beforeunload', handler);
+	}
+
+	private uninstallUnloadHandler(): void {
+		if (typeof window === 'undefined' || !this.unloadHandler) return;
+		window.removeEventListener('pagehide', this.unloadHandler);
+		window.removeEventListener('beforeunload', this.unloadHandler);
+		this.unloadHandler = null;
 	}
 
 	async push(update: Uint8Array): Promise<void> {
@@ -255,6 +295,9 @@ export class PollingProvider implements SyncProvider {
 		// Build outbound meta. If a y-protocols Awareness is attached,
 		// piggyback its encoded delta so peers can render our cursor.
 		const meta: Record<string, unknown> = { ...(this.awarenessMeta ?? {}) };
+		if (this.editorType) {
+			meta.editorType = this.editorType;
+		}
 		if (this.awareness) {
 			try {
 				const update = encodeAwarenessUpdate(this.awareness, [this.awareness.clientID]);

@@ -17,6 +17,10 @@ export interface Peer {
 	user?: string | null;
 	meta?: Record<string, unknown>;
 	age?: number;
+	/** Unix epoch seconds when the peer first heartbeat into the room.
+	 *  Preserved across the peer's heartbeats — used to identify the
+	 *  canonical first-joiner (e.g. for editor-type lock arbitration). */
+	joinedAt?: number;
 }
 
 /**
@@ -39,6 +43,11 @@ export interface SyncProviderOptions {
 	clientId: string;
 	/** Display name to advertise in presence. */
 	user?: string | null;
+	/** Editor type this client is using for the content field
+	 *  (e.g. 'editor-pro' or 'codemirror'). Sent in presence meta so
+	 *  peers can detect mixed-editor sessions and lock to the
+	 *  first-joiner's choice. */
+	editorType?: string | null;
 	/** Initial cadence hints from capabilities. Provider may override. */
 	idleIntervalMs?: number;
 	activeIntervalMs?: number;

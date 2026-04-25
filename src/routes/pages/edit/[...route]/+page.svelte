@@ -22,6 +22,7 @@
 	import PageNavigator from '$lib/components/pages/PageNavigator.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
+	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import MarkdownEditor from '$lib/components/editors/MarkdownEditor.svelte';
@@ -50,6 +51,7 @@
 	import * as Y from 'yjs';
 	import { api as apiClient } from '$lib/api/client';
 	import { pageEditorBar } from '$lib/stores/pageEditorBar.svelte';
+	import EditorLockNotice from '$lib/components/sync/EditorLockNotice.svelte';
 
 	const canEditPages = $derived(canWrite('pages'));
 	let accessDenied = $state(false);
@@ -181,6 +183,46 @@
 	 * `content` prop-change watcher.
 	 */
 	let applyingRemote = false;
+
+	// Identity for the editor-type lock. Mirror of FieldRenderer's resolution
+	// rule: a registered custom-field preference (e.g. editor-pro) wins,
+	// otherwise we fall back to the built-in CodeMirror MarkdownEditor.
+	const myEditorType = $derived.by(() => {
+		const pref = auth.contentEditor || '';
+		if (pref && pref !== 'default' && customFieldRegistry.has(pref)) return pref;
+		return 'codemirror';
+	});
+
+	// First-joiner-wins lock. We sort peers by joinedAt (with clientId as
+	// tiebreaker) and pick the first one whose meta declares an editorType;
+	// if it isn't us and they're using a different editor, we're locked out.
+	// Mixed CRDT shapes (Y.Text vs Y.XmlFragment) can't cross-sync at the
+	// character level, so allowing both editors in the same room would
+	// silently split-brain — better to gate the late joiner with an
+	// explicit notice than to let edits diverge.
+	const editorLock = $derived.by((): { ownerType: string; ownerName: string } | null => {
+		if (!prefs.collabEnabled || !syncReady || syncPeers.length === 0) return null;
+		const sorted = [...syncPeers].sort((a, b) => {
+			const ja = a.joinedAt ?? 0;
+			const jb = b.joinedAt ?? 0;
+			if (ja !== jb) return ja - jb;
+			return a.clientId.localeCompare(b.clientId);
+		});
+		for (const p of sorted) {
+			const t = (p.meta as Record<string, unknown> | undefined)?.editorType;
+			if (typeof t !== 'string' || t.length === 0) continue;
+			if (p.clientId === syncClientId) return null; // we're the owner
+			if (t === myEditorType) return null;          // someone matches us — keep going? no, owner is first
+			return { ownerType: t, ownerName: (p.user as string) || 'another user' };
+		}
+		return null;
+	});
+
+	// Expose to descendant components (FieldRenderer reads this so the
+	// content/markdown field can render a lock notice instead of mounting
+	// the editor when we're locked out). Must be a getter so consumers
+	// re-read after the derived recomputes.
+	setContext('editorLock', () => editorLock);
 	let syncStatus = $state<SyncStatus>('idle');
 	let syncDetail = $state<string | undefined>(undefined);
 	let syncPeers = $state<Peer[]>([]);
@@ -240,6 +282,7 @@
 				lang: currentLang,
 				clientId: syncClientId,
 				user: auth.fullname || auth.username || null,
+				editorType: myEditorType,
 			};
 			provider = useMercure ? new MercureProvider(providerOpts) : new PollingProvider(providerOpts);
 			provider.onStatus((s, d) => { syncStatus = s; syncDetail = d; });
@@ -1208,26 +1251,30 @@
 								class="rounded-none border-0 shadow-none"
 							/>
 						</div>
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<div class="overflow-hidden rounded-lg border border-border bg-card"
-							onfocusout={() => { if (prefs.autoSaveEnabled && content !== (pageData?.content ?? '')) autoSave.oncommit('content', content, pageData?.content ?? ''); }}
-						>
-							{#key editorCollab ? 'collab' : 'solo'}
-								<MarkdownEditor
-									value={content}
-									onchange={(v) => { content = v; }}
-									placeholder="Write your markdown content here..."
-									minHeight="400px"
-									class="border-0 shadow-none"
-									yText={editorCollab?.yText ?? null}
-									yAwareness={editorCollab?.awareness ?? null}
-									yUser={editorCollab?.user ?? null}
-								/>
-							{/key}
-						</div>
-						<div class="rounded-lg border border-border bg-card p-4">
-							<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} />
-						</div>
+						{#if editorLock}
+							<EditorLockNotice ownerType={editorLock.ownerType} ownerName={editorLock.ownerName} />
+						{:else}
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div class="overflow-hidden rounded-lg border border-border bg-card"
+								onfocusout={() => { if (prefs.autoSaveEnabled && content !== (pageData?.content ?? '')) autoSave.oncommit('content', content, pageData?.content ?? ''); }}
+							>
+								{#key editorCollab ? 'collab' : 'solo'}
+									<MarkdownEditor
+										value={content}
+										onchange={(v) => { content = v; }}
+										placeholder="Write your markdown content here..."
+										minHeight="400px"
+										class="border-0 shadow-none"
+										yText={editorCollab?.yText ?? null}
+										yAwareness={editorCollab?.awareness ?? null}
+										yUser={editorCollab?.user ?? null}
+									/>
+								{/key}
+							</div>
+							<div class="rounded-lg border border-border bg-card p-4">
+								<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} />
+							</div>
+						{/if}
 					{:else if expertTab === 'advanced'}
 						<!-- Advanced tab: filesystem-level properties -->
 						<div class="space-y-6 rounded-lg border border-border bg-card p-6">
@@ -1303,17 +1350,21 @@
 							/>
 						</label>
 					</div>
-					{#key editorCollab ? 'collab' : 'solo'}
-						<MarkdownEditor
-							value={content}
-							onchange={(v) => { content = v; }}
-							placeholder="Write your markdown content here..."
-							minHeight="400px"
-							yText={editorCollab?.yText ?? null}
-							yAwareness={editorCollab?.awareness ?? null}
-							yUser={editorCollab?.user ?? null}
-						/>
-					{/key}
+					{#if editorLock}
+						<EditorLockNotice ownerType={editorLock.ownerType} ownerName={editorLock.ownerName} />
+					{:else}
+						{#key editorCollab ? 'collab' : 'solo'}
+							<MarkdownEditor
+								value={content}
+								onchange={(v) => { content = v; }}
+								placeholder="Write your markdown content here..."
+								minHeight="400px"
+								yText={editorCollab?.yText ?? null}
+								yAwareness={editorCollab?.awareness ?? null}
+								yUser={editorCollab?.user ?? null}
+							/>
+						{/key}
+					{/if}
 				{/if}
 			</div>
 

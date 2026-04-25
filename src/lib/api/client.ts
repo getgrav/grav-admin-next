@@ -603,6 +603,31 @@ class ApiClient {
 
 		return response.text();
 	}
+
+	/**
+	 * Fire-and-forget POST that survives page unload.
+	 *
+	 * Uses fetch with `keepalive: true` so the browser holds the request
+	 * open across navigation/close. We can't use `navigator.sendBeacon`
+	 * because it can't set custom headers and our auth lives in
+	 * `X-API-Token` (FPM/FastCGI strips `Authorization`, see headers
+	 * comment above). Caller does not get a result — this is intended
+	 * for cleanup signals like presence-leave on tab close, where the
+	 * server is fine to act on a best-effort basis.
+	 */
+	beaconPost(path: string, body: unknown): void {
+		try {
+			const url = `${this.baseUrl}${path}`;
+			void fetch(url, {
+				method: 'POST',
+				headers: this.headers,
+				body: JSON.stringify(body),
+				keepalive: true,
+			});
+		} catch {
+			/* unloading; nothing more to do */
+		}
+	}
 }
 
 export const api = new ApiClient();

@@ -39,6 +39,15 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldMatches } from '$lib/utils/field-filter';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { getContext } from 'svelte';
+	import EditorLockNotice from '$lib/components/sync/EditorLockNotice.svelte';
+
+	// Page editor publishes this when the current room's first joiner
+	// is using a different content editor than us — see +page.svelte for
+	// why we can't safely cross-sync mixed editor types.
+	type EditorLockState = { ownerType: string; ownerName: string } | null;
+	const editorLockCtx = getContext<(() => EditorLockState) | undefined>('editorLock');
+	const contentLock = $derived.by((): EditorLockState => editorLockCtx?.() ?? null);
 
 	// Resolve the user's preferred content editor if it's a registered custom field
 	const preferredEditor = $derived.by(() => {
@@ -343,6 +352,12 @@
 		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
 		<TextField {field} {value} {onchange} />
 	</div>
+
+{:else if (field.type === 'markdown' || field.type === 'editor') && field.name === 'content' && contentLock}
+	<!-- Locked: a peer with a different editor type joined first.
+		 Show the lock notice instead of mounting an editor that would
+		 write into a CRDT shape the peer can't read. -->
+	<EditorLockNotice ownerType={contentLock.ownerType} ownerName={contentLock.ownerName} />
 
 {:else if field.type === 'markdown' && preferredEditor}
 	<!-- User-preferred editor (e.g., editor-pro) for markdown fields -->

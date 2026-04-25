@@ -91,6 +91,8 @@ export class MercureProvider implements SyncProvider {
 	private peerHandlers = new Set<PeersHandler>();
 	private statusHandlers = new Set<StatusHandler>();
 	private status: SyncStatus = 'idle';
+	private editorType: string | null;
+	private unloadHandler: (() => void) | null = null;
 
 	constructor(opts: SyncProviderOptions) {
 		this.roomId = opts.roomId;
@@ -98,11 +100,13 @@ export class MercureProvider implements SyncProvider {
 		this.lang = opts.lang ?? null;
 		this.clientId = opts.clientId;
 		this.user = opts.user ?? null;
+		this.editorType = opts.editorType ?? null;
 	}
 
 	async connect(): Promise<void> {
 		if (this.disposed) return;
 		this.setStatus('connecting');
+		this.installUnloadHandler();
 		try {
 			// Initial HTTP pull catches us up on anything we missed before
 			// the EventSource opens. Same shape as PollingProvider.pullOnce.
@@ -136,10 +140,34 @@ export class MercureProvider implements SyncProvider {
 		this.docSource = this.awSource = null;
 		if (this.presenceTimer) clearTimeout(this.presenceTimer);
 		this.presenceTimer = null;
+		this.uninstallUnloadHandler();
 		try {
 			await api.post(this.presencePath(), { clientId: this.clientId, leave: true, lang: this.lang });
 		} catch { /* ignore */ }
 		this.setStatus('idle');
+	}
+
+	/** See PollingProvider.installUnloadHandler — same shape. */
+	private installUnloadHandler(): void {
+		if (typeof window === 'undefined' || this.unloadHandler) return;
+		const handler = () => {
+			if (this.disposed) return;
+			api.beaconPost(this.presencePath(), {
+				clientId: this.clientId,
+				leave: true,
+				lang: this.lang,
+			});
+		};
+		this.unloadHandler = handler;
+		window.addEventListener('pagehide', handler);
+		window.addEventListener('beforeunload', handler);
+	}
+
+	private uninstallUnloadHandler(): void {
+		if (typeof window === 'undefined' || !this.unloadHandler) return;
+		window.removeEventListener('pagehide', this.unloadHandler);
+		window.removeEventListener('beforeunload', this.unloadHandler);
+		this.unloadHandler = null;
 	}
 
 	async push(update: Uint8Array): Promise<void> {
@@ -198,6 +226,9 @@ export class MercureProvider implements SyncProvider {
 
 	private async heartbeatOnce(): Promise<void> {
 		const meta: Record<string, unknown> = { ...(this.awarenessMeta ?? {}) };
+		if (this.editorType) {
+			meta.editorType = this.editorType;
+		}
 		if (this.awareness) {
 			try {
 				const u = encodeAwarenessUpdate(this.awareness, [this.awareness.clientID]);
