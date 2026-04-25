@@ -9,6 +9,7 @@
 		defaultKeymap, history, historyKeymap,
 		indentWithTab, undo, redo
 	} from '@codemirror/commands';
+	import * as Y from 'yjs';
 	import {
 		syntaxHighlighting, defaultHighlightStyle,
 		indentOnInput, bracketMatching
@@ -25,9 +26,8 @@
 	} from 'lucide-svelte';
 	import { marked } from 'marked';
 
-	import type * as Y from 'yjs';
 	import type { Awareness } from 'y-protocols/awareness';
-	import { yCollab } from 'y-codemirror.next';
+	import { yCollab, yUndoManagerKeymap } from 'y-codemirror.next';
 
 	interface Props {
 		value?: string;
@@ -106,6 +106,10 @@
 	let editorContainer: HTMLDivElement;
 	let view: EditorView | undefined;
 	let isDark = $state(false);
+	// Y.UndoManager attached to the shared Y.Text when collab is active.
+	// Held here so toolbar undo/redo can drive it directly. Recreated each
+	// time the editor view is rebuilt (e.g. dark-mode toggle).
+	let yUndoManager: Y.UndoManager | null = null;
 
 	// Detect dark mode
 	function checkDarkMode() {
@@ -233,9 +237,18 @@
 	const markdownHighlighting = syntaxHighlighting(defaultHighlightStyle, { fallback: true });
 
 	function getExtensions(dark: boolean): Extension[] {
+		// Reset; populated below if collab is active.
+		yUndoManager = null;
+
+		// In collab mode the Y.UndoManager (scoped to local origin) replaces
+		// CodeMirror's built-in history. Without this swap, Cmd-Z would walk
+		// CM's transaction stack and undo remote peers' edits.
+		const historyExt: Extension[] = yText ? [] : [history()];
+		const undoKeymap = yText ? yUndoManagerKeymap : historyKeymap;
+
 		const extensions: Extension[] = [
 			// Base
-			history(),
+			...historyExt,
 			indentOnInput(),
 			bracketMatching(),
 			closeBrackets(),
@@ -256,7 +269,7 @@
 				...closeBracketsKeymap,
 				...defaultKeymap,
 				...searchKeymap,
-				...historyKeymap,
+				...undoKeymap,
 				indentWithTab,
 			]),
 
@@ -358,8 +371,12 @@
 		// shared Y.Text, attach y-codemirror.next's yCollab plugin which
 		// applies remote ops as ChangeSets on this CM view and writes
 		// local edits back to the Y.Text. Awareness powers live cursors.
+		// The explicit Y.UndoManager scopes undo to local edits (yCollab's
+		// view plugin registers its sync origin as a tracked origin), so
+		// Cmd-Z and the toolbar button never roll back peer keystrokes.
 		if (yText) {
-			extensions.push(yCollab(yText, yAwareness ?? null));
+			yUndoManager = new Y.UndoManager(yText);
+			extensions.push(yCollab(yText, yAwareness ?? null, { undoManager: yUndoManager }));
 		}
 
 		return extensions;
@@ -501,8 +518,18 @@
 		view.focus();
 	}
 
-	function doUndo() { if (view) { undo(view); view.focus(); } }
-	function doRedo() { if (view) { redo(view); view.focus(); } }
+	function doUndo() {
+		if (!view) return;
+		if (yUndoManager) yUndoManager.undo();
+		else undo(view);
+		view.focus();
+	}
+	function doRedo() {
+		if (!view) return;
+		if (yUndoManager) yUndoManager.redo();
+		else redo(view);
+		view.focus();
+	}
 
 	// Sync external value changes to editor — but only when yCollab isn't
 	// in charge. With yCollab active, the Y.Text owns the document state

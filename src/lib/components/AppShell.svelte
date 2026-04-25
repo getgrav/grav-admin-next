@@ -23,11 +23,14 @@
 	import { contextPanelStore } from '$lib/stores/contextPanels.svelte';
 	import ContextPanelHost from '$lib/components/context-panels/ContextPanelHost.svelte';
 	import ReauthModal from '$lib/components/auth/ReauthModal.svelte';
+	import { pageEditorBar } from '$lib/stores/pageEditorBar.svelte';
+	import PresenceAvatars from '$lib/components/sync/PresenceAvatars.svelte';
+	import SyncStatusBadge from '$lib/components/sync/SyncStatusBadge.svelte';
 	import type { Snippet } from 'svelte';
 	import {
 		LayoutDashboard, FileText, Image, Users, Puzzle, Palette,
 		Settings, Wrench, SlidersHorizontal,
-		Sun, Moon, LogOut, ChevronLeft, ChevronRight, Menu
+		Sun, Moon, LogOut, ChevronLeft, ChevronRight, Menu, Code
 	} from 'lucide-svelte';
 
 	interface Props { children: Snippet; }
@@ -252,7 +255,50 @@
 
 			<EnvironmentSwitcher />
 
+			<!-- Page-editor presence (collab avatars + sync status). Only set
+				 by the page edit route while the doc is connected. -->
+			{#if pageEditorBar.presence}
+				{@const p = pageEditorBar.presence}
+				<div class="flex items-center gap-2 border-l border-border pl-3">
+					<PresenceAvatars peers={p.peers} clientId={p.clientId} />
+					<SyncStatusBadge
+						status={p.status}
+						detail={p.detail}
+						peerCount={p.peers.filter((peer) => peer.clientId !== p.clientId).length}
+					/>
+				</div>
+			{/if}
+
 			<div class="flex-1"></div>
+
+			<!-- Page-editor Normal/Expert toggle. Only set on page edit route. -->
+			{#if pageEditorBar.modeToggle}
+				{@const mt = pageEditorBar.modeToggle}
+				<div class="inline-flex rounded-md border border-border shadow-sm">
+					<button
+						class="inline-flex h-7 items-center gap-1.5 rounded-l-md px-2.5 text-[12px] font-medium transition-colors
+							{prefs.editorMode === 'normal'
+								? 'bg-accent text-accent-foreground'
+								: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+						title="Normal mode"
+						onclick={mt.onNormal}
+					>
+						<FileText size={13} />
+						<span>Normal</span>
+					</button>
+					<button
+						class="inline-flex h-7 items-center gap-1.5 rounded-r-md px-2.5 text-[12px] font-medium transition-colors
+							{prefs.editorMode === 'expert'
+								? 'bg-accent text-accent-foreground'
+								: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+						title="Expert mode"
+						onclick={mt.onExpert}
+					>
+						<Code size={13} />
+						<span>Expert</span>
+					</button>
+				</div>
+			{/if}
 
 			<!-- Menubar -->
 			<div class="flex items-center gap-1">

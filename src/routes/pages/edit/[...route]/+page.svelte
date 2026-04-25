@@ -16,7 +16,7 @@
 	import LanguageSwitcher from '$lib/components/ui/LanguageSwitcher.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
-		Save, Trash2, ArrowLeft, Code, FileText, Copy as CopyIcon,
+		Save, Trash2, ArrowLeft, Code, Copy as CopyIcon,
 		AlertCircle, ChevronDown, Loader2, Eye, ExternalLink, X, Undo2, Languages, Move
 	} from 'lucide-svelte';
 	import PageNavigator from '$lib/components/pages/PageNavigator.svelte';
@@ -47,8 +47,7 @@
 	import { createEditorBinding, type EditorCollab } from '$lib/sync/bindings/editorBinding';
 	import type { Peer, SyncProvider, SyncStatus } from '$lib/sync/SyncProvider';
 	import { api as apiClient } from '$lib/api/client';
-	import PresenceAvatars from '$lib/components/sync/PresenceAvatars.svelte';
-	import SyncStatusBadge from '$lib/components/sync/SyncStatusBadge.svelte';
+	import { pageEditorBar } from '$lib/stores/pageEditorBar.svelte';
 
 	const canEditPages = $derived(canWrite('pages'));
 	let accessDenied = $state(false);
@@ -359,6 +358,33 @@
 		if (route === '/' + slug) return '/';
 		return route.slice(0, route.lastIndexOf('/')) || '/';
 	}
+
+	// Publish presence + Normal/Expert handles to the global topbar so the
+	// AppShell renders them up there instead of cramming them into this
+	// page's already-busy toolbar. Both slots clear when the route unmounts
+	// so other pages get a clean header.
+	$effect(() => {
+		if (prefs.collabEnabled && syncReady) {
+			pageEditorBar.setPresence({
+				peers: syncPeers,
+				clientId: syncClientId,
+				status: syncStatus,
+				detail: syncDetail,
+			});
+		} else {
+			pageEditorBar.setPresence(null);
+		}
+	});
+	$effect(() => {
+		pageEditorBar.setModeToggle({
+			onNormal: () => { if (prefs.editorMode === 'expert') switchToNormal(); },
+			onExpert: () => { if (prefs.editorMode === 'normal') switchToExpert(); },
+		});
+		return () => {
+			pageEditorBar.setModeToggle(null);
+			pageEditorBar.setPresence(null);
+		};
+	});
 
 	// Sync state when switching between Normal and Expert modes
 	function switchToExpert() {
@@ -1004,10 +1030,6 @@
 					</div>
 
 					<div class="flex shrink-0 flex-wrap items-center gap-2">
-			{#if prefs.collabEnabled && syncReady}
-				<PresenceAvatars peers={syncPeers} clientId={syncClientId} />
-				<SyncStatusBadge status={syncStatus} detail={syncDetail} peerCount={syncPeers.filter((p) => p.clientId !== syncClientId).length} />
-			{/if}
 			<UnsavedIndicator
 				hasChanges={hasChanges}
 				saving={autoSave.saving}
@@ -1049,31 +1071,6 @@
 					<Trash2 size={14} />
 				</Button>
 			{/if}
-			<!-- Normal / Expert toggle -->
-			<div class="inline-flex rounded-md border border-border shadow-sm">
-				<button
-					class="inline-flex h-8 items-center gap-1.5 px-2 lg:px-3 text-[12px] font-medium transition-colors first:rounded-l-md
-						{prefs.editorMode === 'normal'
-							? 'bg-accent text-accent-foreground'
-							: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
-					title="Normal mode"
-					onclick={() => { if (prefs.editorMode === 'expert') switchToNormal(); }}
-				>
-					<FileText size={14} />
-					<span class="hidden lg:inline">Normal</span>
-				</button>
-				<button
-					class="inline-flex h-8 items-center gap-1.5 px-2 lg:px-3 text-[12px] font-medium transition-colors last:rounded-r-md
-						{prefs.editorMode === 'expert'
-							? 'bg-accent text-accent-foreground'
-							: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
-					title="Expert mode"
-					onclick={() => { if (prefs.editorMode === 'normal') switchToExpert(); }}
-				>
-					<Code size={14} />
-					<span class="hidden lg:inline">Expert</span>
-				</button>
-			</div>
 			{#if contentLang.enabled}
 				<LanguageSwitcher compact translatedLangs={pageData?.translated_languages ? Object.keys(pageData.translated_languages) : undefined} onchange={handleLanguageSwitch} />
 			{/if}
