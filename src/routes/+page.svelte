@@ -204,8 +204,16 @@
 			const result = await updateAllPackages();
 			const okCount = result.updated.length;
 			const bad = result.failed.length;
-			if (bad === 0) toast.success(`Updated ${okCount} package${okCount !== 1 ? 's' : ''}`);
-			else toast.error(`Updated ${okCount}, failed ${bad}: ${result.failed.map(f => f.package).join(', ')}`);
+			if (bad === 0) {
+				toast.success(`Updated ${okCount} package${okCount !== 1 ? 's' : ''}`);
+			} else {
+				const reasons = result.failed.map(f => `${f.package}: ${f.error}`).join('\n');
+				toast.error(
+					okCount > 0
+						? `Updated ${okCount}, failed ${bad}.\n${reasons}`
+						: `${bad} update${bad !== 1 ? 's' : ''} failed.\n${reasons}`,
+				);
+			}
 			await loadDashboard({ silent: true });
 		} catch (err: unknown) {
 			toast.error(`Update failed: ${err instanceof Error ? err.message : String(err)}`);

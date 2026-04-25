@@ -140,7 +140,14 @@
 			if (bad === 0) {
 				toast.success(`Updated ${okCount} package${okCount !== 1 ? 's' : ''}`);
 			} else {
-				toast.error(`Updated ${okCount}, failed ${bad}: ${result.failed.map((f) => f.package).join(', ')}`);
+				const reasons = result.failed
+					.map((f) => `${f.package}: ${f.error}`)
+					.join('\n');
+				toast.error(
+					okCount > 0
+						? `Updated ${okCount}, failed ${bad}.\n${reasons}`
+						: `${bad} update${bad !== 1 ? 's' : ''} failed.\n${reasons}`,
+				);
 			}
 			await loadThemes();
 		} catch (err: unknown) {

@@ -162,6 +162,10 @@ export interface UpdatePackageResult {
 export interface UpdateAllResult {
 	updated: string[];
 	failed: { package: string; error: string }[];
+	/** Packages that became up-to-date because an earlier iteration cascaded their update. */
+	skipped: { package: string; reason: string }[];
+	/** Slugs of dependency packages updated/installed as cascade deps of others in the batch. */
+	cascaded_dependencies: string[];
 }
 
 export interface GravUpgradeResult {
