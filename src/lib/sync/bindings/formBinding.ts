@@ -8,11 +8,16 @@
  * stored as a scalar in the enclosing `Y.Map`, which gives last-write-wins
  * semantics per key (appropriate for toggles, selects, dates, etc.).
  *
- * Arrays are synced as JSON-round-tripped scalar replacements for the MVP.
- * That means concurrent list edits don't CRDT-merge — the later write
- * wins. A future iteration can lift arrays into `Y.Array`. The cost for
- * that simplification is low in practice because most list fields in Grav
- * blueprints are short (tags, authors, menu items) and rarely co-edited.
+ * Arrays are stored as `Y.Array` so concurrent additions from peers
+ * survive instead of LWW-clobbering each other. `pushLocal` does a
+ * multiset diff against the current Y.Array contents (delete items
+ * present in old-but-not-new, append items present in new-but-not-old),
+ * which is correct for the typical blueprint-list cases (tags, authors,
+ * taxonomies, multi-selects). Pure reorders fall back to wholesale
+ * replace, and arrays of objects (repeaters / `type: list`) also fall
+ * back to wholesale replace because we have no stable identity to merge
+ * against — those still LWW per row but at least the storage shape is
+ * right for a future per-item refactor.
  *
  * Schema awareness:
  *   Field paths whose blueprint type is in `RICH_TEXT_TYPES` get `Y.Text`.
@@ -184,6 +189,17 @@ export function createFormBinding(opts: FormBindingOptions): FormBinding {
 					parent.set(key, ytext);
 				}
 				applyTextDiff(ytext as Y.Text, value);
+			} else if (Array.isArray(value)) {
+				let yarr = parent.get(key);
+				if (!(yarr instanceof Y.Array)) {
+					yarr = new Y.Array<unknown>();
+					parent.set(key, yarr);
+					if (value.length > 0) {
+						(yarr as Y.Array<unknown>).push(value.map(cloneJson));
+					}
+					return;
+				}
+				applyArrayDiff(yarr as Y.Array<unknown>, value);
 			} else {
 				// Scalar / JSON-round-tripped. Equality check against current
 				// value to avoid dirtying Y.Map for unchanged writes.
@@ -192,6 +208,90 @@ export function createFormBinding(opts: FormBindingOptions): FormBinding {
 				parent.set(key, cloneJson(value));
 			}
 		}, localOrigin);
+	}
+
+	/**
+	 * Reconcile a Y.Array against a new JS-array value.
+	 *
+	 * For arrays of primitives (the typical blueprint case — tag lists,
+	 * taxonomy buckets, multi-selects), runs a multiset diff so concurrent
+	 * peer additions are preserved: items present in `old` but not in
+	 * `next` get deleted, items present in `next` but not in `old` get
+	 * appended. Duplicates are handled correctly via a sentinel-marking
+	 * pass so `["a","a"] -> ["a"]` deletes exactly one occurrence.
+	 *
+	 * For pure reorders (same multiset of items), and for arrays of
+	 * objects where there's no stable identity to merge on, falls back
+	 * to a wholesale replace. Reorder-LWW is acceptable for short
+	 * ordered lists; object arrays would need a per-row keyed binding
+	 * to merge concurrently and that's out of scope for this pass.
+	 */
+	function applyArrayDiff(yarr: Y.Array<unknown>, next: unknown[]): void {
+		const oldArr = yarr.toArray();
+
+		if (oldArr.length === next.length) {
+			let same = true;
+			for (let i = 0; i < oldArr.length; i++) {
+				if (!equalJson(oldArr[i], next[i])) { same = false; break; }
+			}
+			if (same) return;
+		}
+
+		const isPrim = (v: unknown): boolean => v === null || typeof v !== 'object';
+		const allPrim = oldArr.every(isPrim) && next.every(isPrim);
+
+		if (allPrim) {
+			const nextKeys = next.map((v) => JSON.stringify(v));
+			const oldKeys = oldArr.map((v) => JSON.stringify(v));
+
+			// Pure reorder (same multiset)? Fall through to wholesale replace
+			// — the multiset path would be a no-op and the user-intended
+			// order would be lost.
+			if (oldKeys.length === nextKeys.length) {
+				const a = [...oldKeys].sort();
+				const b = [...nextKeys].sort();
+				let identical = true;
+				for (let i = 0; i < a.length; i++) {
+					if (a[i] !== b[i]) { identical = false; break; }
+				}
+				if (!identical) {
+					// Different multiset → fall through to diff below
+				} else {
+					yarr.delete(0, yarr.length);
+					if (next.length > 0) yarr.push(next.map(cloneJson));
+					return;
+				}
+			}
+
+			// Multiset diff. Walk old in reverse so deletes don't shift
+			// later indices we haven't visited yet.
+			const remaining = nextKeys.slice();
+			const SENTINEL = ' :taken: ';
+			for (let i = oldArr.length - 1; i >= 0; i--) {
+				const k = oldKeys[i];
+				const matchAt = remaining.indexOf(k);
+				if (matchAt >= 0) {
+					remaining[matchAt] = SENTINEL;
+				} else {
+					yarr.delete(i, 1);
+				}
+			}
+			const additions: unknown[] = [];
+			for (let i = 0; i < remaining.length; i++) {
+				if (remaining[i] !== SENTINEL) {
+					additions.push(cloneJson(next[i]));
+				}
+			}
+			if (additions.length > 0) yarr.push(additions);
+			return;
+		}
+
+		// Object arrays — wholesale replace (LWW per-array). A future
+		// per-item refactor on the field-component side could turn each
+		// repeater row into its own Y.Map and use Y.Array.insert/delete
+		// at user-action level instead of value-prop level.
+		yarr.delete(0, yarr.length);
+		if (next.length > 0) yarr.push(next.map(cloneJson));
 	}
 
 	/**
@@ -233,7 +333,11 @@ export function createFormBinding(opts: FormBindingOptions): FormBinding {
 				const t = new Y.Text();
 				t.insert(0, v);
 				target.set(k, t);
-			} else if (v && typeof v === 'object' && !Array.isArray(v)) {
+			} else if (Array.isArray(v)) {
+				const arr = new Y.Array<unknown>();
+				target.set(k, arr);
+				if (v.length > 0) arr.push(v.map(cloneJson));
+			} else if (v && typeof v === 'object') {
 				const child = new Y.Map<unknown>();
 				target.set(k, child);
 				seedInto(child, v as Record<string, unknown>, path);
