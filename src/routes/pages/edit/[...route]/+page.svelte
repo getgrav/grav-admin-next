@@ -42,10 +42,12 @@
 	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
 	import { PollingProvider } from '$lib/sync/PollingProvider';
 	import { MercureProvider } from '$lib/sync/MercureProvider';
-	import { YDocManager } from '$lib/sync/YDocManager';
+	import { YDocManager, ORIGIN_REMOTE } from '$lib/sync/YDocManager';
 	import { createFormBinding, type FormBinding } from '$lib/sync/bindings/formBinding';
 	import { createEditorBinding, type EditorCollab } from '$lib/sync/bindings/editorBinding';
+	import { tryInitRoom } from '$lib/sync/initRoom';
 	import type { Peer, SyncProvider, SyncStatus } from '$lib/sync/SyncProvider';
+	import * as Y from 'yjs';
 	import { api as apiClient } from '$lib/api/client';
 	import { pageEditorBar } from '$lib/stores/pageEditorBar.svelte';
 
@@ -309,10 +311,39 @@
 				await mgr.connect();
 				if (cancelled) return;
 				if (binding.map.size === 0) {
-					binding.seed({ ...headerData, content });
-				} else {
-					await applyRemoteSnapshot(binding.getValue());
+					// Two clients opening the same fresh page would each see
+					// an empty doc here and both push their own seed update,
+					// double-applying initial state. The server arbitrates
+					// under flock — we build the seed in a temp doc, post it,
+					// and only apply locally on a confirmed win. The loser
+					// path absorbs the winner's bytes inline so we don't need
+					// an extra pull round-trip.
+					const tempDoc = new Y.Doc();
+					const tempBinding = createFormBinding({
+						doc: tempDoc,
+						blueprint,
+						extraRichTextPaths: ['content'],
+						localOrigin: Symbol('seed:local'),
+						remoteOrigin: Symbol('seed:remote'),
+					});
+					tempBinding.seed({ ...headerData, content });
+					const seedBytes = Y.encodeStateAsUpdate(tempDoc);
+					tempBinding.dispose();
+					tempDoc.destroy();
+
+					await tryInitRoom({
+						doc: mgr.doc,
+						route: currentRoute,
+						lang: currentLang,
+						clientId: syncClientId,
+						seedBytes,
+						remoteOrigin: ORIGIN_REMOTE,
+					});
+					if (cancelled) return;
 				}
+				// Whether we won, lost, or the room was already populated,
+				// the live doc now reflects the canonical state.
+				await applyRemoteSnapshot(binding.getValue());
 				const contentText = binding.getText('content');
 				if (contentText) {
 					editorBoundary = createEditorBinding({
