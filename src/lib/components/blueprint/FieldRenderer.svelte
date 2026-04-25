@@ -355,9 +355,17 @@
 
 {:else if (field.type === 'markdown' || field.type === 'editor') && field.name === 'content' && contentLock}
 	<!-- Locked: a peer with a different editor type joined first.
-		 Show the lock notice instead of mounting an editor that would
-		 write into a CRDT shape the peer can't read. -->
-	<EditorLockNotice ownerType={contentLock.ownerType} ownerName={contentLock.ownerName} />
+		 We render a CodeMirror viewer (regardless of the user's editor
+		 preference) bound to Y.Text via the editorCollab context, so
+		 owner edits flow in live. CodeMirror is a universal "read this"
+		 surface here because Y.Text always reflects the current content
+		 — a CM owner writes it directly via yCollab, an editor-pro owner
+		 writes it via the TipTap onUpdate → markdown → textarea →
+		 admin-next round-trip. The user can watch but not write. -->
+	<div class="space-y-2">
+		<EditorLockNotice ownerType={contentLock.ownerType} ownerName={contentLock.ownerName} />
+		<MarkdownField field={{ ...field, readonly: true }} {value} {onchange} />
+	</div>
 
 {:else if field.type === 'markdown' && preferredEditor}
 	<!-- User-preferred editor (e.g., editor-pro) for markdown fields -->

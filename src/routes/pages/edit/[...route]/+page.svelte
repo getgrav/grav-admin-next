@@ -1252,29 +1252,34 @@
 							/>
 						</div>
 						{#if editorLock}
+							<!-- Locked: render a small notice and force the editor
+								 read-only. Y.Text still binds so the user watches
+								 the lock owner's edits flow in live. Frontmatter
+								 above stays editable since that's a separate
+								 surface from the content body lock. -->
 							<EditorLockNotice ownerType={editorLock.ownerType} ownerName={editorLock.ownerName} />
-						{:else}
-							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<div class="overflow-hidden rounded-lg border border-border bg-card"
-								onfocusout={() => { if (prefs.autoSaveEnabled && content !== (pageData?.content ?? '')) autoSave.oncommit('content', content, pageData?.content ?? ''); }}
-							>
-								{#key editorCollab ? 'collab' : 'solo'}
-									<MarkdownEditor
-										value={content}
-										onchange={(v) => { content = v; }}
-										placeholder="Write your markdown content here..."
-										minHeight="400px"
-										class="border-0 shadow-none"
-										yText={editorCollab?.yText ?? null}
-										yAwareness={editorCollab?.awareness ?? null}
-										yUser={editorCollab?.user ?? null}
-									/>
-								{/key}
-							</div>
-							<div class="rounded-lg border border-border bg-card p-4">
-								<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} />
-							</div>
 						{/if}
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<div class="overflow-hidden rounded-lg border border-border bg-card"
+							onfocusout={() => { if (!editorLock && prefs.autoSaveEnabled && content !== (pageData?.content ?? '')) autoSave.oncommit('content', content, pageData?.content ?? ''); }}
+						>
+							{#key editorCollab ? 'collab' : 'solo'}
+								<MarkdownEditor
+									value={content}
+									onchange={(v) => { content = v; }}
+									placeholder="Write your markdown content here..."
+									minHeight="400px"
+									class="border-0 shadow-none"
+									readonly={!!editorLock}
+									yText={editorCollab?.yText ?? null}
+									yAwareness={editorCollab?.awareness ?? null}
+									yUser={editorCollab?.user ?? null}
+								/>
+							{/key}
+						</div>
+						<div class="rounded-lg border border-border bg-card p-4">
+							<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} />
+						</div>
 					{:else if expertTab === 'advanced'}
 						<!-- Advanced tab: filesystem-level properties -->
 						<div class="space-y-6 rounded-lg border border-border bg-card p-6">
@@ -1352,19 +1357,19 @@
 					</div>
 					{#if editorLock}
 						<EditorLockNotice ownerType={editorLock.ownerType} ownerName={editorLock.ownerName} />
-					{:else}
-						{#key editorCollab ? 'collab' : 'solo'}
-							<MarkdownEditor
-								value={content}
-								onchange={(v) => { content = v; }}
-								placeholder="Write your markdown content here..."
-								minHeight="400px"
-								yText={editorCollab?.yText ?? null}
-								yAwareness={editorCollab?.awareness ?? null}
-								yUser={editorCollab?.user ?? null}
-							/>
-						{/key}
 					{/if}
+					{#key editorCollab ? 'collab' : 'solo'}
+						<MarkdownEditor
+							value={content}
+							onchange={(v) => { content = v; }}
+							placeholder="Write your markdown content here..."
+							minHeight="400px"
+							readonly={!!editorLock}
+							yText={editorCollab?.yText ?? null}
+							yAwareness={editorCollab?.awareness ?? null}
+							yUser={editorCollab?.user ?? null}
+						/>
+					{/key}
 				{/if}
 			</div>
 
