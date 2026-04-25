@@ -1,11 +1,21 @@
 import { api } from '../client';
 
+export interface NotificationAction {
+	label: string;
+	url: string;
+}
+
 export interface Notification {
 	id: number;
-	type: string;
+	type: 'info' | 'notice' | 'warning' | 'promo' | string;
 	message: string;
 	date: string;
 	link?: string;
+	icon?: string;
+	title?: string;
+	image?: string;
+	accent?: string;
+	action?: NotificationAction;
 }
 
 export interface DashboardStats {
@@ -29,10 +39,16 @@ interface NotificationsResponse {
 	last_checked: string;
 }
 
-export async function getNotifications(): Promise<Notification[]> {
-	const data = await api.get<NotificationsResponse>('/dashboard/notifications');
-	// Combine feed and dashboard notifications
+export async function getNotifications(force = false): Promise<Notification[]> {
+	const data = await api.get<NotificationsResponse>(`/dashboard/notifications${force ? '?force=true' : ''}`);
+	// Combine feed and dashboard notifications. Top notifications render in
+	// the banner separately — see getTopNotifications().
 	return [...(data.notifications?.dashboard ?? []), ...(data.notifications?.feed ?? [])];
+}
+
+export async function getTopNotifications(force = false): Promise<Notification[]> {
+	const data = await api.get<NotificationsResponse>(`/dashboard/notifications${force ? '?force=true' : ''}`);
+	return data.notifications?.top ?? [];
 }
 
 export async function getStats(): Promise<DashboardStats> {
@@ -75,8 +91,8 @@ export interface FeedData {
 	last_checked: string | null;
 }
 
-export async function getFeed(): Promise<FeedData> {
-	return api.get<FeedData>('/dashboard/feed');
+export async function getFeed(force = false): Promise<FeedData> {
+	return api.get<FeedData>(`/dashboard/feed${force ? '?force=true' : ''}`);
 }
 
 export interface BackupInfo {
