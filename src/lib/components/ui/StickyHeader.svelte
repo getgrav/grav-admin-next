@@ -11,8 +11,8 @@
 	let { children, height = $bindable(0), class: className = '', noBorder = false }: Props = $props();
 
 	let scrolled = $state(false);
-	let sentinel: HTMLElement;
-	let headerEl: HTMLElement;
+	let sentinel = $state<HTMLElement | undefined>();
+	let headerEl = $state<HTMLElement | undefined>();
 	let sentinelVisible = true;
 
 	// Method 1: IntersectionObserver — for document-level scrolling pages

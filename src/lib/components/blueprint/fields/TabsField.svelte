@@ -59,6 +59,46 @@
 	const tabKey = $derived(tabs.map((t) => t.name).join(','));
 	let prevTabKey = $state(tabKey);
 
+	// Track the tab strip's height so descendants that pin themselves below
+	// the page header (editor toolbar, nested sticky bars) can stack below the
+	// tabs as well. We re-set --sticky-header-height on the content wrapper
+	// to "inherited value + tabs", so any sticky descendant uses the
+	// cumulative offset without knowing about the tab strip specifically.
+	// Done in JS because CSS would reject `--x: calc(var(--x) + N)` as a
+	// self-referential cycle and resolve it to the guaranteed-invalid value.
+	let tabStripEl = $state<HTMLDivElement | undefined>();
+	let contentWrapEl = $state<HTMLDivElement | undefined>();
+	$effect(() => {
+		if (!tabStripEl || !contentWrapEl) return;
+		const apply = () => {
+			const inherited = parseFloat(
+				getComputedStyle(contentWrapEl!.parentElement!).getPropertyValue('--sticky-header-height')
+			) || 0;
+			const tabsH = tabStripEl!.getBoundingClientRect().height;
+			contentWrapEl!.style.setProperty('--sticky-header-height-base', inherited + 'px');
+			contentWrapEl!.style.setProperty('--sticky-header-height', (inherited + tabsH) + 'px');
+		};
+		const ro = new ResizeObserver(apply);
+		ro.observe(tabStripEl);
+
+		// Re-apply when the inherited --sticky-header-height changes.
+		// The page-edit's StickyHeader animates between expanded/compact
+		// states, which mutates the inline style on an ancestor element
+		// (`style="--sticky-header-height: 81px;"` → `49px`). That's an
+		// attribute mutation, not a size change, so a ResizeObserver
+		// wouldn't catch it — use a MutationObserver on the nearest
+		// ancestor that defines the property inline.
+		let host: HTMLElement | null = contentWrapEl.parentElement;
+		while (host && !host.style.getPropertyValue('--sticky-header-height')) host = host.parentElement;
+		const mo = host
+			? new MutationObserver(apply)
+			: null;
+		if (host && mo) mo.observe(host, { attributes: true, attributeFilter: ['style'] });
+
+		apply();
+		return () => { ro.disconnect(); mo?.disconnect(); };
+	});
+
 	// Only re-resolve activeIndex when the tabs actually change (blueprint reload)
 	$effect(() => {
 		if (tabKey === prevTabKey) return;
@@ -149,9 +189,16 @@
 		</div>
 	</div>
 {:else}
-	<!-- Standard horizontal tabs -->
-	<div>
-		<div class="sticky z-[8] flex gap-1 border-b border-border bg-background" style="top: var(--sticky-header-height, 0px)">
+	<!-- Standard horizontal tabs.
+	     CSS sticky stacking: the tabs pin at the inherited
+	     --sticky-header-height (preserved as --sticky-header-height-base for
+	     our own tab strip), and we redefine --sticky-header-height for our
+	     descendants to "old value + tab strip height" so any sticky element
+	     below the tabs (e.g. editor toolbar, with its own variable row count)
+	     pins under the tabs without having to know about them. Composes for
+	     nested tabs. -->
+	<div bind:this={contentWrapEl}>
+		<div bind:this={tabStripEl} class="sticky z-[8] flex gap-1 border-b border-border bg-background" style="top: var(--sticky-header-height-base, 0px)">
 			{#each tabs as tab, i (tab.name)}
 				{@const hasMatch = !tabHasMatch || tabHasMatch.has(tab.name)}
 				{#if !filter || hasMatch}
