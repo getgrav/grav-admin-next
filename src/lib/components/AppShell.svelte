@@ -277,7 +277,7 @@
 	</aside>
 
 	<!-- Main -->
-	<div class="flex flex-1 flex-col overflow-hidden">
+	<div class="flex min-w-0 flex-1 flex-col overflow-hidden">
 		<header class="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-background px-4">
 			<button class="text-muted-foreground lg:hidden" onclick={() => mobileOpen = !mobileOpen} aria-label="Toggle menu">
 				<Menu size={18} />
@@ -306,26 +306,28 @@
 				{@const mt = pageEditorBar.modeToggle}
 				<div class="inline-flex rounded-md border border-border shadow-sm">
 					<button
-						class="inline-flex h-7 items-center gap-1.5 rounded-l-md px-2.5 text-[12px] font-medium transition-colors
+						class="inline-flex h-7 items-center gap-1.5 rounded-l-md px-2 text-[12px] font-medium transition-colors sm:px-2.5
 							{prefs.editorMode === 'normal'
 								? 'bg-accent text-accent-foreground'
 								: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
 						title="Normal mode"
+						aria-label="Normal mode"
 						onclick={mt.onNormal}
 					>
 						<FileText size={13} />
-						<span>Normal</span>
+						<span class="hidden sm:inline">Normal</span>
 					</button>
 					<button
-						class="inline-flex h-7 items-center gap-1.5 rounded-r-md px-2.5 text-[12px] font-medium transition-colors
+						class="inline-flex h-7 items-center gap-1.5 rounded-r-md px-2 text-[12px] font-medium transition-colors sm:px-2.5
 							{prefs.editorMode === 'expert'
 								? 'bg-accent text-accent-foreground'
 								: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
 						title="Expert mode"
+						aria-label="Expert mode"
 						onclick={mt.onExpert}
 					>
 						<Code size={13} />
-						<span>Expert</span>
+						<span class="hidden sm:inline">Expert</span>
 					</button>
 				</div>
 			{/if}
@@ -347,8 +349,8 @@
 			</button>
 		</header>
 
-		<main class="flex-1 overflow-y-auto">
-			<div class="mx-auto h-full max-w-6xl">
+		<main class="flex-1 overflow-x-hidden overflow-y-auto">
+			<div class="h-full min-w-0">
 				{@render children()}
 			</div>
 		</main>

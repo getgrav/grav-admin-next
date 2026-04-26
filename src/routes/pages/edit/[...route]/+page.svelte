@@ -1244,7 +1244,7 @@
 	{#if loading}
 		<div class="py-20 text-center text-sm text-muted-foreground">Loading page...</div>
 	{:else if pageData}
-		<div class="grid gap-4 {prefs.pageSidebarCollapsed ? 'lg:grid-cols-1' : 'lg:grid-cols-[1fr_280px]'}">
+		<div class="grid grid-cols-1 gap-4 {prefs.pageSidebarCollapsed ? 'lg:grid-cols-1' : 'lg:grid-cols-[minmax(0,1fr)_280px]'}">
 			<!-- Main content area -->
 			<div class="space-y-4">
 				{#if prefs.editorMode === 'expert'}

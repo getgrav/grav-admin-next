@@ -202,12 +202,17 @@
 	     pins under the tabs without having to know about them. Composes for
 	     nested tabs. -->
 	<div bind:this={contentWrapEl}>
-		<div bind:this={tabStripEl} class="sticky z-[8] flex gap-1 border-b border-border bg-background" style="top: var(--sticky-header-height-base, 0px)">
+		<div
+			bind:this={tabStripEl}
+			class="sticky z-[8] flex gap-1 overflow-x-auto border-b border-border bg-background [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+			style="top: var(--sticky-header-height-base, 0px)"
+			use:dragScroll
+		>
 			{#each tabs as tab, i (tab.name)}
 				{@const hasMatch = !tabHasMatch || tabHasMatch.has(tab.name)}
 				{#if !filter || hasMatch}
 					<button
-						class="border-b-2 px-4 py-2 text-sm font-medium transition-colors
+						class="shrink-0 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors
 							{i === activeIndex
 								? 'border-primary text-primary'
 								: 'border-transparent text-muted-foreground hover:text-foreground'}"

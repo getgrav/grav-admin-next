@@ -252,7 +252,24 @@
 		return () => { unsubPages(); unsubFocus(); };
 	});
 
+	// Below lg the preview pane is hidden, so single-tap navigation falls
+	// through to edit when there's nothing to drill into.
+	const hasPreviewPane = () =>
+		typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
+
 	async function selectPage(colIndex: number, page: PageSummary) {
+		const wasSelected = columns[colIndex]?.selectedRoute === page.route;
+
+		// Without a preview pane, leaf pages have no useful "select" state —
+		// open edit directly. For folders, re-tapping the already-selected
+		// row also opens edit (the column is already drilled in below it).
+		if (!hasPreviewPane()) {
+			if (!page.has_children || wasSelected) {
+				onEdit(pageApiRoute(page));
+				return;
+			}
+		}
+
 		// Update selection in current column, trim columns after
 		const updated = columns.slice(0, colIndex + 1);
 		updated[colIndex] = { ...updated[colIndex], selectedRoute: page.route };
@@ -565,9 +582,10 @@
 		{/each}
 	</div>
 
-	<!-- Preview panel (always visible when something is selected) -->
+	<!-- Preview panel (lg+ only — below lg, single-tap on a leaf or
+	     re-tap on the already-selected folder opens edit instead) -->
 	{#if lastSelected}
-		<div class="w-80 shrink-0 overflow-y-auto border-l border-border bg-card">
+		<div class="hidden w-80 shrink-0 overflow-y-auto border-l border-border bg-card lg:block">
 			{#if previewLoading}
 				<div class="flex h-full items-center justify-center">
 					<Loader2 size={16} class="animate-spin text-muted-foreground" />

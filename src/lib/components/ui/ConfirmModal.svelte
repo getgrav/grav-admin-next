@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { AlertTriangle } from 'lucide-svelte';
+	import { portal } from '$lib/utils/portal';
 
 	interface Props {
 		open: boolean;
@@ -39,6 +40,7 @@
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div
+		use:portal
 		class="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/75 p-4 backdrop-blur-sm"
 		onclick={handleBackdrop}
 	>
