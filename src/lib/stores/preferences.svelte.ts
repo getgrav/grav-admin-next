@@ -52,6 +52,7 @@ interface Preferences {
 	pagesPerPage: number;
 	mediaViewMode: MediaViewMode;
 	sidebarCollapsed: boolean;
+	pageSidebarCollapsed: boolean;
 	adminLanguage: string;
 	editorMode: EditorMode;
 	menubarLinks: MenubarLink[];
@@ -79,6 +80,7 @@ function createPreferencesStore() {
 	let pagesPerPage = $state(stored.pagesPerPage ?? 20);
 	let mediaViewMode = $state<MediaViewMode>(stored.mediaViewMode ?? 'grid');
 	let sidebarCollapsed = $state(stored.sidebarCollapsed ?? false);
+	let pageSidebarCollapsed = $state(stored.pageSidebarCollapsed ?? false);
 	let adminLanguage = $state(stored.adminLanguage ?? 'en');
 	let editorMode = $state<EditorMode>(stored.editorMode ?? 'normal');
 	let menubarLinks = $state<MenubarLink[]>(stored.menubarLinks ?? []);
@@ -97,6 +99,7 @@ function createPreferencesStore() {
 			pagesPerPage,
 			mediaViewMode,
 			sidebarCollapsed,
+			pageSidebarCollapsed,
 			adminLanguage,
 			editorMode,
 			menubarLinks,
@@ -121,6 +124,9 @@ function createPreferencesStore() {
 
 		get sidebarCollapsed() { return sidebarCollapsed; },
 		set sidebarCollapsed(v: boolean) { sidebarCollapsed = v; persist(); },
+
+		get pageSidebarCollapsed() { return pageSidebarCollapsed; },
+		set pageSidebarCollapsed(v: boolean) { pageSidebarCollapsed = v; persist(); },
 
 		get adminLanguage() { return adminLanguage; },
 		set adminLanguage(v: string) { adminLanguage = v; persist(); },

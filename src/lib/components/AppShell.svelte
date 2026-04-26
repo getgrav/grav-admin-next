@@ -31,7 +31,7 @@
 	import {
 		LayoutDashboard, FileText, Image, Users, Puzzle, Palette,
 		Settings, Wrench, SlidersHorizontal,
-		Sun, Moon, LogOut, ChevronLeft, ChevronRight, Menu, Code
+		Sun, Moon, Menu, Code
 	} from 'lucide-svelte';
 
 	interface Props { children: Snippet; }
@@ -235,7 +235,11 @@
 						onclick={handleLogout}
 						title="Sign out"
 					>
-						<LogOut size={14} />
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" />
+							<path d="M9 12h12l-3 -3" />
+							<path d="M18 15l3 -3" />
+						</svg>
 					</button>
 				</div>
 			{/if}
@@ -253,7 +257,21 @@
 				class="ml-auto hidden h-7 w-7 shrink-0 items-center justify-center rounded-md p-1.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground lg:flex {collapsed ? 'mx-auto' : ''}"
 				onclick={() => collapsed = !collapsed}
 				aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
-				{#if collapsed}<ChevronRight size={14} />{:else}<ChevronLeft size={14} />{/if}
+				{#if collapsed}
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="M20 12l-10 0" />
+						<path d="M20 12l-4 4" />
+						<path d="M20 12l-4 -4" />
+						<path d="M4 4l0 16" />
+					</svg>
+				{:else}
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="M4 12l10 0" />
+						<path d="M4 12l4 4" />
+						<path d="M4 12l4 -4" />
+						<path d="M20 4l0 16" />
+					</svg>
+				{/if}
 			</button>
 		</div>
 	</aside>

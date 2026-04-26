@@ -1129,6 +1129,29 @@
 			>
 				<Move size={14} />
 			</button>
+			<!-- Right rail (Page Info / Translations) toggle -->
+			<button
+				class="hidden h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:inline-flex"
+				onclick={() => prefs.pageSidebarCollapsed = !prefs.pageSidebarCollapsed}
+				title={prefs.pageSidebarCollapsed ? 'Show side panel' : 'Hide side panel'}
+				aria-label={prefs.pageSidebarCollapsed ? 'Show side panel' : 'Hide side panel'}
+			>
+				{#if prefs.pageSidebarCollapsed}
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="M4 12l10 0" />
+						<path d="M4 12l4 4" />
+						<path d="M4 12l4 -4" />
+						<path d="M20 4l0 16" />
+					</svg>
+				{:else}
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="M20 12l-10 0" />
+						<path d="M20 12l-4 4" />
+						<path d="M20 12l-4 -4" />
+						<path d="M4 4l0 16" />
+					</svg>
+				{/if}
+			</button>
 			<!-- Preview, Copy, Delete — always icon-only -->
 			<Button variant="outline" size="icon" class="h-8 w-8" title="Preview page" onclick={() => showFrontendPreview = true} disabled={loading || !pageData}>
 				<Eye size={14} />
@@ -1221,7 +1244,7 @@
 	{#if loading}
 		<div class="py-20 text-center text-sm text-muted-foreground">Loading page...</div>
 	{:else if pageData}
-		<div class="grid gap-4 lg:grid-cols-[1fr_280px]">
+		<div class="grid gap-4 {prefs.pageSidebarCollapsed ? 'lg:grid-cols-1' : 'lg:grid-cols-[1fr_280px]'}">
 			<!-- Main content area -->
 			<div class="space-y-4">
 				{#if prefs.editorMode === 'expert'}
@@ -1374,7 +1397,9 @@
 			</div>
 
 			<!-- Sidebar -->
-			<div class="space-y-4 lg:sticky lg:self-start" style="top: calc(var(--sticky-header-height, 0px) + 1rem)">
+			{#if !prefs.pageSidebarCollapsed}
+			<div class="lg:sticky lg:self-start" style="top: calc(var(--sticky-header-height, 0px) + 1rem)">
+				<div class="space-y-4">
 				<!-- Page Status & Info -->
 				<div class="rounded-lg border border-border bg-card p-4">
 					<h3 class="mb-3 text-sm font-semibold text-foreground">Page Info</h3>
@@ -1531,7 +1556,9 @@
 						<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} />
 					</div>
 				{/if}
+				</div>
 			</div>
+			{/if}
 		</div>
 	{/if}
 	</div>
