@@ -8,6 +8,7 @@
 	import { theme } from '$lib/stores/theme.svelte';
 	import { logout, refreshMe } from '$lib/api/auth';
 	import { api } from '$lib/api/client';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { can } from '$lib/utils/permissions';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
 	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
@@ -67,6 +68,17 @@
 		if (auth.isAuthenticated && auth.username) {
 			refreshMe();
 		}
+	});
+
+	// Refresh sidebar version labels when admin/grav itself is updated
+	$effect(() => {
+		if (!auth.isAuthenticated) return;
+		const unsubs = [
+			invalidations.subscribe('plugins:update:admin', () => refreshMe()),
+			invalidations.subscribe('plugins:update:admin2', () => refreshMe()),
+			invalidations.subscribe('plugins:update:api', () => refreshMe()),
+		];
+		return () => { for (const u of unsubs) u(); };
 	});
 
 	let collapsed = $state(false);
