@@ -397,6 +397,23 @@
 		<TextareaField {field} {value} {onchange} />
 	</div>
 
+{:else if field.type === 'select' && (field.multiple || field.selectize)}
+	<!-- Mirror Grav's classic form-plugin select+selectize+multiple semantics:
+	     by default the stored value is the option label, not the key. Opt in to
+	     storing keys via `selectize.store_keys: true` in the blueprint. Both
+	     this branch and the form plugin's select.html.twig honor the same flag
+	     so blueprints round-trip identically across admin-classic and admin-next. -->
+	{@const storeKeys =
+		field.selectize !== null && typeof field.selectize === 'object' &&
+		(field.selectize as Record<string, unknown>).store_keys === true}
+	<SelectizeField
+		field={storeKeys
+			? field
+			: { ...field, options: field.options?.map((o) => ({ value: o.label, label: o.label })) }}
+		{value}
+		onchange={committingOnchange}
+	/>
+
 {:else if field.type === 'select'}
 	<SelectField {field} {value} onchange={committingOnchange} />
 

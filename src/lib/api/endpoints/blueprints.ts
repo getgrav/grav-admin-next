@@ -22,6 +22,7 @@ export interface BlueprintField {
 	maxlength?: number;
 	rows?: number;
 	multiple?: boolean;
+	selectize?: boolean | Record<string, unknown>;
 	markdown?: boolean;
 	underline?: boolean;
 	prepend?: string;
