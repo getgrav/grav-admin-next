@@ -519,8 +519,9 @@
 							{/if}
 							<button
 								class="flex min-w-0 flex-1 items-center gap-2 text-left"
+								onmousedown={(e) => { if (e.detail > 1) e.preventDefault(); }}
 								onclick={() => selectPage(colIndex, page)}
-								ondblclick={() => onEdit(pageApiRoute(page))}
+								ondblclick={() => { window.getSelection()?.removeAllRanges(); onEdit(pageApiRoute(page)); }}
 							>
 							{#if page.has_children}
 								<Folder size={14} class="shrink-0 {isActive ? 'text-primary-foreground/80' : (page.visible ? 'text-primary' : 'text-muted-foreground')}" />
