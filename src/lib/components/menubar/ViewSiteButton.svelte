@@ -14,10 +14,11 @@
 	href={siteUrl}
 	target="_blank"
 	rel="noopener noreferrer"
-	class="inline-flex h-7 items-center gap-1.5 rounded-md border border-border px-2.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+	class="inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-md border border-border px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground lg:px-2.5"
 	title="Open site frontend in a new tab"
+	aria-label="View site"
 >
 	<Globe size={13} />
-	<span>View site</span>
-	<ExternalLink size={11} class="text-muted-foreground/60" />
+	<span class="hidden lg:inline">View site</span>
+	<ExternalLink size={11} class="hidden text-muted-foreground/60 lg:inline" />
 </a>

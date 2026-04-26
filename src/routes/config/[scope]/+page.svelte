@@ -279,16 +279,16 @@
 				</div>
 
 				<!-- Scope navigation tabs + filter -->
-				<div class="flex items-center gap-3">
-					<div class="flex-1">
+				<div class="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:gap-3">
+					<div class="min-w-0 flex-1">
 						<ConfigNav {sections} />
 					</div>
 					{#if !isInfo && blueprint}
-						<div class="relative">
+						<div class="relative w-full sm:w-48">
 							<Search size={14} class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
 							<input
 								type="text"
-								class="h-8 w-48 rounded-md border border-input bg-transparent pl-9 pr-8 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+								class="h-8 w-full rounded-md border border-input bg-transparent pl-9 pr-8 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 								placeholder="Filter fields..."
 								bind:value={filter}
 							/>

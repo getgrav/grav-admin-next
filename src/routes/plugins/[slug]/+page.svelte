@@ -361,7 +361,7 @@
 
 <div class="flex h-full flex-col">
 	<!-- Header -->
-	<div class="flex min-h-14 items-center justify-between border-b border-border px-6 pt-6 pb-3">
+	<div class="flex flex-col gap-3 border-b border-border px-6 pt-6 pb-3 sm:min-h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
 		<div class="flex items-center gap-3">
 			<button
 				type="button"
@@ -403,7 +403,7 @@
 			{/if}
 		</div>
 
-		<div class="flex items-center gap-2">
+		<div class="flex flex-wrap items-center justify-center gap-2 sm:justify-end">
 			<UnsavedIndicator
 				hasChanges={hasChanges}
 				saving={autoSave.saving}
@@ -425,13 +425,15 @@
 						size="sm"
 						onclick={handleUpdate}
 						disabled={updating}
+						aria-label="Update to v{plugin.available_version}"
+						title="Update to v{plugin.available_version}"
 					>
 						{#if updating}
-							<Loader2 size={14} class="mr-1.5 animate-spin" />
+							<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
 						{:else}
-							<ArrowUpCircle size={14} class="mr-1.5" />
+							<ArrowUpCircle size={14} class="sm:mr-1.5" />
 						{/if}
-						Update to v{plugin.available_version}
+						<span class="hidden sm:inline">Update to v{plugin.available_version}</span>
 					</Button>
 				{/if}
 
@@ -441,13 +443,15 @@
 					size="sm"
 					onclick={handleDelete}
 					disabled={deleting || PROTECTED_DELETE.has(plugin.slug)}
+					aria-label="Remove"
+					title="Remove"
 				>
 					{#if deleting}
-						<Loader2 size={14} class="mr-1.5 animate-spin" />
+						<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
 					{:else}
-						<Trash2 size={14} class="mr-1.5" />
+						<Trash2 size={14} class="sm:mr-1.5" />
 					{/if}
-					Remove
+					<span class="hidden sm:inline">Remove</span>
 				</Button>
 
 				<!-- Enable/disable toggle -->
@@ -456,15 +460,17 @@
 					size="sm"
 					onclick={toggleEnabled}
 					disabled={toggling}
+					aria-label={plugin.enabled ? 'Disable' : 'Enable'}
+					title={plugin.enabled ? 'Disable' : 'Enable'}
 				>
 					{#if toggling}
-						<Loader2 size={14} class="mr-1.5 animate-spin" />
+						<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
 					{:else if plugin.enabled}
-						<PowerOff size={14} class="mr-1.5" />
+						<PowerOff size={14} class="sm:mr-1.5" />
 					{:else}
-						<Power size={14} class="mr-1.5" />
+						<Power size={14} class="sm:mr-1.5" />
 					{/if}
-					{plugin.enabled ? 'Disable' : 'Enable'}
+					<span class="hidden sm:inline">{plugin.enabled ? 'Disable' : 'Enable'}</span>
 				</Button>
 
 				<!-- Save button -->
@@ -472,13 +478,15 @@
 					size="sm"
 					onclick={handleSave}
 					disabled={!hasChanges || saving}
+					aria-label="Save"
+					title="Save"
 				>
 					{#if saving}
-						<Loader2 size={14} class="mr-1.5 animate-spin" />
+						<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
 					{:else}
-						<Save size={14} class="mr-1.5" />
+						<Save size={14} class="sm:mr-1.5" />
 					{/if}
-					Save
+					<span class="hidden sm:inline">Save</span>
 				</Button>
 			{/if}
 		</div>
@@ -504,7 +512,7 @@
 			<div class="space-y-6 px-6 py-6">
 				<!-- Plugin info card -->
 				<div class="rounded-xl border border-border bg-card p-5">
-					<div class="flex items-start gap-4">
+					<div class="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
 						<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl {plugin.enabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}">
 							{#if plugin.icon}
 								<i class="{faIconClass(plugin.icon)} text-xl"></i>
@@ -512,7 +520,7 @@
 								<Puzzle size={24} />
 							{/if}
 						</div>
-						<div class="min-w-0 flex-1">
+						<div class="min-w-0 flex-1 text-center sm:text-left">
 							{#if plugin.description}
 								{#if plugin.description_html}
 									<div class="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">

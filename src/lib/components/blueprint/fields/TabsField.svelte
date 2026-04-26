@@ -4,6 +4,7 @@
 	import FieldRenderer from '../FieldRenderer.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldMatches } from '$lib/utils/field-filter';
+	import { dragScroll } from '$lib/utils/dragScroll';
 
 	interface Props {
 		field: BlueprintField;
@@ -144,12 +145,15 @@
 	<div class="flex flex-col lg:flex-row lg:gap-0">
 		<!-- Vertical tab list (horizontal on small, sticky on large) -->
 		<div class="shrink-0 border-b border-border lg:w-52 lg:self-start lg:sticky lg:border-b-0 lg:border-r" style="top: var(--sticky-header-height, 0px)">
-			<nav class="flex gap-1 overflow-x-auto p-1 lg:flex-col lg:overflow-x-visible lg:p-2">
+			<nav
+				class="flex gap-1 overflow-x-auto p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:flex-col lg:overflow-x-visible lg:p-2"
+				use:dragScroll
+			>
 				{#each tabs as tab, i (tab.name)}
 					{@const hasMatch = !tabHasMatch || tabHasMatch.has(tab.name)}
 					{#if !filter || hasMatch}
 						<button
-							class="whitespace-nowrap rounded-md px-3 py-2 text-left text-sm font-medium transition-colors
+							class="shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-left text-sm font-medium transition-colors
 								{i === activeIndex
 									? 'bg-primary/10 text-primary'
 									: 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'}"
@@ -163,7 +167,7 @@
 		</div>
 
 		<!-- Active tab content -->
-		<div class="min-w-0 flex-1 p-4 lg:pl-6">
+		<div class="min-w-0 flex-1 py-4 lg:p-4 lg:pl-6">
 			{#if noResults}
 				<div class="py-12 text-center text-sm text-muted-foreground">No fields match your filter</div>
 			{:else}

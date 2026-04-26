@@ -3,6 +3,7 @@
 	import { base } from '$app/paths';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { Cpu, Globe, Image, Shield, Info } from 'lucide-svelte';
+	import { dragScroll } from '$lib/utils/dragScroll';
 
 	interface Props {
 		sections: string[];
@@ -32,12 +33,12 @@
 	}
 </script>
 
-<div class="flex gap-1 border-b border-border">
+<div class="flex gap-1 overflow-x-auto border-b border-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" use:dragScroll>
 	{#each sections as scope (scope)}
 		{@const Icon = icons[scope]}
 		<a
 			href="{base}/config/{scope}"
-			class="flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors
+			class="flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors
 				{isActive(scope)
 					? 'border-primary text-primary'
 					: 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'}"

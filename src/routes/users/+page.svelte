@@ -58,7 +58,16 @@
 		}
 	}
 
+	// Below the lg breakpoint the detail panel is hidden, so a single tap
+	// would otherwise do nothing visible. Navigate straight to edit instead.
+	const hasDetailPanel = () =>
+		typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
+
 	function selectUser(username: string) {
+		if (!hasDetailPanel()) {
+			openUserEdit(username);
+			return;
+		}
 		selectedUsername = username;
 	}
 

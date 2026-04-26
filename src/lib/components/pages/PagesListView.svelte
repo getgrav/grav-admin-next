@@ -10,7 +10,7 @@
 	import { toast } from 'svelte-sonner';
 	import {
 		ArrowUp, ArrowDown, File, Loader2, Trash2, ChevronLeft, ChevronRight,
-		GripVertical
+		GripVertical, CircleCheck, CircleDashed
 	} from 'lucide-svelte';
 
 	interface Props {
@@ -220,18 +220,17 @@
 {/snippet}
 
 <!-- Sortable header -->
-<div class="flex items-center gap-4 border-b border-border px-4 py-2">
+<div class="flex items-center gap-2 border-b border-border px-2 py-2 sm:px-4">
 	{#if reorderMode}<div class="w-6"></div>{/if}
-	<div class="flex-1">{@render sortHeader('Title', 'title', 'flex-1')}</div>
+	<div class="min-w-0 flex-1">{@render sortHeader('Title', 'title', 'flex-1')}</div>
 	{#if !reorderMode}
-		<div class="w-20 text-center">
+		<div class="hidden w-20 text-center md:block">
 			<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Template</span>
 		</div>
-		<div class="w-16 text-center">
-			<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Status</span>
+		<div class="w-6 text-center" title="Status">
+			<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">·</span>
 		</div>
-		<div class="w-24 text-right">{@render sortHeader('Modified', 'modified', 'w-24', 'right')}</div>
-		<div class="w-10"></div>
+		<div class="hidden w-20 text-right sm:block">{@render sortHeader('Modified', 'modified', 'w-20', 'right')}</div>
 	{:else}
 		<div class="w-32 text-right">
 			<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Parent</span>
@@ -262,7 +261,7 @@
 			<div class="mx-4 h-0.5 rounded bg-primary"></div>
 		{/if}
 		<div
-			class="group flex items-center gap-4 border-b border-border/50 px-4 py-2 transition-colors
+			class="group relative flex items-center gap-2 border-b border-border/50 px-2 py-2 transition-colors sm:px-4
 				{dragPage?.route === page.route ? 'opacity-30' : 'hover:bg-accent/50'}
 				{saving ? 'pointer-events-none' : ''}"
 			draggable={reorderMode}
@@ -279,14 +278,16 @@
 			<div class="flex min-w-0 flex-1 items-center gap-2">
 				<File size={14} class="shrink-0 {page.visible ? 'text-primary/70' : 'text-muted-foreground'}" />
 				<button class="min-w-0 flex-1 text-left" onclick={() => onEdit(pageApiRoute(page))}>
-					<div class="flex items-center gap-1.5">
-						<span class="truncate text-sm font-medium group-hover:text-primary
+					<div class="flex min-w-0 items-center gap-1.5">
+						<span class="min-w-0 truncate text-sm font-medium group-hover:text-primary
 							{isUntranslated ? 'text-muted-foreground italic' : 'text-foreground'}">{page.menu}</span>
 						{#if lang && badgeKeys.length > 0}
-							<TranslationBadges
-								translated={badgeKeys}
-								currentLang={explicitFiles.includes(lang) ? lang : undefined}
-							/>
+							<div class="shrink-0">
+								<TranslationBadges
+									translated={badgeKeys}
+									currentLang={explicitFiles.includes(lang) ? lang : undefined}
+								/>
+							</div>
 						{/if}
 					</div>
 					<div class="truncate text-[11px] text-muted-foreground">{page.route}</div>
@@ -294,29 +295,27 @@
 			</div>
 
 			{#if !reorderMode}
-				<div class="w-20 text-center">
+				<div class="hidden w-20 text-center md:block">
 					<Badge variant="outline">{page.template}</Badge>
 				</div>
-				<div class="w-16 text-center">
+				<div class="flex w-6 justify-center" title={page.published ? 'Published' : 'Draft'}>
 					{#if page.published}
-						<Badge variant="success">Published</Badge>
+						<CircleCheck size={14} class="text-green-500" aria-label="Published" />
 					{:else}
-						<Badge variant="secondary">Draft</Badge>
+						<CircleDashed size={14} class="text-muted-foreground" aria-label="Draft" />
 					{/if}
 				</div>
-				<div class="w-24 text-right text-[11px] text-muted-foreground">
+				<div class="hidden w-20 text-right text-[11px] text-muted-foreground sm:block">
 					{formatDate(page.modified)}
 				</div>
 				{#if onDelete}
-				<div class="flex w-10 justify-end opacity-0 transition-opacity group-hover:opacity-100">
-					<button
-						class="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-						onclick={() => onDelete(page)}
-						title="Delete"
-					>
-						<Trash2 size={12} />
-					</button>
-				</div>
+				<button
+					class="absolute right-1 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded bg-background/80 text-muted-foreground opacity-0 backdrop-blur transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 sm:right-2"
+					onclick={() => onDelete(page)}
+					title="Delete"
+				>
+					<Trash2 size={12} />
+				</button>
 				{/if}
 			{:else}
 				<div class="w-32 text-right text-[11px] text-muted-foreground">

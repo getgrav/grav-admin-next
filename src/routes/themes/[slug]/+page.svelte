@@ -325,7 +325,7 @@
 
 <div class="flex h-full flex-col">
 	<!-- Header -->
-	<div class="flex min-h-14 items-center justify-between border-b border-border px-6 pt-6 pb-3">
+	<div class="flex flex-col gap-3 border-b border-border px-6 pt-6 pb-3 sm:min-h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
 		<div class="flex items-center gap-3">
 			<button
 				type="button"
@@ -367,7 +367,7 @@
 			{/if}
 		</div>
 
-		<div class="flex items-center gap-2">
+		<div class="flex flex-wrap items-center justify-center gap-2 sm:justify-end">
 			<UnsavedIndicator
 				hasChanges={hasChanges}
 				saving={autoSave.saving}
@@ -389,13 +389,15 @@
 						size="sm"
 						onclick={handleUpdate}
 						disabled={updating}
+						aria-label="Update to v{theme.available_version}"
+						title="Update to v{theme.available_version}"
 					>
 						{#if updating}
-							<Loader2 size={14} class="mr-1.5 animate-spin" />
+							<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
 						{:else}
-							<ArrowUpCircle size={14} class="mr-1.5" />
+							<ArrowUpCircle size={14} class="sm:mr-1.5" />
 						{/if}
-						Update to v{theme.available_version}
+						<span class="hidden sm:inline">Update to v{theme.available_version}</span>
 					</Button>
 				{/if}
 
@@ -405,13 +407,15 @@
 					size="sm"
 					onclick={handleDelete}
 					disabled={deleting || theme.enabled || PROTECTED_THEMES.has(theme.slug)}
+					aria-label="Remove"
+					title="Remove"
 				>
 					{#if deleting}
-						<Loader2 size={14} class="mr-1.5 animate-spin" />
+						<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
 					{:else}
-						<Trash2 size={14} class="mr-1.5" />
+						<Trash2 size={14} class="sm:mr-1.5" />
 					{/if}
-					Remove
+					<span class="hidden sm:inline">Remove</span>
 				</Button>
 
 				<!-- Activate button -->
@@ -421,17 +425,20 @@
 						size="sm"
 						onclick={handleActivate}
 						disabled={activating}
+						aria-label="Activate"
+						title="Activate"
 					>
 						{#if activating}
-							<Loader2 size={14} class="mr-1.5 animate-spin" />
+							<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
 						{:else}
-							<Power size={14} class="mr-1.5" />
+							<Power size={14} class="sm:mr-1.5" />
 						{/if}
-						Activate
+						<span class="hidden sm:inline">Activate</span>
 					</Button>
 				{:else}
-					<span class="inline-flex h-8 items-center rounded-md bg-green-500/15 px-3 text-xs font-medium text-green-600 dark:text-green-400">
-						Active Theme
+					<span class="inline-flex h-8 items-center rounded-md bg-green-500/15 px-2 text-xs font-medium text-green-600 dark:text-green-400 sm:px-3" title="Active Theme">
+						<span class="hidden sm:inline">Active Theme</span>
+						<BadgeCheck size={14} class="sm:hidden" />
 					</span>
 				{/if}
 
@@ -440,13 +447,15 @@
 					size="sm"
 					onclick={handleSave}
 					disabled={!hasChanges || saving}
+					aria-label="Save"
+					title="Save"
 				>
 					{#if saving}
-						<Loader2 size={14} class="mr-1.5 animate-spin" />
+						<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
 					{:else}
-						<Save size={14} class="mr-1.5" />
+						<Save size={14} class="sm:mr-1.5" />
 					{/if}
-					Save
+					<span class="hidden sm:inline">Save</span>
 				</Button>
 			{/if}
 		</div>
@@ -472,7 +481,7 @@
 			<div class="space-y-6 px-6 py-6">
 				<!-- Theme info card -->
 				<div class="rounded-xl border border-border bg-card p-5">
-					<div class="flex items-start gap-5">
+					<div class="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
 						<!-- Thumbnail -->
 						{#if resolveUrl(theme.thumbnail ?? theme.screenshot)}
 							<button
@@ -492,7 +501,7 @@
 								<Palette size={48} />
 							</div>
 						{/if}
-						<div class="min-w-0 flex-1">
+						<div class="min-w-0 flex-1 text-center sm:text-left">
 							{#if theme.description}
 								{#if theme.description_html}
 									<div class="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">

@@ -100,9 +100,9 @@
 				</div>
 
 				<!-- Toolbar -->
-				<div class="flex items-center gap-3">
-		<!-- Search -->
-		<div class="relative flex-1" style="max-width: 320px;">
+				<div class="group flex items-center gap-3">
+		<!-- Search (expands to full row when focused on small screens) -->
+		<div class="relative min-w-0 flex-1 transition-[max-width] duration-150 max-sm:group-has-[input:focus]:max-w-none" style="max-width: 320px;">
 			<Search size={14} class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground" />
 			<input
 				type="text"
@@ -121,43 +121,46 @@
 			{/if}
 		</div>
 
-		<div class="flex-1"></div>
+		<!-- Trailing toolbar items: hide on small screens while search is focused -->
+		<div class="flex flex-1 items-center gap-3 max-sm:group-has-[input:focus]:hidden">
+			<div class="flex-1"></div>
 
-		<!-- Language switcher -->
-		{#if contentLang.enabled}
-			<LanguageSwitcher onchange={() => { loadStats(); }} />
-		{/if}
+			<!-- Language switcher -->
+			{#if contentLang.enabled}
+				<LanguageSwitcher onchange={() => { loadStats(); }} />
+			{/if}
 
-		<!-- Reorder mode toggle -->
-		{#if canEditPages}
-		<button
-			class="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-[12px] font-medium transition-colors
-				{reorderMode
-					? 'border-primary bg-primary/10 text-primary'
-					: 'border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
-			onclick={() => reorderMode = !reorderMode}
-			title={reorderMode ? 'Exit reorder mode' : 'Reorder pages'}
-		>
-			<ArrowUpDown size={14} />
-			<span class="hidden sm:inline">{reorderMode ? 'Done' : 'Reorder / Move'}</span>
-		</button>
-		{/if}
+			<!-- Reorder mode toggle -->
+			{#if canEditPages}
+			<button
+				class="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-[12px] font-medium transition-colors
+					{reorderMode
+						? 'border-primary bg-primary/10 text-primary'
+						: 'border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+				onclick={() => reorderMode = !reorderMode}
+				title={reorderMode ? 'Exit reorder mode' : 'Reorder pages'}
+			>
+				<ArrowUpDown size={14} />
+				<span class="hidden sm:inline">{reorderMode ? 'Done' : 'Reorder / Move'}</span>
+			</button>
+			{/if}
 
-		<!-- View mode toggle -->
-		<div class="inline-flex rounded-md border border-border shadow-sm">
-			{#each viewModes as vm}
-				<button
-					class="inline-flex h-8 items-center gap-1.5 px-3 text-[12px] font-medium transition-colors first:rounded-l-md last:rounded-r-md
-						{prefs.pagesViewMode === vm.mode
-							? 'bg-accent text-accent-foreground'
-							: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
-					onclick={() => prefs.pagesViewMode = vm.mode}
-					title={vm.label}
-				>
-					<vm.icon size={14} />
-					<span class="hidden sm:inline">{vm.label}</span>
-				</button>
-			{/each}
+			<!-- View mode toggle -->
+			<div class="inline-flex rounded-md border border-border shadow-sm">
+				{#each viewModes as vm}
+					<button
+						class="inline-flex h-8 items-center gap-1.5 px-3 text-[12px] font-medium transition-colors first:rounded-l-md last:rounded-r-md
+							{prefs.pagesViewMode === vm.mode
+								? 'bg-accent text-accent-foreground'
+								: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+						onclick={() => prefs.pagesViewMode = vm.mode}
+						title={vm.label}
+					>
+						<vm.icon size={14} />
+						<span class="hidden sm:inline">{vm.label}</span>
+					</button>
+				{/each}
+			</div>
 		</div>
 			</div>
 			</div>

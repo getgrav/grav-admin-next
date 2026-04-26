@@ -360,26 +360,30 @@
 								size="sm"
 								onclick={handleDelete}
 								disabled={deleting || user.username === auth.username}
+								aria-label="Delete"
+								title="Delete"
 							>
 								{#if deleting}
-									<Loader2 size={14} class="mr-1.5 animate-spin" />
+									<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
 								{:else}
-									<Trash2 size={14} class="mr-1.5" />
+									<Trash2 size={14} class="sm:mr-1.5" />
 								{/if}
-								Delete
+								<span class="hidden sm:inline">Delete</span>
 							</Button>
 
 							<Button
 								size="sm"
 								onclick={handleSave}
 								disabled={!hasChanges || saving}
+								aria-label="Save"
+								title="Save"
 							>
 								{#if saving}
-									<Loader2 size={14} class="mr-1.5 animate-spin" />
+									<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
 								{:else}
-									<Save size={14} class="mr-1.5" />
+									<Save size={14} class="sm:mr-1.5" />
 								{/if}
-								Save
+								<span class="hidden sm:inline">Save</span>
 							</Button>
 						{/if}
 					</div>

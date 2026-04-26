@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getPermissionsBlueprint, type PermissionAction } from '$lib/api/endpoints/blueprints';
-	import { Loader2, ChevronDown, Crown } from 'lucide-svelte';
+	import { Loader2, ChevronDown, Crown, Check, Ban, Minus } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
 
 	interface Props {
@@ -118,32 +118,36 @@
 		{#if implicit}
 			<Crown size={14} class="text-purple-500" />
 		{/if}
-		<div class="flex overflow-hidden rounded-md border border-border text-[11px] font-medium">
+		<div class="flex shrink-0 overflow-hidden rounded-md border border-border text-[11px] font-medium">
 			<button
 				type="button"
-				class="flex items-center gap-1 px-2.5 py-1 transition-colors
+				class="flex items-center justify-center px-2 py-1.5 transition-colors
 					{val === 'allowed' ? 'bg-green-500 text-white' : 'text-muted-foreground hover:bg-muted'}"
+				title="Allowed"
+				aria-label="Allowed"
 				onclick={() => setPermValue(name, val === 'allowed' ? 'unset' : 'allowed')}
 			>
-				{#if val === 'allowed'}<svg class="h-3 w-3" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>{/if}
-				Allowed
+				<Check size={14} />
 			</button>
 			<button
 				type="button"
-				class="border-x border-border px-2.5 py-1 transition-colors
+				class="flex items-center justify-center border-x border-border px-2 py-1.5 transition-colors
 					{val === 'denied' ? 'bg-red-400 text-white' : 'text-muted-foreground hover:bg-muted'}"
+				title="Denied"
+				aria-label="Denied"
 				onclick={() => setPermValue(name, val === 'denied' ? 'unset' : 'denied')}
 			>
-				{#if val === 'denied'}<svg class="mr-0.5 inline h-3 w-3" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 9l6-6" stroke="currentColor" stroke-width="1.5"/></svg>{/if}
-				Denied
+				<Ban size={14} />
 			</button>
 			<button
 				type="button"
-				class="px-2.5 py-1 transition-colors
+				class="flex items-center justify-center px-2 py-1.5 transition-colors
 					{val === 'unset' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}"
+				title="Not set"
+				aria-label="Not set"
 				onclick={() => setPermValue(name, 'unset')}
 			>
-				Not set
+				<Minus size={14} />
 			</button>
 		</div>
 	</div>

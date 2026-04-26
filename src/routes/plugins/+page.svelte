@@ -116,7 +116,16 @@
 		}
 	}
 
+	// Below the lg breakpoint the detail panel is hidden, so a single tap
+	// would otherwise do nothing visible. Navigate straight to config instead.
+	const hasDetailPanel = () =>
+		typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
+
 	function selectPlugin(slug: string) {
+		if (!hasDetailPanel()) {
+			openPluginConfig(slug);
+			return;
+		}
 		selectedSlug = slug;
 	}
 
