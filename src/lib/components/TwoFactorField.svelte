@@ -37,10 +37,12 @@
 	// clobber the intermediate `pending` state with a stale prop value.
 	$effect(() => {
 		const next: Stage = twofaEnabled ? 'enabled' : hasSecret ? 'pending' : 'idle';
-		if (next !== stage && !busy) {
-			stage = next;
-			if (next !== 'pending') twoFaData = null;
-		}
+		if (next === stage || busy) return;
+		// After a local generate the parent's `hasSecret` prop is stale until
+		// it refetches; don't revert our freshly-set `pending` stage to idle.
+		if (stage === 'pending' && next === 'idle' && twoFaData) return;
+		stage = next;
+		if (next !== 'pending') twoFaData = null;
 	});
 
 	async function handleGenerate() {
