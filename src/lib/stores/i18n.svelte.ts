@@ -1,3 +1,4 @@
+import { IntlMessageFormat } from 'intl-messageformat';
 import { getTranslations } from '$lib/api/endpoints/translations';
 import { getLocalStrings } from '$lib/i18n';
 import { scopedKey } from '$lib/utils/scopedStorage';
@@ -5,11 +6,15 @@ import { scopedKey } from '$lib/utils/scopedStorage';
 const CACHE_KEY = scopedKey('grav_admin_i18n');
 const CACHE_CHECKSUM_KEY = scopedKey('grav_admin_i18n_checksum');
 
+const ICU_PREFIX = 'ICU.';
+
 interface CachedTranslations {
 	lang: string;
 	checksum: string;
 	strings: Record<string, string>;
 }
+
+export type TranslateParams = Record<string, string | number | boolean | Date | null | undefined>;
 
 function loadCached(): CachedTranslations | null {
 	try {
@@ -29,10 +34,47 @@ function createI18nStore() {
 	let loading = $state(false);
 	let loaded = $state(!!cached);
 
-	/** Merge local admin-next translations (ADMIN_NEXT.*) into current strings */
-	function mergeLocalStrings() {
+	// Compiled IntlMessageFormat instances, keyed by `${lang}::${icuKey}`.
+	// Cleared whenever language or strings change so stale formatters don't leak.
+	const formatterCache = new Map<string, IntlMessageFormat>();
+
+	// Subscribers notified on locale change (used by the window.__GRAV_I18N global
+	// so plugin web-component bundles can react without runes).
+	const localeSubscribers = new Set<(locale: string) => void>();
+
+	function notifyLocaleChanged() {
+		for (const fn of localeSubscribers) {
+			try { fn(lang); } catch { /* ignore subscriber errors */ }
+		}
+	}
+
+	function resetFormatterCache() {
+		formatterCache.clear();
+	}
+
+	function getFormatter(icuKey: string, message: string): IntlMessageFormat | null {
+		const cacheKey = `${lang}::${icuKey}`;
+		let f = formatterCache.get(cacheKey);
+		if (f) return f;
+		try {
+			f = new IntlMessageFormat(message, lang);
+			formatterCache.set(cacheKey, f);
+			return f;
+		} catch (err) {
+			console.warn(`[i18n] Failed to compile ICU message for "${icuKey}":`, err);
+			return null;
+		}
+	}
+
+	/**
+	 * Apply local boot fallback strings underneath the current map.
+	 * API translations always take precedence — local strings only fill
+	 * gaps for keys missing from the server response.
+	 */
+	function applyLocalFallback() {
 		const local = getLocalStrings(lang);
-		strings = { ...strings, ...local };
+		strings = { ...local, ...strings };
+		resetFormatterCache();
 	}
 
 	function persist() {
@@ -44,25 +86,62 @@ function createI18nStore() {
 	}
 
 	/**
-	 * Translate a key. Returns the translated string, or a cleaned-up
-	 * version of the key if no translation is found.
+	 * Translate a key.
 	 *
-	 * Usage: t('PLUGIN_ADMIN.TITLE') → "Title"
+	 * Lookup order:
+	 *   1. `ICU.<key>` — formatted via ICU MessageFormat (placeholders, plurals, select)
+	 *   2. `<key>` — returned raw (legacy / Grav 1-compatible strings)
+	 *   3. Uppercase variant of `<key>`
+	 *   4. Humanized fallback derived from the key itself
+	 *
+	 * Plugins targeting both Grav 1 and Grav 2 should ship two parallel blocks
+	 * in their language YAML: top-level keys for Grav 1 / classic admin, and an
+	 * `ICU:` block with the same keys (and any new ones) for admin-next.
+	 *
+	 * Usage:
+	 *   t('PLUGIN_ADMIN.TITLE')
+	 *   t('ADMIN_NEXT.PAGES.MOVED', { title: page.title })
+	 *   t('ADMIN_NEXT.NOTIFICATIONS.UNREAD', { n: count })
 	 */
-	function t(key: string | undefined): string {
+	function t(key: string | undefined, params?: TranslateParams): string {
 		if (!key) return '';
 
-		// Direct lookup (case-sensitive)
+		// 1. Modern ICU lookup (preferred)
+		const icuKey = ICU_PREFIX + key;
+		const icuVal = strings[icuKey];
+		if (icuVal !== undefined) {
+			const f = getFormatter(icuKey, icuVal);
+			if (f) {
+				try {
+					const out = f.format(params as Record<string, unknown> | undefined);
+					return typeof out === 'string' ? out : String(out ?? '');
+				} catch (err) {
+					console.warn(`[i18n] Format error for "${icuKey}":`, err);
+					return icuVal;
+				}
+			}
+			return icuVal;
+		}
+
+		// 2. Legacy flat lookup (case-sensitive, returned raw)
 		const val = strings[key];
 		if (val !== undefined) return val;
 
-		// Try uppercase version
+		// 3. Try uppercase variant
 		const upper = key.toUpperCase();
 		const valUpper = strings[upper];
 		if (valUpper !== undefined) return valUpper;
 
-		// No translation found — make the key human-readable as fallback
+		// 4. Humanize fallback
 		return humanizeKey(key);
+	}
+
+	/**
+	 * True if either an ICU.<key> or a plain <key> entry exists.
+	 */
+	function has(key: string | undefined): boolean {
+		if (!key) return false;
+		return (ICU_PREFIX + key) in strings || key in strings || key.toUpperCase() in strings;
 	}
 
 	/**
@@ -76,9 +155,9 @@ function createI18nStore() {
 	 * Translate if the value looks like a translation key, otherwise return as-is.
 	 * Useful for blueprint labels which might be plain text or translation keys.
 	 */
-	function tMaybe(value: string | undefined): string {
+	function tMaybe(value: string | undefined, params?: TranslateParams): string {
 		if (!value) return '';
-		if (isTranslationKey(value)) return t(value);
+		if (isTranslationKey(value)) return t(value, params);
 		return value;
 	}
 
@@ -88,7 +167,6 @@ function createI18nStore() {
 	 * PLUGIN_ADMIN.SOME_FIELD_NAME → "Some Field Name"
 	 */
 	function humanizeKey(key: string): string {
-		// Take the last segment after the last dot
 		const parts = key.split('.');
 		const last = parts[parts.length - 1];
 
@@ -109,18 +187,19 @@ function createI18nStore() {
 		try {
 			const data = await getTranslations(targetLang);
 
-			// Only update if translations changed
 			if (data.checksum !== checksum || data.lang !== lang) {
+				const langChanged = data.lang !== lang;
 				lang = data.lang;
 				strings = data.strings;
 				checksum = data.checksum;
-				mergeLocalStrings();
+				resetFormatterCache();
+				applyLocalFallback();
 				persist();
+				if (langChanged) notifyLocaleChanged();
 			}
 
 			loaded = true;
 		} catch {
-			// Keep cached translations if fetch fails
 			if (!loaded && cached) {
 				loaded = true;
 			}
@@ -137,11 +216,13 @@ function createI18nStore() {
 		const targetLang = language ?? lang;
 		try {
 			const data = await getTranslations(targetLang, prefix);
+			const langChanged = data.lang !== lang;
 			lang = data.lang;
-			// Merge prefix strings into existing strings
 			strings = { ...strings, ...data.strings };
-			mergeLocalStrings();
+			resetFormatterCache();
+			applyLocalFallback();
 			persist();
+			if (langChanged) notifyLocaleChanged();
 		} catch {
 			// Non-critical — full load will happen later
 		}
@@ -149,10 +230,8 @@ function createI18nStore() {
 
 	/**
 	 * Load all translations in the background (non-blocking).
-	 * Call this after loadPrefix to fill in the rest while user is busy.
 	 */
 	function loadAllInBackground(language?: string) {
-		// Fire and forget — don't await
 		load(language);
 	}
 
@@ -164,6 +243,15 @@ function createI18nStore() {
 		await load(language);
 	}
 
+	/**
+	 * Subscribe to locale changes. Returns an unsubscribe function.
+	 * Used by the window.__GRAV_I18N bridge for plugin web components.
+	 */
+	function subscribeLocale(fn: (locale: string) => void): () => void {
+		localeSubscribers.add(fn);
+		return () => localeSubscribers.delete(fn);
+	}
+
 	return {
 		get lang() { return lang; },
 		get loading() { return loading; },
@@ -171,12 +259,50 @@ function createI18nStore() {
 		get count() { return Object.keys(strings).length; },
 		t,
 		tMaybe,
+		has,
 		isTranslationKey,
 		load,
 		loadPrefix,
 		loadAllInBackground,
 		setLanguage,
+		subscribeLocale,
 	};
 }
 
 export const i18n = createI18nStore();
+
+/**
+ * Global i18n bridge for plugin web-component bundles (editor-pro, ai-pro, etc.)
+ * that aren't built against admin-next's Svelte runtime. Read-only API.
+ *
+ * Usage from a plugin field bundle:
+ *   const { t, locale, subscribe } = window.__GRAV_I18N;
+ *   const label = t('PLUGIN_EDITOR_PRO.TOOLBAR_BOLD');
+ *   const unsub = subscribe((newLocale) => { ... });
+ */
+export interface GravI18nGlobal {
+	t(key: string, params?: TranslateParams): string;
+	has(key: string): boolean;
+	readonly locale: string;
+	subscribe(fn: (locale: string) => void): () => void;
+}
+
+declare global {
+	interface Window {
+		__GRAV_I18N?: GravI18nGlobal;
+	}
+}
+
+if (typeof window !== 'undefined') {
+	const bridge: GravI18nGlobal = {
+		t: (key, params) => i18n.t(key, params),
+		has: (key) => i18n.has(key),
+		get locale() { return i18n.lang; },
+		subscribe: (fn) => i18n.subscribeLocale(fn),
+	};
+	Object.defineProperty(window, '__GRAV_I18N', {
+		value: bridge,
+		writable: false,
+		configurable: false,
+	});
+}
