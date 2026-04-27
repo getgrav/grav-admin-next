@@ -166,7 +166,7 @@ ICU:
       A_ONE_TIME_CODE_IS_REQUIRED_WHENEVER: "A one-time code is required whenever this account signs in."
       ENTER_YOUR_CURRENT_6_DIGIT_CODE_TO: "Enter your current 6-digit code to confirm"
       ENABLE_2FA: "Enable 2FA"
-      VERIFY_ENABLE: "Verify &amp; Enable"
+      VERIFY_ENABLE: "Verify & Enable"
       FORCE_DISABLE: "Force disable"
       CONFIRM_DISABLE: "Confirm disable"
       FORCE_DISABLE_PROMPT: "Force-disable 2FA for **{username}**? Use this only for lost-device recovery."
