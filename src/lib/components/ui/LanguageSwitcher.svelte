@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { ChevronDown, Languages } from 'lucide-svelte';
 
@@ -30,7 +31,7 @@
 			class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-[12px] font-medium transition-colors
 				{open ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
 			onclick={() => open = !open}
-			title="Switch content language"
+			title={i18n.t('ADMIN_NEXT.LANG.SWITCH_LANGUAGE')}
 		>
 			<Languages size={14} />
 			<span class="font-semibold uppercase">{contentLang.activeLang}</span>
@@ -65,7 +66,7 @@
 						>{lang.code}</span>
 						<span class={isTranslated ? '' : 'text-muted-foreground/60'}>{lang.native_name || lang.name}</span>
 						{#if !isTranslated}
-							<span class="ml-auto text-[10px] italic text-muted-foreground/50">not translated</span>
+							<span class="ml-auto text-[10px] italic text-muted-foreground/50">{i18n.t('ADMIN_NEXT.LANG.NOT_TRANSLATED')}</span>
 						{:else if lang.is_default}
 							<span class="ml-auto text-[10px] text-muted-foreground">default</span>
 						{/if}

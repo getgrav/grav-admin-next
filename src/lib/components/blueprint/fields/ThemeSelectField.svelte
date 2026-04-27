@@ -56,9 +56,9 @@
 			disabled={field.disabled || loading}
 		>
 			{#if loading}
-				<option value="">Loading themes...</option>
+				<option value="">{i18n.t('ADMIN_NEXT.FIELDS.THEME_SELECT.LOADING_THEMES')}</option>
 			{:else}
-				<option value="">— Select theme —</option>
+				<option value="">{i18n.t('ADMIN_NEXT.FIELDS.THEME_SELECT.SELECT_THEME')}</option>
 				{#each themes as theme (theme.slug)}
 					<option value={theme.slug} selected={String(value) === theme.slug}>{theme.name}</option>
 				{/each}

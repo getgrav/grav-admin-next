@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import MediaManager from '$lib/components/media/MediaManager.svelte';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import { canWrite } from '$lib/utils/permissions';
@@ -7,7 +8,7 @@
 </script>
 
 <svelte:head>
-	<title>Media — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_GRAV_ADMIN')}</title>
 </svelte:head>
 
 <div class="flex h-full flex-col">
@@ -19,7 +20,7 @@
 					<div>
 						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">Media</h1>
 						{#if !scrolled}
-							<p class="mt-0.5 text-xs text-muted-foreground">Manage site-wide media files</p>
+							<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.MEDIA.MANAGE_SITE_WIDE_MEDIA_FILES')}</p>
 						{/if}
 					</div>
 				</div>

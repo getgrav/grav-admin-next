@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import type { MediaItem } from '$lib/api/endpoints/media';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { mediaManager } from '$lib/stores/mediaManager.svelte';
@@ -76,7 +77,7 @@
 			await navigator.clipboard.writeText(text);
 			toast.success(`${label} copied`);
 		} catch {
-			toast.error('Failed to copy');
+			toast.error(i18n.t('ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.FAILED_TO_COPY'));
 		}
 	}
 
@@ -92,7 +93,7 @@
 		}
 		try {
 			await mediaManager.renameFile(file, renameValue);
-			toast.success('File renamed');
+			toast.success(i18n.t('ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.FILE_RENAMED'));
 			renaming = false;
 		} catch (err) {
 			toast.error(`Rename failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -116,14 +117,14 @@
 			<button
 				class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 				onclick={() => mediaManager.navigateInspector('prev')}
-				aria-label="Previous file"
+				aria-label={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.PREVIOUS_FILE')}
 			>
 				<ChevronLeft size={14} />
 			</button>
 			<button
 				class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 				onclick={() => mediaManager.navigateInspector('next')}
-				aria-label="Next file"
+				aria-label={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.NEXT_FILE')}
 			>
 				<ChevronRight size={14} />
 			</button>
@@ -172,7 +173,7 @@
 					<button
 						class="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 						onclick={startRename}
-						aria-label="Rename"
+						aria-label={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.RENAME')}
 					>
 						<PenLine size={12} />
 					</button>
@@ -198,12 +199,12 @@
 			</div>
 			{#if file.dimensions}
 				<div>
-					<dt class="text-[11px] font-medium text-muted-foreground">Dimensions</dt>
+					<dt class="text-[11px] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.DIMENSIONS')}</dt>
 					<dd class="mt-0.5 text-sm text-foreground">{file.dimensions.width} &times; {file.dimensions.height}</dd>
 				</div>
 			{/if}
 			<div>
-				<dt class="text-[11px] font-medium text-muted-foreground">Modified</dt>
+				<dt class="text-[11px] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_MODIFIED')}</dt>
 				<dd class="mt-0.5 text-sm text-foreground">{formatDate(file.modified)}</dd>
 			</div>
 		</div>
@@ -243,7 +244,7 @@
 				onclick={() => ondelete(file)}
 			>
 				<Trash2 size={13} />
-				Delete
+				{i18n.t('ADMIN_NEXT.DELETE')}
 			</button>
 		</div>
 	</div>

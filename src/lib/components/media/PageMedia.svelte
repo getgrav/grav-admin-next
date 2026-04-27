@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount } from 'svelte';
 	import { Uppy } from '@uppy/core';
 	import XHRUpload from '@uppy/xhr-upload';
@@ -297,7 +298,7 @@
 <div class="space-y-3">
 	<div class="flex items-center justify-between">
 		<h3 class="text-sm font-semibold text-foreground">
-			Page Media
+			{i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.PAGE_MEDIA')}
 			{#if mediaItems.length > 0}
 				<span class="ml-1 font-normal text-muted-foreground">({mediaItems.length})</span>
 			{/if}
@@ -364,7 +365,7 @@
 						class="group relative aspect-square cursor-grab overflow-hidden rounded-md border border-border bg-muted/50 transition-shadow hover:shadow-md active:cursor-grabbing"
 						draggable="true"
 						ondragstart={(e) => handleThumbnailDragStart(e, item)}
-						title="{item.filename} ({formatSize(item.size)}) — Drag into editor"
+						title="{item.filename} ({formatSize(item.size)}) — {i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.DRAG_INTO_EDITOR')}"
 					>
 						{#if isImage(item)}
 							<img
@@ -394,7 +395,7 @@
 									type="button"
 									class="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-sm text-white/80 transition-colors hover:bg-red-500 hover:text-white"
 									onclick={(e) => { e.stopPropagation(); handleDelete(item); }}
-									title="Delete"
+									title={i18n.t('ADMIN_NEXT.DELETE')}
 								>
 									<X size={12} />
 								</button>

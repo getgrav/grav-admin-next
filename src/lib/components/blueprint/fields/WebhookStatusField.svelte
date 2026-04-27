@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount } from 'svelte';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { getSchedulerStatus } from '$lib/api/endpoints/tools';
@@ -42,30 +43,30 @@
 </script>
 
 {#if loading}
-	<div class="text-sm text-muted-foreground">Checking webhook plugin status...</div>
+	<div class="text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.CHECKING_WEBHOOK_PLUGIN_STATUS')}</div>
 {:else if installed && enabled}
 	<div class="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/30 dark:text-emerald-300">
 		<CheckCircle2 size={16} />
-		<span><strong>scheduler-webhook</strong> plugin is installed and enabled.</span>
+		<span><strong>scheduler-webhook</strong> {i18n.t('ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.PLUGIN_IS_INSTALLED_AND_ENABLED')}</span>
 	</div>
 {:else if installed && !enabled}
 	<div class="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
 		<AlertTriangle size={16} />
-		<span><strong>scheduler-webhook</strong> plugin is installed. Enable Webhook Triggers below to activate.</span>
+		<span><strong>scheduler-webhook</strong> {i18n.t('ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.PLUGIN_IS_INSTALLED_ENABLE_WEBHOOK')}</span>
 	</div>
 {:else}
 	<div class="rounded-lg border border-border bg-card p-4">
-		<h4 class="text-sm font-semibold text-foreground">Webhook Plugin Required</h4>
+		<h4 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.WEBHOOK_PLUGIN_REQUIRED')}</h4>
 		<p class="mt-1 text-sm text-muted-foreground">
-			The <span class="inline-flex items-center rounded-md bg-red-600/10 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:bg-red-500/15 dark:text-red-300">scheduler-webhook</span> plugin is required for webhook functionality.
+			The <span class="inline-flex items-center rounded-md bg-red-600/10 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:bg-red-500/15 dark:text-red-300">scheduler-webhook</span> {i18n.t('ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.PLUGIN_IS_REQUIRED_FOR_WEBHOOK')}
 		</p>
 		<div class="mt-3 flex items-center gap-3">
 			<Button size="sm" onclick={handleInstall}>
 				<Download size={14} />
-				Install Plugin Now
+				{i18n.t('ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.INSTALL_PLUGIN_NOW')}
 			</Button>
 			<span class="text-xs text-muted-foreground">
-				or run: <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">bin/gpm install scheduler-webhook</code>
+				{i18n.t('ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.OR_RUN')} <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{i18n.t('ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.BIN_GPM_INSTALL_SCHEDULER_WEBHOOK')}</code>
 			</span>
 		</div>
 	</div>

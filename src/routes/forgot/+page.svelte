@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { base } from '$app/paths';
 	import { forgotPassword } from '$lib/api/auth';
 	import { toast } from 'svelte-sonner';
@@ -36,7 +37,7 @@
 					toast.error(apiErr.message || 'Unable to send reset email');
 				}
 			} else {
-				toast.error('Unable to connect to server.');
+				toast.error(i18n.t('ADMIN_NEXT.FORGOT.UNABLE_TO_CONNECT_TO_SERVER'));
 			}
 		} finally {
 			loading = false;
@@ -45,7 +46,7 @@
 </script>
 
 <svelte:head>
-	<title>Forgot password — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.FORGOT.FORGOT_PASSWORD_GRAV_ADMIN')}</title>
 </svelte:head>
 
 <div class="flex min-h-screen items-center justify-center bg-background p-4">
@@ -53,7 +54,7 @@
 		type="button"
 		class="absolute top-4 right-4 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
 		onclick={() => theme.toggleColorMode()}
-		aria-label="Toggle dark mode"
+		aria-label={i18n.t('ADMIN_NEXT.TOGGLE_DARK_MODE')}
 	>
 		{#if theme.isDark}
 			<Sun size={16} />
@@ -67,12 +68,12 @@
 			<div class="mb-4">
 				<BrandLogo size="login" />
 			</div>
-			<h1 class="text-2xl font-semibold tracking-tight text-foreground">Forgot password</h1>
+			<h1 class="text-2xl font-semibold tracking-tight text-foreground">{i18n.t('ADMIN_NEXT.FORGOT.FORGOT_PASSWORD')}</h1>
 			<p class="mt-1 text-[13px] text-muted-foreground">
 				{#if submitted}
-					Check your inbox for a reset link.
+					{i18n.t('ADMIN_NEXT.FORGOT.CHECK_INBOX')}
 				{:else}
-					Enter your email and we'll send you a reset link.
+					{i18n.t('ADMIN_NEXT.FORGOT.SUBTITLE')}
 				{/if}
 			</p>
 		</div>
@@ -81,7 +82,7 @@
 			{#if !submitted}
 				<form onsubmit={handleSubmit} class="space-y-4 px-6 py-5" novalidate>
 					<div class="space-y-1.5">
-						<label for="email" class="text-[13px] font-medium text-foreground">Email address</label>
+						<label for="email" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.FORGOT.EMAIL_ADDRESS')}</label>
 						<div class="flex rounded-md shadow-sm">
 							<span class="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-muted-foreground">
 								<Mail size={13} />
@@ -99,23 +100,23 @@
 							/>
 						</div>
 						{#if emailInvalid}
-							<p class="text-xs text-red-500">Enter a valid email address</p>
+							<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.FORGOT.ENTER_A_VALID_EMAIL_ADDRESS')}</p>
 						{/if}
 					</div>
 
 					<Button type="submit" class="w-full" disabled={loading}>
 						{#if loading}
 							<Loader2 size={15} class="animate-spin" />
-							Sending...
+							{i18n.t('ADMIN_NEXT.FORGOT.SENDING')}
 						{:else}
 							<Mail size={15} />
-							Send reset link
+							{i18n.t('ADMIN_NEXT.FORGOT.SEND_RESET_LINK')}
 						{/if}
 					</Button>
 				</form>
 			{:else}
 				<div class="px-6 py-5 text-center text-[13px] text-muted-foreground">
-					If an account exists for that email, a reset link has been sent.
+					{i18n.t('ADMIN_NEXT.FORGOT.IF_AN_ACCOUNT_EXISTS_FOR_THAT_EMAIL_A')}
 				</div>
 			{/if}
 
@@ -125,7 +126,7 @@
 					class="flex items-center justify-center gap-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
 				>
 					<ArrowLeft size={12} />
-					Back to sign in
+					{i18n.t('ADMIN_NEXT.FORGOT.BACK_TO_SIGN_IN')}
 				</a>
 			</div>
 		</div>

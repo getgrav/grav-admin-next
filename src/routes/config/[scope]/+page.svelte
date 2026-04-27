@@ -147,19 +147,19 @@
 			originalJson = JSON.stringify(result.data);
 			etag = result.etag;
 			await formCommit.emit();
-			toast.success('Configuration saved successfully');
+			toast.success(i18n.t('ADMIN_NEXT.CONFIG.CONFIGURATION_SAVED_SUCCESSFULLY'));
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err) {
 				const status = (err as { status: number }).status;
 				if (status === 409) {
-					toast.error('Configuration was modified elsewhere. Reload to see the latest changes.');
+					toast.error(i18n.t('ADMIN_NEXT.CONFIG.CONFIGURATION_WAS_MODIFIED_ELSEWHERE'));
 					return;
 				}
 			}
 			if (err && typeof err === 'object' && 'message' in err) {
 				toast.error((err as { message: string }).message);
 			} else {
-				toast.error('Failed to save configuration');
+				toast.error(i18n.t('ADMIN_NEXT.CONFIG.FAILED_TO_SAVE_CONFIGURATION'));
 			}
 		} finally {
 			saving = false;
@@ -168,7 +168,7 @@
 
 	async function handleReload() {
 		await loadConfig();
-		toast.info('Configuration reloaded');
+		toast.info(i18n.t('ADMIN_NEXT.CONFIG.CONFIGURATION_RELOADED'));
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -218,7 +218,7 @@
 		const unsub = invalidations.subscribe('config:update', (e) => {
 			if (e.id !== scope) return;
 			if (!hasChanges) loadConfig();
-			else toast.info('Configuration changed elsewhere — save to overwrite or reload');
+			else toast.info(i18n.t('ADMIN_NEXT.CONFIG.CONFIGURATION_CHANGED_ELSEWHERE_SAVE_TO'));
 		}, {
 			// Skip self-echo: our own PATCH emits this same event before handleSave
 			// has cleared hasChanges, which would otherwise toast on every save.
@@ -229,7 +229,7 @@
 </script>
 
 <svelte:head>
-	<title>Configuration: {scopeTitle(scope)} — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.CONFIG.PAGE_TITLE', { scope: scopeTitle(scope) })}</title>
 </svelte:head>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -263,12 +263,12 @@
 							<ContextPanelTriggers context="config" route={scope} lang="" />
 							<Button variant="outline" size="sm" onclick={handleReload} disabled={loading || saving}>
 								<RefreshCw size={14} />
-								Reload
+								{i18n.t('ADMIN_NEXT.CONFIG.RELOAD')}
 							</Button>
 							<Button size="sm" onclick={handleSave} disabled={saving || loading || !hasChanges || !canSave}>
 								{#if saving}
 									<Loader2 size={14} class="animate-spin" />
-									Saving...
+									{i18n.t('ADMIN_NEXT.SAVING')}
 								{:else}
 									<Save size={14} />
 									Save
@@ -289,14 +289,14 @@
 							<input
 								type="text"
 								class="h-8 w-full rounded-md border border-input bg-transparent pl-9 pr-8 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-								placeholder="Filter fields..."
+								placeholder={i18n.t('ADMIN_NEXT.CONFIG.FILTER_FIELDS')}
 								bind:value={filter}
 							/>
 							{#if filter}
 								<button
 									class="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground"
 									onclick={() => filter = ''}
-									aria-label="Clear filter"
+									aria-label={i18n.t('ADMIN_NEXT.CONFIG.CLEAR_FILTER')}
 								>
 									<X size={14} />
 								</button>
@@ -323,7 +323,7 @@
 	{/if}
 
 	{#if loading}
-		<div class="py-20 text-center text-sm text-muted-foreground">Loading configuration...</div>
+		<div class="py-20 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.CONFIG.LOADING_CONFIGURATION')}</div>
 	{:else if isInfo}
 		<ConfigInfoPage />
 	{:else if blueprint}
@@ -336,7 +336,7 @@
 		/>
 	{:else if !error}
 		<div class="py-20 text-center text-sm text-muted-foreground">
-			No configuration blueprint available for this scope.
+			{i18n.t('ADMIN_NEXT.CONFIG.NO_CONFIGURATION_BLUEPRINT_AVAILABLE')}
 		</div>
 	{/if}
 	</div>
@@ -344,7 +344,7 @@
 
 <ConfirmModal
 	open={guard.showModal}
-	title="Unsaved Changes"
+	title={i18n.t('ADMIN_NEXT.UNSAVED_CHANGES')}
 	message="You have unsaved changes. Leave anyway?"
 	confirmLabel="Leave"
 	cancelLabel="Stay"

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { Pencil, X, Check, Layout, Globe, RotateCcw, Loader2 } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { PRESETS, type PresetDef } from '$lib/dashboard/presets';
@@ -59,11 +60,11 @@
 		<div class="relative">
 			<Button bind:ref={presetButton} variant="outline" size="sm" onclick={() => presetOpen = !presetOpen}>
 				<Layout size={13} />
-				Presets
+				{i18n.t('ADMIN_NEXT.DASHBOARD.PRESETS')}
 			</Button>
 			{#if presetOpen}
 				<div id="preset-menu" class="absolute right-0 top-full z-50 mt-1 w-72 rounded-md border border-border bg-popover p-1 shadow-lg">
-					<div class="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Layout presets</div>
+					<div class="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{i18n.t('ADMIN_NEXT.EDIT_MODE_TOOLBAR.LAYOUT_PRESETS')}</div>
 					{#each PRESETS as preset}
 						<button type="button" class="block w-full rounded-sm px-2 py-1.5 text-left transition-colors hover:bg-accent" onclick={() => selectPreset(preset)}>
 							<div class="text-[13px] font-medium text-foreground">{preset.label}</div>
@@ -73,22 +74,22 @@
 					<div class="my-1 h-px bg-border"></div>
 					<button type="button" class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[13px] text-foreground transition-colors hover:bg-accent" onclick={selectReset}>
 						<RotateCcw size={12} />
-						Reset my layout
+						{i18n.t('ADMIN_NEXT.DASHBOARD.RESET_LAYOUT')}
 					</button>
 				</div>
 			{/if}
 		</div>
 
 		{#if canEditSite && onSaveSite}
-			<Button variant="outline" size="sm" onclick={() => onSaveSite()} disabled={saving} title="Save as site default for all users">
+			<Button variant="outline" size="sm" onclick={() => onSaveSite()} disabled={saving} title={i18n.t('ADMIN_NEXT.EDIT_MODE_TOOLBAR.SAVE_AS_SITE_DEFAULT_FOR_ALL_USERS')}>
 				<Globe size={13} />
-				Save as site default
+				{i18n.t('ADMIN_NEXT.DASHBOARD.SAVE_SITE_DEFAULT')}
 			</Button>
 		{/if}
 
 		<Button variant="outline" size="sm" onclick={onCancel} disabled={saving}>
 			<X size={13} />
-			Cancel
+			{i18n.t('ADMIN_NEXT.CANCEL')}
 		</Button>
 
 		<Button variant="default" size="sm" onclick={() => onSaveUser()} disabled={saving || !dirty}>
@@ -97,8 +98,8 @@
 		</Button>
 	</div>
 {:else}
-	<Button variant="outline" size="sm" onclick={() => editMode = true} title="Customize dashboard">
+	<Button variant="outline" size="sm" onclick={() => editMode = true} title={i18n.t('ADMIN_NEXT.DASHBOARD.CUSTOMIZE_TITLE')}>
 		<Pencil size={13} />
-		Customize
+		{i18n.t('ADMIN_NEXT.DASHBOARD.CUSTOMIZE')}
 	</Button>
 {/if}

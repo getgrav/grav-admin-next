@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { Activity } from 'lucide-svelte';
 	import { getDashboardData } from '$lib/dashboard/context';
 	import { formatDate, renderInlineMarkdown } from '$lib/dashboard/format';
@@ -27,11 +28,11 @@
 <div class="h-full rounded-lg border border-border bg-card p-4">
 	<h2 class="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
 		<Activity size={15} />
-		Notifications
+		{i18n.t('ADMIN_NEXT.DASHBOARD.WIDGETS.NOTIFICATIONS')}
 	</h2>
 
 	{#if promos.length === 0 && items.length === 0}
-		<p class="py-4 text-center text-[13px] text-muted-foreground">No notifications</p>
+		<p class="py-4 text-center text-[13px] text-muted-foreground">{i18n.t('ADMIN_NEXT.NOTIFICATIONS_WIDGET.NO_NOTIFICATIONS')}</p>
 	{:else}
 		{#each promos as promo (promo.id)}
 			<div class="mb-3 overflow-hidden rounded-lg bg-gradient-to-br {gradientFor(promo.accent)} p-5 text-white shadow-sm">

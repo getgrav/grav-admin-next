@@ -65,7 +65,7 @@
 		<!-- Status alert -->
 		{#if checking}
 			<div class="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-300">
-				Checking page...
+				{i18n.t('ADMIN_NEXT.FIELDS.PAGE_EXISTS.CHECKING_PAGE')}
 			</div>
 		{:else if pageFound}
 			<div class="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/30 dark:text-emerald-300">

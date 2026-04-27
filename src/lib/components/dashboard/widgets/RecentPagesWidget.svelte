@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { base } from '$app/paths';
 	import { Clock } from 'lucide-svelte';
 	import { getDashboardData } from '$lib/dashboard/context';
@@ -14,9 +15,9 @@
 	<div class="mb-3 flex items-center justify-between">
 		<h2 class="flex items-center gap-2 text-sm font-semibold text-foreground">
 			<Clock size={15} />
-			Recent Pages
+			{i18n.t('ADMIN_NEXT.DASHBOARD.WIDGETS.RECENT_PAGES')}
 		</h2>
-		<a href="{base}/pages" class="text-[11px] text-primary hover:underline">View all</a>
+		<a href="{base}/pages" class="text-[11px] text-primary hover:underline">{i18n.t('ADMIN_NEXT.RECENT_PAGES_WIDGET.VIEW_ALL')}</a>
 	</div>
 	{#if recentPages.length > 0}
 		<div class="space-y-0.5">
@@ -38,6 +39,6 @@
 			{/each}
 		</div>
 	{:else}
-		<p class="py-6 text-center text-sm text-muted-foreground">No pages found</p>
+		<p class="py-6 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.NO_PAGES')}</p>
 	{/if}
 </div>

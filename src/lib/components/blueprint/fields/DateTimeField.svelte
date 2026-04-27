@@ -181,7 +181,7 @@
 					type="button"
 					class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-input bg-muted/50 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 					onclick={handleClear}
-					aria-label="Clear date"
+					aria-label={i18n.t('ADMIN_NEXT.FIELDS.CLEAR_DATE')}
 				>
 					<X size={14} />
 				</button>

@@ -169,7 +169,7 @@
 		<!-- Active tab content -->
 		<div class="min-w-0 flex-1 py-4 lg:p-4 lg:pl-6">
 			{#if noResults}
-				<div class="py-12 text-center text-sm text-muted-foreground">No fields match your filter</div>
+				<div class="py-12 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.TABS.NO_FIELDS_MATCH_YOUR_FILTER')}</div>
 			{:else}
 				{#each tabs as tab, i (tab.name)}
 					{#if tab.fields}
@@ -225,7 +225,7 @@
 		</div>
 
 		{#if noResults}
-			<div class="py-12 text-center text-sm text-muted-foreground">No fields match your filter</div>
+			<div class="py-12 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.TABS.NO_FIELDS_MATCH_YOUR_FILTER')}</div>
 		{:else}
 			{#each tabs as tab, i (tab.name)}
 				{#if tab.fields}

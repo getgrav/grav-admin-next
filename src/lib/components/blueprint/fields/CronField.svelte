@@ -182,7 +182,7 @@
 				<!-- Contextual controls based on preset -->
 				<div class="flex flex-wrap items-center gap-2 text-sm">
 					{#if currentPreset === 'hourly'}
-						<span class="text-muted-foreground">At minute</span>
+						<span class="text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.CRON.AT_MINUTE')}</span>
 						<select class="h-8 rounded-md border border-input bg-muted/50 px-2 text-sm" value={parts[0]} onchange={(e) => updatePart(0, (e.target as HTMLSelectElement).value)}>
 							{#each minutes as m}<option value={m.value}>{m.label}</option>{/each}
 						</select>
@@ -209,7 +209,7 @@
 							{#each minutes as m}<option value={m.value}>{m.label}</option>{/each}
 						</select>
 					{:else if currentPreset === 'monthly'}
-						<span class="text-muted-foreground">On day</span>
+						<span class="text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.CRON.ON_DAY')}</span>
 						<select class="h-8 rounded-md border border-input bg-muted/50 px-2 text-sm" value={parts[2]} onchange={(e) => updatePart(2, (e.target as HTMLSelectElement).value)}>
 							{#each daysOfMonth as d}<option value={d.value}>{d.label}</option>{/each}
 						</select>
@@ -226,7 +226,7 @@
 
 				<!-- Raw cron input (always visible for full control) -->
 				<div class="flex items-center gap-2">
-					<span class="text-xs text-muted-foreground">Cron:</span>
+					<span class="text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.CRON.CRON')}</span>
 					<input
 						type="text"
 						class="flex h-8 flex-1 rounded-md border border-input bg-muted/30 px-2 font-mono text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -234,7 +234,7 @@
 						placeholder="* * * * *"
 						oninput={(e) => onchange((e.target as HTMLInputElement).value)}
 					/>
-					<span class="hidden text-[10px] text-muted-foreground/60 sm:block">min hr dom mon dow</span>
+					<span class="hidden text-[10px] text-muted-foreground/60 sm:block">{i18n.t('ADMIN_NEXT.FIELDS.CRON.MIN_HR_DOM_MON_DOW')}</span>
 				</div>
 			</div>
 		{/if}

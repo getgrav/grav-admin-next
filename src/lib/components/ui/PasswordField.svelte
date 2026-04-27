@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import type { HTMLInputAttributes } from 'svelte/elements';
 	import { Info, Check, X, Eye, EyeOff } from 'lucide-svelte';
 	import { evaluatePassword, type PasswordPolicy } from '$lib/utils/passwordStrength';
@@ -76,10 +77,10 @@
 					class="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
 					onclick={() => (modalOpen = true)}
 					tabindex="-1"
-					aria-label="Password requirements"
+					aria-label={i18n.t('ADMIN_NEXT.PASSWORD_FIELD.PASSWORD_REQUIREMENTS')}
 				>
 					<Info size={12} />
-					Requirements
+					{i18n.t('ADMIN_NEXT.PASSWORD_FIELD.REQUIREMENTS')}
 				</button>
 			{/if}
 		</div>
@@ -126,7 +127,7 @@
 				aria-valuenow={result.score}
 				aria-valuemin="0"
 				aria-valuemax="100"
-				aria-label="Password strength"
+				aria-label={i18n.t('ADMIN_NEXT.PASSWORD_FIELD.PASSWORD_STRENGTH')}
 			>
 				<div
 					class="h-full rounded-full transition-all duration-200 {barColors[result.tier]}"
@@ -168,7 +169,7 @@
 	>
 		<div class="flex w-full max-w-sm flex-col rounded-xl border border-border bg-card shadow-2xl">
 			<div class="flex shrink-0 items-center justify-between border-b border-border px-5 py-3">
-				<h2 class="text-sm font-semibold text-foreground">Password requirements</h2>
+				<h2 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.PASSWORD_FIELD.PASSWORD_REQUIREMENTS')}</h2>
 				<button
 					type="button"
 					class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"

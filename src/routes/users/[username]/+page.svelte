@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -206,9 +207,9 @@
 			toast.success(`User '${username}' saved`);
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {
-				toast.error('User was modified elsewhere. Please reload.');
+				toast.error(i18n.t('ADMIN_NEXT.USERS.USER_WAS_MODIFIED_ELSEWHERE_PLEASE'));
 			} else {
-				toast.error('Failed to save user.');
+				toast.error(i18n.t('ADMIN_NEXT.USERS.FAILED_TO_SAVE_USER'));
 			}
 		} finally {
 			saving = false;
@@ -218,7 +219,7 @@
 	function handleDelete() {
 		if (!user) return;
 		if (user.username === auth.username) {
-			toast.error("You cannot delete your own account.");
+			toast.error(i18n.t('ADMIN_NEXT.USERS.YOU_CANNOT_DELETE_YOUR_OWN_ACCOUNT'));
 			return;
 		}
 		confirmDeleteOpen = true;
@@ -294,7 +295,7 @@
 		const unsub = invalidations.subscribe('users:update', (e) => {
 			if (e.id !== username) return;
 			if (!hasChanges) loadUser();
-			else toast.info('User changed elsewhere — save to overwrite or reload');
+			else toast.info(i18n.t('ADMIN_NEXT.USERS.USER_CHANGED_ELSEWHERE_SAVE_TO'));
 		}, {
 			// Skip self-echo: our own PATCH emits this same event before handleSave
 			// has cleared hasChanges, which would otherwise toast on every save.
@@ -305,7 +306,7 @@
 </script>
 
 <svelte:head>
-	<title>{user?.fullname ?? username} — Users — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.USERS.PAGE_TITLE', { name: user?.fullname ?? username })}</title>
 </svelte:head>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -360,15 +361,15 @@
 								size="sm"
 								onclick={handleDelete}
 								disabled={deleting || user.username === auth.username}
-								aria-label="Delete"
-								title="Delete"
+								aria-label={i18n.t('ADMIN_NEXT.DELETE')}
+								title={i18n.t('ADMIN_NEXT.DELETE')}
 							>
 								{#if deleting}
 									<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
 								{:else}
 									<Trash2 size={14} class="sm:mr-1.5" />
 								{/if}
-								<span class="hidden sm:inline">Delete</span>
+								<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.DELETE')}</span>
 							</Button>
 
 							<Button
@@ -407,7 +408,7 @@
 				<AlertCircle size={32} class="mx-auto text-destructive" />
 				<p class="mt-2 text-sm text-destructive">{error}</p>
 				<Button variant="outline" size="sm" class="mt-3" onclick={() => goto(`${base}/users`)}>
-					Back to Users
+					{i18n.t('ADMIN_NEXT.USERS.BACK_TO_USERS')}
 				</Button>
 			</div>
 		</div>
@@ -433,7 +434,7 @@
 				     the whole section to avoid a confusing dead-end. -->
 				{#if user && user.twofa_global_enabled}
 					<div class="rounded-xl border border-border bg-card p-5">
-						<h2 class="text-sm font-semibold text-foreground">2-Factor Authentication</h2>
+						<h2 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.USERS.2_FACTOR_AUTHENTICATION')}</h2>
 						<div class="mt-4">
 							<TwoFactorField
 								username={user.username}
@@ -452,7 +453,7 @@
 
 				<!-- Permissions (always rendered separately) -->
 				<div class="rounded-xl border border-border bg-card p-5">
-					<h2 class="text-sm font-semibold text-foreground">Permissions</h2>
+					<h2 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.USERS.PERMISSIONS')}</h2>
 					<div class="mt-4">
 						<PermissionsField value={access} onchange={handleAccessChange} />
 					</div>
@@ -467,7 +468,7 @@
 
 <ConfirmModal
 	open={confirmDeleteOpen}
-	title="Delete User"
+	title={i18n.t('ADMIN_NEXT.USERS.DELETE_USER')}
 	message={`Are you sure you want to delete "${user?.fullname || username}"? This action cannot be undone.`}
 	confirmLabel="Delete"
 	variant="destructive"
@@ -477,7 +478,7 @@
 
 <ConfirmModal
 	open={guard.showModal}
-	title="Unsaved Changes"
+	title={i18n.t('ADMIN_NEXT.UNSAVED_CHANGES')}
 	message="You have unsaved changes. Leave anyway?"
 	confirmLabel="Leave"
 	cancelLabel="Stay"

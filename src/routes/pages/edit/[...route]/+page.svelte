@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -509,7 +510,7 @@
 				}
 			}
 		} catch {
-			toast.error('Invalid YAML frontmatter');
+			toast.error(i18n.t('ADMIN_NEXT.PAGES.EDIT.INVALID_YAML_FRONTMATTER'));
 			return;
 		}
 		prefs.editorMode = 'normal';
@@ -734,7 +735,7 @@
 						body.header = parsed;
 					}
 				} catch {
-					toast.error('Invalid YAML frontmatter — fix syntax before saving');
+					toast.error(i18n.t('ADMIN_NEXT.PAGES.EDIT.INVALID_YAML_FRONTMATTER_FIX_SYNTAX'));
 					saving = false;
 					return;
 				}
@@ -772,7 +773,7 @@
 			);
 
 			if (Object.keys(body).length === 0 && !expertNeedsMove) {
-				toast.info('No changes to save');
+				toast.info(i18n.t('ADMIN_NEXT.NO_CHANGES'));
 				return;
 			}
 
@@ -825,7 +826,7 @@
 				headerChanges = {};
 
 				if (moved.route !== route) {
-					toast.success('Page saved and moved');
+					toast.success(i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_SAVED_AND_MOVED'));
 					guard.bypass();
 					const newEditRoute = moved.route.startsWith('/') ? moved.route.slice(1) : moved.route;
 					goto(`${base}/pages/edit/${newEditRoute}`, { replaceState: true });
@@ -835,12 +836,12 @@
 				await loadPage();
 			}
 
-			toast.success('Page saved successfully');
+			toast.success(i18n.t('ADMIN_NEXT.PAGES.SAVED'));
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'message' in err) {
 				toast.error((err as { message: string }).message);
 			} else {
-				toast.error('Failed to save page');
+				toast.error(i18n.t('ADMIN_NEXT.PAGES.SAVE_FAILED'));
 			}
 		} finally {
 			saving = false;
@@ -903,7 +904,7 @@
 			if (err && typeof err === 'object' && 'message' in err) {
 				toast.error((err as { message: string }).message);
 			} else {
-				toast.error('Failed to create translation');
+				toast.error(i18n.t('ADMIN_NEXT.PAGES.EDIT.FAILED_TO_CREATE_TRANSLATION'));
 			}
 		} finally {
 			saving = false;
@@ -937,7 +938,7 @@
 			if (err && typeof err === 'object' && 'message' in err) {
 				toast.error((err as { message: string }).message);
 			} else {
-				toast.error('Failed to sync translation');
+				toast.error(i18n.t('ADMIN_NEXT.PAGES.EDIT.FAILED_TO_SYNC_TRANSLATION'));
 			}
 		} finally {
 			saving = false;
@@ -975,10 +976,10 @@
 		confirmDeleteOpen = false;
 		try {
 			await deletePage(route, { children: true });
-			toast.success('Page deleted');
+			toast.success(i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_DELETED'));
 			goto(`${base}/pages`);
 		} catch {
-			toast.error('Failed to delete page');
+			toast.error(i18n.t('ADMIN_NEXT.PAGES.DELETE_FAILED'));
 		}
 	}
 
@@ -1020,7 +1021,7 @@
 				// Non-fatal: folder was copied, title update failed.
 			}
 
-			toast.success('Page copied');
+			toast.success(i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_COPIED'));
 			goto(`${base}/pages/edit${newPage.route}`);
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err);
@@ -1070,7 +1071,7 @@
 		const unsub = invalidations.subscribe('pages:update', (e) => {
 			if (e.id !== route) return;
 			if (!hasChanges) loadPage();
-			else toast.info('Page changed elsewhere — save to overwrite or reload');
+			else toast.info(i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_CHANGED_ELSEWHERE_SAVE_TO'));
 		}, {
 			dirtyGuard: () => saving || autoSave.saving,
 		});
@@ -1079,7 +1080,7 @@
 </script>
 
 <svelte:head>
-	<title>{title || 'Edit Page'} — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.APP.PAGE_TITLE', { name: title || i18n.t('ADMIN_NEXT.PAGES.EDIT.EDIT_PAGE') })}</title>
 </svelte:head>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -1132,7 +1133,7 @@
 						? 'border-primary bg-primary/10 text-primary'
 						: 'border-border text-muted-foreground hover:bg-accent hover:text-foreground'}"
 				onclick={() => showNavigator = !showNavigator}
-				title="Toggle page navigator"
+				title={i18n.t('ADMIN_NEXT.PAGES.EDIT.TOGGLE_PAGE_NAVIGATOR')}
 			>
 				<Move size={14} />
 			</button>
@@ -1160,18 +1161,18 @@
 				{/if}
 			</button>
 			<!-- Preview, Copy, Delete — always icon-only -->
-			<Button variant="outline" size="icon" class="h-8 w-8" title="Preview page" onclick={() => showFrontendPreview = true} disabled={loading || !pageData}>
+			<Button variant="outline" size="icon" class="h-8 w-8" title={i18n.t('ADMIN_NEXT.PAGES.EDIT.PREVIEW_PAGE')} onclick={() => showFrontendPreview = true} disabled={loading || !pageData}>
 				<Eye size={14} />
 			</Button>
 			{#if canEditPages}
-				<Button variant="outline" size="icon" class="h-8 w-8" title="Copy page" onclick={handleCopy} disabled={loading || copying || !pageData}>
+				<Button variant="outline" size="icon" class="h-8 w-8" title={i18n.t('ADMIN_NEXT.PAGES.EDIT.COPY_PAGE')} onclick={handleCopy} disabled={loading || copying || !pageData}>
 					{#if copying}
 						<Loader2 size={14} class="animate-spin" />
 					{:else}
 						<CopyIcon size={14} />
 					{/if}
 				</Button>
-				<Button variant="destructive" size="icon" class="h-8 w-8" title="Delete page" onclick={handleDelete} disabled={loading}>
+				<Button variant="destructive" size="icon" class="h-8 w-8" title={i18n.t('ADMIN_NEXT.PAGES.EDIT.DELETE_PAGE')} onclick={handleDelete} disabled={loading}>
 					<Trash2 size={14} />
 				</Button>
 			{/if}
@@ -1181,16 +1182,16 @@
 			<!-- Save button with Save As dropdown -->
 			{#if canEditPages}
 			<div class="relative flex">
-				<Button size="sm" class="px-2 lg:px-3 {(hasChanges || canCreateTranslation) ? '' : 'opacity-50 pointer-events-none'} {saveAsLanguages.length > 0 ? 'rounded-r-none' : ''}" title={saving ? 'Saving…' : canCreateTranslation ? `Save as ${contentLang.getLanguageName(contentLang.activeLang)}` : 'Save'} onclick={triggerSave} disabled={saving || loading}>
+				<Button size="sm" class="px-2 lg:px-3 {(hasChanges || canCreateTranslation) ? '' : 'opacity-50 pointer-events-none'} {saveAsLanguages.length > 0 ? 'rounded-r-none' : ''}" title={saving ? i18n.t('ADMIN_NEXT.SAVING') : canCreateTranslation ? i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVE_AS_LANGUAGE', { language: contentLang.getLanguageName(contentLang.activeLang) }) : i18n.t('ADMIN_NEXT.SAVE')} onclick={triggerSave} disabled={saving || loading}>
 					{#if saving}
 						<Loader2 size={14} class="animate-spin" />
-						<span class="hidden lg:inline">Saving...</span>
+						<span class="hidden lg:inline">{i18n.t('ADMIN_NEXT.SAVING')}</span>
 					{:else if canCreateTranslation}
 						<Languages size={14} />
-						<span class="hidden lg:inline">Save as {contentLang.getLanguageName(contentLang.activeLang)}</span>
+						<span class="hidden lg:inline">{i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVE_AS_LANGUAGE', { language: contentLang.getLanguageName(contentLang.activeLang) })}</span>
 					{:else}
 						<Save size={14} />
-						<span class="hidden lg:inline">Save</span>
+						<span class="hidden lg:inline">{i18n.t('ADMIN_NEXT.SAVE')}</span>
 					{/if}
 				</Button>
 				{#if saveAsLanguages.length > 0}
@@ -1212,7 +1213,7 @@
 									onclick={() => handleSaveAsTranslation(lang)}
 								>
 									<Languages size={14} class="text-muted-foreground" />
-									Save as {contentLang.getLanguageName(lang)}
+									{i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVE_AS_LANGUAGE', { language: contentLang.getLanguageName(lang) })}
 								</button>
 							{/each}
 						</div>
@@ -1239,17 +1240,17 @@
 	{#if isFallback}
 		<div class="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-300">
 			<Languages size={16} class="shrink-0" />
-			<span>No {contentLang.getLanguageName(contentLang.activeLang)} translation exists. Viewing {contentLang.getLanguageName(effectiveLang)} fallback. Use "Save as {contentLang.getLanguageName(contentLang.activeLang)}" to create a translation you can edit.</span>
+			<span>{@html i18n.tHtml('ADMIN_NEXT.PAGES.EDIT.FALLBACK_NOTICE', { active: contentLang.getLanguageName(contentLang.activeLang), effective: contentLang.getLanguageName(effectiveLang) })}</span>
 			{#if pageData?.untranslated_languages?.includes(contentLang.activeLang)}
 				<button class="shrink-0 ml-auto text-xs font-medium underline" onclick={() => handleSaveAsTranslation(contentLang.activeLang)}>
-					Save as {contentLang.getLanguageName(contentLang.activeLang)}
+					{i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVE_AS_LANGUAGE', { language: contentLang.getLanguageName(contentLang.activeLang) })}
 				</button>
 			{/if}
 		</div>
 	{/if}
 
 	{#if loading}
-		<div class="py-20 text-center text-sm text-muted-foreground">Loading page...</div>
+		<div class="py-20 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.LOADING_PAGE')}</div>
 	{:else if pageData}
 		<div class="grid grid-cols-1 gap-4 {prefs.pageSidebarCollapsed ? 'lg:grid-cols-1' : 'lg:grid-cols-[minmax(0,1fr)_280px]'}">
 			<!-- Main content area -->
@@ -1270,7 +1271,7 @@
 						>
 							<div class="flex items-center gap-2 border-b border-border px-4 py-2">
 								<Code size={13} class="text-muted-foreground" />
-								<span class="text-xs font-medium text-muted-foreground">Frontmatter</span>
+								<span class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.FRONTMATTER')}</span>
 							</div>
 							<CodeEditor
 								value={expertFrontmatter}
@@ -1297,7 +1298,7 @@
 								<MarkdownEditor
 									value={content}
 									onchange={(v) => { content = v; }}
-									placeholder="Write your markdown content here..."
+									placeholder={i18n.t('ADMIN_NEXT.PAGES.EDIT.WRITE_YOUR_MARKDOWN_CONTENT_HERE')}
 									minHeight="400px"
 									class="border-0 shadow-none"
 									readonly={!!editorLock}
@@ -1316,9 +1317,9 @@
 							<div class="space-y-2">
 								<div>
 									<span class="text-sm font-semibold text-foreground">
-										Folder Name <span class="text-red-500">*</span>
+										{i18n.t('ADMIN_NEXT.PAGES.EDIT.FOLDER_NAME')} <span class="text-red-500">*</span>
 									</span>
-									<p class="mt-0.5 text-xs text-muted-foreground">The folder name on disk (URL slug)</p>
+									<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.THE_FOLDER_NAME_ON_DISK_URL_SLUG')}</p>
 								</div>
 								<input
 									type="text"
@@ -1392,7 +1393,7 @@
 						<MarkdownEditor
 							value={content}
 							onchange={(v) => { content = v; }}
-							placeholder="Write your markdown content here..."
+							placeholder={i18n.t('ADMIN_NEXT.PAGES.EDIT.WRITE_YOUR_MARKDOWN_CONTENT_HERE')}
 							minHeight="400px"
 							readonly={!!editorLock}
 							yText={editorCollab?.yText ?? null}
@@ -1409,7 +1410,7 @@
 				<div class="space-y-4">
 				<!-- Page Status & Info -->
 				<div class="rounded-lg border border-border bg-card p-4">
-					<h3 class="mb-3 text-sm font-semibold text-foreground">Page Info</h3>
+					<h3 class="mb-3 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.PAGES.PAGE_INFO')}</h3>
 					<dl class="space-y-2.5 text-[13px]">
 						<!-- Status indicators -->
 						<div class="flex justify-between">
@@ -1419,7 +1420,7 @@
 								{:else}
 									<span class="h-2 w-2 rounded-full bg-muted-foreground/40"></span>
 								{/if}
-								Published
+								{i18n.t('ADMIN_NEXT.PAGES.PUBLISHED')}
 							</dt>
 							<dd class="font-medium {pageData.published ? 'text-emerald-500' : 'text-muted-foreground'}">
 								{pageData.published ? 'Yes' : 'No'}
@@ -1432,7 +1433,7 @@
 								{:else}
 									<span class="h-2 w-2 rounded-full bg-muted-foreground/40"></span>
 								{/if}
-								Visible in nav
+								{i18n.t('ADMIN_NEXT.PAGES.INFO_VISIBLE')}
 							</dt>
 							<dd class="font-medium {pageData.visible ? 'text-primary' : 'text-muted-foreground'}">
 								{pageData.visible ? 'Yes' : 'No'}
@@ -1440,7 +1441,7 @@
 						</div>
 						{#if pageData.routable !== undefined}
 							<div class="flex justify-between">
-								<dt class="text-muted-foreground">Routable</dt>
+								<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.INFO_ROUTABLE')}</dt>
 								<dd class="font-medium {pageData.routable ? 'text-foreground' : 'text-muted-foreground'}">
 									{pageData.routable ? 'Yes' : 'No'}
 								</dd>
@@ -1459,13 +1460,13 @@
 							<dd class="font-medium text-foreground">{pageData.slug}</dd>
 						</div>
 						<div class="flex justify-between">
-							<dt class="text-muted-foreground">Template</dt>
+							<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_TEMPLATE')}</dt>
 							<dd class="font-medium text-foreground">{pageData.template}</dd>
 						</div>
 						{#if contentLang.enabled}
 							<div class="flex justify-between">
-								<dt class="text-muted-foreground">Language</dt>
-								<dd class="font-medium text-foreground">{effectiveLang?.toUpperCase()}{#if isFallback} <span class="text-amber-500 text-[11px]">(fallback)</span>{/if}</dd>
+								<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.INFO_LANGUAGE')}</dt>
+								<dd class="font-medium text-foreground">{effectiveLang?.toUpperCase()}{#if isFallback} <span class="text-amber-500 text-[11px]">{i18n.t('ADMIN_NEXT.PAGES.EDIT.FALLBACK')}</span>{/if}</dd>
 							</div>
 						{/if}
 						{#if pageData.order}
@@ -1485,18 +1486,18 @@
 							</div>
 						{/if}
 						<div class="flex justify-between">
-							<dt class="text-muted-foreground">Modified</dt>
+							<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_MODIFIED')}</dt>
 							<dd class="font-medium text-foreground">{new Date(pageData.modified).toLocaleString()}</dd>
 						</div>
 						{#if pageData.header?.publish_date}
 							<div class="flex justify-between">
-								<dt class="text-muted-foreground">Publish on</dt>
+								<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.PUBLISH_ON')}</dt>
 								<dd class="font-medium text-emerald-500">{new Date(pageData.header.publish_date as string).toLocaleString()}</dd>
 							</div>
 						{/if}
 						{#if pageData.header?.unpublish_date}
 							<div class="flex justify-between">
-								<dt class="text-muted-foreground">Unpublish on</dt>
+								<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.UNPUBLISH_ON')}</dt>
 								<dd class="font-medium text-amber-500">{new Date(pageData.header.unpublish_date as string).toLocaleString()}</dd>
 							</div>
 						{/if}
@@ -1506,7 +1507,7 @@
 				<!-- Translations (shown when multilang enabled) -->
 				{#if contentLang.enabled && (pageData.translated_languages || pageData.untranslated_languages)}
 					<div class="rounded-lg border border-border bg-card p-4">
-						<h3 class="mb-3 text-sm font-semibold text-foreground">Translations</h3>
+						<h3 class="mb-3 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.LANG.TRANSLATIONS')}</h3>
 						<div class="space-y-1.5">
 							{#if pageData.translated_languages}
 								{#each Object.keys(pageData.translated_languages) as lang}
@@ -1527,7 +1528,7 @@
 							{/if}
 							{#if pageData.untranslated_languages && pageData.untranslated_languages.length > 0}
 								<div class="my-1 border-t border-border"></div>
-								<p class="px-2 text-[11px] text-muted-foreground">Not translated:</p>
+								<p class="px-2 text-[11px] text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.NOT_TRANSLATED')}</p>
 								{#each pageData.untranslated_languages as lang}
 									<button
 										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
@@ -1535,13 +1536,13 @@
 									>
 										<span class="inline-flex h-5 w-6 items-center justify-center rounded bg-muted/50 text-[10px] font-bold uppercase text-muted-foreground/50"
 										>{lang}</span>
-										<span class="italic">Create {contentLang.getLanguageName(lang)}</span>
+										<span class="italic">{i18n.t('ADMIN_NEXT.PAGES.EDIT.CREATE_LANGUAGE', { language: contentLang.getLanguageName(lang) })}</span>
 									</button>
 								{/each}
 							{/if}
 							{#if !contentLang.isDefault && pageData.translated_languages && Object.keys(pageData.translated_languages).length > 1}
 								<div class="my-1 border-t border-border"></div>
-								<p class="px-2 text-[11px] text-muted-foreground">Reset content from:</p>
+								<p class="px-2 text-[11px] text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.RESET_CONTENT_FROM')}</p>
 								{#each Object.keys(pageData.translated_languages).filter(l => l !== contentLang.activeLang) as lang}
 									<button
 										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
@@ -1549,7 +1550,7 @@
 									>
 										<span class="inline-flex h-5 w-6 items-center justify-center rounded bg-amber-500/15 text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400"
 										>{lang}</span>
-										Reset from {contentLang.getLanguageName(lang)}
+										{i18n.t('ADMIN_NEXT.PAGES.EDIT.RESET_FROM', { language: contentLang.getLanguageName(lang) })}
 									</button>
 								{/each}
 							{/if}
@@ -1573,7 +1574,7 @@
 
 <ConfirmModal
 	open={confirmDeleteOpen}
-	title="Delete Page"
+	title={i18n.t('ADMIN_NEXT.PAGES.EDIT.DELETE_PAGE')}
 	message={`Delete "${pageData?.title}" at ${route}? This cannot be undone.`}
 	confirmLabel="Delete"
 	variant="destructive"
@@ -1583,7 +1584,7 @@
 
 <ConfirmModal
 	open={guard.showModal}
-	title="Unsaved Changes"
+	title={i18n.t('ADMIN_NEXT.UNSAVED_CHANGES')}
 	message="You have unsaved changes. Leave anyway?"
 	confirmLabel="Leave"
 	cancelLabel="Stay"
@@ -1593,7 +1594,7 @@
 
 <ConfirmModal
 	open={confirmSyncOpen}
-	title="Reset Translation"
+	title={i18n.t('ADMIN_NEXT.PAGES.EDIT.RESET_TRANSLATION')}
 	message={`This will overwrite all ${contentLang.getLanguageName(contentLang.activeLang)} content and header fields with the ${contentLang.getLanguageName(pendingSyncSource)} version. You can then re-translate the content.`}
 	confirmLabel="Reset"
 	variant="destructive"
@@ -1603,7 +1604,7 @@
 
 <ConfirmModal
 	open={confirmLangSwitchOpen}
-	title="Unsaved Changes"
+	title={i18n.t('ADMIN_NEXT.UNSAVED_CHANGES')}
 	message="You have unsaved changes. Switch language anyway?"
 	confirmLabel="Switch"
 	onconfirm={() => { confirmLangSwitchOpen = false; doLanguageSwitch(pendingLangSwitch); }}
@@ -1622,7 +1623,7 @@
 			<!-- Header -->
 			<div class="flex shrink-0 items-center justify-between border-b border-border px-4 py-2.5">
 				<div class="flex items-center gap-3">
-					<h2 class="text-sm font-semibold text-foreground">Page Preview</h2>
+					<h2 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_PREVIEW')}</h2>
 					<span class="truncate text-xs text-muted-foreground">{frontendPreviewUrl}</span>
 				</div>
 				<div class="flex items-center gap-2">
@@ -1633,7 +1634,7 @@
 						class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 					>
 						<ExternalLink size={13} />
-						Open in New Tab
+						{i18n.t('ADMIN_NEXT.PAGES.EDIT.OPEN_IN_NEW_TAB')}
 					</a>
 					<button
 						class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -1648,7 +1649,7 @@
 			<div class="flex-1 bg-white">
 				<iframe
 					src={frontendPreviewUrl}
-					title="Page Preview"
+					title={i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_PREVIEW')}
 					class="h-full w-full border-0"
 					sandbox="allow-same-origin allow-scripts allow-forms"
 				></iframe>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -193,9 +194,9 @@
 			toast.success(`${theme?.name ?? slug} configuration saved`);
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {
-				toast.error('Configuration was modified elsewhere. Please reload.');
+				toast.error(i18n.t('ADMIN_NEXT.THEMES.CONFIGURATION_WAS_MODIFIED_ELSEWHERE'));
 			} else {
-				toast.error('Failed to save configuration.');
+				toast.error(i18n.t('ADMIN_NEXT.THEMES.FAILED_TO_SAVE_CONFIGURATION'));
 			}
 		} finally {
 			saving = false;
@@ -318,7 +319,7 @@
 </script>
 
 <svelte:head>
-	<title>{theme?.name ?? slug} — Themes — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.THEMES.PAGE_TITLE', { name: theme?.name ?? slug })}</title>
 </svelte:head>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -350,10 +351,10 @@
 								<BadgeCheck size={18} class="shrink-0 text-purple-500" />
 							{/if}
 							{#if theme.is_symlink}
-								<span class="inline-flex shrink-0" title="Symlinked"><CornerDownRight size={14} class="text-muted-foreground/60" aria-label="Symlinked" /></span>
+								<span class="inline-flex shrink-0" title={i18n.t('ADMIN_NEXT.THEMES.SYMLINKED')}><CornerDownRight size={14} class="text-muted-foreground/60" aria-label={i18n.t('ADMIN_NEXT.THEMES.SYMLINKED')} /></span>
 							{/if}
 							{#if theme.premium}
-								<span class="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">Premium</span>
+								<span class="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">{i18n.t('ADMIN_NEXT.PREMIUM')}</span>
 							{/if}
 						</div>
 						<div class="flex items-center gap-2 text-xs text-muted-foreground">
@@ -389,15 +390,15 @@
 						size="sm"
 						onclick={handleUpdate}
 						disabled={updating}
-						aria-label="Update to v{theme.available_version}"
-						title="Update to v{theme.available_version}"
+						aria-label={i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: theme.available_version })}
+						title={i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: theme.available_version })}
 					>
 						{#if updating}
 							<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
 						{:else}
 							<ArrowUpCircle size={14} class="sm:mr-1.5" />
 						{/if}
-						<span class="hidden sm:inline">Update to v{theme.available_version}</span>
+						<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: theme.available_version })}</span>
 					</Button>
 				{/if}
 
@@ -407,15 +408,15 @@
 					size="sm"
 					onclick={handleDelete}
 					disabled={deleting || theme.enabled || PROTECTED_THEMES.has(theme.slug)}
-					aria-label="Remove"
-					title="Remove"
+					aria-label={i18n.t('ADMIN_NEXT.REMOVE')}
+					title={i18n.t('ADMIN_NEXT.REMOVE')}
 				>
 					{#if deleting}
 						<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
 					{:else}
 						<Trash2 size={14} class="sm:mr-1.5" />
 					{/if}
-					<span class="hidden sm:inline">Remove</span>
+					<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.REMOVE')}</span>
 				</Button>
 
 				<!-- Activate button -->
@@ -425,19 +426,19 @@
 						size="sm"
 						onclick={handleActivate}
 						disabled={activating}
-						aria-label="Activate"
-						title="Activate"
+						aria-label={i18n.t('ADMIN_NEXT.ACTIVATE')}
+						title={i18n.t('ADMIN_NEXT.ACTIVATE')}
 					>
 						{#if activating}
 							<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
 						{:else}
 							<Power size={14} class="sm:mr-1.5" />
 						{/if}
-						<span class="hidden sm:inline">Activate</span>
+						<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.ACTIVATE')}</span>
 					</Button>
 				{:else}
-					<span class="inline-flex h-8 items-center rounded-md bg-green-500/15 px-2 text-xs font-medium text-green-600 dark:text-green-400 sm:px-3" title="Active Theme">
-						<span class="hidden sm:inline">Active Theme</span>
+					<span class="inline-flex h-8 items-center rounded-md bg-green-500/15 px-2 text-xs font-medium text-green-600 dark:text-green-400 sm:px-3" title={i18n.t('ADMIN_NEXT.THEMES.ACTIVE_THEME')}>
+						<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.THEMES.ACTIVE_THEME')}</span>
 						<BadgeCheck size={14} class="sm:hidden" />
 					</span>
 				{/if}
@@ -472,7 +473,7 @@
 				<AlertCircle size={32} class="mx-auto text-destructive" />
 				<p class="mt-2 text-sm text-destructive">{error}</p>
 				<Button variant="outline" size="sm" class="mt-3" onclick={() => goto(`${base}/themes`)}>
-					Back to Themes
+					{i18n.t('ADMIN_NEXT.THEMES.BACK_TO_THEMES')}
 				</Button>
 			</div>
 		</div>
@@ -488,7 +489,7 @@
 								type="button"
 								class="shrink-0 overflow-hidden rounded-lg border border-border transition-shadow hover:shadow-lg hover:ring-2 hover:ring-primary/30"
 								onclick={() => { screenshotOpen = true; }}
-								title="Click to view full size"
+								title={i18n.t('ADMIN_NEXT.THEMES.CLICK_TO_VIEW_FULL_SIZE')}
 							>
 								<img
 									src={resolveUrl(theme.thumbnail ?? theme.screenshot)}
@@ -514,7 +515,7 @@
 							<div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
 								{#if theme.homepage}
 									<a href={theme.homepage} target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-primary hover:underline">
-										Homepage <ExternalLink size={10} />
+										{i18n.t('ADMIN_NEXT.HOMEPAGE')} <ExternalLink size={10} />
 									</a>
 								{/if}
 								{#if theme.author?.url}
@@ -528,7 +529,7 @@
 									<BookOpen size={10} /> README
 								</button>
 								<button type="button" class="inline-flex items-center gap-1 hover:text-foreground" onclick={showChangelog}>
-									<FileText size={10} /> Changelog
+									<FileText size={10} /> {i18n.t('ADMIN_NEXT.THEMES.CHANGELOG')}
 								</button>
 							</div>
 							{#if parseKeywords(theme.keywords).length}
@@ -553,7 +554,7 @@
 				{:else}
 					<div class="rounded-xl border border-dashed border-border p-8 text-center">
 						<p class="text-sm text-muted-foreground">
-							No configuration options available for this theme.
+							{i18n.t('ADMIN_NEXT.THEMES.NO_CONFIGURATION_OPTIONS_AVAILABLE_FOR')}
 						</p>
 					</div>
 				{/if}
@@ -571,7 +572,7 @@
 
 <ConfirmModal
 	open={confirmDeleteOpen}
-	title="Remove Theme"
+	title={i18n.t('ADMIN_NEXT.THEMES.REMOVE_THEME')}
 	message={`Are you sure you want to remove "${theme?.name ?? slug}"? This will permanently delete the theme files.`}
 	confirmLabel="Remove"
 	variant="destructive"
@@ -581,7 +582,7 @@
 
 <ConfirmModal
 	open={guard.showModal}
-	title="Unsaved Changes"
+	title={i18n.t('ADMIN_NEXT.UNSAVED_CHANGES')}
 	message="You have unsaved changes. Leave anyway?"
 	confirmLabel="Leave"
 	cancelLabel="Stay"

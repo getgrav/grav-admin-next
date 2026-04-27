@@ -237,7 +237,7 @@
 							type="button"
 							class="flex shrink-0 items-center rounded-md p-1 text-muted-foreground/40 transition-colors hover:bg-red-500/10 hover:text-red-400"
 							onclick={() => removeItem(item.id)}
-							title="Remove"
+							title={i18n.t('ADMIN_NEXT.REMOVE')}
 						>
 							<Trash2 size={14} />
 						</button>
@@ -289,14 +289,14 @@
 				class="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
 				onclick={expandAll}
 			>
-				<ChevronDown size={12} /> Expand all
+				<ChevronDown size={12} /> {i18n.t('ADMIN_NEXT.EXPAND_ALL')}
 			</button>
 			<button
 				type="button"
 				class="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
 				onclick={collapseAll}
 			>
-				<ChevronRight size={12} /> Collapse all
+				<ChevronRight size={12} /> {i18n.t('ADMIN_NEXT.COLLAPSE_ALL')}
 			</button>
 		{/if}
 		<button

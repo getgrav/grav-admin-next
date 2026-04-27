@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api/client';
 	import { onMount } from 'svelte';
@@ -85,7 +86,7 @@
 	</div>
 {:else if !loaded}
 	<div class="flex h-40 items-center justify-center rounded-lg border border-dashed border-border">
-		<span class="text-sm text-muted-foreground">Loading plugin page...</span>
+		<span class="text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.PLUGIN_PAGE_COMPONENT.LOADING_PLUGIN_PAGE')}</span>
 	</div>
 {/if}
 

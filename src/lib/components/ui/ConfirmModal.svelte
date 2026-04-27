@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { AlertTriangle } from 'lucide-svelte';
 	import { portal } from '$lib/utils/portal';
@@ -16,10 +17,10 @@
 
 	let {
 		open,
-		title = 'Are you sure?',
+		title = i18n.t('ADMIN_NEXT.ARE_YOU_SURE'),
 		message,
-		confirmLabel = 'Confirm',
-		cancelLabel = 'Cancel',
+		confirmLabel = i18n.t('ADMIN_NEXT.CONFIRM'),
+		cancelLabel = i18n.t('ADMIN_NEXT.CANCEL'),
 		variant = 'default',
 		onconfirm,
 		oncancel,

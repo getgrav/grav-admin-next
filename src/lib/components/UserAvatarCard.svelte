@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { uploadAvatar, deleteAvatar, type UserInfo } from '$lib/api/endpoints/users';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -36,9 +37,9 @@
 			const updated = await uploadAvatar(user.username, file);
 			onupdated(updated);
 			syncAuthAvatar(updated);
-			toast.success('Avatar updated');
+			toast.success(i18n.t('ADMIN_NEXT.USER_AVATAR_CARD.AVATAR_UPDATED'));
 		} catch {
-			toast.error('Failed to upload avatar');
+			toast.error(i18n.t('ADMIN_NEXT.USER_AVATAR_CARD.FAILED_TO_UPLOAD_AVATAR'));
 		} finally {
 			uploading = false;
 			if (input) input.value = '';
@@ -51,9 +52,9 @@
 			const updated = await deleteAvatar(user.username);
 			onupdated(updated);
 			syncAuthAvatar(updated);
-			toast.success('Avatar removed');
+			toast.success(i18n.t('ADMIN_NEXT.USER_AVATAR_CARD.AVATAR_REMOVED'));
 		} catch {
-			toast.error('Failed to remove avatar');
+			toast.error(i18n.t('ADMIN_NEXT.USER_AVATAR_CARD.FAILED_TO_REMOVE_AVATAR'));
 		} finally {
 			removing = false;
 		}
@@ -102,7 +103,7 @@
 					disabled={uploading}
 				>
 					<Upload size={12} />
-					Upload Avatar
+					{i18n.t('ADMIN_NEXT.USER_AVATAR_CARD.UPLOAD_AVATAR')}
 				</button>
 				{#if user.avatar_url}
 					<button
@@ -116,7 +117,7 @@
 						{:else}
 							<Trash2 size={12} />
 						{/if}
-						Remove
+						{i18n.t('ADMIN_NEXT.REMOVE')}
 					</button>
 				{/if}
 			</div>

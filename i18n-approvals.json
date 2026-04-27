@@ -1,0 +1,5509 @@
+[
+  {
+    "path": "src/lib/components/AddPluginModal.svelte",
+    "line": 189,
+    "kind": "@placeholder",
+    "text": "Filter plugins...",
+    "key": "ADMIN_NEXT.ADD_PLUGIN_MODAL.FILTER_PLUGINS"
+  },
+  {
+    "path": "src/lib/components/AddPluginModal.svelte",
+    "line": 62,
+    "kind": "toast",
+    "text": "Failed to load available plugins from GPM",
+    "key": "ADMIN_NEXT.ADD_PLUGIN_MODAL.FAILED_TO_LOAD_AVAILABLE_PLUGINS_FROM"
+  },
+  {
+    "path": "src/lib/components/AddPluginModal.svelte",
+    "line": 143,
+    "kind": "text",
+    "text": "Add Plugin",
+    "key": "ADMIN_NEXT.ADD_PLUGIN_MODAL.ADD_PLUGIN"
+  },
+  {
+    "path": "src/lib/components/AddPluginModal.svelte",
+    "line": 158,
+    "kind": "text",
+    "text": "Installing...",
+    "key": "ADMIN_NEXT.INSTALLING"
+  },
+  {
+    "path": "src/lib/components/AddPluginModal.svelte",
+    "line": 161,
+    "kind": "text",
+    "text": "Install",
+    "key": "ADMIN_NEXT.INSTALL"
+  },
+  {
+    "path": "src/lib/components/AddPluginModal.svelte",
+    "line": 224,
+    "kind": "text",
+    "text": "Premium",
+    "key": "ADMIN_NEXT.PREMIUM"
+  },
+  {
+    "path": "src/lib/components/AddPluginModal.svelte",
+    "line": 285,
+    "kind": "text",
+    "text": "Premium",
+    "key": "ADMIN_NEXT.PREMIUM"
+  },
+  {
+    "path": "src/lib/components/AddPluginModal.svelte",
+    "line": 314,
+    "kind": "text",
+    "text": "Author",
+    "key": "ADMIN_NEXT.AUTHOR"
+  },
+  {
+    "path": "src/lib/components/AddPluginModal.svelte",
+    "line": 330,
+    "kind": "text",
+    "text": "Homepage",
+    "key": "ADMIN_NEXT.HOMEPAGE"
+  },
+  {
+    "path": "src/lib/components/AddPluginModal.svelte",
+    "line": 341,
+    "kind": "text",
+    "text": "Version",
+    "key": "ADMIN_NEXT.VERSION"
+  },
+  {
+    "path": "src/lib/components/AddPluginModal.svelte",
+    "line": 354,
+    "kind": "text",
+    "text": "Keywords",
+    "key": "ADMIN_NEXT.KEYWORDS"
+  },
+  {
+    "path": "src/lib/components/AddPluginModal.svelte",
+    "line": 366,
+    "kind": "text",
+    "text": "Dependencies",
+    "key": "ADMIN_NEXT.DEPENDENCIES"
+  },
+  {
+    "path": "src/lib/components/AddPluginModal.svelte",
+    "line": 381,
+    "kind": "text",
+    "text": "Select a plugin to view details",
+    "key": "ADMIN_NEXT.ADD_PLUGIN_MODAL.SELECT_A_PLUGIN_TO_VIEW_DETAILS"
+  },
+  {
+    "path": "src/lib/components/AddThemeModal.svelte",
+    "line": 172,
+    "kind": "@placeholder",
+    "text": "Filter themes...",
+    "key": "ADMIN_NEXT.ADD_THEME_MODAL.FILTER_THEMES"
+  },
+  {
+    "path": "src/lib/components/AddThemeModal.svelte",
+    "line": 63,
+    "kind": "toast",
+    "text": "Failed to load available themes from GPM",
+    "key": "ADMIN_NEXT.ADD_THEME_MODAL.FAILED_TO_LOAD_AVAILABLE_THEMES_FROM_GPM"
+  },
+  {
+    "path": "src/lib/components/AddThemeModal.svelte",
+    "line": 126,
+    "kind": "text",
+    "text": "Add Theme",
+    "key": "ADMIN_NEXT.ADD_THEME_MODAL.ADD_THEME"
+  },
+  {
+    "path": "src/lib/components/AddThemeModal.svelte",
+    "line": 141,
+    "kind": "text",
+    "text": "Installing...",
+    "key": "ADMIN_NEXT.INSTALLING"
+  },
+  {
+    "path": "src/lib/components/AddThemeModal.svelte",
+    "line": 144,
+    "kind": "text",
+    "text": "Install",
+    "key": "ADMIN_NEXT.INSTALL"
+  },
+  {
+    "path": "src/lib/components/AddThemeModal.svelte",
+    "line": 209,
+    "kind": "text",
+    "text": "Premium",
+    "key": "ADMIN_NEXT.PREMIUM"
+  },
+  {
+    "path": "src/lib/components/AddThemeModal.svelte",
+    "line": 269,
+    "kind": "text",
+    "text": "Premium",
+    "key": "ADMIN_NEXT.PREMIUM"
+  },
+  {
+    "path": "src/lib/components/AddThemeModal.svelte",
+    "line": 296,
+    "kind": "text",
+    "text": "Author",
+    "key": "ADMIN_NEXT.AUTHOR"
+  },
+  {
+    "path": "src/lib/components/AddThemeModal.svelte",
+    "line": 312,
+    "kind": "text",
+    "text": "Homepage",
+    "key": "ADMIN_NEXT.HOMEPAGE"
+  },
+  {
+    "path": "src/lib/components/AddThemeModal.svelte",
+    "line": 323,
+    "kind": "text",
+    "text": "Version",
+    "key": "ADMIN_NEXT.VERSION"
+  },
+  {
+    "path": "src/lib/components/AddThemeModal.svelte",
+    "line": 335,
+    "kind": "text",
+    "text": "Keywords",
+    "key": "ADMIN_NEXT.KEYWORDS"
+  },
+  {
+    "path": "src/lib/components/AddThemeModal.svelte",
+    "line": 346,
+    "kind": "text",
+    "text": "Dependencies",
+    "key": "ADMIN_NEXT.DEPENDENCIES"
+  },
+  {
+    "path": "src/lib/components/AddThemeModal.svelte",
+    "line": 361,
+    "kind": "text",
+    "text": "Select a theme to view details",
+    "key": "ADMIN_NEXT.ADD_THEME_MODAL.SELECT_A_THEME_TO_VIEW_DETAILS"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 158,
+    "kind": "@title",
+    "text": "Revoke key",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.REVOKE_KEY"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 203,
+    "kind": "@placeholder",
+    "text": "e.g. My CLI Tool",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.E_G_MY_CLI_TOOL"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 236,
+    "kind": "@title",
+    "text": "Revoke API Key",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.REVOKE_API_KEY"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 53,
+    "kind": "toast",
+    "text": "Failed to load API keys",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.FAILED_TO_LOAD_API_KEYS"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 61,
+    "kind": "toast",
+    "text": "Please enter a key name",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.PLEASE_ENTER_A_KEY_NAME"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 73,
+    "kind": "toast",
+    "text": "API key generated",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.API_KEY_GENERATED"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 75,
+    "kind": "toast",
+    "text": "Failed to generate API key",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.FAILED_TO_GENERATE_API_KEY"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 95,
+    "kind": "toast",
+    "text": "Failed to revoke API key",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.FAILED_TO_REVOKE_API_KEY"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 108,
+    "kind": "toast",
+    "text": "Failed to copy to clipboard",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.FAILED_TO_COPY_TO_CLIPBOARD"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 119,
+    "kind": "text",
+    "text": "API Keys",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.API_KEYS"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 127,
+    "kind": "text",
+    "text": "No API keys have been generated yet.",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.NO_API_KEYS_HAVE_BEEN_GENERATED_YET"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 135,
+    "kind": "text",
+    "text": "Key Prefix",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.KEY_PREFIX"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 136,
+    "kind": "text",
+    "text": "Created",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.CREATED"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 137,
+    "kind": "text",
+    "text": "Expires",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.EXPIRES"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 138,
+    "kind": "text",
+    "text": "Last Used",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.LAST_USED"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 189,
+    "kind": "text",
+    "text": "Copy this key now — it will not be shown again.",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.COPY_THIS_KEY_NOW_IT_WILL_NOT_BE_SHOWN"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 198,
+    "kind": "text",
+    "text": "Key Name",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.KEY_NAME"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 208,
+    "kind": "text",
+    "text": "Expiry",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.EXPIRY"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 220,
+    "kind": "text",
+    "text": "(blank = never)",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.BLANK_NEVER"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 223,
+    "kind": "text",
+    "text": "Generating...",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.GENERATING"
+  },
+  {
+    "path": "src/lib/components/ApiKeysField.svelte",
+    "line": 226,
+    "kind": "text",
+    "text": "Generate Key",
+    "key": "ADMIN_NEXT.API_KEYS_FIELD.GENERATE_KEY"
+  },
+  {
+    "path": "src/lib/components/AppShell.svelte",
+    "line": 135,
+    "kind": "@aria-label",
+    "text": "Close menu",
+    "key": "ADMIN_NEXT.APP_SHELL.CLOSE_MENU"
+  },
+  {
+    "path": "src/lib/components/AppShell.svelte",
+    "line": 236,
+    "kind": "@title",
+    "text": "Sign out",
+    "key": "ADMIN_NEXT.SIGN_OUT"
+  },
+  {
+    "path": "src/lib/components/AppShell.svelte",
+    "line": 282,
+    "kind": "@aria-label",
+    "text": "Toggle menu",
+    "key": "ADMIN_NEXT.TOGGLE_MENU"
+  },
+  {
+    "path": "src/lib/components/AppShell.svelte",
+    "line": 313,
+    "kind": "@title",
+    "text": "Normal mode",
+    "key": "ADMIN_NEXT.NORMAL_MODE"
+  },
+  {
+    "path": "src/lib/components/AppShell.svelte",
+    "line": 314,
+    "kind": "@aria-label",
+    "text": "Normal mode",
+    "key": "ADMIN_NEXT.NORMAL_MODE"
+  },
+  {
+    "path": "src/lib/components/AppShell.svelte",
+    "line": 325,
+    "kind": "@title",
+    "text": "Expert mode",
+    "key": "ADMIN_NEXT.EXPERT_MODE"
+  },
+  {
+    "path": "src/lib/components/AppShell.svelte",
+    "line": 326,
+    "kind": "@aria-label",
+    "text": "Expert mode",
+    "key": "ADMIN_NEXT.EXPERT_MODE"
+  },
+  {
+    "path": "src/lib/components/AppShell.svelte",
+    "line": 347,
+    "kind": "@aria-label",
+    "text": "Toggle dark mode",
+    "key": "ADMIN_NEXT.TOGGLE_DARK_MODE"
+  },
+  {
+    "path": "src/lib/components/AppShell.svelte",
+    "line": 252,
+    "kind": "text",
+    "text": "Grav v",
+    "key": "ADMIN_NEXT.APP_SHELL.GRAV_V"
+  },
+  {
+    "path": "src/lib/components/AppShell.svelte",
+    "line": 253,
+    "kind": "text",
+    "text": "Admin v",
+    "key": "ADMIN_NEXT.APP_SHELL.ADMIN_V"
+  },
+  {
+    "path": "src/lib/components/AppShell.svelte",
+    "line": 318,
+    "kind": "text",
+    "text": "Normal",
+    "key": "ADMIN_NEXT.PAGES.MODE_NORMAL"
+  },
+  {
+    "path": "src/lib/components/AppShell.svelte",
+    "line": 330,
+    "kind": "text",
+    "text": "Expert",
+    "key": "ADMIN_NEXT.PAGES.MODE_EXPERT"
+  },
+  {
+    "path": "src/lib/components/PermissionsField.svelte",
+    "line": 126,
+    "kind": "@title",
+    "text": "Allowed",
+    "key": "ADMIN_NEXT.ALLOWED"
+  },
+  {
+    "path": "src/lib/components/PermissionsField.svelte",
+    "line": 127,
+    "kind": "@aria-label",
+    "text": "Allowed",
+    "key": "ADMIN_NEXT.ALLOWED"
+  },
+  {
+    "path": "src/lib/components/PermissionsField.svelte",
+    "line": 136,
+    "kind": "@title",
+    "text": "Denied",
+    "key": "ADMIN_NEXT.DENIED"
+  },
+  {
+    "path": "src/lib/components/PermissionsField.svelte",
+    "line": 137,
+    "kind": "@aria-label",
+    "text": "Denied",
+    "key": "ADMIN_NEXT.DENIED"
+  },
+  {
+    "path": "src/lib/components/PermissionsField.svelte",
+    "line": 146,
+    "kind": "@title",
+    "text": "Not set",
+    "key": "ADMIN_NEXT.PERMISSIONS_FIELD.NOT_SET"
+  },
+  {
+    "path": "src/lib/components/PermissionsField.svelte",
+    "line": 147,
+    "kind": "@aria-label",
+    "text": "Not set",
+    "key": "ADMIN_NEXT.PERMISSIONS_FIELD.NOT_SET"
+  },
+  {
+    "path": "src/lib/components/PermissionsField.svelte",
+    "line": 26,
+    "kind": "toast",
+    "text": "Failed to load permissions",
+    "key": "ADMIN_NEXT.PERMISSIONS_FIELD.FAILED_TO_LOAD_PERMISSIONS"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 141,
+    "kind": "@alt",
+    "text": "2FA QR Code",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.2FA_QR_CODE"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 52,
+    "kind": "toast",
+    "text": "Scan the QR code with your authenticator app",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.SCAN_THE_QR_CODE_WITH_YOUR"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 54,
+    "kind": "toast",
+    "text": "Failed to generate 2FA secret",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.FAILED_TO_GENERATE_2FA_SECRET"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 62,
+    "kind": "toast",
+    "text": "Enter the 6-digit code from your authenticator",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.ENTER_THE_6_DIGIT_CODE_FROM_YOUR"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 71,
+    "kind": "toast",
+    "text": "2FA enabled",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.2FA_ENABLED"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 86,
+    "kind": "toast",
+    "text": "Enter the 6-digit code from your authenticator",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.ENTER_THE_6_DIGIT_CODE_FROM_YOUR"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 95,
+    "kind": "toast",
+    "text": "2FA disabled",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.2FA_DISABLED"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 114,
+    "kind": "text",
+    "text": "Two-factor authentication is off",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.TWO_FACTOR_AUTHENTICATION_IS_OFF"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 115,
+    "kind": "text",
+    "text": "Add an extra layer of security by requiring a one-time code on sign-in.",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.ADD_AN_EXTRA_LAYER_OF_SECURITY_BY"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 121,
+    "kind": "text",
+    "text": "Enable 2FA",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.ENABLE_2FA"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 131,
+    "kind": "text",
+    "text": "Finish enabling 2FA",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.FINISH_ENABLING_2FA"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 132,
+    "kind": "text",
+    "text": "Scan the QR code with your authenticator app, then enter the 6-digit code to verify and activate.",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.SCAN_THE_QR_CODE_WITH_YOUR_2"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 144,
+    "kind": "text",
+    "text": "Secret (for manual entry):",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.SECRET_FOR_MANUAL_ENTRY"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 151,
+    "kind": "text",
+    "text": "A secret is already generated but not shown for security reasons.",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.A_SECRET_IS_ALREADY_GENERATED_BUT_NOT"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 158,
+    "kind": "text",
+    "text": "Regenerate and show QR",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.REGENERATE_AND_SHOW_QR"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 165,
+    "kind": "text",
+    "text": "Verification code",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.VERIFICATION_CODE"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 180,
+    "kind": "text",
+    "text": "Verify &amp; Enable",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.VERIFY_ENABLE",
+    "value": "Verify & Enable"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 192,
+    "kind": "text",
+    "text": "2FA is enabled",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.2FA_IS_ENABLED"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 193,
+    "kind": "text",
+    "text": "A one-time code is required whenever this account signs in.",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.A_ONE_TIME_CODE_IS_REQUIRED_WHENEVER"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 198,
+    "kind": "text",
+    "text": "Disable",
+    "key": "ADMIN_NEXT.DISABLE"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 214,
+    "kind": "text",
+    "text": "Force disable",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.FORCE_DISABLE"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 218,
+    "kind": "text",
+    "text": "Cancel",
+    "key": "ADMIN_NEXT.CANCEL"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 225,
+    "kind": "text",
+    "text": "Enter your current 6-digit code to confirm",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.ENTER_YOUR_CURRENT_6_DIGIT_CODE_TO"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 242,
+    "kind": "text",
+    "text": "Confirm disable",
+    "key": "ADMIN_NEXT.TWO_FACTOR_FIELD.CONFIRM_DISABLE"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 246,
+    "kind": "text",
+    "text": "Cancel",
+    "key": "ADMIN_NEXT.CANCEL"
+  },
+  {
+    "path": "src/lib/components/UserAvatarCard.svelte",
+    "line": 39,
+    "kind": "toast",
+    "text": "Avatar updated",
+    "key": "ADMIN_NEXT.USER_AVATAR_CARD.AVATAR_UPDATED"
+  },
+  {
+    "path": "src/lib/components/UserAvatarCard.svelte",
+    "line": 41,
+    "kind": "toast",
+    "text": "Failed to upload avatar",
+    "key": "ADMIN_NEXT.USER_AVATAR_CARD.FAILED_TO_UPLOAD_AVATAR"
+  },
+  {
+    "path": "src/lib/components/UserAvatarCard.svelte",
+    "line": 54,
+    "kind": "toast",
+    "text": "Avatar removed",
+    "key": "ADMIN_NEXT.USER_AVATAR_CARD.AVATAR_REMOVED"
+  },
+  {
+    "path": "src/lib/components/UserAvatarCard.svelte",
+    "line": 56,
+    "kind": "toast",
+    "text": "Failed to remove avatar",
+    "key": "ADMIN_NEXT.USER_AVATAR_CARD.FAILED_TO_REMOVE_AVATAR"
+  },
+  {
+    "path": "src/lib/components/UserAvatarCard.svelte",
+    "line": 104,
+    "kind": "text",
+    "text": "Upload Avatar",
+    "key": "ADMIN_NEXT.USER_AVATAR_CARD.UPLOAD_AVATAR"
+  },
+  {
+    "path": "src/lib/components/UserAvatarCard.svelte",
+    "line": 117,
+    "kind": "text",
+    "text": "Remove",
+    "key": "ADMIN_NEXT.REMOVE"
+  },
+  {
+    "path": "src/lib/components/auth/ReauthModal.svelte",
+    "line": 130,
+    "kind": "text",
+    "text": "Session expired",
+    "key": "ADMIN_NEXT.REAUTH_MODAL.SESSION_EXPIRED"
+  },
+  {
+    "path": "src/lib/components/auth/ReauthModal.svelte",
+    "line": 133,
+    "kind": "text",
+    "text": "Please re-enter your password to continue. Your work has been preserved.",
+    "key": "ADMIN_NEXT.REAUTH_MODAL.PLEASE_RE_ENTER_YOUR_PASSWORD_TO"
+  },
+  {
+    "path": "src/lib/components/auth/ReauthModal.svelte",
+    "line": 141,
+    "kind": "text",
+    "text": "Username",
+    "key": "ADMIN_NEXT.USERNAME"
+  },
+  {
+    "path": "src/lib/components/auth/ReauthModal.svelte",
+    "line": 153,
+    "kind": "text",
+    "text": "Password",
+    "key": "ADMIN_NEXT.PASSWORD"
+  },
+  {
+    "path": "src/lib/components/auth/ReauthModal.svelte",
+    "line": 170,
+    "kind": "text",
+    "text": "Sign out",
+    "key": "ADMIN_NEXT.SIGN_OUT"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/ArrayField.svelte",
+    "line": 185,
+    "kind": "@title",
+    "text": "Remove",
+    "key": "ADMIN_NEXT.REMOVE"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronField.svelte",
+    "line": 185,
+    "kind": "text",
+    "text": "At minute",
+    "key": "ADMIN_NEXT.FIELDS.CRON.AT_MINUTE"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronField.svelte",
+    "line": 212,
+    "kind": "text",
+    "text": "On day",
+    "key": "ADMIN_NEXT.FIELDS.CRON.ON_DAY"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronField.svelte",
+    "line": 229,
+    "kind": "text",
+    "text": "Cron:",
+    "key": "ADMIN_NEXT.FIELDS.CRON.CRON"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronField.svelte",
+    "line": 237,
+    "kind": "text",
+    "text": "min hr dom mon dow",
+    "key": "ADMIN_NEXT.FIELDS.CRON.MIN_HR_DOM_MON_DOW"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 31,
+    "kind": "toast",
+    "text": "Failed to load scheduler status",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.FAILED_TO_LOAD_SCHEDULER_STATUS"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 41,
+    "kind": "toast",
+    "text": "Scheduler run completed",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.SCHEDULER_RUN_COMPLETED"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 44,
+    "kind": "toast",
+    "text": "Failed to run scheduler",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.FAILED_TO_RUN_SCHEDULER"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 80,
+    "kind": "text",
+    "text": "Loading scheduler status...",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.LOADING_SCHEDULER_STATUS"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 86,
+    "kind": "text",
+    "text": "Scheduler Status",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.SCHEDULER_STATUS"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 89,
+    "kind": "text",
+    "text": "Running...",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.RUNNING"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 92,
+    "kind": "text",
+    "text": "Run All",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.RUN_ALL"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 99,
+    "kind": "text",
+    "text": "No scheduled jobs registered.",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.NO_SCHEDULED_JOBS_REGISTERED"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 104,
+    "kind": "text",
+    "text": "Job ID",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.JOB_ID"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 106,
+    "kind": "text",
+    "text": "Status",
+    "key": "ADMIN_NEXT.PAGES.HEADER_STATUS"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 130,
+    "kind": "text",
+    "text": "Enabled",
+    "key": "ADMIN_NEXT.ENABLED"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 130,
+    "kind": "text",
+    "text": "Disabled",
+    "key": "ADMIN_NEXT.DISABLED"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 132,
+    "kind": "text",
+    "text": "Enabled",
+    "key": "ADMIN_NEXT.ENABLED"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 132,
+    "kind": "text",
+    "text": "Disabled",
+    "key": "ADMIN_NEXT.DISABLED"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 147,
+    "kind": "text",
+    "text": "Health Status",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.HEALTH_STATUS"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 151,
+    "kind": "text",
+    "text": "Status:",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.STATUS"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 162,
+    "kind": "text",
+    "text": "Last Run",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.LAST_RUN"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 166,
+    "kind": "text",
+    "text": "Scheduled Jobs",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.SCHEDULED_JOBS"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 170,
+    "kind": "text",
+    "text": "Queue Size:",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.QUEUE_SIZE"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 182,
+    "kind": "text",
+    "text": "Active Triggers",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.ACTIVE_TRIGGERS"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 188,
+    "kind": "text",
+    "text": "Cron:",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.CRON"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 193,
+    "kind": "text",
+    "text": "NOT CONFIGURED",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.NOT_CONFIGURED"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 199,
+    "kind": "text",
+    "text": "Webhook:",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.WEBHOOK"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 204,
+    "kind": "text",
+    "text": "NOT INSTALLED",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.NOT_INSTALLED"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 206,
+    "kind": "text",
+    "text": "NOT ENABLED",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.NOT_ENABLED"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CronStatusField.svelte",
+    "line": 212,
+    "kind": "text",
+    "text": "No triggers active! Enable webhooks or configure cron.",
+    "key": "ADMIN_NEXT.FIELDS.CRON_STATUS.NO_TRIGGERS_ACTIVE_ENABLE_WEBHOOKS_OR"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/CustomFieldWrapper.svelte",
+    "line": 188,
+    "kind": "text",
+    "text": "Loading custom field...",
+    "key": "ADMIN_NEXT.FIELDS.CUSTOM_FIELD_WRAPPER.LOADING_CUSTOM_FIELD"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/DateFormatField.svelte",
+    "line": 124,
+    "kind": "text",
+    "text": "— Select format —",
+    "key": "ADMIN_NEXT.FIELDS.DATE_FORMAT.SELECT_FORMAT"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/DateFormatField.svelte",
+    "line": 134,
+    "kind": "text",
+    "text": "Format string:",
+    "key": "ADMIN_NEXT.FIELDS.DATE_FORMAT.FORMAT_STRING"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/DateTimeField.svelte",
+    "line": 184,
+    "kind": "@aria-label",
+    "text": "Clear date",
+    "key": "ADMIN_NEXT.FIELDS.CLEAR_DATE"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/FolderSlugField.svelte",
+    "line": 83,
+    "kind": "@title",
+    "text": "Auto-regenerate from page title",
+    "key": "ADMIN_NEXT.FIELDS.REGENERATE_SLUG"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/IconPickerField.svelte",
+    "line": 113,
+    "kind": "@placeholder",
+    "text": "Search icons...",
+    "key": "ADMIN_NEXT.FIELDS.ICON_PICKER.SEARCH_ICONS"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/IconPickerField.svelte",
+    "line": 141,
+    "kind": "text",
+    "text": "No icons found",
+    "key": "ADMIN_NEXT.FIELDS.ICON_PICKER.NO_ICONS_FOUND"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/IconPickerField.svelte",
+    "line": 148,
+    "kind": "text",
+    "text": "Showing first 200 results — type to narrow",
+    "key": "ADMIN_NEXT.FIELDS.ICON_PICKER.SHOWING_FIRST_200_RESULTS_TYPE_TO_NARROW"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/ListField.svelte",
+    "line": 240,
+    "kind": "@title",
+    "text": "Remove",
+    "key": "ADMIN_NEXT.REMOVE"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/ListField.svelte",
+    "line": 292,
+    "kind": "text",
+    "text": "Expand all",
+    "key": "ADMIN_NEXT.EXPAND_ALL"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/ListField.svelte",
+    "line": 299,
+    "kind": "text",
+    "text": "Collapse all",
+    "key": "ADMIN_NEXT.COLLAPSE_ALL"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/PageExistsField.svelte",
+    "line": 67,
+    "kind": "text",
+    "text": "Checking page...",
+    "key": "ADMIN_NEXT.FIELDS.PAGE_EXISTS.CHECKING_PAGE"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/PageMediaField.svelte",
+    "line": 14,
+    "kind": "text",
+    "text": "Page media unavailable",
+    "key": "ADMIN_NEXT.FIELDS.PAGE_MEDIA.PAGE_MEDIA_UNAVAILABLE"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/PagesField.svelte",
+    "line": 186,
+    "kind": "@placeholder",
+    "text": "Filter pages...",
+    "key": "ADMIN_NEXT.FIELDS.PAGES.FILTER_PAGES"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/PagesField.svelte",
+    "line": 204,
+    "kind": "text",
+    "text": "Loading pages...",
+    "key": "ADMIN_NEXT.PAGES.LOADING"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/PagesField.svelte",
+    "line": 216,
+    "kind": "text",
+    "text": "/ (root)",
+    "key": "ADMIN_NEXT.FIELDS.PAGES.ROOT"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/PagesField.svelte",
+    "line": 228,
+    "kind": "text",
+    "text": "No pages found",
+    "key": "ADMIN_NEXT.PAGES.NO_PAGES"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/PermissionsField.svelte",
+    "line": 72,
+    "kind": "text",
+    "text": "No permissions configured",
+    "key": "ADMIN_NEXT.FIELDS.PERMISSIONS.NO_PERMISSIONS_CONFIGURED"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/PermissionsField.svelte",
+    "line": 85,
+    "kind": "text",
+    "text": "Allowed",
+    "key": "ADMIN_NEXT.ALLOWED"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/PermissionsField.svelte",
+    "line": 92,
+    "kind": "text",
+    "text": "Denied",
+    "key": "ADMIN_NEXT.DENIED"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/PermissionsField.svelte",
+    "line": 99,
+    "kind": "text",
+    "text": "Not Set",
+    "key": "ADMIN_NEXT.FIELDS.PERMISSIONS.NOT_SET"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/TabsField.svelte",
+    "line": 172,
+    "kind": "text",
+    "text": "No fields match your filter",
+    "key": "ADMIN_NEXT.FIELDS.TABS.NO_FIELDS_MATCH_YOUR_FILTER"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/TabsField.svelte",
+    "line": 228,
+    "kind": "text",
+    "text": "No fields match your filter",
+    "key": "ADMIN_NEXT.FIELDS.TABS.NO_FIELDS_MATCH_YOUR_FILTER"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/TaxonomyField.svelte",
+    "line": 105,
+    "kind": "text",
+    "text": "No taxonomy types configured",
+    "key": "ADMIN_NEXT.FIELDS.NO_TAXONOMY_TYPES"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/ThemeSelectField.svelte",
+    "line": 59,
+    "kind": "text",
+    "text": "Loading themes...",
+    "key": "ADMIN_NEXT.FIELDS.THEME_SELECT.LOADING_THEMES"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/ThemeSelectField.svelte",
+    "line": 61,
+    "kind": "text",
+    "text": "— Select theme —",
+    "key": "ADMIN_NEXT.FIELDS.THEME_SELECT.SELECT_THEME"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/WebhookExamplesField.svelte",
+    "line": 31,
+    "kind": "text",
+    "text": "How to use webhooks:",
+    "key": "ADMIN_NEXT.FIELDS.WEBHOOK_EXAMPLES.HOW_TO_USE_WEBHOOKS"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/WebhookExamplesField.svelte",
+    "line": 34,
+    "kind": "text",
+    "text": "Trigger all due jobs (respects schedule):",
+    "key": "ADMIN_NEXT.FIELDS.WEBHOOK_EXAMPLES.TRIGGER_ALL_DUE_JOBS_RESPECTS_SCHEDULE"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/WebhookExamplesField.svelte",
+    "line": 42,
+    "kind": "text",
+    "text": "Force-run specific job (ignores schedule):",
+    "key": "ADMIN_NEXT.FIELDS.WEBHOOK_EXAMPLES.FORCE_RUN_SPECIFIC_JOB_IGNORES_SCHEDULE"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/WebhookExamplesField.svelte",
+    "line": 50,
+    "kind": "text",
+    "text": "Check health status:",
+    "key": "ADMIN_NEXT.FIELDS.WEBHOOK_EXAMPLES.CHECK_HEALTH_STATUS"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/WebhookExamplesField.svelte",
+    "line": 58,
+    "kind": "text",
+    "text": "GitHub Actions example:",
+    "key": "ADMIN_NEXT.FIELDS.WEBHOOK_EXAMPLES.GITHUB_ACTIONS_EXAMPLE"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/WebhookStatusField.svelte",
+    "line": 45,
+    "kind": "text",
+    "text": "Checking webhook plugin status...",
+    "key": "ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.CHECKING_WEBHOOK_PLUGIN_STATUS"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/WebhookStatusField.svelte",
+    "line": 49,
+    "kind": "text",
+    "text": "plugin is installed and enabled.",
+    "key": "ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.PLUGIN_IS_INSTALLED_AND_ENABLED"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/WebhookStatusField.svelte",
+    "line": 54,
+    "kind": "text",
+    "text": "plugin is installed. Enable Webhook Triggers below to activate.",
+    "key": "ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.PLUGIN_IS_INSTALLED_ENABLE_WEBHOOK"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/WebhookStatusField.svelte",
+    "line": 58,
+    "kind": "text",
+    "text": "Webhook Plugin Required",
+    "key": "ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.WEBHOOK_PLUGIN_REQUIRED"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/WebhookStatusField.svelte",
+    "line": 60,
+    "kind": "text",
+    "text": "plugin is required for webhook functionality.",
+    "key": "ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.PLUGIN_IS_REQUIRED_FOR_WEBHOOK"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/WebhookStatusField.svelte",
+    "line": 64,
+    "kind": "text",
+    "text": "Install Plugin Now",
+    "key": "ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.INSTALL_PLUGIN_NOW"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/WebhookStatusField.svelte",
+    "line": 67,
+    "kind": "text",
+    "text": "or run:",
+    "key": "ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.OR_RUN"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/WebhookStatusField.svelte",
+    "line": 68,
+    "kind": "text",
+    "text": "bin/gpm install scheduler-webhook",
+    "key": "ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.BIN_GPM_INSTALL_SCHEDULER_WEBHOOK"
+  },
+  {
+    "path": "src/lib/components/config/ConfigInfoPage.svelte",
+    "line": 122,
+    "kind": "text",
+    "text": "Loading system information...",
+    "key": "ADMIN_NEXT.CONFIG_INFO_PAGE.LOADING_SYSTEM_INFORMATION"
+  },
+  {
+    "path": "src/lib/components/config/ConfigInfoPage.svelte",
+    "line": 131,
+    "kind": "text",
+    "text": "Export YAML",
+    "key": "ADMIN_NEXT.CONFIG_INFO_PAGE.EXPORT_YAML"
+  },
+  {
+    "path": "src/lib/components/config/ConfigInfoPage.svelte",
+    "line": 140,
+    "kind": "text",
+    "text": "Server",
+    "key": "ADMIN_NEXT.CONFIG_INFO_PAGE.SERVER"
+  },
+  {
+    "path": "src/lib/components/config/ConfigInfoPage.svelte",
+    "line": 144,
+    "kind": "text",
+    "text": "Grav Version",
+    "key": "ADMIN_NEXT.CONFIG_INFO_PAGE.GRAV_VERSION"
+  },
+  {
+    "path": "src/lib/components/config/ConfigInfoPage.svelte",
+    "line": 148,
+    "kind": "text",
+    "text": "PHP Version",
+    "key": "ADMIN_NEXT.CONFIG_INFO_PAGE.PHP_VERSION"
+  },
+  {
+    "path": "src/lib/components/config/ConfigInfoPage.svelte",
+    "line": 152,
+    "kind": "text",
+    "text": "Server Software",
+    "key": "ADMIN_NEXT.CONFIG_INFO_PAGE.SERVER_SOFTWARE"
+  },
+  {
+    "path": "src/lib/components/config/ConfigInfoPage.svelte",
+    "line": 156,
+    "kind": "text",
+    "text": "Environment",
+    "key": "ADMIN_NEXT.CONFIG_INFO_PAGE.ENVIRONMENT"
+  },
+  {
+    "path": "src/lib/components/config/ConfigInfoPage.svelte",
+    "line": 165,
+    "kind": "text",
+    "text": "PHP Extensions",
+    "key": "ADMIN_NEXT.CONFIG_INFO_PAGE.PHP_EXTENSIONS"
+  },
+  {
+    "path": "src/lib/components/config/ConfigInfoPage.svelte",
+    "line": 182,
+    "kind": "text",
+    "text": "Plugins",
+    "key": "ADMIN_NEXT.NAV.PLUGINS"
+  },
+  {
+    "path": "src/lib/components/config/ConfigInfoPage.svelte",
+    "line": 203,
+    "kind": "text",
+    "text": "Themes",
+    "key": "ADMIN_NEXT.NAV.THEMES"
+  },
+  {
+    "path": "src/lib/components/config/ConfigInfoPage.svelte",
+    "line": 226,
+    "kind": "text",
+    "text": "PHP Configuration",
+    "key": "ADMIN_NEXT.CONFIG_INFO_PAGE.PHP_CONFIGURATION"
+  },
+  {
+    "path": "src/lib/components/dashboard/DashboardGrid.svelte",
+    "line": 92,
+    "kind": "@title",
+    "text": "Drag to reorder",
+    "key": "ADMIN_NEXT.DASHBOARD_GRID.DRAG_TO_REORDER"
+  },
+  {
+    "path": "src/lib/components/dashboard/DashboardGrid.svelte",
+    "line": 112,
+    "kind": "@title",
+    "text": "Hide widget",
+    "key": "ADMIN_NEXT.DASHBOARD.HIDE_WIDGET"
+  },
+  {
+    "path": "src/lib/components/dashboard/DashboardGrid.svelte",
+    "line": 131,
+    "kind": "text",
+    "text": "Add a widget",
+    "key": "ADMIN_NEXT.DASHBOARD.ADD_WIDGET"
+  },
+  {
+    "path": "src/lib/components/dashboard/DashboardGrid.svelte",
+    "line": 138,
+    "kind": "text",
+    "text": "Your dashboard is empty",
+    "key": "ADMIN_NEXT.DASHBOARD.EMPTY"
+  },
+  {
+    "path": "src/lib/components/dashboard/DashboardGrid.svelte",
+    "line": 139,
+    "kind": "text",
+    "text": "Click the pencil icon above to add widgets",
+    "key": "ADMIN_NEXT.DASHBOARD.EMPTY_HINT"
+  },
+  {
+    "path": "src/lib/components/dashboard/EditModeToolbar.svelte",
+    "line": 83,
+    "kind": "@title",
+    "text": "Save as site default for all users",
+    "key": "ADMIN_NEXT.EDIT_MODE_TOOLBAR.SAVE_AS_SITE_DEFAULT_FOR_ALL_USERS"
+  },
+  {
+    "path": "src/lib/components/dashboard/EditModeToolbar.svelte",
+    "line": 100,
+    "kind": "@title",
+    "text": "Customize dashboard",
+    "key": "ADMIN_NEXT.DASHBOARD.CUSTOMIZE_TITLE"
+  },
+  {
+    "path": "src/lib/components/dashboard/EditModeToolbar.svelte",
+    "line": 61,
+    "kind": "text",
+    "text": "Presets",
+    "key": "ADMIN_NEXT.DASHBOARD.PRESETS"
+  },
+  {
+    "path": "src/lib/components/dashboard/EditModeToolbar.svelte",
+    "line": 66,
+    "kind": "text",
+    "text": "Layout presets",
+    "key": "ADMIN_NEXT.EDIT_MODE_TOOLBAR.LAYOUT_PRESETS"
+  },
+  {
+    "path": "src/lib/components/dashboard/EditModeToolbar.svelte",
+    "line": 75,
+    "kind": "text",
+    "text": "Reset my layout",
+    "key": "ADMIN_NEXT.DASHBOARD.RESET_LAYOUT"
+  },
+  {
+    "path": "src/lib/components/dashboard/EditModeToolbar.svelte",
+    "line": 84,
+    "kind": "text",
+    "text": "Save as site default",
+    "key": "ADMIN_NEXT.DASHBOARD.SAVE_SITE_DEFAULT"
+  },
+  {
+    "path": "src/lib/components/dashboard/EditModeToolbar.svelte",
+    "line": 90,
+    "kind": "text",
+    "text": "Cancel",
+    "key": "ADMIN_NEXT.CANCEL"
+  },
+  {
+    "path": "src/lib/components/dashboard/EditModeToolbar.svelte",
+    "line": 101,
+    "kind": "text",
+    "text": "Customize",
+    "key": "ADMIN_NEXT.DASHBOARD.CUSTOMIZE"
+  },
+  {
+    "path": "src/lib/components/dashboard/PluginWidgetLoader.svelte",
+    "line": 101,
+    "kind": "text",
+    "text": "Widget failed to load",
+    "key": "ADMIN_NEXT.PLUGIN_WIDGET_LOADER.WIDGET_FAILED_TO_LOAD"
+  },
+  {
+    "path": "src/lib/components/dashboard/TopBanner.svelte",
+    "line": 56,
+    "kind": "@aria-label",
+    "text": "Site notification",
+    "key": "ADMIN_NEXT.TOP_BANNER.SITE_NOTIFICATION"
+  },
+  {
+    "path": "src/lib/components/dashboard/TopBanner.svelte",
+    "line": 90,
+    "kind": "@title",
+    "text": "Previous",
+    "key": "ADMIN_NEXT.TOP_BANNER.PREVIOUS"
+  },
+  {
+    "path": "src/lib/components/dashboard/TopBanner.svelte",
+    "line": 109,
+    "kind": "@title",
+    "text": "Dismiss",
+    "key": "ADMIN_NEXT.DISMISS"
+  },
+  {
+    "path": "src/lib/components/dashboard/WidgetHost.svelte",
+    "line": 35,
+    "kind": "text",
+    "text": "Unknown widget:",
+    "key": "ADMIN_NEXT.WIDGET_HOST.UNKNOWN_WIDGET"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/BackupsWidget.svelte",
+    "line": 25,
+    "kind": "@title",
+    "text": "Create a new backup now",
+    "key": "ADMIN_NEXT.BACKUPS_WIDGET.CREATE_A_NEW_BACKUP_NOW"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/BackupsWidget.svelte",
+    "line": 16,
+    "kind": "text",
+    "text": "Backups",
+    "key": "ADMIN_NEXT.DASHBOARD.WIDGETS.BACKUPS"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/BackupsWidget.svelte",
+    "line": 28,
+    "kind": "text",
+    "text": "Backing up…",
+    "key": "ADMIN_NEXT.BACKUPS_WIDGET.BACKING_UP"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/BackupsWidget.svelte",
+    "line": 31,
+    "kind": "text",
+    "text": "Backup Now",
+    "key": "ADMIN_NEXT.BACKUPS_WIDGET.BACKUP_NOW"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/BackupsWidget.svelte",
+    "line": 54,
+    "kind": "text",
+    "text": "No backups found",
+    "key": "ADMIN_NEXT.BACKUPS_WIDGET.NO_BACKUPS_FOUND"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/NewsFeedWidget.svelte",
+    "line": 14,
+    "kind": "text",
+    "text": "News Feed",
+    "key": "ADMIN_NEXT.DASHBOARD.WIDGETS.NEWS_FEED"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/NewsFeedWidget.svelte",
+    "line": 29,
+    "kind": "text",
+    "text": "No feed items",
+    "key": "ADMIN_NEXT.NEWS_FEED_WIDGET.NO_FEED_ITEMS"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/NotificationsWidget.svelte",
+    "line": 29,
+    "kind": "text",
+    "text": "Notifications",
+    "key": "ADMIN_NEXT.DASHBOARD.WIDGETS.NOTIFICATIONS"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/NotificationsWidget.svelte",
+    "line": 34,
+    "kind": "text",
+    "text": "No notifications",
+    "key": "ADMIN_NEXT.NOTIFICATIONS_WIDGET.NO_NOTIFICATIONS"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/PopularityWidget.svelte",
+    "line": 22,
+    "kind": "text",
+    "text": "Page Views",
+    "key": "ADMIN_NEXT.DASHBOARD.WIDGETS.POPULARITY"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/PopularityWidget.svelte",
+    "line": 25,
+    "kind": "text",
+    "text": "Last 14 days",
+    "key": "ADMIN_NEXT.POPULARITY_WIDGET.LAST_14_DAYS"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/PopularityWidget.svelte",
+    "line": 36,
+    "kind": "text",
+    "text": "This Week",
+    "key": "ADMIN_NEXT.POPULARITY_WIDGET.THIS_WEEK"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/PopularityWidget.svelte",
+    "line": 41,
+    "kind": "text",
+    "text": "This Month",
+    "key": "ADMIN_NEXT.POPULARITY_WIDGET.THIS_MONTH"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/RecentPagesWidget.svelte",
+    "line": 16,
+    "kind": "text",
+    "text": "Recent Pages",
+    "key": "ADMIN_NEXT.DASHBOARD.WIDGETS.RECENT_PAGES"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/RecentPagesWidget.svelte",
+    "line": 19,
+    "kind": "text",
+    "text": "View all",
+    "key": "ADMIN_NEXT.RECENT_PAGES_WIDGET.VIEW_ALL"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/RecentPagesWidget.svelte",
+    "line": 41,
+    "kind": "text",
+    "text": "No pages found",
+    "key": "ADMIN_NEXT.PAGES.NO_PAGES"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/StatsWidget.svelte",
+    "line": 78,
+    "kind": "text",
+    "text": "Plugins",
+    "key": "ADMIN_NEXT.NAV.PLUGINS"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/StatsWidget.svelte",
+    "line": 88,
+    "kind": "text",
+    "text": "Active Theme",
+    "key": "ADMIN_NEXT.STATS_WIDGET.ACTIVE_THEME"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/SystemHealthWidget.svelte",
+    "line": 32,
+    "kind": "text",
+    "text": "Updates",
+    "key": "ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPDATES"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/SystemHealthWidget.svelte",
+    "line": 44,
+    "kind": "text",
+    "text": "Everything up to date",
+    "key": "ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.EVERYTHING_UP_TO_DATE"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/SystemHealthWidget.svelte",
+    "line": 53,
+    "kind": "text",
+    "text": "Grav Update Available",
+    "key": "ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.GRAV_UPDATE_AVAILABLE"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/SystemHealthWidget.svelte",
+    "line": 63,
+    "kind": "text",
+    "text": "Grav is installed via symlink — upgrade manually.",
+    "key": "ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.GRAV_IS_INSTALLED_VIA_SYMLINK_UPGRADE"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/SystemHealthWidget.svelte",
+    "line": 72,
+    "kind": "text",
+    "text": "Upgrade Grav",
+    "key": "ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPGRADE_GRAV"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/SystemHealthWidget.svelte",
+    "line": 110,
+    "kind": "text",
+    "text": "Update All",
+    "key": "ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPDATE_ALL"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/SystemHealthWidget.svelte",
+    "line": 122,
+    "kind": "text",
+    "text": "System",
+    "key": "ADMIN_NEXT.NAV.SYSTEM"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/SystemHealthWidget.svelte",
+    "line": 138,
+    "kind": "text",
+    "text": "Server",
+    "key": "ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.SERVER"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/SystemHealthWidget.svelte",
+    "line": 146,
+    "kind": "text",
+    "text": "Disabled",
+    "key": "ADMIN_NEXT.DISABLED"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/SystemHealthWidget.svelte",
+    "line": 160,
+    "kind": "text",
+    "text": "% used",
+    "key": "ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.USED"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/TopPagesWidget.svelte",
+    "line": 14,
+    "kind": "text",
+    "text": "Top Pages",
+    "key": "ADMIN_NEXT.DASHBOARD.WIDGETS.TOP_PAGES"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/TopPagesWidget.svelte",
+    "line": 34,
+    "kind": "text",
+    "text": "No view data yet",
+    "key": "ADMIN_NEXT.TOP_PAGES_WIDGET.NO_VIEW_DATA_YET"
+  },
+  {
+    "path": "src/lib/components/editors/MarkdownEditor.svelte",
+    "line": 686,
+    "kind": "text",
+    "text": "Nothing to preview",
+    "key": "ADMIN_NEXT.MARKDOWN_EDITOR.NOTHING_TO_PREVIEW"
+  },
+  {
+    "path": "src/lib/components/floating-widgets/FloatingWidgetLoader.svelte",
+    "line": 244,
+    "kind": "@aria-label",
+    "text": "Close widgets menu",
+    "key": "ADMIN_NEXT.FLOATING_WIDGET_LOADER.CLOSE_WIDGETS_MENU"
+  },
+  {
+    "path": "src/lib/components/media/MediaInspector.svelte",
+    "line": 119,
+    "kind": "@aria-label",
+    "text": "Previous file",
+    "key": "ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.PREVIOUS_FILE"
+  },
+  {
+    "path": "src/lib/components/media/MediaInspector.svelte",
+    "line": 126,
+    "kind": "@aria-label",
+    "text": "Next file",
+    "key": "ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.NEXT_FILE"
+  },
+  {
+    "path": "src/lib/components/media/MediaInspector.svelte",
+    "line": 175,
+    "kind": "@aria-label",
+    "text": "Rename",
+    "key": "ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.RENAME"
+  },
+  {
+    "path": "src/lib/components/media/MediaInspector.svelte",
+    "line": 79,
+    "kind": "toast",
+    "text": "Failed to copy",
+    "key": "ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.FAILED_TO_COPY"
+  },
+  {
+    "path": "src/lib/components/media/MediaInspector.svelte",
+    "line": 95,
+    "kind": "toast",
+    "text": "File renamed",
+    "key": "ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.FILE_RENAMED"
+  },
+  {
+    "path": "src/lib/components/media/MediaInspector.svelte",
+    "line": 201,
+    "kind": "text",
+    "text": "Dimensions",
+    "key": "ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.DIMENSIONS"
+  },
+  {
+    "path": "src/lib/components/media/MediaInspector.svelte",
+    "line": 206,
+    "kind": "text",
+    "text": "Modified",
+    "key": "ADMIN_NEXT.PAGES.HEADER_MODIFIED"
+  },
+  {
+    "path": "src/lib/components/media/MediaInspector.svelte",
+    "line": 245,
+    "kind": "text",
+    "text": "Delete",
+    "key": "ADMIN_NEXT.DELETE"
+  },
+  {
+    "path": "src/lib/components/media/MediaList.svelte",
+    "line": 66,
+    "kind": "text",
+    "text": "Modified",
+    "key": "ADMIN_NEXT.PAGES.HEADER_MODIFIED"
+  },
+  {
+    "path": "src/lib/components/media/MediaManager.svelte",
+    "line": 393,
+    "kind": "@title",
+    "text": "Delete",
+    "key": "ADMIN_NEXT.DELETE"
+  },
+  {
+    "path": "src/lib/components/media/MediaManager.svelte",
+    "line": 418,
+    "kind": "@placeholder",
+    "text": "Folder name",
+    "key": "ADMIN_NEXT.MEDIA.MEDIA_MANAGER.FOLDER_NAME"
+  },
+  {
+    "path": "src/lib/components/media/MediaManager.svelte",
+    "line": 231,
+    "kind": "toast",
+    "text": "Files deleted",
+    "key": "ADMIN_NEXT.MEDIA.MEDIA_MANAGER.FILES_DELETED"
+  },
+  {
+    "path": "src/lib/components/media/MediaManager.svelte",
+    "line": 332,
+    "kind": "text",
+    "text": "Upload Files",
+    "key": "ADMIN_NEXT.MEDIA.MEDIA_MANAGER.UPLOAD_FILES"
+  },
+  {
+    "path": "src/lib/components/media/MediaManager.svelte",
+    "line": 410,
+    "kind": "text",
+    "text": "New Folder",
+    "key": "ADMIN_NEXT.MEDIA.MEDIA_MANAGER.NEW_FOLDER"
+  },
+  {
+    "path": "src/lib/components/media/MediaManager.svelte",
+    "line": 426,
+    "kind": "text",
+    "text": "Cancel",
+    "key": "ADMIN_NEXT.CANCEL"
+  },
+  {
+    "path": "src/lib/components/media/MediaManager.svelte",
+    "line": 433,
+    "kind": "text",
+    "text": "Create",
+    "key": "ADMIN_NEXT.MEDIA.MEDIA_MANAGER.CREATE"
+  },
+  {
+    "path": "src/lib/components/media/MediaToolbar.svelte",
+    "line": 103,
+    "kind": "@placeholder",
+    "text": "Search media...",
+    "key": "ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.SEARCH_MEDIA"
+  },
+  {
+    "path": "src/lib/components/media/MediaToolbar.svelte",
+    "line": 111,
+    "kind": "@aria-label",
+    "text": "Clear search",
+    "key": "ADMIN_NEXT.CLEAR_SEARCH"
+  },
+  {
+    "path": "src/lib/components/media/MediaToolbar.svelte",
+    "line": 153,
+    "kind": "@aria-label",
+    "text": "Grid view",
+    "key": "ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.GRID_VIEW"
+  },
+  {
+    "path": "src/lib/components/media/MediaToolbar.svelte",
+    "line": 163,
+    "kind": "@aria-label",
+    "text": "List view",
+    "key": "ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.LIST_VIEW"
+  },
+  {
+    "path": "src/lib/components/media/MediaToolbar.svelte",
+    "line": 188,
+    "kind": "@aria-label",
+    "text": "New folder",
+    "key": "ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.NEW_FOLDER"
+  },
+  {
+    "path": "src/lib/components/media/MediaToolbar.svelte",
+    "line": 191,
+    "kind": "text",
+    "text": "Folder",
+    "key": "ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.FOLDER"
+  },
+  {
+    "path": "src/lib/components/media/MediaToolbar.svelte",
+    "line": 200,
+    "kind": "text",
+    "text": "Upload",
+    "key": "ADMIN_NEXT.UPLOAD"
+  },
+  {
+    "path": "src/lib/components/media/PageMedia.svelte",
+    "line": 397,
+    "kind": "@title",
+    "text": "Delete",
+    "key": "ADMIN_NEXT.DELETE"
+  },
+  {
+    "path": "src/lib/components/media/PageMedia.svelte",
+    "line": 299,
+    "kind": "text",
+    "text": "Page Media",
+    "key": "ADMIN_NEXT.MEDIA.PAGE_MEDIA.PAGE_MEDIA"
+  },
+  {
+    "path": "src/lib/components/menubar/CacheClearButton.svelte",
+    "line": 43,
+    "kind": "@title",
+    "text": "Clear cache",
+    "key": "ADMIN_NEXT.CACHE_CLEAR_BUTTON.CLEAR_CACHE"
+  },
+  {
+    "path": "src/lib/components/menubar/CacheClearButton.svelte",
+    "line": 55,
+    "kind": "@title",
+    "text": "Cache options",
+    "key": "ADMIN_NEXT.CACHE_CLEAR_BUTTON.CACHE_OPTIONS"
+  },
+  {
+    "path": "src/lib/components/menubar/CacheClearButton.svelte",
+    "line": 24,
+    "kind": "toast",
+    "text": "Failed to clear cache",
+    "key": "ADMIN_NEXT.CACHE_CLEAR_BUTTON.FAILED_TO_CLEAR_CACHE"
+  },
+  {
+    "path": "src/lib/components/menubar/PluginMenubarItems.svelte",
+    "line": 53,
+    "kind": "@title",
+    "text": "Confirm Action",
+    "key": "ADMIN_NEXT.CONFIRM_ACTION"
+  },
+  {
+    "path": "src/lib/components/menubar/ViewSiteButton.svelte",
+    "line": 18,
+    "kind": "@title",
+    "text": "Open site frontend in a new tab",
+    "key": "ADMIN_NEXT.VIEW_SITE_BUTTON.OPEN_SITE_FRONTEND_IN_A_NEW_TAB"
+  },
+  {
+    "path": "src/lib/components/menubar/ViewSiteButton.svelte",
+    "line": 19,
+    "kind": "@aria-label",
+    "text": "View site",
+    "key": "ADMIN_NEXT.VIEW_SITE_BUTTON.VIEW_SITE"
+  },
+  {
+    "path": "src/lib/components/menubar/ViewSiteButton.svelte",
+    "line": 22,
+    "kind": "text",
+    "text": "View site",
+    "key": "ADMIN_NEXT.VIEW_SITE_BUTTON.VIEW_SITE"
+  },
+  {
+    "path": "src/lib/components/pages/PagesListView.svelte",
+    "line": 230,
+    "kind": "@title",
+    "text": "Status",
+    "key": "ADMIN_NEXT.PAGES.HEADER_STATUS"
+  },
+  {
+    "path": "src/lib/components/pages/PagesListView.svelte",
+    "line": 303,
+    "kind": "@aria-label",
+    "text": "Published",
+    "key": "ADMIN_NEXT.PAGES.PUBLISHED"
+  },
+  {
+    "path": "src/lib/components/pages/PagesListView.svelte",
+    "line": 315,
+    "kind": "@title",
+    "text": "Delete",
+    "key": "ADMIN_NEXT.DELETE"
+  },
+  {
+    "path": "src/lib/components/pages/PagesListView.svelte",
+    "line": 167,
+    "kind": "toast",
+    "text": "Can only reorder pages under the same parent. Use Tree view for cross-parent moves.",
+    "key": "ADMIN_NEXT.PAGES.REORDER_SAME_PARENT"
+  },
+  {
+    "path": "src/lib/components/pages/PagesListView.svelte",
+    "line": 192,
+    "kind": "toast",
+    "text": "Failed to reorder",
+    "key": "ADMIN_NEXT.PAGES.REORDER_FAILED"
+  },
+  {
+    "path": "src/lib/components/pages/PagesListView.svelte",
+    "line": 228,
+    "kind": "text",
+    "text": "Template",
+    "key": "ADMIN_NEXT.PAGES.HEADER_TEMPLATE"
+  },
+  {
+    "path": "src/lib/components/pages/PagesListView.svelte",
+    "line": 236,
+    "kind": "text",
+    "text": "Parent",
+    "key": "ADMIN_NEXT.PAGES.HEADER_PARENT"
+  },
+  {
+    "path": "src/lib/components/pages/PagesListView.svelte",
+    "line": 243,
+    "kind": "text",
+    "text": "Loading pages...",
+    "key": "ADMIN_NEXT.PAGES.LOADING"
+  },
+  {
+    "path": "src/lib/components/pages/PagesMillerView.svelte",
+    "line": 556,
+    "kind": "@title",
+    "text": "Draft (unpublished)",
+    "key": "ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.DRAFT_UNPUBLISHED"
+  },
+  {
+    "path": "src/lib/components/pages/PagesMillerView.svelte",
+    "line": 389,
+    "kind": "toast",
+    "text": "Failed to move page",
+    "key": "ADMIN_NEXT.PAGES.MOVE_FAILED"
+  },
+  {
+    "path": "src/lib/components/pages/PagesMillerView.svelte",
+    "line": 418,
+    "kind": "toast",
+    "text": "Failed to reorder",
+    "key": "ADMIN_NEXT.PAGES.REORDER_FAILED"
+  },
+  {
+    "path": "src/lib/components/pages/PagesMillerView.svelte",
+    "line": 476,
+    "kind": "text",
+    "text": "Default",
+    "key": "ADMIN_NEXT.DASHBOARD.PRESET_DEFAULT"
+  },
+  {
+    "path": "src/lib/components/pages/PagesMillerView.svelte",
+    "line": 477,
+    "kind": "text",
+    "text": "Folder Order",
+    "key": "ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.FOLDER_ORDER"
+  },
+  {
+    "path": "src/lib/components/pages/PagesMillerView.svelte",
+    "line": 478,
+    "kind": "text",
+    "text": "Title A-Z",
+    "key": "ADMIN_NEXT.PAGES.SORT_TITLE_AZ"
+  },
+  {
+    "path": "src/lib/components/pages/PagesMillerView.svelte",
+    "line": 479,
+    "kind": "text",
+    "text": "Title Z-A",
+    "key": "ADMIN_NEXT.PAGES.SORT_TITLE_ZA"
+  },
+  {
+    "path": "src/lib/components/pages/PagesMillerView.svelte",
+    "line": 480,
+    "kind": "text",
+    "text": "Newest",
+    "key": "ADMIN_NEXT.PAGES.SORT_NEWEST"
+  },
+  {
+    "path": "src/lib/components/pages/PagesMillerView.svelte",
+    "line": 481,
+    "kind": "text",
+    "text": "Oldest",
+    "key": "ADMIN_NEXT.PAGES.SORT_OLDEST"
+  },
+  {
+    "path": "src/lib/components/pages/PagesMillerView.svelte",
+    "line": 482,
+    "kind": "text",
+    "text": "Date (newest)",
+    "key": "ADMIN_NEXT.PAGES.SORT_DATE_NEWEST"
+  },
+  {
+    "path": "src/lib/components/pages/PagesMillerView.svelte",
+    "line": 611,
+    "kind": "text",
+    "text": "Published",
+    "key": "ADMIN_NEXT.PAGES.PUBLISHED"
+  },
+  {
+    "path": "src/lib/components/pages/PagesMillerView.svelte",
+    "line": 616,
+    "kind": "text",
+    "text": "Visible",
+    "key": "ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.VISIBLE"
+  },
+  {
+    "path": "src/lib/components/pages/PagesMillerView.svelte",
+    "line": 619,
+    "kind": "text",
+    "text": "Has children",
+    "key": "ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.HAS_CHILDREN"
+  },
+  {
+    "path": "src/lib/components/pages/PagesMillerView.svelte",
+    "line": 626,
+    "kind": "text",
+    "text": "Modified",
+    "key": "ADMIN_NEXT.PAGES.HEADER_MODIFIED"
+  },
+  {
+    "path": "src/lib/components/pages/PagesMillerView.svelte",
+    "line": 631,
+    "kind": "text",
+    "text": "Language",
+    "key": "ADMIN_NEXT.PAGES.INFO_LANGUAGE"
+  },
+  {
+    "path": "src/lib/components/pages/PagesMillerView.svelte",
+    "line": 646,
+    "kind": "text",
+    "text": "Summary",
+    "key": "ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.SUMMARY"
+  },
+  {
+    "path": "src/lib/components/pages/PagesTreeView.svelte",
+    "line": 342,
+    "kind": "@title",
+    "text": "Status",
+    "key": "ADMIN_NEXT.PAGES.HEADER_STATUS"
+  },
+  {
+    "path": "src/lib/components/pages/PagesTreeView.svelte",
+    "line": 444,
+    "kind": "@aria-label",
+    "text": "Published",
+    "key": "ADMIN_NEXT.PAGES.PUBLISHED"
+  },
+  {
+    "path": "src/lib/components/pages/PagesTreeView.svelte",
+    "line": 458,
+    "kind": "@title",
+    "text": "Delete",
+    "key": "ADMIN_NEXT.DELETE"
+  },
+  {
+    "path": "src/lib/components/pages/PagesTreeView.svelte",
+    "line": 291,
+    "kind": "toast",
+    "text": "Failed to reorganize pages",
+    "key": "ADMIN_NEXT.PAGES.PAGES_TREE_VIEW.FAILED_TO_REORGANIZE_PAGES"
+  },
+  {
+    "path": "src/lib/components/pages/PagesTreeView.svelte",
+    "line": 340,
+    "kind": "text",
+    "text": "Template",
+    "key": "ADMIN_NEXT.PAGES.HEADER_TEMPLATE"
+  },
+  {
+    "path": "src/lib/components/pages/PagesTreeView.svelte",
+    "line": 351,
+    "kind": "text",
+    "text": "Loading pages...",
+    "key": "ADMIN_NEXT.PAGES.LOADING"
+  },
+  {
+    "path": "src/lib/components/pages/PagesTreeView.svelte",
+    "line": 480,
+    "kind": "text",
+    "text": "Searching…",
+    "key": "ADMIN_NEXT.PAGES.PAGES_TREE_VIEW.SEARCHING"
+  },
+  {
+    "path": "src/lib/components/pages/PagesTreeView.svelte",
+    "line": 505,
+    "kind": "text",
+    "text": "No pages found",
+    "key": "ADMIN_NEXT.PAGES.NO_PAGES"
+  },
+  {
+    "path": "src/lib/components/plugin-page/PluginPageComponent.svelte",
+    "line": 88,
+    "kind": "text",
+    "text": "Loading plugin page...",
+    "key": "ADMIN_NEXT.PLUGIN_PAGE_COMPONENT.LOADING_PLUGIN_PAGE"
+  },
+  {
+    "path": "src/lib/components/sync/EditorLockNotice.svelte",
+    "line": 35,
+    "kind": "text",
+    "text": "switch your editor preference",
+    "key": "ADMIN_NEXT.SYNC.EDITOR_LOCK_NOTICE.SWITCH_YOUR_EDITOR_PREFERENCE"
+  },
+  {
+    "path": "src/lib/components/sync/EditorLockNotice.svelte",
+    "line": 35,
+    "kind": "text",
+    "text": "to collaborate live.",
+    "key": "ADMIN_NEXT.SYNC.EDITOR_LOCK_NOTICE.TO_COLLABORATE_LIVE"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 195,
+    "kind": "@title",
+    "text": "Download",
+    "key": "ADMIN_NEXT.DOWNLOAD"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 201,
+    "kind": "@title",
+    "text": "Delete",
+    "key": "ADMIN_NEXT.DELETE"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 218,
+    "kind": "@title",
+    "text": "Delete Backup",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS.DELETE_BACKUP"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 42,
+    "kind": "toast",
+    "text": "Failed to load backups",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS.FAILED_TO_LOAD_BACKUPS"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 52,
+    "kind": "toast",
+    "text": "Backup created successfully",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS.BACKUP_CREATED_SUCCESSFULLY"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 55,
+    "kind": "toast",
+    "text": "Failed to create backup",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS.FAILED_TO_CREATE_BACKUP"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 67,
+    "kind": "toast",
+    "text": "Backup deleted",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS.BACKUP_DELETED"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 70,
+    "kind": "toast",
+    "text": "Failed to delete backup",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS.FAILED_TO_DELETE_BACKUP"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 113,
+    "kind": "text",
+    "text": "Backup Statistics",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS.BACKUP_STATISTICS"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 135,
+    "kind": "text",
+    "text": "Number of Backups",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS.NUMBER_OF_BACKUPS"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 139,
+    "kind": "text",
+    "text": "Number of Profiles",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS.NUMBER_OF_PROFILES"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 143,
+    "kind": "text",
+    "text": "Newest Backup",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS.NEWEST_BACKUP"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 147,
+    "kind": "text",
+    "text": "Oldest Backup",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS.OLDEST_BACKUP"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 154,
+    "kind": "text",
+    "text": "Backup History",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS.BACKUP_HISTORY"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 157,
+    "kind": "text",
+    "text": "Creating...",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS.CREATING"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 160,
+    "kind": "text",
+    "text": "Backup Now",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS.BACKUP_NOW"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 169,
+    "kind": "text",
+    "text": "Loading backups...",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS.LOADING_BACKUPS"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 171,
+    "kind": "text",
+    "text": "No backups found. Create one to get started.",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS.NO_BACKUPS_FOUND_CREATE_ONE_TO_GET"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 177,
+    "kind": "text",
+    "text": "Backup Date",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS.BACKUP_DATE"
+  },
+  {
+    "path": "src/lib/components/tools/BackupsTab.svelte",
+    "line": 180,
+    "kind": "text",
+    "text": "Action",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS.ACTION"
+  },
+  {
+    "path": "src/lib/components/tools/DirectInstallTab.svelte",
+    "line": 16,
+    "kind": "toast",
+    "text": "Package installed successfully",
+    "key": "ADMIN_NEXT.TOOLS.DIRECT_INSTALL.PACKAGE_INSTALLED_SUCCESSFULLY"
+  },
+  {
+    "path": "src/lib/components/tools/DirectInstallTab.svelte",
+    "line": 27,
+    "kind": "toast",
+    "text": "Only .zip files are supported",
+    "key": "ADMIN_NEXT.TOOLS.DIRECT_INSTALL.ONLY_ZIP_FILES_ARE_SUPPORTED"
+  },
+  {
+    "path": "src/lib/components/tools/DirectInstallTab.svelte",
+    "line": 33,
+    "kind": "toast",
+    "text": "Package installed successfully",
+    "key": "ADMIN_NEXT.TOOLS.DIRECT_INSTALL.PACKAGE_INSTALLED_SUCCESSFULLY"
+  },
+  {
+    "path": "src/lib/components/tools/DirectInstallTab.svelte",
+    "line": 61,
+    "kind": "text",
+    "text": "Install from File",
+    "key": "ADMIN_NEXT.TOOLS.DIRECT_INSTALL.INSTALL_FROM_FILE"
+  },
+  {
+    "path": "src/lib/components/tools/DirectInstallTab.svelte",
+    "line": 74,
+    "kind": "text",
+    "text": "Installing...",
+    "key": "ADMIN_NEXT.INSTALLING"
+  },
+  {
+    "path": "src/lib/components/tools/DirectInstallTab.svelte",
+    "line": 77,
+    "kind": "text",
+    "text": "Drop a .zip file here or click to browse",
+    "key": "ADMIN_NEXT.TOOLS.DIRECT_INSTALL.DROP_A_ZIP_FILE_HERE_OR_CLICK_TO_BROWSE"
+  },
+  {
+    "path": "src/lib/components/tools/DirectInstallTab.svelte",
+    "line": 78,
+    "kind": "text",
+    "text": "Supports Grav plugin and theme packages",
+    "key": "ADMIN_NEXT.TOOLS.DIRECT_INSTALL.SUPPORTS_GRAV_PLUGIN_AND_THEME_PACKAGES"
+  },
+  {
+    "path": "src/lib/components/tools/DirectInstallTab.svelte",
+    "line": 88,
+    "kind": "text",
+    "text": "Install from URL",
+    "key": "ADMIN_NEXT.TOOLS.DIRECT_INSTALL.INSTALL_FROM_URL"
+  },
+  {
+    "path": "src/lib/components/tools/DirectInstallTab.svelte",
+    "line": 101,
+    "kind": "text",
+    "text": "Install",
+    "key": "ADMIN_NEXT.INSTALL"
+  },
+  {
+    "path": "src/lib/components/tools/LogsTab.svelte",
+    "line": 138,
+    "kind": "@placeholder",
+    "text": "Search messages...",
+    "key": "ADMIN_NEXT.TOOLS.LOGS.SEARCH_MESSAGES"
+  },
+  {
+    "path": "src/lib/components/tools/LogsTab.svelte",
+    "line": 78,
+    "kind": "toast",
+    "text": "Failed to load logs",
+    "key": "ADMIN_NEXT.TOOLS.LOGS.FAILED_TO_LOAD_LOGS"
+  },
+  {
+    "path": "src/lib/components/tools/LogsTab.svelte",
+    "line": 158,
+    "kind": "text",
+    "text": "All Levels",
+    "key": "ADMIN_NEXT.TOOLS.LOGS.ALL_LEVELS"
+  },
+  {
+    "path": "src/lib/components/tools/LogsTab.svelte",
+    "line": 159,
+    "kind": "text",
+    "text": "Emergency",
+    "key": "ADMIN_NEXT.TOOLS.LOGS.EMERGENCY"
+  },
+  {
+    "path": "src/lib/components/tools/LogsTab.svelte",
+    "line": 161,
+    "kind": "text",
+    "text": "Critical",
+    "key": "ADMIN_NEXT.TOOLS.LOGS.CRITICAL"
+  },
+  {
+    "path": "src/lib/components/tools/LogsTab.svelte",
+    "line": 163,
+    "kind": "text",
+    "text": "Warning",
+    "key": "ADMIN_NEXT.TOOLS.LOGS.WARNING"
+  },
+  {
+    "path": "src/lib/components/tools/LogsTab.svelte",
+    "line": 164,
+    "kind": "text",
+    "text": "Notice",
+    "key": "ADMIN_NEXT.TOOLS.LOGS.NOTICE"
+  },
+  {
+    "path": "src/lib/components/tools/LogsTab.svelte",
+    "line": 174,
+    "kind": "text",
+    "text": "25 lines",
+    "key": "ADMIN_NEXT.TOOLS.LOGS.25_LINES"
+  },
+  {
+    "path": "src/lib/components/tools/LogsTab.svelte",
+    "line": 175,
+    "kind": "text",
+    "text": "50 lines",
+    "key": "ADMIN_NEXT.TOOLS.LOGS.50_LINES"
+  },
+  {
+    "path": "src/lib/components/tools/LogsTab.svelte",
+    "line": 176,
+    "kind": "text",
+    "text": "100 lines",
+    "key": "ADMIN_NEXT.TOOLS.LOGS.100_LINES"
+  },
+  {
+    "path": "src/lib/components/tools/LogsTab.svelte",
+    "line": 177,
+    "kind": "text",
+    "text": "200 lines",
+    "key": "ADMIN_NEXT.TOOLS.LOGS.200_LINES"
+  },
+  {
+    "path": "src/lib/components/tools/LogsTab.svelte",
+    "line": 181,
+    "kind": "text",
+    "text": "Refresh",
+    "key": "ADMIN_NEXT.TOOLS.LOGS.REFRESH"
+  },
+  {
+    "path": "src/lib/components/tools/LogsTab.svelte",
+    "line": 209,
+    "kind": "text",
+    "text": "Loading logs...",
+    "key": "ADMIN_NEXT.TOOLS.LOGS.LOADING_LOGS"
+  },
+  {
+    "path": "src/lib/components/tools/LogsTab.svelte",
+    "line": 221,
+    "kind": "text",
+    "text": "Message",
+    "key": "ADMIN_NEXT.TOOLS.LOGS.MESSAGE"
+  },
+  {
+    "path": "src/lib/components/tools/ReportComponentWrapper.svelte",
+    "line": 103,
+    "kind": "text",
+    "text": "Loading report component...",
+    "key": "ADMIN_NEXT.TOOLS.REPORT_COMPONENT_WRAPPER.LOADING_REPORT_COMPONENT"
+  },
+  {
+    "path": "src/lib/components/tools/ReportsTab.svelte",
+    "line": 17,
+    "kind": "toast",
+    "text": "Failed to load reports",
+    "key": "ADMIN_NEXT.TOOLS.REPORTS.FAILED_TO_LOAD_REPORTS"
+  },
+  {
+    "path": "src/lib/components/tools/ReportsTab.svelte",
+    "line": 47,
+    "kind": "text",
+    "text": "Loading reports...",
+    "key": "ADMIN_NEXT.TOOLS.REPORTS.LOADING_REPORTS"
+  },
+  {
+    "path": "src/lib/components/tools/ReportsTab.svelte",
+    "line": 51,
+    "kind": "text",
+    "text": "No reports available.",
+    "key": "ADMIN_NEXT.TOOLS.REPORTS.NO_REPORTS_AVAILABLE"
+  },
+  {
+    "path": "src/lib/components/tools/ReportsTab.svelte",
+    "line": 83,
+    "kind": "text",
+    "text": "content:",
+    "key": "ADMIN_NEXT.TOOLS.REPORTS.CONTENT"
+  },
+  {
+    "path": "src/lib/components/tools/SchedulerTab.svelte",
+    "line": 38,
+    "kind": "toast",
+    "text": "Failed to load scheduler configuration.",
+    "key": "ADMIN_NEXT.TOOLS.SCHEDULER.FAILED_TO_LOAD_SCHEDULER_CONFIGURATION"
+  },
+  {
+    "path": "src/lib/components/tools/SchedulerTab.svelte",
+    "line": 66,
+    "kind": "toast",
+    "text": "Scheduler configuration saved",
+    "key": "ADMIN_NEXT.TOOLS.SCHEDULER.SCHEDULER_CONFIGURATION_SAVED"
+  },
+  {
+    "path": "src/lib/components/tools/SchedulerTab.svelte",
+    "line": 68,
+    "kind": "toast",
+    "text": "Failed to save",
+    "key": "ADMIN_NEXT.TOOLS.SCHEDULER.FAILED_TO_SAVE"
+  },
+  {
+    "path": "src/lib/components/tools/SchedulerTab.svelte",
+    "line": 79,
+    "kind": "text",
+    "text": "Loading scheduler...",
+    "key": "ADMIN_NEXT.TOOLS.SCHEDULER.LOADING_SCHEDULER"
+  },
+  {
+    "path": "src/lib/components/tools/SchedulerTab.svelte",
+    "line": 85,
+    "kind": "text",
+    "text": "Not Enabled for user:",
+    "key": "ADMIN_NEXT.TOOLS.SCHEDULER.NOT_ENABLED_FOR_USER"
+  },
+  {
+    "path": "src/lib/components/tools/SchedulerTab.svelte",
+    "line": 108,
+    "kind": "text",
+    "text": "Grav Scheduler",
+    "key": "ADMIN_NEXT.TOOLS.SCHEDULER.GRAV_SCHEDULER"
+  },
+  {
+    "path": "src/lib/components/tools/SchedulerTab.svelte",
+    "line": 134,
+    "kind": "text",
+    "text": "Saving...",
+    "key": "ADMIN_NEXT.SAVING"
+  },
+  {
+    "path": "src/lib/components/tools/SystemInfoTab.svelte",
+    "line": 16,
+    "kind": "toast",
+    "text": "Failed to load system info",
+    "key": "ADMIN_NEXT.TOOLS.SYSTEM_INFO.FAILED_TO_LOAD_SYSTEM_INFO"
+  },
+  {
+    "path": "src/lib/components/tools/SystemInfoTab.svelte",
+    "line": 39,
+    "kind": "text",
+    "text": "Loading system info...",
+    "key": "ADMIN_NEXT.TOOLS.SYSTEM_INFO.LOADING_SYSTEM_INFO"
+  },
+  {
+    "path": "src/lib/components/tools/SystemInfoTab.svelte",
+    "line": 46,
+    "kind": "text",
+    "text": "System",
+    "key": "ADMIN_NEXT.NAV.SYSTEM"
+  },
+  {
+    "path": "src/lib/components/tools/SystemInfoTab.svelte",
+    "line": 50,
+    "kind": "text",
+    "text": "Grav Version",
+    "key": "ADMIN_NEXT.TOOLS.SYSTEM_INFO.GRAV_VERSION"
+  },
+  {
+    "path": "src/lib/components/tools/SystemInfoTab.svelte",
+    "line": 54,
+    "kind": "text",
+    "text": "PHP Version",
+    "key": "ADMIN_NEXT.TOOLS.SYSTEM_INFO.PHP_VERSION"
+  },
+  {
+    "path": "src/lib/components/tools/SystemInfoTab.svelte",
+    "line": 58,
+    "kind": "text",
+    "text": "PHP SAPI",
+    "key": "ADMIN_NEXT.TOOLS.SYSTEM_INFO.PHP_SAPI"
+  },
+  {
+    "path": "src/lib/components/tools/SystemInfoTab.svelte",
+    "line": 62,
+    "kind": "text",
+    "text": "Memory Limit",
+    "key": "ADMIN_NEXT.TOOLS.SYSTEM_INFO.MEMORY_LIMIT"
+  },
+  {
+    "path": "src/lib/components/tools/SystemInfoTab.svelte",
+    "line": 66,
+    "kind": "text",
+    "text": "Max Execution",
+    "key": "ADMIN_NEXT.TOOLS.SYSTEM_INFO.MAX_EXECUTION"
+  },
+  {
+    "path": "src/lib/components/tools/SystemInfoTab.svelte",
+    "line": 70,
+    "kind": "text",
+    "text": "Max Upload",
+    "key": "ADMIN_NEXT.TOOLS.SYSTEM_INFO.MAX_UPLOAD"
+  },
+  {
+    "path": "src/lib/components/tools/SystemInfoTab.svelte",
+    "line": 74,
+    "kind": "text",
+    "text": "Max POST",
+    "key": "ADMIN_NEXT.TOOLS.SYSTEM_INFO.MAX_POST"
+  },
+  {
+    "path": "src/lib/components/tools/SystemInfoTab.svelte",
+    "line": 86,
+    "kind": "text",
+    "text": "Disk Usage",
+    "key": "ADMIN_NEXT.TOOLS.SYSTEM_INFO.DISK_USAGE"
+  },
+  {
+    "path": "src/lib/components/tools/SystemInfoTab.svelte",
+    "line": 111,
+    "kind": "text",
+    "text": "Plugins",
+    "key": "ADMIN_NEXT.NAV.PLUGINS"
+  },
+  {
+    "path": "src/lib/components/tools/SystemInfoTab.svelte",
+    "line": 119,
+    "kind": "text",
+    "text": "Enabled",
+    "key": "ADMIN_NEXT.ENABLED"
+  },
+  {
+    "path": "src/lib/components/tools/SystemInfoTab.svelte",
+    "line": 123,
+    "kind": "text",
+    "text": "Disabled",
+    "key": "ADMIN_NEXT.DISABLED"
+  },
+  {
+    "path": "src/lib/components/tools/SystemInfoTab.svelte",
+    "line": 137,
+    "kind": "text",
+    "text": "Status",
+    "key": "ADMIN_NEXT.PAGES.HEADER_STATUS"
+  },
+  {
+    "path": "src/lib/components/tools/SystemInfoTab.svelte",
+    "line": 143,
+    "kind": "text",
+    "text": "Driver",
+    "key": "ADMIN_NEXT.TOOLS.SYSTEM_INFO.DRIVER"
+  },
+  {
+    "path": "src/lib/components/ui/AccessDenied.svelte",
+    "line": 24,
+    "kind": "text",
+    "text": "Access Denied",
+    "key": "ADMIN_NEXT.ACCESS_DENIED.ACCESS_DENIED"
+  },
+  {
+    "path": "src/lib/components/ui/ConfirmModal.svelte",
+    "line": 19,
+    "kind": "@title",
+    "text": "Are you sure?",
+    "key": "ADMIN_NEXT.ARE_YOU_SURE"
+  },
+  {
+    "path": "src/lib/components/ui/CopyButton.svelte",
+    "line": 38,
+    "kind": "text",
+    "text": "Copied!",
+    "key": "ADMIN_NEXT.COPY_BUTTON.COPIED"
+  },
+  {
+    "path": "src/lib/components/ui/EnvironmentSwitcher.svelte",
+    "line": 84,
+    "kind": "@title",
+    "text": "Select where config writes are saved",
+    "key": "ADMIN_NEXT.ENVIRONMENT_SWITCHER.SELECT_WHERE_CONFIG_WRITES_ARE_SAVED"
+  },
+  {
+    "path": "src/lib/components/ui/EnvironmentSwitcher.svelte",
+    "line": 114,
+    "kind": "text",
+    "text": "has overrides",
+    "key": "ADMIN_NEXT.ENVIRONMENT_SWITCHER.HAS_OVERRIDES"
+  },
+  {
+    "path": "src/lib/components/ui/EnvironmentSwitcher.svelte",
+    "line": 157,
+    "kind": "text",
+    "text": "Selected env",
+    "key": "ADMIN_NEXT.ENVIRONMENT_SWITCHER.SELECTED_ENV"
+  },
+  {
+    "path": "src/lib/components/ui/EnvironmentSwitcher.svelte",
+    "line": 158,
+    "kind": "text",
+    "text": "no longer exists. Pick another.",
+    "key": "ADMIN_NEXT.ENVIRONMENT_SWITCHER.NO_LONGER_EXISTS_PICK_ANOTHER"
+  },
+  {
+    "path": "src/lib/components/ui/InlineIconPicker.svelte",
+    "line": 71,
+    "kind": "@placeholder",
+    "text": "Search icons...",
+    "key": "ADMIN_NEXT.INLINE_ICON_PICKER.SEARCH_ICONS"
+  },
+  {
+    "path": "src/lib/components/ui/InlineIconPicker.svelte",
+    "line": 107,
+    "kind": "text",
+    "text": "No icons found",
+    "key": "ADMIN_NEXT.INLINE_ICON_PICKER.NO_ICONS_FOUND"
+  },
+  {
+    "path": "src/lib/components/ui/InlineIconPicker.svelte",
+    "line": 114,
+    "kind": "text",
+    "text": "Type to narrow results",
+    "key": "ADMIN_NEXT.INLINE_ICON_PICKER.TYPE_TO_NARROW_RESULTS"
+  },
+  {
+    "path": "src/lib/components/ui/LanguageSwitcher.svelte",
+    "line": 33,
+    "kind": "@title",
+    "text": "Switch content language",
+    "key": "ADMIN_NEXT.LANG.SWITCH_LANGUAGE"
+  },
+  {
+    "path": "src/lib/components/ui/LanguageSwitcher.svelte",
+    "line": 68,
+    "kind": "text",
+    "text": "not translated",
+    "key": "ADMIN_NEXT.LANG.NOT_TRANSLATED"
+  },
+  {
+    "path": "src/lib/components/ui/PasswordField.svelte",
+    "line": 79,
+    "kind": "@aria-label",
+    "text": "Password requirements",
+    "key": "ADMIN_NEXT.PASSWORD_FIELD.PASSWORD_REQUIREMENTS"
+  },
+  {
+    "path": "src/lib/components/ui/PasswordField.svelte",
+    "line": 129,
+    "kind": "@aria-label",
+    "text": "Password strength",
+    "key": "ADMIN_NEXT.PASSWORD_FIELD.PASSWORD_STRENGTH"
+  },
+  {
+    "path": "src/lib/components/ui/PasswordField.svelte",
+    "line": 81,
+    "kind": "text",
+    "text": "Requirements",
+    "key": "ADMIN_NEXT.PASSWORD_FIELD.REQUIREMENTS"
+  },
+  {
+    "path": "src/lib/components/ui/PasswordField.svelte",
+    "line": 171,
+    "kind": "text",
+    "text": "Password requirements",
+    "key": "ADMIN_NEXT.PASSWORD_FIELD.PASSWORD_REQUIREMENTS"
+  },
+  {
+    "path": "src/lib/components/ui/TopProgressBar.svelte",
+    "line": 10,
+    "kind": "@aria-label",
+    "text": "Working",
+    "key": "ADMIN_NEXT.TOP_PROGRESS_BAR.WORKING"
+  },
+  {
+    "path": "src/lib/components/ui/UnsavedIndicator.svelte",
+    "line": 28,
+    "kind": "@title",
+    "text": "Saving changes…",
+    "key": "ADMIN_NEXT.UNSAVED_INDICATOR.SAVING_CHANGES"
+  },
+  {
+    "path": "src/lib/components/ui/UnsavedIndicator.svelte",
+    "line": 29,
+    "kind": "@aria-label",
+    "text": "Saving changes",
+    "key": "ADMIN_NEXT.UNSAVED_INDICATOR.SAVING_CHANGES_2"
+  },
+  {
+    "path": "src/lib/components/ui/UnsavedIndicator.svelte",
+    "line": 36,
+    "kind": "@title",
+    "text": "All changes saved",
+    "key": "ADMIN_NEXT.ALL_CHANGES_SAVED"
+  },
+  {
+    "path": "src/lib/components/ui/UnsavedIndicator.svelte",
+    "line": 37,
+    "kind": "@aria-label",
+    "text": "All changes saved",
+    "key": "ADMIN_NEXT.ALL_CHANGES_SAVED"
+  },
+  {
+    "path": "src/lib/components/ui/UnsavedIndicator.svelte",
+    "line": 44,
+    "kind": "@title",
+    "text": "Unsaved changes — click Save to persist them",
+    "key": "ADMIN_NEXT.UNSAVED_INDICATOR.UNSAVED_CHANGES_CLICK_SAVE_TO_PERSIST"
+  },
+  {
+    "path": "src/lib/components/ui/UnsavedIndicator.svelte",
+    "line": 45,
+    "kind": "@aria-label",
+    "text": "You have unsaved changes",
+    "key": "ADMIN_NEXT.UNSAVED_INDICATOR.YOU_HAVE_UNSAVED_CHANGES"
+  },
+  {
+    "path": "src/lib/utils/unsaved-guard.svelte.ts",
+    "line": 12,
+    "kind": "@title",
+    "text": "Unsaved Changes",
+    "key": "ADMIN_NEXT.UNSAVED_CHANGES"
+  },
+  {
+    "path": "src/routes/+page.svelte",
+    "line": 124,
+    "kind": "toast",
+    "text": "Dashboard layout saved",
+    "key": "ADMIN_NEXT.DASHBOARD.LAYOUT_SAVED"
+  },
+  {
+    "path": "src/routes/+page.svelte",
+    "line": 145,
+    "kind": "toast",
+    "text": "Site default saved",
+    "key": "ADMIN_NEXT.DASHBOARD.SITE_LAYOUT_SAVED"
+  },
+  {
+    "path": "src/routes/+page.svelte",
+    "line": 181,
+    "kind": "toast",
+    "text": "Layout reset to default",
+    "key": "ADMIN_NEXT.DASHBOARD.LAYOUT_RESET"
+  },
+  {
+    "path": "src/routes/+page.svelte",
+    "line": 256,
+    "kind": "toast",
+    "text": "Creating backup…",
+    "key": "ADMIN_NEXT.APP.CREATING_BACKUP"
+  },
+  {
+    "path": "src/routes/+page.svelte",
+    "line": 284,
+    "kind": "text",
+    "text": "Dashboard — Grav Admin",
+    "key": "ADMIN_NEXT.APP.DASHBOARD_GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/+page.svelte",
+    "line": 299,
+    "kind": "text",
+    "text": "Dashboard",
+    "key": "ADMIN_NEXT.DASHBOARD.TITLE"
+  },
+  {
+    "path": "src/routes/+page.svelte",
+    "line": 301,
+    "kind": "text",
+    "text": "Welcome back,",
+    "key": "ADMIN_NEXT.APP.WELCOME_BACK"
+  },
+  {
+    "path": "src/routes/+page.svelte",
+    "line": 303,
+    "kind": "text",
+    "text": "Customize mode — drag, resize, hide widgets, then save.",
+    "key": "ADMIN_NEXT.DASHBOARD.EDIT_HINT"
+  },
+  {
+    "path": "src/routes/+page.svelte",
+    "line": 309,
+    "kind": "text",
+    "text": "Refresh",
+    "key": "ADMIN_NEXT.APP.REFRESH"
+  },
+  {
+    "path": "src/routes/config/+page.svelte",
+    "line": 11,
+    "kind": "text",
+    "text": "Loading configuration...",
+    "key": "ADMIN_NEXT.CONFIG.LOADING_CONFIGURATION"
+  },
+  {
+    "path": "src/routes/config/[scope]/+page.svelte",
+    "line": 292,
+    "kind": "@placeholder",
+    "text": "Filter fields...",
+    "key": "ADMIN_NEXT.CONFIG.FILTER_FIELDS"
+  },
+  {
+    "path": "src/routes/config/[scope]/+page.svelte",
+    "line": 299,
+    "kind": "@aria-label",
+    "text": "Clear filter",
+    "key": "ADMIN_NEXT.CONFIG.CLEAR_FILTER"
+  },
+  {
+    "path": "src/routes/config/[scope]/+page.svelte",
+    "line": 347,
+    "kind": "@title",
+    "text": "Unsaved Changes",
+    "key": "ADMIN_NEXT.UNSAVED_CHANGES"
+  },
+  {
+    "path": "src/routes/config/[scope]/+page.svelte",
+    "line": 150,
+    "kind": "toast",
+    "text": "Configuration saved successfully",
+    "key": "ADMIN_NEXT.CONFIG.CONFIGURATION_SAVED_SUCCESSFULLY"
+  },
+  {
+    "path": "src/routes/config/[scope]/+page.svelte",
+    "line": 155,
+    "kind": "toast",
+    "text": "Configuration was modified elsewhere. Reload to see the latest changes.",
+    "key": "ADMIN_NEXT.CONFIG.CONFIGURATION_WAS_MODIFIED_ELSEWHERE"
+  },
+  {
+    "path": "src/routes/config/[scope]/+page.svelte",
+    "line": 162,
+    "kind": "toast",
+    "text": "Failed to save configuration",
+    "key": "ADMIN_NEXT.CONFIG.FAILED_TO_SAVE_CONFIGURATION"
+  },
+  {
+    "path": "src/routes/config/[scope]/+page.svelte",
+    "line": 171,
+    "kind": "toast",
+    "text": "Configuration reloaded",
+    "key": "ADMIN_NEXT.CONFIG.CONFIGURATION_RELOADED"
+  },
+  {
+    "path": "src/routes/config/[scope]/+page.svelte",
+    "line": 221,
+    "kind": "toast",
+    "text": "Configuration changed elsewhere — save to overwrite or reload",
+    "key": "ADMIN_NEXT.CONFIG.CONFIGURATION_CHANGED_ELSEWHERE_SAVE_TO"
+  },
+  {
+    "path": "src/routes/config/[scope]/+page.svelte",
+    "line": 265,
+    "kind": "text",
+    "text": "Reload",
+    "key": "ADMIN_NEXT.CONFIG.RELOAD"
+  },
+  {
+    "path": "src/routes/config/[scope]/+page.svelte",
+    "line": 270,
+    "kind": "text",
+    "text": "Saving...",
+    "key": "ADMIN_NEXT.SAVING"
+  },
+  {
+    "path": "src/routes/config/[scope]/+page.svelte",
+    "line": 326,
+    "kind": "text",
+    "text": "Loading configuration...",
+    "key": "ADMIN_NEXT.CONFIG.LOADING_CONFIGURATION"
+  },
+  {
+    "path": "src/routes/config/[scope]/+page.svelte",
+    "line": 338,
+    "kind": "text",
+    "text": "No configuration blueprint available for this scope.",
+    "key": "ADMIN_NEXT.CONFIG.NO_CONFIGURATION_BLUEPRINT_AVAILABLE"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/+page.svelte",
+    "line": 274,
+    "kind": "@placeholder",
+    "text": "Search...",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.SEARCH"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/+page.svelte",
+    "line": 392,
+    "kind": "@title",
+    "text": "Delete",
+    "key": "ADMIN_NEXT.DELETE"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/+page.svelte",
+    "line": 442,
+    "kind": "@title",
+    "text": "Previous",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.PREVIOUS"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/+page.svelte",
+    "line": 522,
+    "kind": "@title",
+    "text": "Delete Object",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.DELETE_OBJECT"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/+page.svelte",
+    "line": 109,
+    "kind": "toast",
+    "text": "Failed to load directory",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.FAILED_TO_LOAD_DIRECTORY"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/+page.svelte",
+    "line": 126,
+    "kind": "toast",
+    "text": "Failed to load objects",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.FAILED_TO_LOAD_OBJECTS"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/+page.svelte",
+    "line": 184,
+    "kind": "toast",
+    "text": "Object deleted",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.OBJECT_DELETED"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/+page.svelte",
+    "line": 189,
+    "kind": "toast",
+    "text": "Failed to delete object",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.FAILED_TO_DELETE_OBJECT"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/+page.svelte",
+    "line": 206,
+    "kind": "toast",
+    "text": "Export failed",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.EXPORT_FAILED"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/+page.svelte",
+    "line": 228,
+    "kind": "text",
+    "text": "— Grav Admin",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/+page.svelte",
+    "line": 250,
+    "kind": "text",
+    "text": "Export",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.EXPORT"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/+page.svelte",
+    "line": 322,
+    "kind": "text",
+    "text": "Actions",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.ACTIONS"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/[key]/+page.svelte",
+    "line": 318,
+    "kind": "@title",
+    "text": "Delete Object",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.DELETE_OBJECT"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/[key]/+page.svelte",
+    "line": 328,
+    "kind": "@title",
+    "text": "Unsaved Changes",
+    "key": "ADMIN_NEXT.UNSAVED_CHANGES"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/[key]/+page.svelte",
+    "line": 128,
+    "kind": "toast",
+    "text": "Object was modified elsewhere. Please reload.",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.OBJECT_WAS_MODIFIED_ELSEWHERE_PLEASE"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/[key]/+page.svelte",
+    "line": 130,
+    "kind": "toast",
+    "text": "Failed to save.",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.FAILED_TO_SAVE"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/[key]/+page.svelte",
+    "line": 142,
+    "kind": "toast",
+    "text": "Object deleted",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.OBJECT_DELETED"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/[key]/+page.svelte",
+    "line": 145,
+    "kind": "toast",
+    "text": "Failed to delete object",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.FAILED_TO_DELETE_OBJECT"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/[key]/+page.svelte",
+    "line": 202,
+    "kind": "toast",
+    "text": "Object changed elsewhere — save to overwrite or reload",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.OBJECT_CHANGED_ELSEWHERE_SAVE_TO"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/[key]/+page.svelte",
+    "line": 264,
+    "kind": "text",
+    "text": "Delete",
+    "key": "ADMIN_NEXT.DELETE"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/[key]/+page.svelte",
+    "line": 297,
+    "kind": "text",
+    "text": "Back to List",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.BACK_TO_LIST"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/new/+page.svelte",
+    "line": 91,
+    "kind": "toast",
+    "text": "Object created",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.NEW.OBJECT_CREATED"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/new/+page.svelte",
+    "line": 162,
+    "kind": "text",
+    "text": "Create",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.NEW.CREATE"
+  },
+  {
+    "path": "src/routes/flex-objects/[type]/new/+page.svelte",
+    "line": 185,
+    "kind": "text",
+    "text": "Back to List",
+    "key": "ADMIN_NEXT.FLEX_OBJECTS.NEW.BACK_TO_LIST"
+  },
+  {
+    "path": "src/routes/forgot/+page.svelte",
+    "line": 56,
+    "kind": "@aria-label",
+    "text": "Toggle dark mode",
+    "key": "ADMIN_NEXT.TOGGLE_DARK_MODE"
+  },
+  {
+    "path": "src/routes/forgot/+page.svelte",
+    "line": 39,
+    "kind": "toast",
+    "text": "Unable to connect to server.",
+    "key": "ADMIN_NEXT.FORGOT.UNABLE_TO_CONNECT_TO_SERVER"
+  },
+  {
+    "path": "src/routes/forgot/+page.svelte",
+    "line": 48,
+    "kind": "text",
+    "text": "Forgot password — Grav Admin",
+    "key": "ADMIN_NEXT.FORGOT.FORGOT_PASSWORD_GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/forgot/+page.svelte",
+    "line": 70,
+    "kind": "text",
+    "text": "Forgot password",
+    "key": "ADMIN_NEXT.FORGOT.FORGOT_PASSWORD"
+  },
+  {
+    "path": "src/routes/forgot/+page.svelte",
+    "line": 84,
+    "kind": "text",
+    "text": "Email address",
+    "key": "ADMIN_NEXT.FORGOT.EMAIL_ADDRESS"
+  },
+  {
+    "path": "src/routes/forgot/+page.svelte",
+    "line": 102,
+    "kind": "text",
+    "text": "Enter a valid email address",
+    "key": "ADMIN_NEXT.FORGOT.ENTER_A_VALID_EMAIL_ADDRESS"
+  },
+  {
+    "path": "src/routes/forgot/+page.svelte",
+    "line": 108,
+    "kind": "text",
+    "text": "Sending...",
+    "key": "ADMIN_NEXT.FORGOT.SENDING"
+  },
+  {
+    "path": "src/routes/forgot/+page.svelte",
+    "line": 111,
+    "kind": "text",
+    "text": "Send reset link",
+    "key": "ADMIN_NEXT.FORGOT.SEND_RESET_LINK"
+  },
+  {
+    "path": "src/routes/forgot/+page.svelte",
+    "line": 117,
+    "kind": "text",
+    "text": "If an account exists for that email, a reset link has been sent.",
+    "key": "ADMIN_NEXT.FORGOT.IF_AN_ACCOUNT_EXISTS_FOR_THAT_EMAIL_A"
+  },
+  {
+    "path": "src/routes/forgot/+page.svelte",
+    "line": 127,
+    "kind": "text",
+    "text": "Back to sign in",
+    "key": "ADMIN_NEXT.FORGOT.BACK_TO_SIGN_IN"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 149,
+    "kind": "@aria-label",
+    "text": "Toggle dark mode",
+    "key": "ADMIN_NEXT.TOGGLE_DARK_MODE"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 55,
+    "kind": "toast",
+    "text": "Signed in successfully",
+    "key": "ADMIN_NEXT.LOGIN.SIGNED_IN_SUCCESSFULLY"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 73,
+    "kind": "toast",
+    "text": "Please fill in all required fields",
+    "key": "ADMIN_NEXT.LOGIN.PLEASE_FILL_IN_ALL_REQUIRED_FIELDS"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 93,
+    "kind": "toast",
+    "text": "Invalid username or password",
+    "key": "ADMIN_NEXT.LOGIN.INVALID_USERNAME_OR_PASSWORD"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 100,
+    "kind": "toast",
+    "text": "Unable to connect to server. Check your server URL and try again.",
+    "key": "ADMIN_NEXT.LOGIN.UNABLE_TO_CONNECT_TO_SERVER_CHECK_YOUR"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 132,
+    "kind": "toast",
+    "text": "Unable to verify code. Check your connection and try again.",
+    "key": "ADMIN_NEXT.LOGIN.UNABLE_TO_VERIFY_CODE_CHECK_YOUR"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 141,
+    "kind": "text",
+    "text": "Login — Grav Admin",
+    "key": "ADMIN_NEXT.LOGIN.LOGIN_GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 164,
+    "kind": "text",
+    "text": "Grav Admin",
+    "key": "ADMIN_NEXT.LOGIN.GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 184,
+    "kind": "text",
+    "text": "Server Configuration",
+    "key": "ADMIN_NEXT.LOGIN.SERVER_CONFIGURATION"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 192,
+    "kind": "text",
+    "text": "Server URL",
+    "key": "ADMIN_NEXT.LOGIN.SERVER_URL"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 207,
+    "kind": "text",
+    "text": "Environment",
+    "key": "ADMIN_NEXT.LOGIN.ENVIRONMENT"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 222,
+    "kind": "text",
+    "text": "Username",
+    "key": "ADMIN_NEXT.USERNAME"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 235,
+    "kind": "text",
+    "text": "Username is required",
+    "key": "ADMIN_NEXT.LOGIN.USERNAME_IS_REQUIRED"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 240,
+    "kind": "text",
+    "text": "Password",
+    "key": "ADMIN_NEXT.PASSWORD"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 253,
+    "kind": "text",
+    "text": "Password is required",
+    "key": "ADMIN_NEXT.LOGIN.PASSWORD_IS_REQUIRED"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 259,
+    "kind": "text",
+    "text": "Forgot password?",
+    "key": "ADMIN_NEXT.LOGIN.FORGOT_PASSWORD"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 267,
+    "kind": "text",
+    "text": "Signing in...",
+    "key": "ADMIN_NEXT.LOGIN.SIGNING_IN"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 270,
+    "kind": "text",
+    "text": "Sign In",
+    "key": "ADMIN_NEXT.LOGIN.SIGN_IN"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 286,
+    "kind": "text",
+    "text": "Authentication code",
+    "key": "ADMIN_NEXT.LOGIN.AUTHENTICATION_CODE"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 303,
+    "kind": "text",
+    "text": "Enter a valid 6-digit code",
+    "key": "ADMIN_NEXT.LOGIN.ENTER_A_VALID_6_DIGIT_CODE"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 309,
+    "kind": "text",
+    "text": "Verifying...",
+    "key": "ADMIN_NEXT.LOGIN.VERIFYING"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 312,
+    "kind": "text",
+    "text": "Verify",
+    "key": "ADMIN_NEXT.LOGIN.VERIFY"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 323,
+    "kind": "text",
+    "text": "Back to sign in",
+    "key": "ADMIN_NEXT.LOGIN.BACK_TO_SIGN_IN"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 330,
+    "kind": "text",
+    "text": "Powered by Grav CMS",
+    "key": "ADMIN_NEXT.LOGIN.POWERED_BY_GRAV_CMS"
+  },
+  {
+    "path": "src/routes/media/+page.svelte",
+    "line": 10,
+    "kind": "text",
+    "text": "Media — Grav Admin",
+    "key": "ADMIN_NEXT.MEDIA.MEDIA_GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/media/+page.svelte",
+    "line": 22,
+    "kind": "text",
+    "text": "Manage site-wide media files",
+    "key": "ADMIN_NEXT.MEDIA.MANAGE_SITE_WIDE_MEDIA_FILES"
+  },
+  {
+    "path": "src/routes/pages/+page.svelte",
+    "line": 110,
+    "kind": "@placeholder",
+    "text": "Search pages...",
+    "key": "ADMIN_NEXT.PAGES.SEARCH_PLACEHOLDER"
+  },
+  {
+    "path": "src/routes/pages/+page.svelte",
+    "line": 117,
+    "kind": "@aria-label",
+    "text": "Clear search",
+    "key": "ADMIN_NEXT.CLEAR_SEARCH"
+  },
+  {
+    "path": "src/routes/pages/+page.svelte",
+    "line": 197,
+    "kind": "@title",
+    "text": "Delete Page",
+    "key": "ADMIN_NEXT.PAGES.DELETE_PAGE"
+  },
+  {
+    "path": "src/routes/pages/+page.svelte",
+    "line": 72,
+    "kind": "toast",
+    "text": "Failed to delete page",
+    "key": "ADMIN_NEXT.PAGES.DELETE_FAILED"
+  },
+  {
+    "path": "src/routes/pages/+page.svelte",
+    "line": 78,
+    "kind": "text",
+    "text": "Pages — Grav Admin",
+    "key": "ADMIN_NEXT.PAGES.PAGES_GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/pages/+page.svelte",
+    "line": 96,
+    "kind": "text",
+    "text": "Add Page",
+    "key": "ADMIN_NEXT.ADD_PAGE"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1128,
+    "kind": "@title",
+    "text": "Toggle page navigator",
+    "key": "ADMIN_NEXT.PAGES.EDIT.TOGGLE_PAGE_NAVIGATOR"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1156,
+    "kind": "@title",
+    "text": "Preview page",
+    "key": "ADMIN_NEXT.PAGES.EDIT.PREVIEW_PAGE"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1160,
+    "kind": "@title",
+    "text": "Copy page",
+    "key": "ADMIN_NEXT.PAGES.EDIT.COPY_PAGE"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1167,
+    "kind": "@title",
+    "text": "Delete page",
+    "key": "ADMIN_NEXT.PAGES.EDIT.DELETE_PAGE"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1293,
+    "kind": "@placeholder",
+    "text": "Write your markdown content here...",
+    "key": "ADMIN_NEXT.PAGES.EDIT.WRITE_YOUR_MARKDOWN_CONTENT_HERE"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1388,
+    "kind": "@placeholder",
+    "text": "Write your markdown content here...",
+    "key": "ADMIN_NEXT.PAGES.EDIT.WRITE_YOUR_MARKDOWN_CONTENT_HERE"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1569,
+    "kind": "@title",
+    "text": "Delete Page",
+    "key": "ADMIN_NEXT.PAGES.EDIT.DELETE_PAGE"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1579,
+    "kind": "@title",
+    "text": "Unsaved Changes",
+    "key": "ADMIN_NEXT.UNSAVED_CHANGES"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1589,
+    "kind": "@title",
+    "text": "Reset Translation",
+    "key": "ADMIN_NEXT.PAGES.EDIT.RESET_TRANSLATION"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1599,
+    "kind": "@title",
+    "text": "Unsaved Changes",
+    "key": "ADMIN_NEXT.UNSAVED_CHANGES"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1644,
+    "kind": "@title",
+    "text": "Page Preview",
+    "key": "ADMIN_NEXT.PAGES.EDIT.PAGE_PREVIEW"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 505,
+    "kind": "toast",
+    "text": "Invalid YAML frontmatter",
+    "key": "ADMIN_NEXT.PAGES.EDIT.INVALID_YAML_FRONTMATTER"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 730,
+    "kind": "toast",
+    "text": "Invalid YAML frontmatter — fix syntax before saving",
+    "key": "ADMIN_NEXT.PAGES.EDIT.INVALID_YAML_FRONTMATTER_FIX_SYNTAX"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 768,
+    "kind": "toast",
+    "text": "No changes to save",
+    "key": "ADMIN_NEXT.NO_CHANGES"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 821,
+    "kind": "toast",
+    "text": "Page saved and moved",
+    "key": "ADMIN_NEXT.PAGES.EDIT.PAGE_SAVED_AND_MOVED"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 831,
+    "kind": "toast",
+    "text": "Page saved successfully",
+    "key": "ADMIN_NEXT.PAGES.SAVED"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 836,
+    "kind": "toast",
+    "text": "Failed to save page",
+    "key": "ADMIN_NEXT.PAGES.SAVE_FAILED"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 899,
+    "kind": "toast",
+    "text": "Failed to create translation",
+    "key": "ADMIN_NEXT.PAGES.EDIT.FAILED_TO_CREATE_TRANSLATION"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 933,
+    "kind": "toast",
+    "text": "Failed to sync translation",
+    "key": "ADMIN_NEXT.PAGES.EDIT.FAILED_TO_SYNC_TRANSLATION"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 971,
+    "kind": "toast",
+    "text": "Page deleted",
+    "key": "ADMIN_NEXT.PAGES.EDIT.PAGE_DELETED"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 974,
+    "kind": "toast",
+    "text": "Failed to delete page",
+    "key": "ADMIN_NEXT.PAGES.DELETE_FAILED"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1016,
+    "kind": "toast",
+    "text": "Page copied",
+    "key": "ADMIN_NEXT.PAGES.EDIT.PAGE_COPIED"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1066,
+    "kind": "toast",
+    "text": "Page changed elsewhere — save to overwrite or reload",
+    "key": "ADMIN_NEXT.PAGES.EDIT.PAGE_CHANGED_ELSEWHERE_SAVE_TO"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1075,
+    "kind": "text",
+    "text": "— Grav Admin",
+    "key": "ADMIN_NEXT.PAGES.EDIT.GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1180,
+    "kind": "text",
+    "text": "Saving...",
+    "key": "ADMIN_NEXT.SAVING"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1183,
+    "kind": "text",
+    "text": "Save as",
+    "key": "ADMIN_NEXT.PAGES.EDIT.SAVE_AS"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1207,
+    "kind": "text",
+    "text": "Save as",
+    "key": "ADMIN_NEXT.PAGES.EDIT.SAVE_AS"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1237,
+    "kind": "text",
+    "text": "Save as",
+    "key": "ADMIN_NEXT.PAGES.EDIT.SAVE_AS"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1245,
+    "kind": "text",
+    "text": "Loading page...",
+    "key": "ADMIN_NEXT.PAGES.EDIT.LOADING_PAGE"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1266,
+    "kind": "text",
+    "text": "Frontmatter",
+    "key": "ADMIN_NEXT.PAGES.FRONTMATTER"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1311,
+    "kind": "text",
+    "text": "Folder Name",
+    "key": "ADMIN_NEXT.PAGES.EDIT.FOLDER_NAME"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1314,
+    "kind": "text",
+    "text": "The folder name on disk (URL slug)",
+    "key": "ADMIN_NEXT.PAGES.EDIT.THE_FOLDER_NAME_ON_DISK_URL_SLUG"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1405,
+    "kind": "text",
+    "text": "Page Info",
+    "key": "ADMIN_NEXT.PAGES.PAGE_INFO"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1413,
+    "kind": "text",
+    "text": "Published",
+    "key": "ADMIN_NEXT.PAGES.PUBLISHED"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1426,
+    "kind": "text",
+    "text": "Visible in nav",
+    "key": "ADMIN_NEXT.PAGES.INFO_VISIBLE"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1436,
+    "kind": "text",
+    "text": "Routable",
+    "key": "ADMIN_NEXT.PAGES.INFO_ROUTABLE"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1455,
+    "kind": "text",
+    "text": "Template",
+    "key": "ADMIN_NEXT.PAGES.HEADER_TEMPLATE"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1460,
+    "kind": "text",
+    "text": "Language",
+    "key": "ADMIN_NEXT.PAGES.INFO_LANGUAGE"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1461,
+    "kind": "text",
+    "text": "(fallback)",
+    "key": "ADMIN_NEXT.PAGES.EDIT.FALLBACK"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1481,
+    "kind": "text",
+    "text": "Modified",
+    "key": "ADMIN_NEXT.PAGES.HEADER_MODIFIED"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1502,
+    "kind": "text",
+    "text": "Translations",
+    "key": "ADMIN_NEXT.LANG.TRANSLATIONS"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1523,
+    "kind": "text",
+    "text": "Not translated:",
+    "key": "ADMIN_NEXT.PAGES.EDIT.NOT_TRANSLATED"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1531,
+    "kind": "text",
+    "text": "Create",
+    "key": "ADMIN_NEXT.PAGES.EDIT.CREATE"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1537,
+    "kind": "text",
+    "text": "Reset content from:",
+    "key": "ADMIN_NEXT.PAGES.EDIT.RESET_CONTENT_FROM"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1618,
+    "kind": "text",
+    "text": "Page Preview",
+    "key": "ADMIN_NEXT.PAGES.EDIT.PAGE_PREVIEW"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1628,
+    "kind": "text",
+    "text": "Open in New Tab",
+    "key": "ADMIN_NEXT.PAGES.EDIT.OPEN_IN_NEW_TAB"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 300,
+    "kind": "@placeholder",
+    "text": "My New Page",
+    "key": "ADMIN_NEXT.PAGES.NEW.MY_NEW_PAGE"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 324,
+    "kind": "@title",
+    "text": "Auto-regenerate from page title",
+    "key": "ADMIN_NEXT.FIELDS.REGENERATE_SLUG"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 355,
+    "kind": "@placeholder",
+    "text": "Filter pages...",
+    "key": "ADMIN_NEXT.PAGES.NEW.FILTER_PAGES"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 63,
+    "kind": "toast",
+    "text": "Failed to load page templates",
+    "key": "ADMIN_NEXT.PAGES.NEW.FAILED_TO_LOAD_PAGE_TEMPLATES"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 239,
+    "kind": "text",
+    "text": "Add Page — Grav Admin",
+    "key": "ADMIN_NEXT.PAGES.NEW.ADD_PAGE_GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 263,
+    "kind": "text",
+    "text": "Add Page",
+    "key": "ADMIN_NEXT.ADD_PAGE"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 274,
+    "kind": "text",
+    "text": "Continue",
+    "key": "ADMIN_NEXT.PAGES.NEW.CONTINUE"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 287,
+    "kind": "text",
+    "text": "Page Details",
+    "key": "ADMIN_NEXT.PAGES.NEW.PAGE_DETAILS"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 292,
+    "kind": "text",
+    "text": "Page Title",
+    "key": "ADMIN_NEXT.PAGES.NEW.PAGE_TITLE"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 307,
+    "kind": "text",
+    "text": "Folder Name",
+    "key": "ADMIN_NEXT.PAGES.NEW.FOLDER_NAME"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 310,
+    "kind": "text",
+    "text": "URL-safe folder name for this page",
+    "key": "ADMIN_NEXT.PAGES.NEW.URL_SAFE_FOLDER_NAME_FOR_THIS_PAGE"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 333,
+    "kind": "text",
+    "text": "Parent Page",
+    "key": "ADMIN_NEXT.PAGES.NEW.PARENT_PAGE"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 372,
+    "kind": "text",
+    "text": "Loading pages...",
+    "key": "ADMIN_NEXT.PAGES.LOADING"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 384,
+    "kind": "text",
+    "text": "&lt;root&gt; /",
+    "key": "ADMIN_NEXT.PAGES.NEW.ROOT",
+    "value": "<root> /"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 395,
+    "kind": "text",
+    "text": "No pages found",
+    "key": "ADMIN_NEXT.PAGES.NO_PAGES"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 406,
+    "kind": "text",
+    "text": "Page Template",
+    "key": "ADMIN_NEXT.PAGES.NEW.PAGE_TEMPLATE"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 416,
+    "kind": "text",
+    "text": "Loading templates...",
+    "key": "ADMIN_NEXT.PAGES.NEW.LOADING_TEMPLATES"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 427,
+    "kind": "text",
+    "text": "Visible",
+    "key": "ADMIN_NEXT.PAGES.NEW.VISIBLE"
+  },
+  {
+    "path": "src/routes/pages/new/+page.svelte",
+    "line": 430,
+    "kind": "text",
+    "text": "Controls whether this page appears in navigation menus",
+    "key": "ADMIN_NEXT.PAGES.NEW.CONTROLS_WHETHER_THIS_PAGE_APPEARS_IN"
+  },
+  {
+    "path": "src/routes/plugin/[slug]/+page.svelte",
+    "line": 502,
+    "kind": "@title",
+    "text": "Unsaved Changes",
+    "key": "ADMIN_NEXT.UNSAVED_CHANGES"
+  },
+  {
+    "path": "src/routes/plugin/[slug]/+page.svelte",
+    "line": 512,
+    "kind": "@title",
+    "text": "Confirm Action",
+    "key": "ADMIN_NEXT.CONFIRM_ACTION"
+  },
+  {
+    "path": "src/routes/plugin/[slug]/+page.svelte",
+    "line": 307,
+    "kind": "text",
+    "text": "— Grav Admin",
+    "key": "ADMIN_NEXT.PLUGIN.GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/plugin/[slug]/+page.svelte",
+    "line": 462,
+    "kind": "text",
+    "text": "Back to Dashboard",
+    "key": "ADMIN_NEXT.PLUGIN.BACK_TO_DASHBOARD"
+  },
+  {
+    "path": "src/routes/plugin/[slug]/+page.svelte",
+    "line": 481,
+    "kind": "text",
+    "text": "No content available for this plugin page.",
+    "key": "ADMIN_NEXT.PLUGIN.NO_CONTENT_AVAILABLE_FOR_THIS_PLUGIN"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 279,
+    "kind": "@placeholder",
+    "text": "Search plugins...",
+    "key": "ADMIN_NEXT.PLUGINS.SEARCH_PLUGINS"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 333,
+    "kind": "@title",
+    "text": "Symlinked",
+    "key": "ADMIN_NEXT.PLUGINS.SYMLINKED"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 333,
+    "kind": "@aria-label",
+    "text": "Symlinked",
+    "key": "ADMIN_NEXT.PLUGINS.SYMLINKED"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 382,
+    "kind": "@title",
+    "text": "Symlinked",
+    "key": "ADMIN_NEXT.PLUGINS.SYMLINKED"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 382,
+    "kind": "@aria-label",
+    "text": "Symlinked",
+    "key": "ADMIN_NEXT.PLUGINS.SYMLINKED"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 89,
+    "kind": "toast",
+    "text": "Failed to load plugins",
+    "key": "ADMIN_NEXT.PLUGINS.FAILED_TO_LOAD_PLUGINS"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 143,
+    "kind": "toast",
+    "text": "Failed to check for updates",
+    "key": "ADMIN_NEXT.PLUGINS.FAILED_TO_CHECK_FOR_UPDATES"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 225,
+    "kind": "text",
+    "text": "Plugins — Grav Admin",
+    "key": "ADMIN_NEXT.PLUGINS.PLUGINS_GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 235,
+    "kind": "text",
+    "text": "Plugins",
+    "key": "ADMIN_NEXT.NAV.PLUGINS"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 243,
+    "kind": "text",
+    "text": "Check Updates",
+    "key": "ADMIN_NEXT.PLUGINS.CHECK_UPDATES"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 288,
+    "kind": "text",
+    "text": "Author",
+    "key": "ADMIN_NEXT.AUTHOR"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 289,
+    "kind": "text",
+    "text": "Status",
+    "key": "ADMIN_NEXT.PAGES.HEADER_STATUS"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 322,
+    "kind": "text",
+    "text": "Premium",
+    "key": "ADMIN_NEXT.PREMIUM"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 385,
+    "kind": "text",
+    "text": "Premium",
+    "key": "ADMIN_NEXT.PREMIUM"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 394,
+    "kind": "text",
+    "text": "Update available: v",
+    "key": "ADMIN_NEXT.PLUGINS.UPDATE_AVAILABLE_V"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 411,
+    "kind": "text",
+    "text": "Update to v",
+    "key": "ADMIN_NEXT.PLUGINS.UPDATE_TO_V"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 420,
+    "kind": "text",
+    "text": "Configure",
+    "key": "ADMIN_NEXT.PLUGINS.CONFIGURE"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 444,
+    "kind": "text",
+    "text": "Author",
+    "key": "ADMIN_NEXT.AUTHOR"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 460,
+    "kind": "text",
+    "text": "Homepage",
+    "key": "ADMIN_NEXT.HOMEPAGE"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 471,
+    "kind": "text",
+    "text": "Status",
+    "key": "ADMIN_NEXT.PAGES.HEADER_STATUS"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 491,
+    "kind": "text",
+    "text": "Keywords",
+    "key": "ADMIN_NEXT.KEYWORDS"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 503,
+    "kind": "text",
+    "text": "Dependencies",
+    "key": "ADMIN_NEXT.DEPENDENCIES"
+  },
+  {
+    "path": "src/routes/plugins/+page.svelte",
+    "line": 518,
+    "kind": "text",
+    "text": "Select a plugin to view details",
+    "key": "ADMIN_NEXT.PLUGINS.SELECT_A_PLUGIN_TO_VIEW_DETAILS"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 389,
+    "kind": "@title",
+    "text": "Symlinked",
+    "key": "ADMIN_NEXT.PLUGINS.SYMLINKED"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 389,
+    "kind": "@aria-label",
+    "text": "Symlinked",
+    "key": "ADMIN_NEXT.PLUGINS.SYMLINKED"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 446,
+    "kind": "@aria-label",
+    "text": "Remove",
+    "key": "ADMIN_NEXT.REMOVE"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 447,
+    "kind": "@title",
+    "text": "Remove",
+    "key": "ADMIN_NEXT.REMOVE"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 606,
+    "kind": "@title",
+    "text": "Remove Plugin",
+    "key": "ADMIN_NEXT.PLUGINS.REMOVE_PLUGIN"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 616,
+    "kind": "@title",
+    "text": "Unsaved Changes",
+    "key": "ADMIN_NEXT.UNSAVED_CHANGES"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 199,
+    "kind": "toast",
+    "text": "Configuration was modified elsewhere. Please reload.",
+    "key": "ADMIN_NEXT.PLUGINS.CONFIGURATION_WAS_MODIFIED_ELSEWHERE"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 201,
+    "kind": "toast",
+    "text": "Failed to save configuration.",
+    "key": "ADMIN_NEXT.PLUGINS.FAILED_TO_SAVE_CONFIGURATION"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 346,
+    "kind": "toast",
+    "text": "Plugin changed elsewhere — save to overwrite or reload",
+    "key": "ADMIN_NEXT.PLUGINS.PLUGIN_CHANGED_ELSEWHERE_SAVE_TO"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 357,
+    "kind": "text",
+    "text": "— Plugins — Grav Admin",
+    "key": "ADMIN_NEXT.PLUGINS.PLUGINS_GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 392,
+    "kind": "text",
+    "text": "Premium",
+    "key": "ADMIN_NEXT.PREMIUM"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 436,
+    "kind": "text",
+    "text": "Update to v",
+    "key": "ADMIN_NEXT.PLUGINS.UPDATE_TO_V"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 454,
+    "kind": "text",
+    "text": "Remove",
+    "key": "ADMIN_NEXT.REMOVE"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 505,
+    "kind": "text",
+    "text": "Back to Plugins",
+    "key": "ADMIN_NEXT.PLUGINS.BACK_TO_PLUGINS"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 535,
+    "kind": "text",
+    "text": "Homepage",
+    "key": "ADMIN_NEXT.HOMEPAGE"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 550,
+    "kind": "text",
+    "text": "Changelog",
+    "key": "ADMIN_NEXT.PLUGINS.CHANGELOG"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 575,
+    "kind": "text",
+    "text": "Plugin must be enabled to configure.",
+    "key": "ADMIN_NEXT.PLUGINS.PLUGIN_MUST_BE_ENABLED_TO_CONFIGURE"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 580,
+    "kind": "text",
+    "text": "Enable Plugin",
+    "key": "ADMIN_NEXT.PLUGINS.ENABLE_PLUGIN"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 587,
+    "kind": "text",
+    "text": "No configuration options available for this plugin.",
+    "key": "ADMIN_NEXT.PLUGINS.NO_CONFIGURATION_OPTIONS_AVAILABLE_FOR"
+  },
+  {
+    "path": "src/routes/reset/+page.svelte",
+    "line": 81,
+    "kind": "@aria-label",
+    "text": "Toggle dark mode",
+    "key": "ADMIN_NEXT.TOGGLE_DARK_MODE"
+  },
+  {
+    "path": "src/routes/reset/+page.svelte",
+    "line": 51,
+    "kind": "toast",
+    "text": "Password reset successfully. Please sign in.",
+    "key": "ADMIN_NEXT.RESET.PASSWORD_RESET_SUCCESSFULLY_PLEASE_SIGN"
+  },
+  {
+    "path": "src/routes/reset/+page.svelte",
+    "line": 64,
+    "kind": "toast",
+    "text": "Unable to connect to server.",
+    "key": "ADMIN_NEXT.RESET.UNABLE_TO_CONNECT_TO_SERVER"
+  },
+  {
+    "path": "src/routes/reset/+page.svelte",
+    "line": 73,
+    "kind": "text",
+    "text": "Reset password — Grav Admin",
+    "key": "ADMIN_NEXT.RESET.RESET_PASSWORD_GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/reset/+page.svelte",
+    "line": 95,
+    "kind": "text",
+    "text": "Reset password",
+    "key": "ADMIN_NEXT.RESET.RESET_PASSWORD"
+  },
+  {
+    "path": "src/routes/reset/+page.svelte",
+    "line": 107,
+    "kind": "text",
+    "text": "This reset link is missing required parameters. Request a new one from the forgot password page.",
+    "key": "ADMIN_NEXT.RESET.THIS_RESET_LINK_IS_MISSING_REQUIRED"
+  },
+  {
+    "path": "src/routes/reset/+page.svelte",
+    "line": 123,
+    "kind": "text",
+    "text": "Confirm password",
+    "key": "ADMIN_NEXT.RESET.CONFIRM_PASSWORD"
+  },
+  {
+    "path": "src/routes/reset/+page.svelte",
+    "line": 136,
+    "kind": "text",
+    "text": "Passwords do not match",
+    "key": "ADMIN_NEXT.RESET.PASSWORDS_DO_NOT_MATCH"
+  },
+  {
+    "path": "src/routes/reset/+page.svelte",
+    "line": 142,
+    "kind": "text",
+    "text": "Resetting...",
+    "key": "ADMIN_NEXT.RESET.RESETTING"
+  },
+  {
+    "path": "src/routes/reset/+page.svelte",
+    "line": 145,
+    "kind": "text",
+    "text": "Reset password",
+    "key": "ADMIN_NEXT.RESET.RESET_PASSWORD"
+  },
+  {
+    "path": "src/routes/reset/+page.svelte",
+    "line": 157,
+    "kind": "text",
+    "text": "Back to sign in",
+    "key": "ADMIN_NEXT.RESET.BACK_TO_SIGN_IN"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 165,
+    "kind": "@alt",
+    "text": "Light logo",
+    "key": "ADMIN_NEXT.SETTINGS.LIGHT_LOGO"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 181,
+    "kind": "@alt",
+    "text": "Dark logo",
+    "key": "ADMIN_NEXT.SETTINGS.DARK_LOGO"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 266,
+    "kind": "@title",
+    "text": "Custom",
+    "key": "ADMIN_NEXT.CUSTOM"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 571,
+    "kind": "@title",
+    "text": "Remove link",
+    "key": "ADMIN_NEXT.SETTINGS.REMOVE_LINK"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 633,
+    "kind": "@title",
+    "text": "Reset Preferences",
+    "key": "ADMIN_NEXT.SETTINGS.RESET_PREFERENCES"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 72,
+    "kind": "toast",
+    "text": "Preferences reset. Reload to apply.",
+    "key": "ADMIN_NEXT.SETTINGS.PREFERENCES_RESET_RELOAD_TO_APPLY"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 77,
+    "kind": "text",
+    "text": "Settings — Grav Admin",
+    "key": "ADMIN_NEXT.SETTINGS.SETTINGS_GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 86,
+    "kind": "text",
+    "text": "Settings",
+    "key": "ADMIN_NEXT.NAV.SETTINGS"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 88,
+    "kind": "text",
+    "text": "Admin preferences and appearance",
+    "key": "ADMIN_NEXT.SETTINGS.ADMIN_PREFERENCES_AND_APPEARANCE"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 101,
+    "kind": "text",
+    "text": "Customize the logo shown in the sidebar and login page",
+    "key": "ADMIN_NEXT.SETTINGS.CUSTOMIZE_THE_LOGO_SHOWN_IN_THE_SIDEBAR"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 107,
+    "kind": "text",
+    "text": "Logo Type",
+    "key": "ADMIN_NEXT.SETTINGS.LOGO_TYPE"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 108,
+    "kind": "text",
+    "text": "Choose how the logo is displayed",
+    "key": "ADMIN_NEXT.SETTINGS.CHOOSE_HOW_THE_LOGO_IS_DISPLAYED"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 116,
+    "kind": "text",
+    "text": "Grav Logo",
+    "key": "ADMIN_NEXT.SETTINGS.GRAV_LOGO"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 123,
+    "kind": "text",
+    "text": "Custom Text",
+    "key": "ADMIN_NEXT.SETTINGS.CUSTOM_TEXT"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 130,
+    "kind": "text",
+    "text": "Custom Image",
+    "key": "ADMIN_NEXT.SETTINGS.CUSTOM_IMAGE"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 141,
+    "kind": "text",
+    "text": "Logo Text",
+    "key": "ADMIN_NEXT.SETTINGS.LOGO_TEXT"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 142,
+    "kind": "text",
+    "text": "The first letter becomes the icon",
+    "key": "ADMIN_NEXT.SETTINGS.THE_FIRST_LETTER_BECOMES_THE_ICON"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 160,
+    "kind": "text",
+    "text": "Light Mode Logo",
+    "key": "ADMIN_NEXT.SETTINGS.LIGHT_MODE_LOGO"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 161,
+    "kind": "text",
+    "text": "Used on light backgrounds",
+    "key": "ADMIN_NEXT.SETTINGS.USED_ON_LIGHT_BACKGROUNDS"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 168,
+    "kind": "text",
+    "text": "Upload",
+    "key": "ADMIN_NEXT.UPLOAD"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 176,
+    "kind": "text",
+    "text": "Dark Mode Logo",
+    "key": "ADMIN_NEXT.SETTINGS.DARK_MODE_LOGO"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 177,
+    "kind": "text",
+    "text": "Used on dark backgrounds",
+    "key": "ADMIN_NEXT.SETTINGS.USED_ON_DARK_BACKGROUNDS"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 184,
+    "kind": "text",
+    "text": "Upload",
+    "key": "ADMIN_NEXT.UPLOAD"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 195,
+    "kind": "text",
+    "text": "Preview",
+    "key": "ADMIN_NEXT.PREVIEW"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 209,
+    "kind": "text",
+    "text": "Appearance",
+    "key": "ADMIN_NEXT.SETTINGS.APPEARANCE"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 210,
+    "kind": "text",
+    "text": "Customize the look and feel of the admin",
+    "key": "ADMIN_NEXT.SETTINGS.CUSTOMIZE_THE_LOOK_AND_FEEL_OF_THE_ADMIN"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 216,
+    "kind": "text",
+    "text": "Color Mode",
+    "key": "ADMIN_NEXT.SETTINGS.COLOR_MODE"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 217,
+    "kind": "text",
+    "text": "Choose between light and dark appearance",
+    "key": "ADMIN_NEXT.SETTINGS.CHOOSE_BETWEEN_LIGHT_AND_DARK_APPEARANCE"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 242,
+    "kind": "text",
+    "text": "Accent Color",
+    "key": "ADMIN_NEXT.SETTINGS.ACCENT_COLOR"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 243,
+    "kind": "text",
+    "text": "Primary color used for buttons, links, and highlights",
+    "key": "ADMIN_NEXT.SETTINGS.PRIMARY_COLOR_USED_FOR_BUTTONS_LINKS"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 271,
+    "kind": "text",
+    "text": "Custom",
+    "key": "ADMIN_NEXT.CUSTOM"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 294,
+    "kind": "text",
+    "text": "Saturation",
+    "key": "ADMIN_NEXT.SETTINGS.SATURATION"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 317,
+    "kind": "text",
+    "text": "Typeface used throughout the admin",
+    "key": "ADMIN_NEXT.SETTINGS.TYPEFACE_USED_THROUGHOUT_THE_ADMIN"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 341,
+    "kind": "text",
+    "text": "Default settings for the page browser",
+    "key": "ADMIN_NEXT.SETTINGS.DEFAULT_SETTINGS_FOR_THE_PAGE_BROWSER"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 347,
+    "kind": "text",
+    "text": "Default View",
+    "key": "ADMIN_NEXT.SETTINGS.DEFAULT_VIEW"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 348,
+    "kind": "text",
+    "text": "How pages are displayed by default",
+    "key": "ADMIN_NEXT.SETTINGS.HOW_PAGES_ARE_DISPLAYED_BY_DEFAULT"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 370,
+    "kind": "text",
+    "text": "Columns",
+    "key": "ADMIN_NEXT.PAGES.VIEW_COLUMNS"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 380,
+    "kind": "text",
+    "text": "Items per Page",
+    "key": "ADMIN_NEXT.SETTINGS.ITEMS_PER_PAGE"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 381,
+    "kind": "text",
+    "text": "Number of pages shown in list view",
+    "key": "ADMIN_NEXT.SETTINGS.NUMBER_OF_PAGES_SHOWN_IN_LIST_VIEW"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 400,
+    "kind": "text",
+    "text": "Editing",
+    "key": "ADMIN_NEXT.SETTINGS.EDITING"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 401,
+    "kind": "text",
+    "text": "Auto-save and undo behavior for form editors",
+    "key": "ADMIN_NEXT.SETTINGS.AUTO_SAVE_AND_UNDO_BEHAVIOR_FOR_FORM"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 407,
+    "kind": "text",
+    "text": "Auto-Save",
+    "key": "ADMIN_NEXT.SETTINGS.AUTO_SAVE"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 408,
+    "kind": "text",
+    "text": "Automatically save when you leave a field",
+    "key": "ADMIN_NEXT.SETTINGS.AUTOMATICALLY_SAVE_WHEN_YOU_LEAVE_A"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 434,
+    "kind": "text",
+    "text": "Toolbar Undo Button",
+    "key": "ADMIN_NEXT.SETTINGS.TOOLBAR_UNDO_BUTTON"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 435,
+    "kind": "text",
+    "text": "Show an undo button in the editor toolbar",
+    "key": "ADMIN_NEXT.SETTINGS.SHOW_AN_UNDO_BUTTON_IN_THE_EDITOR"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 445,
+    "kind": "text",
+    "text": "Enabled",
+    "key": "ADMIN_NEXT.ENABLED"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 453,
+    "kind": "text",
+    "text": "Undo Batch Window",
+    "key": "ADMIN_NEXT.SETTINGS.UNDO_BATCH_WINDOW"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 454,
+    "kind": "text",
+    "text": "Group rapid field changes into a single undo step",
+    "key": "ADMIN_NEXT.SETTINGS.GROUP_RAPID_FIELD_CHANGES_INTO_A_SINGLE"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 461,
+    "kind": "text",
+    "text": "None (1 field = 1 undo)",
+    "key": "ADMIN_NEXT.SETTINGS.NONE_1_FIELD_1_UNDO"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 463,
+    "kind": "text",
+    "text": "1 second",
+    "key": "ADMIN_NEXT.SETTINGS.1_SECOND"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 464,
+    "kind": "text",
+    "text": "2 seconds",
+    "key": "ADMIN_NEXT.SETTINGS.2_SECONDS"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 472,
+    "kind": "text",
+    "text": "Real-time Collaboration",
+    "key": "ADMIN_NEXT.SETTINGS.REAL_TIME_COLLABORATION"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 474,
+    "kind": "text",
+    "text": "plugin on the server. Experimental.",
+    "key": "ADMIN_NEXT.SETTINGS.PLUGIN_ON_THE_SERVER_EXPERIMENTAL"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 502,
+    "kind": "text",
+    "text": "Language",
+    "key": "ADMIN_NEXT.PAGES.INFO_LANGUAGE"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 503,
+    "kind": "text",
+    "text": "Admin interface language",
+    "key": "ADMIN_NEXT.SETTINGS.ADMIN_INTERFACE_LANGUAGE"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 508,
+    "kind": "text",
+    "text": "Admin Language",
+    "key": "ADMIN_NEXT.SETTINGS.ADMIN_LANGUAGE"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 516,
+    "kind": "text",
+    "text": "English",
+    "key": "ADMIN_NEXT.SETTINGS.ENGLISH"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 517,
+    "kind": "text",
+    "text": "Fran&ccedil;ais",
+    "key": "ADMIN_NEXT.SETTINGS.FRAN_AIS",
+    "value": "Français"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 518,
+    "kind": "text",
+    "text": "Deutsch",
+    "key": "ADMIN_NEXT.SETTINGS.DEUTSCH"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 519,
+    "kind": "text",
+    "text": "Espa&ntilde;ol",
+    "key": "ADMIN_NEXT.SETTINGS.ESPA_OL",
+    "value": "Español"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 520,
+    "kind": "text",
+    "text": "Italiano",
+    "key": "ADMIN_NEXT.SETTINGS.ITALIANO"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 521,
+    "kind": "text",
+    "text": "Portugu&ecirc;s",
+    "key": "ADMIN_NEXT.SETTINGS.PORTUGU_S",
+    "value": "Português"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 522,
+    "kind": "text",
+    "text": "Nederlands",
+    "key": "ADMIN_NEXT.SETTINGS.NEDERLANDS"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 534,
+    "kind": "text",
+    "text": "Menubar Links",
+    "key": "ADMIN_NEXT.SETTINGS.MENUBAR_LINKS"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 535,
+    "kind": "text",
+    "text": "Custom shortcuts shown in the top menubar",
+    "key": "ADMIN_NEXT.SETTINGS.CUSTOM_SHORTCUTS_SHOWN_IN_THE_TOP"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 565,
+    "kind": "text",
+    "text": "External",
+    "key": "ADMIN_NEXT.SETTINGS.EXTERNAL"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 581,
+    "kind": "text",
+    "text": "Add Link",
+    "key": "ADMIN_NEXT.SETTINGS.ADD_LINK"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 590,
+    "kind": "text",
+    "text": "Connection",
+    "key": "ADMIN_NEXT.SETTINGS.CONNECTION"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 591,
+    "kind": "text",
+    "text": "Server connection details",
+    "key": "ADMIN_NEXT.SETTINGS.SERVER_CONNECTION_DETAILS"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 596,
+    "kind": "text",
+    "text": "Server URL",
+    "key": "ADMIN_NEXT.SETTINGS.SERVER_URL"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 604,
+    "kind": "text",
+    "text": "Environment",
+    "key": "ADMIN_NEXT.SETTINGS.ENVIRONMENT"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 612,
+    "kind": "text",
+    "text": "Authenticated As",
+    "key": "ADMIN_NEXT.SETTINGS.AUTHENTICATED_AS"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 624,
+    "kind": "text",
+    "text": "Reset All Preferences",
+    "key": "ADMIN_NEXT.SETTINGS.RESET_ALL_PREFERENCES"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 108,
+    "kind": "@aria-label",
+    "text": "Toggle dark mode",
+    "key": "ADMIN_NEXT.TOGGLE_DARK_MODE"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 62,
+    "kind": "toast",
+    "text": "Please fix the errors above and try again",
+    "key": "ADMIN_NEXT.SETUP.PLEASE_FIX_THE_ERRORS_ABOVE_AND_TRY"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 75,
+    "kind": "toast",
+    "text": "Administrator account created — welcome to Grav",
+    "key": "ADMIN_NEXT.SETUP.ADMINISTRATOR_ACCOUNT_CREATED_WELCOME"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 81,
+    "kind": "toast",
+    "text": "Setup has already been completed. Please sign in.",
+    "key": "ADMIN_NEXT.SETUP.SETUP_HAS_ALREADY_BEEN_COMPLETED_PLEASE"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 91,
+    "kind": "toast",
+    "text": "Unable to connect to server. Check your server URL and try again.",
+    "key": "ADMIN_NEXT.SETUP.UNABLE_TO_CONNECT_TO_SERVER_CHECK_YOUR"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 100,
+    "kind": "text",
+    "text": "Setup — Grav Admin",
+    "key": "ADMIN_NEXT.SETUP.SETUP_GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 122,
+    "kind": "text",
+    "text": "Welcome to Grav",
+    "key": "ADMIN_NEXT.SETUP.WELCOME_TO_GRAV"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 123,
+    "kind": "text",
+    "text": "Create your administrator account to get started",
+    "key": "ADMIN_NEXT.SETUP.CREATE_YOUR_ADMINISTRATOR_ACCOUNT_TO"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 132,
+    "kind": "text",
+    "text": "Checking server…",
+    "key": "ADMIN_NEXT.SETUP.CHECKING_SERVER"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 142,
+    "kind": "text",
+    "text": "Server Configuration",
+    "key": "ADMIN_NEXT.SETUP.SERVER_CONFIGURATION"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 150,
+    "kind": "text",
+    "text": "Server URL",
+    "key": "ADMIN_NEXT.SETUP.SERVER_URL"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 164,
+    "kind": "text",
+    "text": "Environment",
+    "key": "ADMIN_NEXT.SETUP.ENVIRONMENT"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 178,
+    "kind": "text",
+    "text": "Username",
+    "key": "ADMIN_NEXT.USERNAME"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 189,
+    "kind": "text",
+    "text": "3-64 characters: letters, numbers, hyphens, underscores",
+    "key": "ADMIN_NEXT.SETUP.3_64_CHARACTERS_LETTERS_NUMBERS_HYPHENS"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 194,
+    "kind": "text",
+    "text": "Full name",
+    "key": "ADMIN_NEXT.SETUP.FULL_NAME"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 194,
+    "kind": "text",
+    "text": "(optional)",
+    "key": "ADMIN_NEXT.SETUP.OPTIONAL"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 217,
+    "kind": "text",
+    "text": "Enter a valid email address",
+    "key": "ADMIN_NEXT.SETUP.ENTER_A_VALID_EMAIL_ADDRESS"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 232,
+    "kind": "text",
+    "text": "Confirm password",
+    "key": "ADMIN_NEXT.SETUP.CONFIRM_PASSWORD"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 243,
+    "kind": "text",
+    "text": "Passwords do not match",
+    "key": "ADMIN_NEXT.SETUP.PASSWORDS_DO_NOT_MATCH"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 249,
+    "kind": "text",
+    "text": "Creating account...",
+    "key": "ADMIN_NEXT.SETUP.CREATING_ACCOUNT"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 252,
+    "kind": "text",
+    "text": "Create administrator",
+    "key": "ADMIN_NEXT.SETUP.CREATE_ADMINISTRATOR"
+  },
+  {
+    "path": "src/routes/setup/+page.svelte",
+    "line": 260,
+    "kind": "text",
+    "text": "Powered by Grav CMS",
+    "key": "ADMIN_NEXT.SETUP.POWERED_BY_GRAV_CMS"
+  },
+  {
+    "path": "src/routes/system/+page.svelte",
+    "line": 6,
+    "kind": "text",
+    "text": "System — Grav Admin",
+    "key": "ADMIN_NEXT.SYSTEM.SYSTEM_GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/system/+page.svelte",
+    "line": 15,
+    "kind": "text",
+    "text": "System",
+    "key": "ADMIN_NEXT.NAV.SYSTEM"
+  },
+  {
+    "path": "src/routes/system/+page.svelte",
+    "line": 17,
+    "kind": "text",
+    "text": "Coming soon",
+    "key": "ADMIN_NEXT.SYSTEM.COMING_SOON"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 234,
+    "kind": "@placeholder",
+    "text": "Search themes...",
+    "key": "ADMIN_NEXT.THEMES.SEARCH_THEMES"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 295,
+    "kind": "@title",
+    "text": "Symlinked",
+    "key": "ADMIN_NEXT.THEMES.SYMLINKED"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 295,
+    "kind": "@aria-label",
+    "text": "Symlinked",
+    "key": "ADMIN_NEXT.THEMES.SYMLINKED"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 338,
+    "kind": "@title",
+    "text": "Symlinked",
+    "key": "ADMIN_NEXT.THEMES.SYMLINKED"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 338,
+    "kind": "@aria-label",
+    "text": "Symlinked",
+    "key": "ADMIN_NEXT.THEMES.SYMLINKED"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 77,
+    "kind": "toast",
+    "text": "Failed to load themes",
+    "key": "ADMIN_NEXT.THEMES.FAILED_TO_LOAD_THEMES"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 107,
+    "kind": "toast",
+    "text": "Failed to check for updates",
+    "key": "ADMIN_NEXT.THEMES.FAILED_TO_CHECK_FOR_UPDATES"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 180,
+    "kind": "text",
+    "text": "Themes — Grav Admin",
+    "key": "ADMIN_NEXT.THEMES.THEMES_GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 190,
+    "kind": "text",
+    "text": "Themes",
+    "key": "ADMIN_NEXT.NAV.THEMES"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 198,
+    "kind": "text",
+    "text": "Check Updates",
+    "key": "ADMIN_NEXT.THEMES.CHECK_UPDATES"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 243,
+    "kind": "text",
+    "text": "Author",
+    "key": "ADMIN_NEXT.AUTHOR"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 244,
+    "kind": "text",
+    "text": "Active",
+    "key": "ADMIN_NEXT.ACTIVE"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 284,
+    "kind": "text",
+    "text": "Premium",
+    "key": "ADMIN_NEXT.PREMIUM"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 301,
+    "kind": "text",
+    "text": "Active",
+    "key": "ADMIN_NEXT.ACTIVE"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 341,
+    "kind": "text",
+    "text": "Premium",
+    "key": "ADMIN_NEXT.PREMIUM"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 344,
+    "kind": "text",
+    "text": "Active",
+    "key": "ADMIN_NEXT.ACTIVE"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 353,
+    "kind": "text",
+    "text": "Update available: v",
+    "key": "ADMIN_NEXT.THEMES.UPDATE_AVAILABLE_V"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 370,
+    "kind": "text",
+    "text": "Update to v",
+    "key": "ADMIN_NEXT.THEMES.UPDATE_TO_V"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 379,
+    "kind": "text",
+    "text": "Configure",
+    "key": "ADMIN_NEXT.THEMES.CONFIGURE"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 403,
+    "kind": "text",
+    "text": "Author",
+    "key": "ADMIN_NEXT.AUTHOR"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 419,
+    "kind": "text",
+    "text": "Homepage",
+    "key": "ADMIN_NEXT.HOMEPAGE"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 430,
+    "kind": "text",
+    "text": "Status",
+    "key": "ADMIN_NEXT.PAGES.HEADER_STATUS"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 450,
+    "kind": "text",
+    "text": "Keywords",
+    "key": "ADMIN_NEXT.KEYWORDS"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 462,
+    "kind": "text",
+    "text": "Dependencies",
+    "key": "ADMIN_NEXT.DEPENDENCIES"
+  },
+  {
+    "path": "src/routes/themes/+page.svelte",
+    "line": 477,
+    "kind": "text",
+    "text": "Select a theme to view details",
+    "key": "ADMIN_NEXT.THEMES.SELECT_A_THEME_TO_VIEW_DETAILS"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 353,
+    "kind": "@title",
+    "text": "Symlinked",
+    "key": "ADMIN_NEXT.THEMES.SYMLINKED"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 353,
+    "kind": "@aria-label",
+    "text": "Symlinked",
+    "key": "ADMIN_NEXT.THEMES.SYMLINKED"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 410,
+    "kind": "@aria-label",
+    "text": "Remove",
+    "key": "ADMIN_NEXT.REMOVE"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 411,
+    "kind": "@title",
+    "text": "Remove",
+    "key": "ADMIN_NEXT.REMOVE"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 428,
+    "kind": "@aria-label",
+    "text": "Activate",
+    "key": "ADMIN_NEXT.ACTIVATE"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 429,
+    "kind": "@title",
+    "text": "Activate",
+    "key": "ADMIN_NEXT.ACTIVATE"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 439,
+    "kind": "@title",
+    "text": "Active Theme",
+    "key": "ADMIN_NEXT.THEMES.ACTIVE_THEME"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 491,
+    "kind": "@title",
+    "text": "Click to view full size",
+    "key": "ADMIN_NEXT.THEMES.CLICK_TO_VIEW_FULL_SIZE"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 574,
+    "kind": "@title",
+    "text": "Remove Theme",
+    "key": "ADMIN_NEXT.THEMES.REMOVE_THEME"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 584,
+    "kind": "@title",
+    "text": "Unsaved Changes",
+    "key": "ADMIN_NEXT.UNSAVED_CHANGES"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 196,
+    "kind": "toast",
+    "text": "Configuration was modified elsewhere. Please reload.",
+    "key": "ADMIN_NEXT.THEMES.CONFIGURATION_WAS_MODIFIED_ELSEWHERE"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 198,
+    "kind": "toast",
+    "text": "Failed to save configuration.",
+    "key": "ADMIN_NEXT.THEMES.FAILED_TO_SAVE_CONFIGURATION"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 321,
+    "kind": "text",
+    "text": "— Themes — Grav Admin",
+    "key": "ADMIN_NEXT.THEMES.THEMES_GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 356,
+    "kind": "text",
+    "text": "Premium",
+    "key": "ADMIN_NEXT.PREMIUM"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 400,
+    "kind": "text",
+    "text": "Update to v",
+    "key": "ADMIN_NEXT.THEMES.UPDATE_TO_V"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 418,
+    "kind": "text",
+    "text": "Remove",
+    "key": "ADMIN_NEXT.REMOVE"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 436,
+    "kind": "text",
+    "text": "Activate",
+    "key": "ADMIN_NEXT.ACTIVATE"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 440,
+    "kind": "text",
+    "text": "Active Theme",
+    "key": "ADMIN_NEXT.THEMES.ACTIVE_THEME"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 474,
+    "kind": "text",
+    "text": "Back to Themes",
+    "key": "ADMIN_NEXT.THEMES.BACK_TO_THEMES"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 516,
+    "kind": "text",
+    "text": "Homepage",
+    "key": "ADMIN_NEXT.HOMEPAGE"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 531,
+    "kind": "text",
+    "text": "Changelog",
+    "key": "ADMIN_NEXT.THEMES.CHANGELOG"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 555,
+    "kind": "text",
+    "text": "No configuration options available for this theme.",
+    "key": "ADMIN_NEXT.THEMES.NO_CONFIGURATION_OPTIONS_AVAILABLE_FOR"
+  },
+  {
+    "path": "src/routes/tools/+page.svelte",
+    "line": 35,
+    "kind": "text",
+    "text": "Tools — Grav Admin",
+    "key": "ADMIN_NEXT.TOOLS.TOOLS_GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/tools/+page.svelte",
+    "line": 46,
+    "kind": "text",
+    "text": "Backups, scheduler, logs, and diagnostics",
+    "key": "ADMIN_NEXT.TOOLS.BACKUPS_SCHEDULER_LOGS_AND_DIAGNOSTICS"
+  },
+  {
+    "path": "src/routes/users/+page.svelte",
+    "line": 169,
+    "kind": "@placeholder",
+    "text": "Search users...",
+    "key": "ADMIN_NEXT.USERS.SEARCH_USERS"
+  },
+  {
+    "path": "src/routes/users/+page.svelte",
+    "line": 55,
+    "kind": "toast",
+    "text": "Failed to load users",
+    "key": "ADMIN_NEXT.USERS.FAILED_TO_LOAD_USERS"
+  },
+  {
+    "path": "src/routes/users/+page.svelte",
+    "line": 131,
+    "kind": "text",
+    "text": "Users — Grav Admin",
+    "key": "ADMIN_NEXT.USERS.USERS_GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/users/+page.svelte",
+    "line": 148,
+    "kind": "text",
+    "text": "Add User",
+    "key": "ADMIN_NEXT.USERS.ADD_USER"
+  },
+  {
+    "path": "src/routes/users/+page.svelte",
+    "line": 273,
+    "kind": "text",
+    "text": "Super Admin",
+    "key": "ADMIN_NEXT.USERS.SUPER_ADMIN"
+  },
+  {
+    "path": "src/routes/users/+page.svelte",
+    "line": 310,
+    "kind": "text",
+    "text": "Status",
+    "key": "ADMIN_NEXT.PAGES.HEADER_STATUS"
+  },
+  {
+    "path": "src/routes/users/+page.svelte",
+    "line": 322,
+    "kind": "text",
+    "text": "Created",
+    "key": "ADMIN_NEXT.USERS.CREATED"
+  },
+  {
+    "path": "src/routes/users/+page.svelte",
+    "line": 330,
+    "kind": "text",
+    "text": "Permissions",
+    "key": "ADMIN_NEXT.USERS.PERMISSIONS"
+  },
+  {
+    "path": "src/routes/users/+page.svelte",
+    "line": 343,
+    "kind": "text",
+    "text": "Select a user to view details",
+    "key": "ADMIN_NEXT.USERS.SELECT_A_USER_TO_VIEW_DETAILS"
+  },
+  {
+    "path": "src/routes/users/[username]/+page.svelte",
+    "line": 363,
+    "kind": "@aria-label",
+    "text": "Delete",
+    "key": "ADMIN_NEXT.DELETE"
+  },
+  {
+    "path": "src/routes/users/[username]/+page.svelte",
+    "line": 364,
+    "kind": "@title",
+    "text": "Delete",
+    "key": "ADMIN_NEXT.DELETE"
+  },
+  {
+    "path": "src/routes/users/[username]/+page.svelte",
+    "line": 470,
+    "kind": "@title",
+    "text": "Delete User",
+    "key": "ADMIN_NEXT.USERS.DELETE_USER"
+  },
+  {
+    "path": "src/routes/users/[username]/+page.svelte",
+    "line": 480,
+    "kind": "@title",
+    "text": "Unsaved Changes",
+    "key": "ADMIN_NEXT.UNSAVED_CHANGES"
+  },
+  {
+    "path": "src/routes/users/[username]/+page.svelte",
+    "line": 209,
+    "kind": "toast",
+    "text": "User was modified elsewhere. Please reload.",
+    "key": "ADMIN_NEXT.USERS.USER_WAS_MODIFIED_ELSEWHERE_PLEASE"
+  },
+  {
+    "path": "src/routes/users/[username]/+page.svelte",
+    "line": 211,
+    "kind": "toast",
+    "text": "Failed to save user.",
+    "key": "ADMIN_NEXT.USERS.FAILED_TO_SAVE_USER"
+  },
+  {
+    "path": "src/routes/users/[username]/+page.svelte",
+    "line": 221,
+    "kind": "toast",
+    "text": "You cannot delete your own account.",
+    "key": "ADMIN_NEXT.USERS.YOU_CANNOT_DELETE_YOUR_OWN_ACCOUNT"
+  },
+  {
+    "path": "src/routes/users/[username]/+page.svelte",
+    "line": 297,
+    "kind": "toast",
+    "text": "User changed elsewhere — save to overwrite or reload",
+    "key": "ADMIN_NEXT.USERS.USER_CHANGED_ELSEWHERE_SAVE_TO"
+  },
+  {
+    "path": "src/routes/users/[username]/+page.svelte",
+    "line": 308,
+    "kind": "text",
+    "text": "— Users — Grav Admin",
+    "key": "ADMIN_NEXT.USERS.USERS_GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/users/[username]/+page.svelte",
+    "line": 371,
+    "kind": "text",
+    "text": "Delete",
+    "key": "ADMIN_NEXT.DELETE"
+  },
+  {
+    "path": "src/routes/users/[username]/+page.svelte",
+    "line": 409,
+    "kind": "text",
+    "text": "Back to Users",
+    "key": "ADMIN_NEXT.USERS.BACK_TO_USERS"
+  },
+  {
+    "path": "src/routes/users/[username]/+page.svelte",
+    "line": 436,
+    "kind": "text",
+    "text": "2-Factor Authentication",
+    "key": "ADMIN_NEXT.USERS.2_FACTOR_AUTHENTICATION"
+  },
+  {
+    "path": "src/routes/users/[username]/+page.svelte",
+    "line": 455,
+    "kind": "text",
+    "text": "Permissions",
+    "key": "ADMIN_NEXT.USERS.PERMISSIONS"
+  },
+  {
+    "path": "src/routes/users/new/+page.svelte",
+    "line": 128,
+    "kind": "@placeholder",
+    "text": "lowercase, 3-64 chars",
+    "key": "ADMIN_NEXT.USERS.NEW.LOWERCASE_3_64_CHARS"
+  },
+  {
+    "path": "src/routes/users/new/+page.svelte",
+    "line": 69,
+    "kind": "text",
+    "text": "New User — Grav Admin",
+    "key": "ADMIN_NEXT.USERS.NEW.NEW_USER_GRAV_ADMIN"
+  },
+  {
+    "path": "src/routes/users/new/+page.svelte",
+    "line": 93,
+    "kind": "text",
+    "text": "New User",
+    "key": "ADMIN_NEXT.USERS.NEW.NEW_USER"
+  },
+  {
+    "path": "src/routes/users/new/+page.svelte",
+    "line": 104,
+    "kind": "text",
+    "text": "Create",
+    "key": "ADMIN_NEXT.USERS.NEW.CREATE"
+  },
+  {
+    "path": "src/routes/users/new/+page.svelte",
+    "line": 118,
+    "kind": "text",
+    "text": "Account",
+    "key": "ADMIN_NEXT.USERS.NEW.ACCOUNT"
+  },
+  {
+    "path": "src/routes/users/new/+page.svelte",
+    "line": 121,
+    "kind": "text",
+    "text": "Username",
+    "key": "ADMIN_NEXT.USERNAME"
+  },
+  {
+    "path": "src/routes/users/new/+page.svelte",
+    "line": 134,
+    "kind": "text",
+    "text": "Full Name",
+    "key": "ADMIN_NEXT.USERS.NEW.FULL_NAME"
+  },
+  {
+    "path": "src/routes/users/new/+page.svelte",
+    "line": 171,
+    "kind": "text",
+    "text": "Status",
+    "key": "ADMIN_NEXT.PAGES.HEADER_STATUS"
+  },
+  {
+    "path": "src/routes/users/new/+page.svelte",
+    "line": 177,
+    "kind": "text",
+    "text": "Enabled",
+    "key": "ADMIN_NEXT.ENABLED"
+  },
+  {
+    "path": "src/routes/users/new/+page.svelte",
+    "line": 178,
+    "kind": "text",
+    "text": "Disabled",
+    "key": "ADMIN_NEXT.DISABLED"
+  },
+  {
+    "path": "src/routes/users/new/+page.svelte",
+    "line": 186,
+    "kind": "text",
+    "text": "Permissions",
+    "key": "ADMIN_NEXT.USERS.NEW.PERMISSIONS"
+  }
+]

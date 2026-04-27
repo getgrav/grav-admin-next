@@ -121,7 +121,7 @@
 			onchange={(e) => onchange((e.target as HTMLSelectElement).value)}
 			disabled={field.disabled}
 		>
-			<option value="">— Select format —</option>
+			<option value="">{i18n.t('ADMIN_NEXT.FIELDS.DATE_FORMAT.SELECT_FORMAT')}</option>
 			{#each options as opt (opt.format)}
 				<option value={opt.format} selected={String(value) === opt.format}>{opt.display}</option>
 			{/each}
@@ -131,6 +131,6 @@
 		</div>
 	</div>
 	{#if currentDisplay}
-		<p class="text-xs text-muted-foreground">Format string: <code class="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">{value}</code></p>
+		<p class="text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.DATE_FORMAT.FORMAT_STRING')} <code class="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">{value}</code></p>
 	{/if}
 </div>

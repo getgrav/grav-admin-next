@@ -183,7 +183,7 @@
 						bind:this={filterInputEl}
 						type="text"
 						class="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-						placeholder="Filter pages..."
+						placeholder={i18n.t('ADMIN_NEXT.FIELDS.PAGES.FILTER_PAGES')}
 						bind:value={filter}
 					/>
 					{#if filter}
@@ -202,7 +202,7 @@
 					{#if rootLoading}
 						<div class="flex items-center justify-center py-6 text-sm text-muted-foreground">
 							<Loader2 size={16} class="mr-2 animate-spin" />
-							Loading pages...
+							{i18n.t('ADMIN_NEXT.PAGES.LOADING')}
 						</div>
 					{:else}
 						{#if showRoot}
@@ -213,7 +213,7 @@
 								onclick={() => selectPage('/')}
 							>
 								<File size={14} class="shrink-0 text-muted-foreground" />
-								<span class="truncate">/ (root)</span>
+								<span class="truncate">{i18n.t('ADMIN_NEXT.FIELDS.PAGES.ROOT')}</span>
 								{#if selectedRoute === '/'}
 									<Check size={14} class="ml-auto shrink-0 text-primary" />
 								{/if}
@@ -226,7 +226,7 @@
 						{/each}
 						{#if !rootLoading && filterPages(rootPages).length === 0}
 							<div class="py-4 text-center text-sm text-muted-foreground">
-								No pages found
+								{i18n.t('ADMIN_NEXT.PAGES.NO_PAGES')}
 							</div>
 						{/if}
 					{/if}

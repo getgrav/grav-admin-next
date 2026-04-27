@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { Check, Copy } from 'lucide-svelte';
 
 	interface Props {
@@ -36,7 +37,7 @@
 >
 	{#if copied}
 		<Check size={13} class="text-emerald-500" />
-		Copied!
+		{i18n.t('ADMIN_NEXT.COPY_BUTTON.COPIED')}
 	{:else}
 		<Copy size={13} />
 		{label}

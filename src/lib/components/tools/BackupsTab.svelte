@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { getBackups, createBackup, deleteBackup, getBackupDownloadUrl } from '$lib/api/endpoints/tools';
@@ -39,7 +40,7 @@
 			purge = result.purge ?? null;
 			profilesCount = result.profiles_count ?? 0;
 		} catch (err) {
-			toast.error('Failed to load backups');
+			toast.error(i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.FAILED_TO_LOAD_BACKUPS'));
 		} finally {
 			loading = false;
 		}
@@ -49,10 +50,10 @@
 		creating = true;
 		try {
 			await createBackup();
-			toast.success('Backup created successfully');
+			toast.success(i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.BACKUP_CREATED_SUCCESSFULLY'));
 			await load();
 		} catch (err) {
-			toast.error('Failed to create backup');
+			toast.error(i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.FAILED_TO_CREATE_BACKUP'));
 		} finally {
 			creating = false;
 		}
@@ -64,10 +65,10 @@
 		confirmDelete = null;
 		try {
 			await deleteBackup(filename);
-			toast.success('Backup deleted');
+			toast.success(i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.BACKUP_DELETED'));
 			await load();
 		} catch (err) {
-			toast.error('Failed to delete backup');
+			toast.error(i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.FAILED_TO_DELETE_BACKUP'));
 		}
 	}
 
@@ -110,7 +111,7 @@
 	<!-- Backup Statistics Banner -->
 	<div class="overflow-hidden rounded-lg border border-primary/20 bg-primary/5">
 		<div class="px-5 pt-4 pb-3">
-			<h3 class="text-sm font-semibold text-foreground">Backup Statistics</h3>
+			<h3 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.BACKUP_STATISTICS')}</h3>
 		</div>
 
 		<!-- Storage Usage Bar -->
@@ -132,33 +133,33 @@
 		<div class="grid grid-cols-4 divide-x divide-primary/10 border-t border-primary/10 bg-primary/[0.03]">
 			<div class="px-4 py-3 text-center">
 				<p class="text-2xl font-bold text-foreground">{totalCount}</p>
-				<p class="text-[11px] font-medium text-muted-foreground">Number of Backups</p>
+				<p class="text-[11px] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.NUMBER_OF_BACKUPS')}</p>
 			</div>
 			<div class="px-4 py-3 text-center">
 				<p class="text-2xl font-bold text-foreground">{profilesCount}</p>
-				<p class="text-[11px] font-medium text-muted-foreground">Number of Profiles</p>
+				<p class="text-[11px] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.NUMBER_OF_PROFILES')}</p>
 			</div>
 			<div class="px-4 py-3 text-center">
 				<p class="text-2xl font-bold text-foreground">{relativeTime(newestDate)}</p>
-				<p class="text-[11px] font-medium text-muted-foreground">Newest Backup</p>
+				<p class="text-[11px] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.NEWEST_BACKUP')}</p>
 			</div>
 			<div class="px-4 py-3 text-center">
 				<p class="text-2xl font-bold text-foreground">{relativeTime(oldestDate)}</p>
-				<p class="text-[11px] font-medium text-muted-foreground">Oldest Backup</p>
+				<p class="text-[11px] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.OLDEST_BACKUP')}</p>
 			</div>
 		</div>
 	</div>
 
 	<!-- Actions -->
 	<div class="flex items-center justify-between">
-		<h3 class="text-sm font-semibold text-foreground">Backup History</h3>
+		<h3 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.BACKUP_HISTORY')}</h3>
 		<Button size="sm" onclick={handleCreate} disabled={creating}>
 			{#if creating}
 				<Loader2 size={14} class="animate-spin" />
-				Creating...
+				{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.CREATING')}
 			{:else}
 				<Plus size={14} />
-				Backup Now
+				{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.BACKUP_NOW')}
 			{/if}
 		</Button>
 	</div>
@@ -166,18 +167,18 @@
 	<!-- Backup List -->
 	<div class="rounded-lg border border-border bg-card">
 		{#if loading}
-			<div class="p-8 text-center text-sm text-muted-foreground">Loading backups...</div>
+			<div class="p-8 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.LOADING_BACKUPS')}</div>
 		{:else if backups.length === 0}
-			<div class="p-8 text-center text-sm text-muted-foreground">No backups found. Create one to get started.</div>
+			<div class="p-8 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.NO_BACKUPS_FOUND_CREATE_ONE_TO_GET')}</div>
 		{:else}
 			<table class="w-full text-sm">
 				<thead>
 					<tr class="border-b border-border text-left text-xs font-medium text-muted-foreground">
 						<th class="px-4 py-3 w-8">#</th>
-						<th class="px-4 py-3">Backup Date</th>
+						<th class="px-4 py-3">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.BACKUP_DATE')}</th>
 						<th class="px-4 py-3">Name</th>
 						<th class="px-4 py-3 text-right">Size</th>
-						<th class="px-4 py-3 text-right">Action</th>
+						<th class="px-4 py-3 text-right">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.ACTION')}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -192,13 +193,13 @@
 									<a
 										href={getBackupDownloadUrl(backup.filename)}
 										class="inline-flex h-7 w-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10"
-										title="Download"
+										title={i18n.t('ADMIN_NEXT.DOWNLOAD')}
 									>
 										<Download size={14} />
 									</a>
 									<button
 										class="inline-flex h-7 w-7 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10"
-										title="Delete"
+										title={i18n.t('ADMIN_NEXT.DELETE')}
 										onclick={() => { confirmDelete = backup.filename; }}
 									>
 										<Trash2 size={14} />
@@ -215,7 +216,7 @@
 
 <ConfirmModal
 	open={!!confirmDelete}
-	title="Delete Backup"
+	title={i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.DELETE_BACKUP')}
 	message={`Delete backup "${confirmDelete}"? This cannot be undone.`}
 	confirmLabel="Delete"
 	variant="destructive"

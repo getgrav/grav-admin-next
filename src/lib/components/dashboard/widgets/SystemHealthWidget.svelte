@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { Shield, Server, HardDrive, ArrowRight, ArrowUpCircle, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-svelte';
 	import { getDashboardData } from '$lib/dashboard/context';
 	import { formatBytes } from '$lib/dashboard/format';
@@ -30,7 +31,7 @@
 			<div class="mb-2 flex items-center justify-between">
 				<h2 class="flex items-center gap-2 text-sm font-semibold text-foreground">
 					<Shield size={15} />
-					Updates
+					{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPDATES')}
 				</h2>
 				{#if totalUpdates > 0}
 					<span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
@@ -42,7 +43,7 @@
 			{#if totalUpdates === 0}
 				<div class="flex items-center gap-2 text-[13px] text-emerald-600 dark:text-emerald-400">
 					<CheckCircle2 size={14} />
-					Everything up to date
+					{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.EVERYTHING_UP_TO_DATE')}
 				</div>
 			{:else}
 				{#if updates.grav.updatable}
@@ -51,7 +52,7 @@
 						<div class="relative">
 							<div class="flex items-center gap-2 text-[13px] font-semibold text-purple-600 dark:text-purple-400">
 								<ArrowUpCircle size={13} />
-								Grav Update Available
+								{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.GRAV_UPDATE_AVAILABLE')}
 							</div>
 							<div class="mt-1.5 flex items-center gap-1.5 text-[12px] text-muted-foreground">
 								<span class="tabular-nums">v{updates.grav.current}</span>
@@ -61,7 +62,7 @@
 							{#if canWriteGpm}
 								{#if updates.grav.is_symlink}
 									<div class="mt-2 text-[11px] italic text-muted-foreground">
-										Grav is installed via symlink — upgrade manually.
+										{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.GRAV_IS_INSTALLED_VIA_SYMLINK_UPGRADE')}
 									</div>
 								{:else}
 									<button type="button"
@@ -70,7 +71,7 @@
 										disabled={updatingAll || upgradingGrav}
 									>
 										{#if upgradingGrav}<Loader2 size={12} class="animate-spin" />{:else}<ArrowUpCircle size={12} />{/if}
-										Upgrade Grav
+										{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPGRADE_GRAV')}
 									</button>
 								{/if}
 							{/if}
@@ -108,7 +109,7 @@
 								disabled={updatingAll || upgradingGrav}
 							>
 								{#if updatingAll}<Loader2 size={12} class="animate-spin" />{:else}<ArrowUpCircle size={12} />{/if}
-								Update All
+								{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPDATE_ALL')}
 							</button>
 						{/if}
 					</div>
@@ -120,7 +121,7 @@
 	<div class="rounded-lg border border-border bg-card p-4">
 		<h2 class="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
 			<Server size={15} />
-			System
+			{i18n.t('ADMIN_NEXT.NAV.SYSTEM')}
 		</h2>
 		<dl class="space-y-2.5 text-[13px]">
 			{#if stats}
@@ -135,7 +136,7 @@
 			{/if}
 			{#if systemInfo}
 				<div class="flex items-center justify-between">
-					<dt class="text-muted-foreground">Server</dt>
+					<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.SERVER')}</dt>
 					<dd class="max-w-[140px] truncate text-right font-medium text-foreground" title={systemInfo.server_software}>{systemInfo.server_software}</dd>
 				</div>
 			{/if}
@@ -143,7 +144,7 @@
 				<div class="flex items-center justify-between">
 					<dt class="text-muted-foreground">Cache</dt>
 					<dd class="font-medium text-foreground">
-						{#if reports.cache.enabled}<span class="text-emerald-500">{reports.cache.driver}</span>{:else}<span class="text-amber-500">Disabled</span>{/if}
+						{#if reports.cache.enabled}<span class="text-emerald-500">{reports.cache.driver}</span>{:else}<span class="text-amber-500">{i18n.t('ADMIN_NEXT.DISABLED')}</span>{/if}
 					</dd>
 				</div>
 			{/if}
@@ -157,7 +158,7 @@
 					<HardDrive size={15} />
 					Disk
 				</h2>
-				<span class="text-[11px] tabular-nums text-muted-foreground">{diskUsedPercent}% used</span>
+				<span class="text-[11px] tabular-nums text-muted-foreground">{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.PERCENT_USED', { percent: diskUsedPercent })}</span>
 			</div>
 			<div class="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
 				<div class="h-full rounded-full {diskUsedPercent > 90 ? 'bg-red-500' : diskUsedPercent > 70 ? 'bg-amber-500' : 'bg-primary'}"

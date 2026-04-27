@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { getPermissionsBlueprint, type PermissionAction } from '$lib/api/endpoints/blueprints';
 	import { Loader2, ChevronDown, Crown, Check, Ban, Minus } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
@@ -23,7 +24,7 @@
 			}
 			expandedSections = new Set(expandedSections);
 		} catch {
-			toast.error('Failed to load permissions');
+			toast.error(i18n.t('ADMIN_NEXT.PERMISSIONS_FIELD.FAILED_TO_LOAD_PERMISSIONS'));
 		} finally {
 			loading = false;
 		}
@@ -123,8 +124,8 @@
 				type="button"
 				class="flex items-center justify-center px-2 py-1.5 transition-colors
 					{val === 'allowed' ? 'bg-green-500 text-white' : 'text-muted-foreground hover:bg-muted'}"
-				title="Allowed"
-				aria-label="Allowed"
+				title={i18n.t('ADMIN_NEXT.ALLOWED')}
+				aria-label={i18n.t('ADMIN_NEXT.ALLOWED')}
 				onclick={() => setPermValue(name, val === 'allowed' ? 'unset' : 'allowed')}
 			>
 				<Check size={14} />
@@ -133,8 +134,8 @@
 				type="button"
 				class="flex items-center justify-center border-x border-border px-2 py-1.5 transition-colors
 					{val === 'denied' ? 'bg-red-400 text-white' : 'text-muted-foreground hover:bg-muted'}"
-				title="Denied"
-				aria-label="Denied"
+				title={i18n.t('ADMIN_NEXT.DENIED')}
+				aria-label={i18n.t('ADMIN_NEXT.DENIED')}
 				onclick={() => setPermValue(name, val === 'denied' ? 'unset' : 'denied')}
 			>
 				<Ban size={14} />
@@ -143,8 +144,8 @@
 				type="button"
 				class="flex items-center justify-center px-2 py-1.5 transition-colors
 					{val === 'unset' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}"
-				title="Not set"
-				aria-label="Not set"
+				title={i18n.t('ADMIN_NEXT.PERMISSIONS_FIELD.NOT_SET')}
+				aria-label={i18n.t('ADMIN_NEXT.PERMISSIONS_FIELD.NOT_SET')}
 				onclick={() => setPermValue(name, 'unset')}
 			>
 				<Minus size={14} />

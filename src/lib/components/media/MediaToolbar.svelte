@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { mediaManager, type TypeFilter, type SortField } from '$lib/stores/mediaManager.svelte';
 	import {
 		Search, X, LayoutGrid, List, FolderPlus, Upload,
@@ -100,7 +101,7 @@
 		<input
 			type="text"
 			class="h-8 w-full rounded-md border border-input bg-muted/50 pl-9 pr-8 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-			placeholder="Search media..."
+			placeholder={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.SEARCH_MEDIA')}
 			value={searchInput}
 			oninput={(e) => handleSearchInput(e.currentTarget.value)}
 		/>
@@ -108,7 +109,7 @@
 			<button
 				class="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground"
 				onclick={clearSearch}
-				aria-label="Clear search"
+				aria-label={i18n.t('ADMIN_NEXT.CLEAR_SEARCH')}
 			>
 				<X size={14} />
 			</button>
@@ -150,7 +151,7 @@
 					? 'bg-accent text-accent-foreground'
 					: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
 			onclick={() => mediaManager.viewMode = 'grid'}
-			aria-label="Grid view"
+			aria-label={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.GRID_VIEW')}
 		>
 			<LayoutGrid size={14} />
 		</button>
@@ -160,7 +161,7 @@
 					? 'bg-accent text-accent-foreground'
 					: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
 			onclick={() => mediaManager.viewMode = 'list'}
-			aria-label="List view"
+			aria-label={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.LIST_VIEW')}
 		>
 			<List size={14} />
 		</button>
@@ -185,10 +186,10 @@
 	<button
 		class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 		onclick={onnewfolder}
-		aria-label="New folder"
+		aria-label={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.NEW_FOLDER')}
 	>
 		<FolderPlus size={14} />
-		<span class="hidden md:inline">Folder</span>
+		<span class="hidden md:inline">{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.FOLDER')}</span>
 	</button>
 
 	<!-- Upload -->
@@ -197,7 +198,7 @@
 		onclick={onupload}
 	>
 		<Upload size={13} />
-		<span class="hidden md:inline">Upload</span>
+		<span class="hidden md:inline">{i18n.t('ADMIN_NEXT.UPLOAD')}</span>
 	</button>
 	{/if}
 </div>

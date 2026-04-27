@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { mediaManager, type SortField } from '$lib/stores/mediaManager.svelte';
 	import MediaFileRow from './MediaFileRow.svelte';
 	import { ArrowUp, ArrowDown } from 'lucide-svelte';
@@ -64,7 +65,7 @@
 				{sortField === 'modified' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => toggleSort('modified')}
 		>
-			Modified
+			{i18n.t('ADMIN_NEXT.PAGES.HEADER_MODIFIED')}
 			{#if sortField === 'modified'}
 				{#if sortOrder === 'asc'}<ArrowUp size={11} />{:else}<ArrowDown size={11} />{/if}
 			{/if}

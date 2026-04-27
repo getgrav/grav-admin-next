@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { createUser } from '$lib/api/endpoints/users';
@@ -66,7 +67,7 @@
 </script>
 
 <svelte:head>
-	<title>New User — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.USERS.NEW.NEW_USER_GRAV_ADMIN')}</title>
 </svelte:head>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -90,7 +91,7 @@
 								<UserPlus size={16} />
 							</div>
 						{/if}
-						<h1 class="font-semibold text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-lg'}">New User</h1>
+						<h1 class="font-semibold text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-lg'}">{i18n.t('ADMIN_NEXT.USERS.NEW.NEW_USER')}</h1>
 					</div>
 
 					<Button
@@ -103,7 +104,7 @@
 						{:else}
 							<Save size={14} class="mr-1.5" />
 						{/if}
-						Create
+						{i18n.t('ADMIN_NEXT.USERS.NEW.CREATE')}
 					</Button>
 				</div>
 			</div>
@@ -115,23 +116,23 @@
 		<div class="space-y-6 px-6 py-6">
 			<!-- Account details -->
 			<div class="rounded-xl border border-border bg-card p-5">
-				<h2 class="text-sm font-semibold text-foreground">Account</h2>
+				<h2 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.USERS.NEW.ACCOUNT')}</h2>
 				<div class="mt-4 space-y-4">
 					<div>
 						<label for="username" class="block text-xs font-medium text-muted-foreground">
-							Username <span class="text-destructive">*</span>
+							{i18n.t('ADMIN_NEXT.USERNAME')} <span class="text-destructive">*</span>
 						</label>
 						<input
 							id="username"
 							type="text"
 							bind:value={username}
-							placeholder="lowercase, 3-64 chars"
+							placeholder={i18n.t('ADMIN_NEXT.USERS.NEW.LOWERCASE_3_64_CHARS')}
 							class="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 						/>
 					</div>
 					<div class="grid gap-4 sm:grid-cols-2">
 						<div>
-							<label for="fullname" class="block text-xs font-medium text-muted-foreground">Full Name</label>
+							<label for="fullname" class="block text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.USERS.NEW.FULL_NAME')}</label>
 							<input
 								id="fullname"
 								type="text"
@@ -168,14 +169,14 @@
 						disabled={saving}
 					/>
 					<div>
-						<label for="state" class="block text-xs font-medium text-muted-foreground">Status</label>
+						<label for="state" class="block text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')}</label>
 						<select
 							id="state"
 							bind:value={accountState}
 							class="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 						>
-							<option value="enabled">Enabled</option>
-							<option value="disabled">Disabled</option>
+							<option value="enabled">{i18n.t('ADMIN_NEXT.ENABLED')}</option>
+							<option value="disabled">{i18n.t('ADMIN_NEXT.DISABLED')}</option>
 						</select>
 					</div>
 				</div>
@@ -183,7 +184,7 @@
 
 			<!-- Permissions -->
 			<div class="rounded-xl border border-border bg-card p-5">
-				<h2 class="text-sm font-semibold text-foreground">Permissions</h2>
+				<h2 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.USERS.NEW.PERMISSIONS')}</h2>
 				<div class="mt-4">
 					<PermissionsField value={access} onchange={handleAccessChange} />
 				</div>

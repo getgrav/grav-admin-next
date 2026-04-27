@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import type { ReportItem } from '$lib/api/endpoints/tools';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api/client';
@@ -100,7 +101,7 @@
 	</div>
 {:else if !loaded}
 	<div class="flex h-16 items-center justify-center rounded-lg border border-dashed border-border">
-		<span class="text-xs text-muted-foreground">Loading report component...</span>
+		<span class="text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.REPORT_COMPONENT_WRAPPER.LOADING_REPORT_COMPONENT')}</span>
 	</div>
 {/if}
 

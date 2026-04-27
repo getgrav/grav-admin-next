@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount } from 'svelte';
 	import { X, ChevronLeft, ChevronRight } from 'lucide-svelte';
 	import { dismissNotification } from '$lib/api/endpoints/dashboard-widgets';
@@ -53,7 +54,7 @@
 	<div
 		class="relative mb-5 overflow-hidden rounded-lg border border-purple-500/30 bg-gradient-to-br from-purple-500/10 via-fuchsia-500/5 to-transparent p-1"
 		role="region"
-		aria-label="Site notification"
+		aria-label={i18n.t('ADMIN_NEXT.TOP_BANNER.SITE_NOTIFICATION')}
 		onmouseenter={stopRotation}
 		onmouseleave={startRotation}
 	>
@@ -87,7 +88,7 @@
 							type="button"
 							class="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 							onclick={prev}
-							title="Previous"
+							title={i18n.t('ADMIN_NEXT.TOP_BANNER.PREVIOUS')}
 						>
 							<ChevronLeft size={14} />
 						</button>
@@ -106,7 +107,7 @@
 					type="button"
 					class="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 					onclick={() => close(current)}
-					title="Dismiss"
+					title={i18n.t('ADMIN_NEXT.DISMISS')}
 				>
 					<X size={14} />
 				</button>

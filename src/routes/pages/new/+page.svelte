@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { createPage } from '$lib/api/endpoints/pages';
@@ -60,7 +61,7 @@
 				template = pageTypes[0].type;
 			}
 		} catch {
-			toast.error('Failed to load page templates');
+			toast.error(i18n.t('ADMIN_NEXT.PAGES.NEW.FAILED_TO_LOAD_PAGE_TEMPLATES'));
 		} finally {
 			pageTypesLoading = false;
 		}
@@ -236,7 +237,7 @@
 </script>
 
 <svelte:head>
-	<title>Add Page — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.PAGES.NEW.ADD_PAGE_GRAV_ADMIN')}</title>
 </svelte:head>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -260,7 +261,7 @@
 								<FilePlus size={16} />
 							</div>
 						{/if}
-						<h1 class="font-semibold text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-lg'}">Add Page</h1>
+						<h1 class="font-semibold text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-lg'}">{i18n.t('ADMIN_NEXT.ADD_PAGE')}</h1>
 					</div>
 
 					<Button
@@ -273,7 +274,7 @@
 						{:else}
 							<Save size={14} class="mr-1.5" />
 						{/if}
-						Continue
+						{i18n.t('ADMIN_NEXT.PAGES.NEW.CONTINUE')}
 					</Button>
 				</div>
 			</div>
@@ -284,20 +285,20 @@
 	<div class="flex-1 overflow-y-auto">
 		<div class="mx-auto max-w-2xl space-y-6 px-6 py-6">
 			<div class="rounded-xl border border-border bg-card p-5">
-				<h2 class="text-sm font-semibold text-foreground">Page Details</h2>
+				<h2 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.PAGES.NEW.PAGE_DETAILS')}</h2>
 				<div class="mt-4 space-y-5">
 
 					<!-- Page Title -->
 					<div>
 						<label for="page-title" class="block text-xs font-medium text-muted-foreground">
-							Page Title <span class="text-destructive">*</span>
+							{i18n.t('ADMIN_NEXT.PAGES.NEW.PAGE_TITLE')} <span class="text-destructive">*</span>
 						</label>
 						<input
 							id="page-title"
 							type="text"
 							value={title}
 							oninput={handleTitleInput}
-							placeholder="My New Page"
+							placeholder={i18n.t('ADMIN_NEXT.PAGES.NEW.MY_NEW_PAGE')}
 							class="mt-1 h-10 w-full rounded-lg border border-input bg-muted/50 px-3 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 						/>
 					</div>
@@ -305,9 +306,9 @@
 					<!-- Folder Name (Slug) -->
 					<div>
 						<label for="page-slug" class="block text-xs font-medium text-muted-foreground">
-							Folder Name <span class="text-destructive">*</span>
+							{i18n.t('ADMIN_NEXT.PAGES.NEW.FOLDER_NAME')} <span class="text-destructive">*</span>
 						</label>
-						<p class="mt-0.5 text-xs text-muted-foreground">URL-safe folder name for this page</p>
+						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.NEW.URL_SAFE_FOLDER_NAME_FOR_THIS_PAGE')}</p>
 						<div class="mt-1 flex items-stretch">
 							<input
 								id="page-slug"
@@ -321,7 +322,7 @@
 								type="button"
 								class="flex h-10 w-10 shrink-0 items-center justify-center rounded-r-lg border border-input bg-muted/50 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 								onclick={regenerateSlug}
-								title="Auto-regenerate from page title"
+								title={i18n.t('ADMIN_NEXT.FIELDS.REGENERATE_SLUG')}
 							>
 								<RefreshCw size={14} />
 							</button>
@@ -331,7 +332,7 @@
 					<!-- Parent Page -->
 					<div>
 						<label class="block text-xs font-medium text-muted-foreground">
-							Parent Page <span class="text-destructive">*</span>
+							{i18n.t('ADMIN_NEXT.PAGES.NEW.PARENT_PAGE')} <span class="text-destructive">*</span>
 						</label>
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<div class="parent-picker relative mt-1" onkeydown={handleParentKeydown}>
@@ -352,7 +353,7 @@
 											bind:this={filterInputEl}
 											type="text"
 											class="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-											placeholder="Filter pages..."
+											placeholder={i18n.t('ADMIN_NEXT.PAGES.NEW.FILTER_PAGES')}
 											bind:value={parentFilter}
 										/>
 										{#if parentFilter}
@@ -370,7 +371,7 @@
 										{#if rootLoading}
 											<div class="flex items-center justify-center py-6 text-sm text-muted-foreground">
 												<Loader2 size={16} class="mr-2 animate-spin" />
-												Loading pages...
+												{i18n.t('ADMIN_NEXT.PAGES.LOADING')}
 											</div>
 										{:else}
 											<!-- Root option -->
@@ -381,7 +382,7 @@
 												onclick={() => selectParent('/')}
 											>
 												<Folder size={14} class="shrink-0 text-muted-foreground" />
-												<span class="truncate">&lt;root&gt; /</span>
+												<span class="truncate">{i18n.t('ADMIN_NEXT.PAGES.NEW.ROOT')}</span>
 												{#if parentRoute === '/'}
 													<Check size={14} class="ml-auto shrink-0 text-primary" />
 												{/if}
@@ -392,7 +393,7 @@
 											{/each}
 
 											{#if !rootLoading && filterPages(rootPages).length === 0 && parentFilter}
-												<div class="py-4 text-center text-sm text-muted-foreground">No pages found</div>
+												<div class="py-4 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.NO_PAGES')}</div>
 											{/if}
 										{/if}
 									</div>
@@ -404,7 +405,7 @@
 					<!-- Page Template -->
 					<div>
 						<label for="page-template" class="block text-xs font-medium text-muted-foreground">
-							Page Template <span class="text-destructive">*</span>
+							{i18n.t('ADMIN_NEXT.PAGES.NEW.PAGE_TEMPLATE')} <span class="text-destructive">*</span>
 						</label>
 						<select
 							id="page-template"
@@ -413,7 +414,7 @@
 							class="mt-1 h-10 w-full rounded-lg border border-input bg-muted/50 px-3 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
 						>
 							{#if pageTypesLoading}
-								<option value="">Loading templates...</option>
+								<option value="">{i18n.t('ADMIN_NEXT.PAGES.NEW.LOADING_TEMPLATES')}</option>
 							{:else}
 								{#each pageTypes as pt}
 									<option value={pt.type}>{pt.label}</option>
@@ -425,9 +426,9 @@
 					<!-- Visible -->
 					<div>
 						<label class="block text-xs font-medium text-muted-foreground">
-							Visible <span class="text-destructive">*</span>
+							{i18n.t('ADMIN_NEXT.PAGES.NEW.VISIBLE')} <span class="text-destructive">*</span>
 						</label>
-						<p class="mt-0.5 text-xs text-muted-foreground">Controls whether this page appears in navigation menus</p>
+						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.NEW.CONTROLS_WHETHER_THIS_PAGE_APPEARS_IN')}</p>
 						<div class="mt-2 inline-flex rounded-lg border border-input">
 							{#each (['auto', 'yes', 'no'] as const) as opt}
 								<button

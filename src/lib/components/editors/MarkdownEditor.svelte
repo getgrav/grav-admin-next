@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount, getContext, untrack } from 'svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { EditorView, keymap, placeholder as cmPlaceholder, type ViewUpdate } from '@codemirror/view';
@@ -683,7 +684,7 @@
 			{#if previewHtml}
 				{@html previewHtml}
 			{:else}
-				<p class="text-muted-foreground italic">Nothing to preview</p>
+				<p class="text-muted-foreground italic">{i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.NOTHING_TO_PREVIEW')}</p>
 			{/if}
 		</div>
 	{:else}

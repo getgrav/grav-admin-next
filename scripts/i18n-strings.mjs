@@ -17,11 +17,26 @@
  *   node scripts/i18n-strings.mjs --json       # machine-readable
  *   node scripts/i18n-strings.mjs --dir lib/components  # scope
  *   node scripts/i18n-strings.mjs --max 100    # cap output
+ *
+ * Fix mode (one-shot rewrite from a vetted approval plan):
+ *   node scripts/i18n-strings.mjs --fix --plan=path/to/approvals.json
+ *
+ * Approval plan is a JSON array of { path, line, kind, text, key } entries.
+ * `path` is repo-relative (e.g. "src/lib/components/X.svelte"). `kind` is
+ * one of "text", "@placeholder", "@aria-label", "@title", "@alt",
+ * "@aria-description", or "toast". `text` must match the original literal
+ * exactly. `key` is a fully-qualified ICU key without the "ICU." prefix
+ * (e.g. "ADMIN_NEXT.PAGES.NEW_PAGE_TITLE").
+ *
+ * Outputs:
+ *   - in-place edits to source files (with i18n import injection where missing)
+ *   - languages-additions.yaml at repo root (paste into admin2 en.yaml)
  */
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import yaml from 'js-yaml';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
@@ -29,6 +44,11 @@ const SRC_DIR = join(REPO_ROOT, 'src');
 
 const args = process.argv.slice(2);
 const FLAG_JSON = args.includes('--json');
+const FLAG_FIX = args.includes('--fix');
+const planIdx = args.findIndex((a) => a === '--plan' || a.startsWith('--plan='));
+const FLAG_PLAN = planIdx >= 0
+	? (args[planIdx].startsWith('--plan=') ? args[planIdx].slice('--plan='.length) : args[planIdx + 1])
+	: null;
 const dirIdx = args.indexOf('--dir');
 const SCOPE = dirIdx >= 0 ? join(SRC_DIR, args[dirIdx + 1]) : SRC_DIR;
 const maxIdx = args.indexOf('--max');
@@ -182,7 +202,188 @@ function scanFile(path) {
 	}
 }
 
-// --- Main ---
+// --- Fix mode (apply a vetted approval plan) ---
+
+function escapeRegex(s) {
+	return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildPattern(kind, text) {
+	const t = escapeRegex(text);
+	if (kind === 'text') {
+		// `>WS TEXT WS<` — preserve surrounding whitespace
+		return new RegExp(`(>)(\\s*)(${t})(\\s*)(<)`);
+	}
+	if (kind.startsWith('@')) {
+		const attr = escapeRegex(kind.slice(1));
+		return new RegExp(`\\b(${attr})\\s*=\\s*(['"])(${t})\\2`);
+	}
+	if (kind === 'toast') {
+		// captures `toast.x(  '...'` — leaves the closing `)` and any trailing args alone
+		return new RegExp(`(toast(?:\\.\\w+)?)\\s*\\(\\s*(['"])(${t})\\2`);
+	}
+	return null;
+}
+
+function buildReplacement(kind, key, m) {
+	if (kind === 'text') {
+		return `${m[1]}${m[2]}{i18n.t('${key}')}${m[4]}${m[5]}`;
+	}
+	if (kind.startsWith('@')) {
+		return `${m[1]}={i18n.t('${key}')}`;
+	}
+	if (kind === 'toast') {
+		return `${m[1]}(i18n.t('${key}')`;
+	}
+	return null;
+}
+
+function hasI18nImport(src) {
+	return /import\s*\{[^}]*\bi18n\b[^}]*\}\s*from\s*['"][^'"]*\$lib\/stores\/i18n\.svelte['"]/.test(src);
+}
+
+function injectImport(src, isSvelte) {
+	const importLine = `import { i18n } from '$lib/stores/i18n.svelte';`;
+	if (isSvelte) {
+		// Insert at start of first <script> block
+		const m = src.match(/<script\b[^>]*>\s*\n/);
+		if (m) {
+			const idx = m.index + m[0].length;
+			return src.slice(0, idx) + `\t${importLine}\n` + src.slice(idx);
+		}
+		// No script block — prepend one
+		return `<script lang="ts">\n\t${importLine}\n</script>\n\n` + src;
+	}
+	// .ts file: insert after the last existing top-level import, or at top
+	const importMatches = [...src.matchAll(/^import\b[^;]*;[^\n]*\n/gm)];
+	if (importMatches.length > 0) {
+		const last = importMatches[importMatches.length - 1];
+		const idx = last.index + last[0].length;
+		return src.slice(0, idx) + `${importLine}\n` + src.slice(idx);
+	}
+	return `${importLine}\n` + src;
+}
+
+function setNested(obj, segments, value) {
+	let cur = obj;
+	for (let i = 0; i < segments.length - 1; i++) {
+		const k = segments[i];
+		if (typeof cur[k] !== 'object' || cur[k] === null || Array.isArray(cur[k])) cur[k] = {};
+		cur = cur[k];
+	}
+	cur[segments[segments.length - 1]] = value;
+}
+
+if (FLAG_FIX) {
+	if (!FLAG_PLAN) {
+		console.error('Error: --fix requires --plan=path/to/approvals.json');
+		process.exit(2);
+	}
+	const planPath = resolve(FLAG_PLAN);
+	const plan = JSON.parse(readFileSync(planPath, 'utf8'));
+	if (!Array.isArray(plan)) {
+		console.error('Error: plan file must be a JSON array of entries');
+		process.exit(2);
+	}
+
+	// Group by path
+	const byPath = new Map();
+	for (const entry of plan) {
+		if (!entry.path || !entry.kind || !entry.text || !entry.key) {
+			console.error(`Skipping malformed entry: ${JSON.stringify(entry)}`);
+			continue;
+		}
+		if (!byPath.has(entry.path)) byPath.set(entry.path, []);
+		byPath.get(entry.path).push(entry);
+	}
+
+	// Build YAML additions tree (only ICU.* keys appended; assumes plan keys lack the ICU. prefix)
+	const additions = {};
+	let appliedCount = 0;
+	let skippedCount = 0;
+	const failures = [];
+
+	for (const [relPath, entries] of byPath) {
+		const absPath = resolve(REPO_ROOT, relPath);
+		let src = readFileSync(absPath, 'utf8');
+		const isSvelte = absPath.endsWith('.svelte');
+
+		// Collect all replacement positions, then apply end-to-start
+		const ops = [];
+		for (const entry of entries) {
+			const re = buildPattern(entry.kind, entry.text);
+			if (!re) {
+				failures.push({ ...entry, reason: `unknown kind ${entry.kind}` });
+				continue;
+			}
+			// Find all matches; pick the one whose line matches `entry.line`
+			const reG = new RegExp(re.source, 'g');
+			let m;
+			let chosen = null;
+			while ((m = reG.exec(src)) !== null) {
+				const ln = lineOf(src, m.index);
+				if (Math.abs(ln - entry.line) <= 1) {
+					chosen = m;
+					break;
+				}
+				if (!chosen) chosen = m; // fallback to first match if none line-matches
+			}
+			if (!chosen) {
+				failures.push({ ...entry, reason: 'no pattern match in file' });
+				continue;
+			}
+			const replacement = buildReplacement(entry.kind, entry.key, chosen);
+			ops.push({ start: chosen.index, end: chosen.index + chosen[0].length, replacement });
+
+			// Add to YAML additions under ICU.<key> (use entry.value if set so HTML entities decode)
+			setNested(additions, ['ICU', ...entry.key.split('.')], entry.value ?? entry.text);
+		}
+
+		if (ops.length === 0) continue;
+
+		// Apply end-to-start so earlier offsets stay valid
+		ops.sort((a, b) => b.start - a.start);
+		for (const op of ops) {
+			src = src.slice(0, op.start) + op.replacement + src.slice(op.end);
+			appliedCount++;
+		}
+
+		// Inject import if needed
+		if (!hasI18nImport(src)) {
+			src = injectImport(src, isSvelte);
+		}
+
+		writeFileSync(absPath, src);
+		console.log(`✓ ${relPath} — ${ops.length} rewrite${ops.length === 1 ? '' : 's'}`);
+	}
+
+	skippedCount = plan.length - appliedCount - failures.length;
+
+	// Emit YAML additions
+	if (Object.keys(additions).length > 0) {
+		const yamlBody = yaml.dump(additions, {
+			indent: 2,
+			quotingType: '"',
+			forceQuotes: true,
+			lineWidth: -1,
+		});
+		const outPath = join(REPO_ROOT, 'languages-additions.yaml');
+		const banner = `# Auto-generated by scripts/i18n-strings.mjs --fix\n# Merge into grav-plugin-admin2/languages/en.yaml under the existing ICU: tree.\n\n`;
+		writeFileSync(outPath, banner + yamlBody);
+		console.log(`\n✓ wrote ${outPath}`);
+	}
+
+	console.log(`\nApplied: ${appliedCount}  Skipped: ${skippedCount}  Failed: ${failures.length}`);
+	if (failures.length > 0) {
+		console.log('\nFailures:');
+		for (const f of failures) {
+			console.log(`  ${f.path}:${f.line} (${f.kind}) "${f.text.slice(0, 60)}" — ${f.reason}`);
+		}
+	}
+	process.exit(failures.length > 0 ? 1 : 0);
+}
+
+// --- Main (scan mode) ---
 
 for (const path of walk(SCOPE, ['.svelte', '.ts'])) {
 	scanFile(path);

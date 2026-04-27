@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { getInstalledThemes, checkUpdates, updatePackage, updateAllPackages, type ThemeInfo } from '$lib/api/endpoints/gpm';
@@ -74,7 +75,7 @@
 				selectedSlug = themes[0].slug;
 			}
 		} catch {
-			toast.error('Failed to load themes');
+			toast.error(i18n.t('ADMIN_NEXT.THEMES.FAILED_TO_LOAD_THEMES'));
 		} finally {
 			loading = false;
 		}
@@ -104,7 +105,7 @@
 			toast.success(`GPM refreshed — ${result.total} update${result.total !== 1 ? 's' : ''} available`);
 			await loadThemes();
 		} catch {
-			toast.error('Failed to check for updates');
+			toast.error(i18n.t('ADMIN_NEXT.THEMES.FAILED_TO_CHECK_FOR_UPDATES'));
 		} finally {
 			checkingUpdates = false;
 		}
@@ -177,7 +178,7 @@
 </script>
 
 <svelte:head>
-	<title>Themes — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.THEMES.THEMES_GRAV_ADMIN')}</title>
 </svelte:head>
 
 <div class="flex h-full flex-col">
@@ -187,7 +188,7 @@
 			<div class="px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
 				<div class="flex items-center justify-between {scrolled ? 'min-h-6' : 'min-h-8'}">
 					<div>
-						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">Themes</h1>
+						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">{i18n.t('ADMIN_NEXT.NAV.THEMES')}</h1>
 						{#if !scrolled && !loading}
 							<p class="mt-0.5 text-xs text-muted-foreground">{themes.length} installed</p>
 						{/if}
@@ -196,7 +197,7 @@
 					<div class="flex items-center gap-2">
 						<Button variant="outline" size="sm" onclick={handleCheckUpdates} disabled={checkingUpdates || updatingAll}>
 							<RefreshCw size={13} class={checkingUpdates ? 'animate-spin' : ''} />
-							Check Updates
+							{i18n.t('ADMIN_NEXT.THEMES.CHECK_UPDATES')}
 						</Button>
 						{#if updatableCount > 0}
 							<Button variant="outline" size="sm" onclick={handleUpdateAll} disabled={updatingAll}>
@@ -231,7 +232,7 @@
 				<input
 					type="text"
 					class="h-8 w-full rounded-md border border-input bg-muted/50 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-					placeholder="Search themes..."
+					placeholder={i18n.t('ADMIN_NEXT.THEMES.SEARCH_THEMES')}
 					bind:value={search}
 				/>
 			</div>
@@ -240,8 +241,8 @@
 				bind:value={sortBy}
 			>
 				<option value="name">Name</option>
-				<option value="author">Author</option>
-				<option value="enabled">Active</option>
+				<option value="author">{i18n.t('ADMIN_NEXT.AUTHOR')}</option>
+				<option value="enabled">{i18n.t('ADMIN_NEXT.ACTIVE')}</option>
 			</select>
 		</div>
 
@@ -281,7 +282,7 @@
 									<BadgeCheck size={14} class="shrink-0 text-purple-500" />
 								{/if}
 								{#if theme.premium}
-									<span class="shrink-0 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">Premium</span>
+									<span class="shrink-0 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">{i18n.t('ADMIN_NEXT.PREMIUM')}</span>
 								{/if}
 								{#if theme.updatable}
 									<ArrowUpCircle size={12} class="shrink-0 text-amber-500" />
@@ -292,13 +293,13 @@
 
 						<!-- Symlink indicator -->
 						{#if theme.is_symlink}
-							<span class="inline-flex shrink-0" title="Symlinked"><CornerDownRight size={14} class="text-muted-foreground/60" aria-label="Symlinked" /></span>
+							<span class="inline-flex shrink-0" title={i18n.t('ADMIN_NEXT.THEMES.SYMLINKED')}><CornerDownRight size={14} class="text-muted-foreground/60" aria-label={i18n.t('ADMIN_NEXT.THEMES.SYMLINKED')} /></span>
 						{/if}
 
 						<!-- Active badge -->
 						{#if theme.enabled}
 							<span class="shrink-0 rounded-full bg-green-500/15 px-2.5 py-0.5 text-[10px] font-medium text-green-600 dark:text-green-400">
-								<Check size={10} class="mr-0.5 inline" /> Active
+								<Check size={10} class="mr-0.5 inline" /> {i18n.t('ADMIN_NEXT.ACTIVE')}
 							</span>
 						{/if}
 					</div>
@@ -335,13 +336,13 @@
 										<BadgeCheck size={18} class="shrink-0 text-purple-500" />
 									{/if}
 									{#if selectedTheme.is_symlink}
-										<span class="inline-flex shrink-0" title="Symlinked"><CornerDownRight size={14} class="text-muted-foreground/60" aria-label="Symlinked" /></span>
+										<span class="inline-flex shrink-0" title={i18n.t('ADMIN_NEXT.THEMES.SYMLINKED')}><CornerDownRight size={14} class="text-muted-foreground/60" aria-label={i18n.t('ADMIN_NEXT.THEMES.SYMLINKED')} /></span>
 									{/if}
 									{#if selectedTheme.premium}
-										<span class="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">Premium</span>
+										<span class="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">{i18n.t('ADMIN_NEXT.PREMIUM')}</span>
 									{/if}
 									{#if selectedTheme.enabled}
-										<span class="rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">Active</span>
+										<span class="rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">{i18n.t('ADMIN_NEXT.ACTIVE')}</span>
 									{/if}
 								</div>
 								<div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -351,7 +352,7 @@
 									{/if}
 									{#if selectedTheme.updatable}
 										<span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-600 dark:text-amber-400">
-											Update available: v{selectedTheme.available_version}
+											{i18n.t('ADMIN_NEXT.UPDATE_AVAILABLE_VERSION', { version: selectedTheme.available_version })}
 										</span>
 									{/if}
 								</div>
@@ -369,7 +370,7 @@
 										{:else}
 											<ArrowUpCircle size={14} class="mr-1.5" />
 										{/if}
-										Update to v{selectedTheme.available_version}
+										{i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: selectedTheme.available_version })}
 									</Button>
 								{/if}
 								<button
@@ -377,7 +378,7 @@
 									class="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
 									onclick={() => openThemeConfig(selectedTheme.slug)}
 								>
-									Configure
+									{i18n.t('ADMIN_NEXT.THEMES.CONFIGURE')}
 									<ChevronRight size={14} />
 								</button>
 							</div>
@@ -400,7 +401,7 @@
 						<div class="mt-6 grid grid-cols-2 gap-4">
 							{#if selectedTheme.author?.name}
 								<div>
-									<dt class="text-xs font-medium text-muted-foreground">Author</dt>
+									<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.AUTHOR')}</dt>
 									<dd class="mt-0.5 text-sm text-foreground">
 										{#if selectedTheme.author.url}
 											<a href={selectedTheme.author.url} target="_blank" rel="noopener" class="text-primary hover:underline">
@@ -416,7 +417,7 @@
 
 							{#if selectedTheme.homepage}
 								<div>
-									<dt class="text-xs font-medium text-muted-foreground">Homepage</dt>
+									<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.HOMEPAGE')}</dt>
 									<dd class="mt-0.5 text-sm">
 										<a href={selectedTheme.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
 											Visit
@@ -427,7 +428,7 @@
 							{/if}
 
 							<div>
-								<dt class="text-xs font-medium text-muted-foreground">Status</dt>
+								<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')}</dt>
 								<dd class="mt-0.5 text-sm">
 									<span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
 										{selectedTheme.enabled
@@ -447,7 +448,7 @@
 						<!-- Keywords -->
 						{#if parseKeywords(selectedTheme.keywords).length}
 							<div class="mt-4">
-								<dt class="text-xs font-medium text-muted-foreground">Keywords</dt>
+								<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.KEYWORDS')}</dt>
 								<dd class="mt-1.5 flex flex-wrap gap-1.5">
 									{#each parseKeywords(selectedTheme.keywords) as kw}
 										<span class="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">{kw}</span>
@@ -459,7 +460,7 @@
 						<!-- Dependencies -->
 						{#if parseDependencies(selectedTheme.dependencies).length}
 							<div class="mt-4">
-								<dt class="text-xs font-medium text-muted-foreground">Dependencies</dt>
+								<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.DEPENDENCIES')}</dt>
 								<dd class="mt-1.5 flex flex-wrap gap-1.5">
 									{#each parseDependencies(selectedTheme.dependencies) as dep}
 										<span class="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs">
@@ -475,7 +476,7 @@
 					</div>
 				{:else}
 					<div class="flex h-full items-center justify-center text-sm text-muted-foreground">
-						Select a theme to view details
+						{i18n.t('ADMIN_NEXT.THEMES.SELECT_A_THEME_TO_VIEW_DETAILS')}
 					</div>
 				{/if}
 			</div>

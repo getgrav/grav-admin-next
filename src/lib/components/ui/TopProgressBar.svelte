@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	let { active = false }: { active?: boolean } = $props();
 </script>
 
@@ -7,7 +8,7 @@
 		class="pointer-events-none fixed inset-x-0 top-0 z-50 h-[2px] overflow-hidden"
 		role="progressbar"
 		aria-busy="true"
-		aria-label="Working"
+		aria-label={i18n.t('ADMIN_NEXT.TOP_PROGRESS_BAR.WORKING')}
 	>
 		<div class="top-progress-bar h-full bg-primary"></div>
 	</div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { getChildren, getPage, getPagesList, reorganizePages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
 	import type { PageSummary, PageDetail, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -386,7 +387,7 @@
 					return c;
 				});
 			} catch {
-				toast.error('Failed to move page');
+				toast.error(i18n.t('ADMIN_NEXT.PAGES.MOVE_FAILED'));
 			} finally {
 				saving = false;
 			}
@@ -415,7 +416,7 @@
 				i === colIndex ? { ...c, pages: siblings } : c
 			);
 		} catch {
-			toast.error('Failed to reorder');
+			toast.error(i18n.t('ADMIN_NEXT.PAGES.REORDER_FAILED'));
 		} finally {
 			saving = false;
 		}
@@ -473,13 +474,13 @@
 			value={`${sortField}:${sortOrder}`}
 			onchange={handleSortChange}
 		>
-			<option value="default:asc">Default</option>
-			<option value="order:asc">Folder Order</option>
-			<option value="title:asc">Title A-Z</option>
-			<option value="title:desc">Title Z-A</option>
-			<option value="modified:desc">Newest</option>
-			<option value="modified:asc">Oldest</option>
-			<option value="date:desc">Date (newest)</option>
+			<option value="default:asc">{i18n.t('ADMIN_NEXT.DASHBOARD.PRESET_DEFAULT')}</option>
+			<option value="order:asc">{i18n.t('ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.FOLDER_ORDER')}</option>
+			<option value="title:asc">{i18n.t('ADMIN_NEXT.PAGES.SORT_TITLE_AZ')}</option>
+			<option value="title:desc">{i18n.t('ADMIN_NEXT.PAGES.SORT_TITLE_ZA')}</option>
+			<option value="modified:desc">{i18n.t('ADMIN_NEXT.PAGES.SORT_NEWEST')}</option>
+			<option value="modified:asc">{i18n.t('ADMIN_NEXT.PAGES.SORT_OLDEST')}</option>
+			<option value="date:desc">{i18n.t('ADMIN_NEXT.PAGES.SORT_DATE_NEWEST')}</option>
 		</select>
 	</div>
 </div>
@@ -553,7 +554,7 @@
 										<span
 											class="inline-flex h-4 shrink-0 items-center rounded px-1 text-[9px] font-bold uppercase leading-none
 												{isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'}"
-											title="Draft (unpublished)"
+											title={i18n.t('ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.DRAFT_UNPUBLISHED')}
 										>Draft</span>
 									{/if}
 									{#if lang && badgeKeys.length > 0}
@@ -608,27 +609,27 @@
 					<div class="mt-3 flex flex-wrap gap-1.5">
 						<Badge variant="outline">{previewPage.template}</Badge>
 						{#if previewPage.published}
-							<Badge variant="success">Published</Badge>
+							<Badge variant="success">{i18n.t('ADMIN_NEXT.PAGES.PUBLISHED')}</Badge>
 						{:else}
 							<Badge variant="secondary">Draft</Badge>
 						{/if}
 						{#if previewPage.visible}
-							<Badge variant="success">Visible</Badge>
+							<Badge variant="success">{i18n.t('ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.VISIBLE')}</Badge>
 						{/if}
 						{#if previewPage.has_children}
-							<Badge variant="secondary">Has children</Badge>
+							<Badge variant="secondary">{i18n.t('ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.HAS_CHILDREN')}</Badge>
 						{/if}
 					</div>
 
 					<!-- Metadata -->
 					<dl class="mt-4 space-y-1.5 text-[12px]">
 						<div class="flex justify-between">
-							<dt class="text-muted-foreground">Modified</dt>
+							<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_MODIFIED')}</dt>
 							<dd class="text-foreground">{new Date(previewPage.modified).toLocaleString()}</dd>
 						</div>
 						{#if previewPage.language}
 							<div class="flex justify-between">
-								<dt class="text-muted-foreground">Language</dt>
+								<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.INFO_LANGUAGE')}</dt>
 								<dd class="text-foreground">{previewPage.language}</dd>
 							</div>
 						{/if}
@@ -643,7 +644,7 @@
 					<!-- Content summary -->
 					{#if previewPage.summary}
 						<div class="mt-4 border-t border-border pt-4">
-							<h4 class="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Summary</h4>
+							<h4 class="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.SUMMARY')}</h4>
 							<div class="prose prose-sm dark:prose-invert max-w-none text-[13px] leading-relaxed text-foreground/80">
 								{@html previewPage.summary}
 							</div>

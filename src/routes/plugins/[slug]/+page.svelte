@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -196,9 +197,9 @@
 			toast.success(`${plugin?.name ?? slug} configuration saved`);
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {
-				toast.error('Configuration was modified elsewhere. Please reload.');
+				toast.error(i18n.t('ADMIN_NEXT.PLUGINS.CONFIGURATION_WAS_MODIFIED_ELSEWHERE'));
 			} else {
-				toast.error('Failed to save configuration.');
+				toast.error(i18n.t('ADMIN_NEXT.PLUGINS.FAILED_TO_SAVE_CONFIGURATION'));
 			}
 		} finally {
 			saving = false;
@@ -343,7 +344,7 @@
 		const unsub = invalidations.subscribe('plugins:update', (e) => {
 			if (e.id !== slug) return;
 			if (!hasChanges) loadPlugin();
-			else toast.info('Plugin changed elsewhere — save to overwrite or reload');
+			else toast.info(i18n.t('ADMIN_NEXT.PLUGINS.PLUGIN_CHANGED_ELSEWHERE_SAVE_TO'));
 		}, {
 			// Skip self-echo: our own PATCH emits this same event before handleSave
 			// has cleared hasChanges, which would otherwise toast on every save.
@@ -354,7 +355,7 @@
 </script>
 
 <svelte:head>
-	<title>{plugin?.name ?? slug} — Plugins — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.PLUGINS.PAGE_TITLE', { name: plugin?.name ?? slug })}</title>
 </svelte:head>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -386,10 +387,10 @@
 								<BadgeCheck size={18} class="shrink-0 text-purple-500" />
 							{/if}
 							{#if plugin.is_symlink}
-								<span class="inline-flex shrink-0" title="Symlinked"><CornerDownRight size={14} class="text-muted-foreground/60" aria-label="Symlinked" /></span>
+								<span class="inline-flex shrink-0" title={i18n.t('ADMIN_NEXT.PLUGINS.SYMLINKED')}><CornerDownRight size={14} class="text-muted-foreground/60" aria-label={i18n.t('ADMIN_NEXT.PLUGINS.SYMLINKED')} /></span>
 							{/if}
 							{#if plugin.premium}
-								<span class="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">Premium</span>
+								<span class="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">{i18n.t('ADMIN_NEXT.PREMIUM')}</span>
 							{/if}
 						</div>
 						<div class="flex items-center gap-2 text-xs text-muted-foreground">
@@ -425,15 +426,15 @@
 						size="sm"
 						onclick={handleUpdate}
 						disabled={updating}
-						aria-label="Update to v{plugin.available_version}"
-						title="Update to v{plugin.available_version}"
+						aria-label={i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: plugin.available_version })}
+						title={i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: plugin.available_version })}
 					>
 						{#if updating}
 							<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
 						{:else}
 							<ArrowUpCircle size={14} class="sm:mr-1.5" />
 						{/if}
-						<span class="hidden sm:inline">Update to v{plugin.available_version}</span>
+						<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: plugin.available_version })}</span>
 					</Button>
 				{/if}
 
@@ -443,15 +444,15 @@
 					size="sm"
 					onclick={handleDelete}
 					disabled={deleting || PROTECTED_DELETE.has(plugin.slug)}
-					aria-label="Remove"
-					title="Remove"
+					aria-label={i18n.t('ADMIN_NEXT.REMOVE')}
+					title={i18n.t('ADMIN_NEXT.REMOVE')}
 				>
 					{#if deleting}
 						<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
 					{:else}
 						<Trash2 size={14} class="sm:mr-1.5" />
 					{/if}
-					<span class="hidden sm:inline">Remove</span>
+					<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.REMOVE')}</span>
 				</Button>
 
 				<!-- Enable/disable toggle -->
@@ -503,7 +504,7 @@
 				<AlertCircle size={32} class="mx-auto text-destructive" />
 				<p class="mt-2 text-sm text-destructive">{error}</p>
 				<Button variant="outline" size="sm" class="mt-3" onclick={() => goto(`${base}/plugins`)}>
-					Back to Plugins
+					{i18n.t('ADMIN_NEXT.PLUGINS.BACK_TO_PLUGINS')}
 				</Button>
 			</div>
 		</div>
@@ -533,7 +534,7 @@
 							<div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
 								{#if plugin.homepage}
 									<a href={plugin.homepage} target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-primary hover:underline">
-										Homepage <ExternalLink size={10} />
+										{i18n.t('ADMIN_NEXT.HOMEPAGE')} <ExternalLink size={10} />
 									</a>
 								{/if}
 								{#if plugin.author?.url}
@@ -547,7 +548,7 @@
 									<BookOpen size={10} /> README
 								</button>
 								<button type="button" class="inline-flex items-center gap-1 hover:text-foreground" onclick={showChangelog}>
-									<FileText size={10} /> Changelog
+									<FileText size={10} /> {i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}
 								</button>
 							</div>
 							{#if parseKeywords(plugin.keywords).length}
@@ -573,19 +574,19 @@
 					<div class="rounded-xl border border-dashed border-border p-8 text-center">
 						<PowerOff size={32} class="mx-auto text-muted-foreground/40" />
 						<p class="mt-3 text-sm text-muted-foreground">
-							Plugin must be enabled to configure.
+							{i18n.t('ADMIN_NEXT.PLUGINS.PLUGIN_MUST_BE_ENABLED_TO_CONFIGURE')}
 						</p>
 						<Button variant="outline" size="sm" class="mt-3" onclick={toggleEnabled} disabled={toggling}>
 							{#if toggling}
 								<Loader2 size={14} class="mr-1.5 animate-spin" />
 							{/if}
-							Enable Plugin
+							{i18n.t('ADMIN_NEXT.PLUGINS.ENABLE_PLUGIN')}
 						</Button>
 					</div>
 				{:else}
 					<div class="rounded-xl border border-dashed border-border p-8 text-center">
 						<p class="text-sm text-muted-foreground">
-							No configuration options available for this plugin.
+							{i18n.t('ADMIN_NEXT.PLUGINS.NO_CONFIGURATION_OPTIONS_AVAILABLE_FOR')}
 						</p>
 					</div>
 				{/if}
@@ -603,7 +604,7 @@
 
 <ConfirmModal
 	open={confirmDeleteOpen}
-	title="Remove Plugin"
+	title={i18n.t('ADMIN_NEXT.PLUGINS.REMOVE_PLUGIN')}
 	message={`Are you sure you want to remove "${plugin?.name ?? slug}"? This will permanently delete the plugin files.`}
 	confirmLabel="Remove"
 	variant="destructive"
@@ -613,7 +614,7 @@
 
 <ConfirmModal
 	open={guard.showModal}
-	title="Unsaved Changes"
+	title={i18n.t('ADMIN_NEXT.UNSAVED_CHANGES')}
 	message="You have unsaved changes. Leave anyway?"
 	confirmLabel="Leave"
 	cancelLabel="Stay"

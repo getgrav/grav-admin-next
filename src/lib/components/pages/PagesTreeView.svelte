@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { getChildren, reorganizePages, searchPages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
 	import type { PageSummary, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
@@ -288,7 +289,7 @@
 				}
 			}
 		} catch {
-			toast.error('Failed to reorganize pages');
+			toast.error(i18n.t('ADMIN_NEXT.PAGES.PAGES_TREE_VIEW.FAILED_TO_REORGANIZE_PAGES'));
 		} finally {
 			saving = false;
 		}
@@ -337,9 +338,9 @@
 	<div class="min-w-0 flex-1">{@render sortHeader('Title', 'title')}</div>
 	{#if !reorderMode}
 		<div class="hidden w-20 text-center md:block">
-			<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Template</span>
+			<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_TEMPLATE')}</span>
 		</div>
-		<div class="w-6 text-center" title="Status">
+		<div class="w-6 text-center" title={i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')}>
 			<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">·</span>
 		</div>
 		<div class="hidden w-20 text-right sm:block">{@render sortHeader('Modified', 'modified', 'right')}</div>
@@ -349,7 +350,7 @@
 {#if rootLoading}
 	<div class="py-12 text-center text-sm text-muted-foreground">
 		<Loader2 size={16} class="mx-auto mb-2 animate-spin" />
-		Loading pages...
+		{i18n.t('ADMIN_NEXT.PAGES.LOADING')}
 	</div>
 {:else}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -441,7 +442,7 @@
 
 					<div class="flex w-6 justify-center" title={page.published ? 'Published' : 'Draft'}>
 						{#if page.published}
-							<CircleCheck size={14} class="text-green-500" aria-label="Published" />
+							<CircleCheck size={14} class="text-green-500" aria-label={i18n.t('ADMIN_NEXT.PAGES.PUBLISHED')} />
 						{:else}
 							<CircleDashed size={14} class="text-muted-foreground" aria-label="Draft" />
 						{/if}
@@ -455,7 +456,7 @@
 					<button
 						class="absolute right-1 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded bg-background/80 text-muted-foreground opacity-0 backdrop-blur transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 sm:right-2"
 						onclick={() => onDelete(page)}
-						title="Delete"
+						title={i18n.t('ADMIN_NEXT.DELETE')}
 					>
 						<Trash2 size={12} />
 					</button>
@@ -478,11 +479,11 @@
 		{#if searchLoading}
 			<div class="py-12 text-center text-sm text-muted-foreground">
 				<Loader2 size={16} class="mx-auto mb-2 animate-spin" />
-				Searching…
+				{i18n.t('ADMIN_NEXT.PAGES.PAGES_TREE_VIEW.SEARCHING')}
 			</div>
 		{:else if searchResults.length === 0}
 			<div class="py-12 text-center text-sm text-muted-foreground">
-				No pages match "{searchQuery}"
+				{i18n.t('ADMIN_NEXT.PAGES.PAGES_TREE_VIEW.NO_PAGES_MATCH', { query: searchQuery })}
 			</div>
 		{:else}
 			{#each searchResults as page (page.route)}
@@ -502,7 +503,7 @@
 		{/if}
 
 		{#if rootPages.length === 0}
-			<div class="py-12 text-center text-sm text-muted-foreground">No pages found</div>
+			<div class="py-12 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.NO_PAGES')}</div>
 		{/if}
 	{/if}
 {/if}

@@ -52,7 +52,7 @@
 	});
 
 	function completeSignIn() {
-		toast.success('Signed in successfully');
+		toast.success(i18n.t('ADMIN_NEXT.LOGIN.SIGNED_IN_SUCCESSFULLY'));
 		const returnTo = page.url.searchParams.get('returnTo');
 		goto(returnTo && returnTo !== `${base}/login` ? returnTo : `${base}/`);
 	}
@@ -70,7 +70,7 @@
 		attempted = true;
 
 		if (!username.trim() || !password.trim()) {
-			toast.error('Please fill in all required fields');
+			toast.error(i18n.t('ADMIN_NEXT.LOGIN.PLEASE_FILL_IN_ALL_REQUIRED_FIELDS'));
 			return;
 		}
 
@@ -90,14 +90,14 @@
 			if (err && typeof err === 'object' && 'status' in err) {
 				const apiErr = err as { status: number; message: string };
 				if (apiErr.status === 401) {
-					toast.error('Invalid username or password');
+					toast.error(i18n.t('ADMIN_NEXT.LOGIN.INVALID_USERNAME_OR_PASSWORD'));
 				} else if (apiErr.status === 429) {
 					toast.error(apiErr.message || 'Too many login attempts. Try again later.');
 				} else {
 					toast.error(apiErr.message || 'Login failed');
 				}
 			} else {
-				toast.error('Unable to connect to server. Check your server URL and try again.');
+				toast.error(i18n.t('ADMIN_NEXT.LOGIN.UNABLE_TO_CONNECT_TO_SERVER_CHECK_YOUR'));
 			}
 		} finally {
 			loading = false;
@@ -129,7 +129,7 @@
 					toast.error(apiErr.message || 'Verification failed');
 				}
 			} else {
-				toast.error('Unable to verify code. Check your connection and try again.');
+				toast.error(i18n.t('ADMIN_NEXT.LOGIN.UNABLE_TO_VERIFY_CODE_CHECK_YOUR'));
 			}
 		} finally {
 			loading = false;
@@ -138,7 +138,7 @@
 </script>
 
 <svelte:head>
-	<title>Login — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.LOGIN.LOGIN_GRAV_ADMIN')}</title>
 </svelte:head>
 
 <div class="flex min-h-screen items-center justify-center bg-background p-4">
@@ -146,7 +146,7 @@
 		type="button"
 		class="absolute top-4 right-4 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
 		onclick={() => theme.toggleColorMode()}
-		aria-label="Toggle dark mode"
+		aria-label={i18n.t('ADMIN_NEXT.TOGGLE_DARK_MODE')}
 	>
 		{#if theme.isDark}
 			<Sun size={16} />
@@ -161,12 +161,12 @@
 			<div class="mb-4">
 				<BrandLogo size="login" />
 			</div>
-			<h1 class="text-2xl font-semibold tracking-tight text-foreground">Grav Admin</h1>
+			<h1 class="text-2xl font-semibold tracking-tight text-foreground">{i18n.t('ADMIN_NEXT.LOGIN.GRAV_ADMIN')}</h1>
 			<p class="mt-1 text-[13px] text-muted-foreground">
 				{#if stage === '2fa'}
-					Enter your authenticator code to continue
+					{i18n.t('ADMIN_NEXT.LOGIN.TWOFA_SUBTITLE')}
 				{:else}
-					Sign in to manage your site
+					{i18n.t('ADMIN_NEXT.LOGIN.SUBTITLE')}
 				{/if}
 			</p>
 		</div>
@@ -182,14 +182,14 @@
 						onclick={() => showServerConfig = !showServerConfig}
 					>
 						<Server size={13} />
-						Server Configuration
+						{i18n.t('ADMIN_NEXT.LOGIN.SERVER_CONFIGURATION')}
 						<ChevronDown size={13} class="ml-auto transition-transform {showServerConfig ? 'rotate-180' : ''}" />
 					</button>
 
 					{#if showServerConfig}
 						<div class="mt-3 space-y-3 pb-1">
 							<div class="space-y-1.5">
-								<label for="server-url" class="text-[13px] font-medium text-foreground">Server URL</label>
+								<label for="server-url" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.LOGIN.SERVER_URL')}</label>
 								<div class="flex rounded-md shadow-sm">
 									<span class="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-muted-foreground">
 										<Globe size={13} />
@@ -204,7 +204,7 @@
 							</div>
 
 							<div class="space-y-1.5">
-								<label for="environment" class="text-[13px] font-medium text-foreground">Environment</label>
+								<label for="environment" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.LOGIN.ENVIRONMENT')}</label>
 								<input
 									id="environment"
 									type="text"
@@ -219,7 +219,7 @@
 				<!-- Credentials form -->
 				<form onsubmit={handleLogin} class="space-y-4 px-6 py-5">
 					<div class="space-y-1.5">
-						<label for="username" class="text-[13px] font-medium text-foreground">Username</label>
+						<label for="username" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.USERNAME')}</label>
 						<input
 							id="username"
 							type="text"
@@ -232,12 +232,12 @@
 							disabled={loading}
 						/>
 						{#if usernameInvalid}
-							<p class="text-xs text-red-500">Username is required</p>
+							<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.LOGIN.USERNAME_IS_REQUIRED')}</p>
 						{/if}
 					</div>
 
 					<div class="space-y-1.5">
-						<label for="password" class="text-[13px] font-medium text-foreground">Password</label>
+						<label for="password" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.PASSWORD')}</label>
 						<input
 							id="password"
 							type="password"
@@ -250,14 +250,14 @@
 							disabled={loading}
 						/>
 						{#if passwordInvalid}
-							<p class="text-xs text-red-500">Password is required</p>
+							<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.LOGIN.PASSWORD_IS_REQUIRED')}</p>
 						{/if}
 						<div class="pt-0.5 text-right">
 							<a
 								href="{base}/forgot"
 								class="text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
 							>
-								Forgot password?
+								{i18n.t('ADMIN_NEXT.LOGIN.FORGOT_PASSWORD')}
 							</a>
 						</div>
 					</div>
@@ -265,10 +265,10 @@
 					<Button type="submit" class="w-full" disabled={loading}>
 						{#if loading}
 							<Loader2 size={15} class="animate-spin" />
-							Signing in...
+							{i18n.t('ADMIN_NEXT.LOGIN.SIGNING_IN')}
 						{:else}
 							<LogIn size={15} />
-							Sign In
+							{i18n.t('ADMIN_NEXT.LOGIN.SIGN_IN')}
 						{/if}
 					</Button>
 				</form>
@@ -278,12 +278,12 @@
 					<div class="flex items-center gap-3 rounded-md border border-border bg-muted/40 px-3 py-2.5">
 						<ShieldCheck size={16} class="shrink-0 text-muted-foreground" />
 						<p class="text-[12px] text-muted-foreground">
-							Open your authenticator app and enter the 6-digit code for <span class="font-medium text-foreground">{username}</span>.
+							{@html i18n.tHtml('ADMIN_NEXT.LOGIN.AUTH_CODE_PROMPT', { username })}
 						</p>
 					</div>
 
 					<div class="space-y-1.5">
-						<label for="twofa-code" class="text-[13px] font-medium text-foreground">Authentication code</label>
+						<label for="twofa-code" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.LOGIN.AUTHENTICATION_CODE')}</label>
 						<input
 							id="twofa-code"
 							type="text"
@@ -300,17 +300,17 @@
 							placeholder="000000"
 						/>
 						{#if codeInvalid}
-							<p class="text-xs text-red-500">Enter a valid 6-digit code</p>
+							<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.LOGIN.ENTER_A_VALID_6_DIGIT_CODE')}</p>
 						{/if}
 					</div>
 
 					<Button type="submit" class="w-full" disabled={loading}>
 						{#if loading}
 							<Loader2 size={15} class="animate-spin" />
-							Verifying...
+							{i18n.t('ADMIN_NEXT.LOGIN.VERIFYING')}
 						{:else}
 							<ShieldCheck size={15} />
-							Verify
+							{i18n.t('ADMIN_NEXT.LOGIN.VERIFY')}
 						{/if}
 					</Button>
 
@@ -321,14 +321,14 @@
 						disabled={loading}
 					>
 						<ArrowLeft size={12} />
-						Back to sign in
+						{i18n.t('ADMIN_NEXT.LOGIN.BACK_TO_SIGN_IN')}
 					</button>
 				</form>
 			{/if}
 		</div>
 
 		<p class="mt-6 text-center text-xs text-muted-foreground">
-			Powered by Grav CMS
+			{i18n.t('ADMIN_NEXT.LOGIN.POWERED_BY_GRAV_CMS')}
 		</p>
 	</div>
 </div>

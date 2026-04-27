@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -125,9 +126,9 @@
 				'status' in err &&
 				(err as { status: number }).status === 409
 			) {
-				toast.error('Object was modified elsewhere. Please reload.');
+				toast.error(i18n.t('ADMIN_NEXT.FLEX_OBJECTS.OBJECT_WAS_MODIFIED_ELSEWHERE_PLEASE'));
 			} else {
-				toast.error('Failed to save.');
+				toast.error(i18n.t('ADMIN_NEXT.FLEX_OBJECTS.FAILED_TO_SAVE'));
 			}
 		} finally {
 			saving = false;
@@ -139,10 +140,10 @@
 		deleting = true;
 		try {
 			await deleteObject(type, key);
-			toast.success('Object deleted');
+			toast.success(i18n.t('ADMIN_NEXT.FLEX_OBJECTS.OBJECT_DELETED'));
 			goto(`${base}/flex-objects/${type}`);
 		} catch {
-			toast.error('Failed to delete object');
+			toast.error(i18n.t('ADMIN_NEXT.FLEX_OBJECTS.FAILED_TO_DELETE_OBJECT'));
 		} finally {
 			deleting = false;
 		}
@@ -199,7 +200,7 @@
 	onMount(() => {
 		const unsub = invalidations.subscribe(`flex-objects:${type}:update:${key}`, () => {
 			if (!hasChanges) loadData();
-			else toast.info('Object changed elsewhere — save to overwrite or reload');
+			else toast.info(i18n.t('ADMIN_NEXT.FLEX_OBJECTS.OBJECT_CHANGED_ELSEWHERE_SAVE_TO'));
 		}, {
 			// Skip self-echo: our own PATCH emits this same event before handleSave
 			// has cleared hasChanges, which would otherwise toast on every save.
@@ -263,7 +264,7 @@
 							{:else}
 								<Trash2 size={14} class="mr-1.5" />
 							{/if}
-							Delete
+							{i18n.t('ADMIN_NEXT.DELETE')}
 						</Button>
 						<Button size="sm" onclick={handleSave} disabled={!hasChanges || saving}>
 							{#if saving}
@@ -295,7 +296,7 @@
 					class="mt-3"
 					onclick={() => goto(`${base}/flex-objects/${type}`)}
 				>
-					Back to List
+					{i18n.t('ADMIN_NEXT.FLEX_OBJECTS.BACK_TO_LIST')}
 				</Button>
 			</div>
 		</div>
@@ -315,7 +316,7 @@
 
 <ConfirmModal
 	open={confirmDeleteOpen}
-	title="Delete Object"
+	title={i18n.t('ADMIN_NEXT.FLEX_OBJECTS.DELETE_OBJECT')}
 	message="Are you sure you want to delete this object? This action cannot be undone."
 	confirmLabel="Delete"
 	variant="destructive"
@@ -325,7 +326,7 @@
 
 <ConfirmModal
 	open={guard.showModal}
-	title="Unsaved Changes"
+	title={i18n.t('ADMIN_NEXT.UNSAVED_CHANGES')}
 	message="You have unsaved changes. Leave anyway?"
 	confirmLabel="Leave"
 	cancelLabel="Stay"

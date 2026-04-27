@@ -185,7 +185,7 @@
 		</div>
 	{:else if !loaded}
 		<div class="flex h-10 items-center justify-center rounded-lg border border-dashed border-border">
-			<span class="text-xs text-muted-foreground">Loading custom field...</span>
+			<span class="text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.CUSTOM_FIELD_WRAPPER.LOADING_CUSTOM_FIELD')}</span>
 		</div>
 	{/if}
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { ShieldX } from 'lucide-svelte';
 
 	interface Props {
@@ -21,7 +22,7 @@
 		<div class="mb-3 rounded-full bg-muted p-3">
 			<ShieldX size={24} class="text-muted-foreground" />
 		</div>
-		<h2 class="text-base font-medium text-foreground">Access Denied</h2>
+		<h2 class="text-base font-medium text-foreground">{i18n.t('ADMIN_NEXT.ACCESS_DENIED.ACCESS_DENIED')}</h2>
 		<p class="mt-1 max-w-sm text-sm text-muted-foreground">{message}</p>
 	</div>
 {/if}

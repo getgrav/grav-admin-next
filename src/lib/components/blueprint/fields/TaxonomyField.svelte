@@ -102,7 +102,7 @@
 				/>
 			{/each}
 			{#if taxonomyTypes.length === 0}
-				<p class="text-xs text-muted-foreground">No taxonomy types configured</p>
+				<p class="text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.NO_TAXONOMY_TYPES')}</p>
 			{/if}
 		</div>
 	{/if}

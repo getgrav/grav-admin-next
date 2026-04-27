@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import {
 		getStats, getNotifications, getTopNotifications, getPopularity, getFeed, getBackups, getUpdates, getSystemInfoOverview,
@@ -121,7 +122,7 @@
 			widgets = res.widgets;
 			savedWidgetsSnapshot = JSON.parse(JSON.stringify(widgets));
 			editMode = false;
-			toast.success('Dashboard layout saved');
+			toast.success(i18n.t('ADMIN_NEXT.DASHBOARD.LAYOUT_SAVED'));
 		} catch (err: unknown) {
 			toast.error(`Save failed: ${err instanceof Error ? err.message : String(err)}`);
 		} finally {
@@ -142,7 +143,7 @@
 			widgets = res.widgets;
 			savedWidgetsSnapshot = JSON.parse(JSON.stringify(widgets));
 			editMode = false;
-			toast.success('Site default saved');
+			toast.success(i18n.t('ADMIN_NEXT.DASHBOARD.SITE_LAYOUT_SAVED'));
 		} catch (err: unknown) {
 			toast.error(`Save failed: ${err instanceof Error ? err.message : String(err)}`);
 		} finally {
@@ -178,7 +179,7 @@
 			widgets = res.widgets;
 			savedWidgetsSnapshot = JSON.parse(JSON.stringify(widgets));
 			editMode = false;
-			toast.success('Layout reset to default');
+			toast.success(i18n.t('ADMIN_NEXT.DASHBOARD.LAYOUT_RESET'));
 		} catch (err: unknown) {
 			toast.error(`Reset failed: ${err instanceof Error ? err.message : String(err)}`);
 		} finally {
@@ -253,7 +254,7 @@
 
 	async function handleCreateBackup() {
 		creatingBackup = true;
-		const toastId = toast.loading('Creating backup…');
+		const toastId = toast.loading(i18n.t('ADMIN_NEXT.APP.CREATING_BACKUP'));
 		try {
 			const result = await createBackup();
 			toast.success(`Backup created (${formatBytes(result.size)})`, { id: toastId });
@@ -281,7 +282,7 @@
 	});
 </script>
 
-<svelte:head><title>Dashboard — Grav Admin</title></svelte:head>
+<svelte:head><title>{i18n.t('ADMIN_NEXT.APP.DASHBOARD_GRAV_ADMIN')}</title></svelte:head>
 
 <TopProgressBar active={updatingAll || upgradingGrav || creatingBackup} />
 
@@ -296,18 +297,18 @@
 				<div class="px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
 					<div class="flex items-center justify-between {scrolled ? 'min-h-6' : 'min-h-8'}">
 						<div>
-							<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">Dashboard</h1>
+							<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">{i18n.t('ADMIN_NEXT.DASHBOARD.TITLE')}</h1>
 							{#if !scrolled && !editMode}
-								<p class="mt-0.5 text-xs text-muted-foreground">Welcome back, {auth.fullname || auth.username}</p>
+								<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.APP.WELCOME_BACK', { name: auth.fullname || auth.username })}</p>
 							{:else if editMode}
-								<p class="mt-0.5 text-xs text-muted-foreground">Customize mode — drag, resize, hide widgets, then save.</p>
+								<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.DASHBOARD.EDIT_HINT')}</p>
 							{/if}
 						</div>
 						<div class="flex items-center gap-2">
 							{#if !editMode}
 								<Button variant="outline" size="sm" onclick={() => loadDashboard({ flushGpm: true })}>
 									<RefreshCw size={13} />
-									Refresh
+									{i18n.t('ADMIN_NEXT.APP.REFRESH')}
 								</Button>
 							{/if}
 							<EditModeToolbar

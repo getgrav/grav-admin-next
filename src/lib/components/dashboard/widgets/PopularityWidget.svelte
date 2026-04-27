@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { TrendingUp } from 'lucide-svelte';
 	import { tweened } from 'svelte/motion';
 	import { cubicOut } from 'svelte/easing';
@@ -20,9 +21,9 @@
 		<div>
 			<h2 class="flex items-center gap-2 text-sm font-semibold text-foreground">
 				<TrendingUp size={15} />
-				Page Views
+				{i18n.t('ADMIN_NEXT.DASHBOARD.WIDGETS.POPULARITY')}
 			</h2>
-			<p class="mt-0.5 text-[11px] text-muted-foreground">Last 14 days</p>
+			<p class="mt-0.5 text-[11px] text-muted-foreground">{i18n.t('ADMIN_NEXT.POPULARITY_WIDGET.LAST_14_DAYS')}</p>
 		</div>
 		{#if popularity}
 			<div class="flex items-center gap-4">
@@ -33,12 +34,12 @@
 				<div class="h-8 w-px bg-border"></div>
 				<div class="text-right">
 					<div class="text-lg font-semibold tabular-nums text-foreground">{formatNumber(popularity.summary.week)}</div>
-					<div class="text-[11px] text-muted-foreground">This Week</div>
+					<div class="text-[11px] text-muted-foreground">{i18n.t('ADMIN_NEXT.POPULARITY_WIDGET.THIS_WEEK')}</div>
 				</div>
 				<div class="h-8 w-px bg-border"></div>
 				<div class="text-right">
 					<div class="text-lg font-semibold tabular-nums text-foreground">{formatNumber(popularity.summary.month)}</div>
-					<div class="text-[11px] text-muted-foreground">This Month</div>
+					<div class="text-[11px] text-muted-foreground">{i18n.t('ADMIN_NEXT.POPULARITY_WIDGET.THIS_MONTH')}</div>
 				</div>
 			</div>
 		{/if}

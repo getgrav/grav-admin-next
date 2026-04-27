@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { deletePage } from '$lib/api/endpoints/pages';
@@ -69,13 +70,13 @@
 			// automatically when the X-Invalidates header fires — no need to force
 			// a re-render by toggling viewMode.
 		} catch {
-			toast.error('Failed to delete page');
+			toast.error(i18n.t('ADMIN_NEXT.PAGES.DELETE_FAILED'));
 		}
 	}
 </script>
 
 <svelte:head>
-	<title>Pages — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.PAGES.PAGES_GRAV_ADMIN')}</title>
 </svelte:head>
 
 <div>
@@ -87,14 +88,14 @@
 						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">Pages</h1>
 						{#if !scrolled}
 							<p class="mt-0.5 text-xs text-muted-foreground">
-								{#if stats}{stats.total} page{stats.total !== 1 ? 's' : ''}{:else}Manage your site content and structure{/if}
+								{#if stats}{i18n.t('ADMIN_NEXT.PAGES.PAGE_COUNT', { n: stats.total })}{:else}{i18n.t('ADMIN_NEXT.PAGES.SUBTITLE')}{/if}
 							</p>
 						{/if}
 					</div>
 					{#if canEditPages}
 					<Button size="sm" onclick={() => goto(`${base}/pages/new`)}>
 						<Plus size={14} />
-						Add Page
+						{i18n.t('ADMIN_NEXT.ADD_PAGE')}
 					</Button>
 					{/if}
 				</div>
@@ -107,14 +108,14 @@
 			<input
 				type="text"
 				class="flex h-9 w-full rounded-md border border-input bg-transparent pl-9 pr-8 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-				placeholder="Search pages..."
+				placeholder={i18n.t('ADMIN_NEXT.PAGES.SEARCH_PLACEHOLDER')}
 				bind:value={searchQuery}
 			/>
 			{#if searchQuery}
 				<button
 					class="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground"
 					onclick={() => searchQuery = ''}
-					aria-label="Clear search"
+					aria-label={i18n.t('ADMIN_NEXT.CLEAR_SEARCH')}
 				>
 					<X size={14} />
 				</button>
@@ -194,7 +195,7 @@
 
 <ConfirmModal
 	open={confirmDeleteOpen}
-	title="Delete Page"
+	title={i18n.t('ADMIN_NEXT.PAGES.DELETE_PAGE')}
 	message={`Delete "${pendingDeletePage?.title}" at ${pendingDeletePage?.route}?`}
 	confirmLabel="Delete"
 	variant="destructive"

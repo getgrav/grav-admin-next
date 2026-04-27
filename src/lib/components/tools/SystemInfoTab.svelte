@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { getSystemInfo } from '$lib/api/endpoints/tools';
@@ -13,7 +14,7 @@
 		try {
 			reports = await getSystemInfo();
 		} catch {
-			toast.error('Failed to load system info');
+			toast.error(i18n.t('ADMIN_NEXT.TOOLS.SYSTEM_INFO.FAILED_TO_LOAD_SYSTEM_INFO'));
 		} finally {
 			loading = false;
 		}
@@ -36,42 +37,42 @@
 
 <div class="space-y-4">
 	{#if loading}
-		<div class="p-8 text-center text-sm text-muted-foreground">Loading system info...</div>
+		<div class="p-8 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.SYSTEM_INFO.LOADING_SYSTEM_INFO')}</div>
 	{:else if reports}
 		<div class="grid gap-4 lg:grid-cols-2">
 			<!-- Grav & PHP Info -->
 			<div class="rounded-lg border border-border bg-card">
 				<div class="flex items-center gap-2 border-b border-border px-4 py-3">
 					<Server size={15} class="text-muted-foreground" />
-					<h3 class="text-sm font-semibold text-foreground">System</h3>
+					<h3 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.NAV.SYSTEM')}</h3>
 				</div>
 				<div class="divide-y divide-border text-sm">
 					<div class="flex justify-between px-4 py-2.5">
-						<span class="text-muted-foreground">Grav Version</span>
+						<span class="text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.SYSTEM_INFO.GRAV_VERSION')}</span>
 						<span class="font-medium text-foreground">{reports.grav.version}</span>
 					</div>
 					<div class="flex justify-between px-4 py-2.5">
-						<span class="text-muted-foreground">PHP Version</span>
+						<span class="text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.SYSTEM_INFO.PHP_VERSION')}</span>
 						<span class="font-medium text-foreground">{reports.php.version}</span>
 					</div>
 					<div class="flex justify-between px-4 py-2.5">
-						<span class="text-muted-foreground">PHP SAPI</span>
+						<span class="text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.SYSTEM_INFO.PHP_SAPI')}</span>
 						<span class="font-medium text-foreground">{reports.php.sapi}</span>
 					</div>
 					<div class="flex justify-between px-4 py-2.5">
-						<span class="text-muted-foreground">Memory Limit</span>
+						<span class="text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.SYSTEM_INFO.MEMORY_LIMIT')}</span>
 						<span class="font-medium text-foreground">{reports.php.memory_limit}</span>
 					</div>
 					<div class="flex justify-between px-4 py-2.5">
-						<span class="text-muted-foreground">Max Execution</span>
+						<span class="text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.SYSTEM_INFO.MAX_EXECUTION')}</span>
 						<span class="font-medium text-foreground">{reports.php.max_execution_time}s</span>
 					</div>
 					<div class="flex justify-between px-4 py-2.5">
-						<span class="text-muted-foreground">Max Upload</span>
+						<span class="text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.SYSTEM_INFO.MAX_UPLOAD')}</span>
 						<span class="font-medium text-foreground">{reports.php.upload_max_filesize}</span>
 					</div>
 					<div class="flex justify-between px-4 py-2.5">
-						<span class="text-muted-foreground">Max POST</span>
+						<span class="text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.SYSTEM_INFO.MAX_POST')}</span>
 						<span class="font-medium text-foreground">{reports.php.post_max_size}</span>
 					</div>
 				</div>
@@ -83,7 +84,7 @@
 				<div class="rounded-lg border border-border bg-card">
 					<div class="flex items-center gap-2 border-b border-border px-4 py-3">
 						<HardDrive size={15} class="text-muted-foreground" />
-						<h3 class="text-sm font-semibold text-foreground">Disk Usage</h3>
+						<h3 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.TOOLS.SYSTEM_INFO.DISK_USAGE')}</h3>
 					</div>
 					<div class="p-4">
 						<div class="mb-2 flex justify-between text-sm">
@@ -99,7 +100,7 @@
 							></div>
 						</div>
 						<p class="mt-2 text-xs text-muted-foreground">
-							{formatBytes(reports.disk.free_space)} free of {formatBytes(reports.disk.total_space)}
+							{i18n.t('ADMIN_NEXT.TOOLS.SYSTEM_INFO.DISK_FREE_OF', { free: formatBytes(reports.disk.free_space), total: formatBytes(reports.disk.total_space) })}
 						</p>
 					</div>
 				</div>
@@ -108,7 +109,7 @@
 				<div class="rounded-lg border border-border bg-card">
 					<div class="flex items-center gap-2 border-b border-border px-4 py-3">
 						<Puzzle size={15} class="text-muted-foreground" />
-						<h3 class="text-sm font-semibold text-foreground">Plugins</h3>
+						<h3 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.NAV.PLUGINS')}</h3>
 					</div>
 					<div class="divide-y divide-border text-sm">
 						<div class="flex justify-between px-4 py-2.5">
@@ -116,11 +117,11 @@
 							<span class="font-medium text-foreground">{reports.plugins.total}</span>
 						</div>
 						<div class="flex justify-between px-4 py-2.5">
-							<span class="text-muted-foreground">Enabled</span>
+							<span class="text-muted-foreground">{i18n.t('ADMIN_NEXT.ENABLED')}</span>
 							<span class="font-medium text-emerald-500">{reports.plugins.enabled}</span>
 						</div>
 						<div class="flex justify-between px-4 py-2.5">
-							<span class="text-muted-foreground">Disabled</span>
+							<span class="text-muted-foreground">{i18n.t('ADMIN_NEXT.DISABLED')}</span>
 							<span class="font-medium text-muted-foreground">{reports.plugins.disabled}</span>
 						</div>
 					</div>
@@ -134,13 +135,13 @@
 					</div>
 					<div class="divide-y divide-border text-sm">
 						<div class="flex justify-between px-4 py-2.5">
-							<span class="text-muted-foreground">Status</span>
+							<span class="text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')}</span>
 							<span class="font-medium {reports.cache.enabled ? 'text-emerald-500' : 'text-amber-500'}">
 								{reports.cache.enabled ? 'Enabled' : 'Disabled'}
 							</span>
 						</div>
 						<div class="flex justify-between px-4 py-2.5">
-							<span class="text-muted-foreground">Driver</span>
+							<span class="text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.SYSTEM_INFO.DRIVER')}</span>
 							<span class="font-medium text-foreground">{reports.cache.driver}</span>
 						</div>
 					</div>

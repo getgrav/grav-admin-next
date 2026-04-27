@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { Eye } from 'lucide-svelte';
 	import { getDashboardData } from '$lib/dashboard/context';
 
@@ -12,7 +13,7 @@
 <div class="h-full rounded-lg border border-border bg-card p-4">
 	<h2 class="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
 		<Eye size={15} />
-		Top Pages
+		{i18n.t('ADMIN_NEXT.DASHBOARD.WIDGETS.TOP_PAGES')}
 	</h2>
 	{#if popularity?.top_pages && popularity.top_pages.length > 0}
 		{@const maxViews = popularity.top_pages[0].views}
@@ -31,6 +32,6 @@
 			{/each}
 		</div>
 	{:else}
-		<p class="py-4 text-center text-[13px] text-muted-foreground">No view data yet</p>
+		<p class="py-4 text-center text-[13px] text-muted-foreground">{i18n.t('ADMIN_NEXT.TOP_PAGES_WIDGET.NO_VIEW_DATA_YET')}</p>
 	{/if}
 </div>

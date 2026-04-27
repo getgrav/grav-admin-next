@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { getUsers, type UserInfo, type UsersPage } from '$lib/api/endpoints/users';
@@ -52,7 +53,7 @@
 				selectedUsername = data.users[0].username;
 			}
 		} catch {
-			toast.error('Failed to load users');
+			toast.error(i18n.t('ADMIN_NEXT.USERS.FAILED_TO_LOAD_USERS'));
 		} finally {
 			loading = false;
 		}
@@ -128,7 +129,7 @@
 </script>
 
 <svelte:head>
-	<title>Users — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.USERS.USERS_GRAV_ADMIN')}</title>
 </svelte:head>
 
 <div class="flex h-full flex-col">
@@ -146,7 +147,7 @@
 					{#if canEditUsers}
 					<Button size="sm" onclick={() => goto(`${base}/users/new`)}>
 						<Plus size={14} />
-						Add User
+						{i18n.t('ADMIN_NEXT.USERS.ADD_USER')}
 					</Button>
 					{/if}
 				</div>
@@ -166,7 +167,7 @@
 				<input
 					type="text"
 					class="h-8 w-full rounded-md border border-input bg-muted/50 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-					placeholder="Search users..."
+					placeholder={i18n.t('ADMIN_NEXT.USERS.SEARCH_USERS')}
 					bind:value={search}
 				/>
 			</div>
@@ -271,7 +272,7 @@
 									</h2>
 									{#if isSuperAdmin(selectedUser)}
 										<span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
-											Super Admin
+											{i18n.t('ADMIN_NEXT.USERS.SUPER_ADMIN')}
 										</span>
 									{/if}
 								</div>
@@ -307,7 +308,7 @@
 							{/if}
 
 							<div>
-								<dt class="text-xs font-medium text-muted-foreground">Status</dt>
+								<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')}</dt>
 								<dd class="mt-0.5 text-sm">
 									<span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
 										{selectedUser.state === 'enabled'
@@ -319,7 +320,7 @@
 							</div>
 
 							<div>
-								<dt class="text-xs font-medium text-muted-foreground">Created</dt>
+								<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.USERS.CREATED')}</dt>
 								<dd class="mt-0.5 text-sm text-foreground">{formatDate(selectedUser.created)}</dd>
 							</div>
 						</div>
@@ -327,7 +328,7 @@
 						<!-- Permissions summary -->
 						{#if flattenAccess(selectedUser.access).length}
 							<div class="mt-5">
-								<dt class="text-xs font-medium text-muted-foreground">Permissions</dt>
+								<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.USERS.PERMISSIONS')}</dt>
 								<dd class="mt-1.5 flex flex-wrap gap-1.5">
 									{#each flattenAccess(selectedUser.access) as perm}
 										<span class="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs">
@@ -341,7 +342,7 @@
 					</div>
 				{:else}
 					<div class="flex h-full items-center justify-center text-sm text-muted-foreground">
-						Select a user to view details
+						{i18n.t('ADMIN_NEXT.USERS.SELECT_A_USER_TO_VIEW_DETAILS')}
 					</div>
 				{/if}
 			</div>

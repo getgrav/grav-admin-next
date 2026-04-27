@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { getMenubarItems, executeMenubarAction, type MenubarItem } from '$lib/api/endpoints/menubar';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { toast } from 'svelte-sonner';
@@ -50,7 +51,7 @@
 
 <ConfirmModal
 	open={confirmOpen}
-	title="Confirm Action"
+	title={i18n.t('ADMIN_NEXT.CONFIRM_ACTION')}
 	message={pendingItem?.confirm ?? ''}
 	confirmLabel="Continue"
 	onconfirm={() => { confirmOpen = false; if (pendingItem) doAction(pendingItem); pendingItem = null; }}

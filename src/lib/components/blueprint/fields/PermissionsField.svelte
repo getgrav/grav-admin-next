@@ -70,7 +70,7 @@
 
 	{#if entries.length === 0}
 		<div class="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
-			No permissions configured
+			{i18n.t('ADMIN_NEXT.FIELDS.PERMISSIONS.NO_PERMISSIONS_CONFIGURED')}
 		</div>
 	{:else}
 		<div class="space-y-1">
@@ -83,21 +83,21 @@
 							class="px-2.5 py-1 transition-colors {getStateClass(entry.state, 'allowed')}"
 							onclick={() => updateEntry(entry.key, 'allowed')}
 						>
-							Allowed
+							{i18n.t('ADMIN_NEXT.ALLOWED')}
 						</button>
 						<button
 							type="button"
 							class="border-x border-border px-2.5 py-1 transition-colors {getStateClass(entry.state, 'denied')}"
 							onclick={() => updateEntry(entry.key, 'denied')}
 						>
-							Denied
+							{i18n.t('ADMIN_NEXT.DENIED')}
 						</button>
 						<button
 							type="button"
 							class="px-2.5 py-1 transition-colors {getStateClass(entry.state, 'unset')}"
 							onclick={() => updateEntry(entry.key, entry.state === 'unset' ? 'unset' : 'unset')}
 						>
-							Not Set
+							{i18n.t('ADMIN_NEXT.FIELDS.PERMISSIONS.NOT_SET')}
 						</button>
 					</div>
 				</div>

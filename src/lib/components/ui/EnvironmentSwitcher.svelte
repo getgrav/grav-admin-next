@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { configEnv } from '$lib/stores/configEnvironment.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { ChevronDown, Plus, Check } from 'lucide-svelte';
@@ -81,7 +82,7 @@
 					? 'border-muted-foreground/30 bg-muted/40 text-muted-foreground hover:bg-muted'
 					: 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/15'}"
 		onclick={() => open = !open}
-		title="Select where config writes are saved"
+		title={i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.SELECT_WHERE_CONFIG_WRITES_ARE_SAVED')}
 	>
 		<span>{badgeLabel}</span>
 		<ChevronDown size={11} class="transition-transform {open ? 'rotate-180' : ''}" />
@@ -92,7 +93,7 @@
 		<div class="fixed inset-0 z-40" onclick={() => open = false}></div>
 		<div class="absolute left-0 z-50 mt-1 min-w-[240px] rounded-md border border-border bg-popover py-1 shadow-md">
 			<div class="px-3 pb-1 pt-1 text-[10px] uppercase tracking-wide text-muted-foreground/70">
-				Save config to
+				{i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.SAVE_CONFIG_TO')}
 			</div>
 
 			{#each configEnv.environments as env}
@@ -111,7 +112,7 @@
 					</span>
 					<span class="flex-1">{env.label}</span>
 					{#if env.hasOverrides}
-						<span class="text-[10px] text-muted-foreground">has overrides</span>
+						<span class="text-[10px] text-muted-foreground">{i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.HAS_OVERRIDES')}</span>
 					{/if}
 				</button>
 			{/each}
@@ -148,14 +149,14 @@
 						>{creating ? '…' : 'Create'}</button>
 					</form>
 					<p class="px-3 pb-1 text-[10px] text-muted-foreground">
-						Creates user/env/{newName || '<name>'}/config/
+						{i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.CREATES_PATH', { name: newName || '<name>' })}
 					</p>
 				{/if}
 			</div>
 
 			{#if targetIsMissing}
 				<div class="mt-1 border-t border-border px-3 py-1.5 text-[11px] text-destructive">
-					Selected env <code>{configEnv.target}</code> no longer exists. Pick another.
+					{i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.SELECTED_ENV')} <code>{configEnv.target}</code> {i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.NO_LONGER_EXISTS_PICK_ANOTHER')}
 				</div>
 			{/if}
 		</div>

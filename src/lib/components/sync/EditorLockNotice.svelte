@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	/**
 	 * Slim inline notice rendered above the read-only content viewer when
 	 * a peer using a different editor type joined the room first.
@@ -23,16 +24,19 @@
 	let { ownerType, ownerName }: Props = $props();
 
 	const ownerLabel = $derived(
-		ownerType === 'codemirror' ? 'the built-in markdown editor' : ownerType,
+		ownerType === 'codemirror'
+			? i18n.t('ADMIN_NEXT.SYNC.EDITOR_LOCK_NOTICE.BUILTIN_MARKDOWN_EDITOR')
+			: ownerType,
 	);
 </script>
 
 <div class="flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs dark:border-amber-700/60 dark:bg-amber-950/30">
 	<Lock size={13} class="shrink-0 text-amber-700 dark:text-amber-300" />
 	<p class="text-amber-900 dark:text-amber-200">
-		Read-only — {ownerName} is editing with <span class="font-medium">{ownerLabel}</span>.
-		Mixed editor types can't co-edit;
-		<a href="{base}/users/{auth.username}" class="font-medium underline underline-offset-2">switch your editor preference</a>
-		to collaborate live.
+		{@html i18n.tHtml('ADMIN_NEXT.SYNC.EDITOR_LOCK_NOTICE.LOCKED', {
+			owner: ownerName,
+			editor: ownerLabel,
+			href: `${base}/users/${auth.username}`,
+		})}
 	</p>
 </div>

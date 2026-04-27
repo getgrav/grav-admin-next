@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { getLogs } from '$lib/api/endpoints/tools';
@@ -75,7 +76,7 @@
 			entries = result.data || [];
 			total = result.meta?.pagination?.total ?? 0;
 		} catch {
-			toast.error('Failed to load logs');
+			toast.error(i18n.t('ADMIN_NEXT.TOOLS.LOGS.FAILED_TO_LOAD_LOGS'));
 		} finally {
 			loading = false;
 		}
@@ -135,7 +136,7 @@
 				type="text"
 				class="h-9 rounded-md border border-input bg-background pl-8 pr-8 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 				style="width: 220px;"
-				placeholder="Search messages..."
+				placeholder={i18n.t('ADMIN_NEXT.TOOLS.LOGS.SEARCH_MESSAGES')}
 				value={searchInput}
 				oninput={handleSearchInput}
 				onkeydown={(e) => { if (e.key === 'Escape') clearSearch(); }}
@@ -155,13 +156,13 @@
 			bind:value={level}
 			onchange={handleFilterChange}
 		>
-			<option value="">All Levels</option>
-			<option value="EMERGENCY">Emergency</option>
+			<option value="">{i18n.t('ADMIN_NEXT.TOOLS.LOGS.ALL_LEVELS')}</option>
+			<option value="EMERGENCY">{i18n.t('ADMIN_NEXT.TOOLS.LOGS.EMERGENCY')}</option>
 			<option value="ALERT">Alert</option>
-			<option value="CRITICAL">Critical</option>
+			<option value="CRITICAL">{i18n.t('ADMIN_NEXT.TOOLS.LOGS.CRITICAL')}</option>
 			<option value="ERROR">Error</option>
-			<option value="WARNING">Warning</option>
-			<option value="NOTICE">Notice</option>
+			<option value="WARNING">{i18n.t('ADMIN_NEXT.TOOLS.LOGS.WARNING')}</option>
+			<option value="NOTICE">{i18n.t('ADMIN_NEXT.TOOLS.LOGS.NOTICE')}</option>
 			<option value="INFO">Info</option>
 			<option value="DEBUG">Debug</option>
 		</select>
@@ -171,15 +172,15 @@
 			bind:value={perPage}
 			onchange={handleFilterChange}
 		>
-			<option value={25}>25 lines</option>
-			<option value={50}>50 lines</option>
-			<option value={100}>100 lines</option>
-			<option value={200}>200 lines</option>
+			<option value={25}>{i18n.t('ADMIN_NEXT.TOOLS.LOGS.25_LINES')}</option>
+			<option value={50}>{i18n.t('ADMIN_NEXT.TOOLS.LOGS.50_LINES')}</option>
+			<option value={100}>{i18n.t('ADMIN_NEXT.TOOLS.LOGS.100_LINES')}</option>
+			<option value={200}>{i18n.t('ADMIN_NEXT.TOOLS.LOGS.200_LINES')}</option>
 		</select>
 
 		<Button size="sm" variant="outline" onclick={load}>
 			<RefreshCw size={14} />
-			Refresh
+			{i18n.t('ADMIN_NEXT.TOOLS.LOGS.REFRESH')}
 		</Button>
 
 		<button
@@ -206,7 +207,7 @@
 	<!-- Log Table -->
 	<div class="rounded-lg border border-border bg-card">
 		{#if loading}
-			<div class="p-8 text-center text-sm text-muted-foreground">Loading logs...</div>
+			<div class="p-8 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.LOGS.LOADING_LOGS')}</div>
 		{:else if entries.length === 0}
 			<div class="p-8 text-center text-sm text-muted-foreground">
 				{search ? `No log entries matching "${search}".` : 'No log entries found.'}
@@ -218,7 +219,7 @@
 						<tr class="border-b border-border text-left text-xs font-medium text-muted-foreground">
 							<th class="whitespace-nowrap px-4 py-3">Date</th>
 							<th class="px-4 py-3">Level</th>
-							<th class="px-4 py-3">Message</th>
+							<th class="px-4 py-3">{i18n.t('ADMIN_NEXT.TOOLS.LOGS.MESSAGE')}</th>
 						</tr>
 					</thead>
 					<tbody>

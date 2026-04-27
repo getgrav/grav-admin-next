@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -106,7 +107,7 @@
 				loading = false;
 			}
 		} catch {
-			toast.error('Failed to load directory');
+			toast.error(i18n.t('ADMIN_NEXT.FLEX_OBJECTS.FAILED_TO_LOAD_DIRECTORY'));
 			loading = false;
 		}
 	}
@@ -123,7 +124,7 @@
 			});
 			currentPage = data.page;
 		} catch {
-			toast.error('Failed to load objects');
+			toast.error(i18n.t('ADMIN_NEXT.FLEX_OBJECTS.FAILED_TO_LOAD_OBJECTS'));
 		} finally {
 			loading = false;
 		}
@@ -181,12 +182,12 @@
 		deleting = true;
 		try {
 			await deleteObject(type, deleteTarget.key);
-			toast.success('Object deleted');
+			toast.success(i18n.t('ADMIN_NEXT.FLEX_OBJECTS.OBJECT_DELETED'));
 			deleteOpen = false;
 			deleteTarget = null;
 			await loadObjects(currentPage);
 		} catch {
-			toast.error('Failed to delete object');
+			toast.error(i18n.t('ADMIN_NEXT.FLEX_OBJECTS.FAILED_TO_DELETE_OBJECT'));
 		} finally {
 			deleting = false;
 		}
@@ -203,7 +204,7 @@
 			a.remove();
 			URL.revokeObjectURL(a.href);
 		} catch {
-			toast.error('Export failed');
+			toast.error(i18n.t('ADMIN_NEXT.FLEX_OBJECTS.EXPORT_FAILED'));
 		}
 	}
 
@@ -225,7 +226,7 @@
 </script>
 
 <svelte:head>
-	<title>{directory?.title ?? type} — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.APP.PAGE_TITLE', { name: directory?.title ?? type })}</title>
 </svelte:head>
 
 <div class="flex h-full flex-col">
@@ -248,7 +249,7 @@
 						{#if directory?.export && Object.keys(directory.export).length > 0}
 							<Button variant="outline" size="sm" onclick={handleExport}>
 								<Download size={14} />
-								Export
+								{i18n.t('ADMIN_NEXT.FLEX_OBJECTS.EXPORT')}
 							</Button>
 						{/if}
 						<Button size="sm" onclick={() => goto(`${base}/flex-objects/${type}/new`)}>
@@ -271,7 +272,7 @@
 			<input
 				type="text"
 				class="h-8 w-full rounded-md border border-input bg-muted/50 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-				placeholder="Search..."
+				placeholder={i18n.t('ADMIN_NEXT.FLEX_OBJECTS.SEARCH')}
 				bind:value={search}
 				oninput={handleSearchInput}
 			/>
@@ -320,7 +321,7 @@
 							</th>
 						{/each}
 						<th class="w-20 px-4 py-2 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">
-							Actions
+							{i18n.t('ADMIN_NEXT.FLEX_OBJECTS.ACTIONS')}
 						</th>
 					</tr>
 				</thead>
@@ -389,7 +390,7 @@
 									<button
 										type="button"
 										class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-										title="Delete"
+										title={i18n.t('ADMIN_NEXT.DELETE')}
 										onclick={() => confirmDelete(obj)}
 									>
 										<Trash2 size={14} />
@@ -439,7 +440,7 @@
 							disabled={currentPage <= 1}
 							onclick={() => loadObjects(currentPage - 1)}
 							class="h-7 w-7"
-							title="Previous"
+							title={i18n.t('ADMIN_NEXT.FLEX_OBJECTS.PREVIOUS')}
 						>
 							<ChevronLeft size={14} />
 						</Button>
@@ -519,7 +520,7 @@
 
 <ConfirmModal
 	open={deleteOpen}
-	title="Delete Object"
+	title={i18n.t('ADMIN_NEXT.FLEX_OBJECTS.DELETE_OBJECT')}
 	message="Are you sure you want to delete this object? This action cannot be undone."
 	confirmLabel={deleting ? 'Deleting...' : 'Delete'}
 	onconfirm={handleDelete}

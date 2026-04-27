@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { getPagesList, reorganizePages, searchPages, pageApiRoute } from '$lib/api/endpoints/pages';
 	import type { PageSummary, PageListParams, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
@@ -164,7 +165,7 @@
 		dropIndex = null;
 
 		if (sourceParent !== targetParent) {
-			toast.error('Can only reorder pages under the same parent. Use Tree view for cross-parent moves.');
+			toast.error(i18n.t('ADMIN_NEXT.PAGES.REORDER_SAME_PARENT'));
 			return;
 		}
 
@@ -189,7 +190,7 @@
 			toast.success(`Reordered "${source.title}"`);
 			await loadPages();
 		} catch {
-			toast.error('Failed to reorder');
+			toast.error(i18n.t('ADMIN_NEXT.PAGES.REORDER_FAILED'));
 		} finally {
 			saving = false;
 		}
@@ -225,15 +226,15 @@
 	<div class="min-w-0 flex-1">{@render sortHeader('Title', 'title', 'flex-1')}</div>
 	{#if !reorderMode}
 		<div class="hidden w-20 text-center md:block">
-			<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Template</span>
+			<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_TEMPLATE')}</span>
 		</div>
-		<div class="w-6 text-center" title="Status">
+		<div class="w-6 text-center" title={i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')}>
 			<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">·</span>
 		</div>
 		<div class="hidden w-20 text-right sm:block">{@render sortHeader('Modified', 'modified', 'w-20', 'right')}</div>
 	{:else}
 		<div class="w-32 text-right">
-			<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Parent</span>
+			<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_PARENT')}</span>
 		</div>
 	{/if}
 </div>
@@ -241,7 +242,7 @@
 {#if loading}
 	<div class="py-12 text-center text-sm text-muted-foreground">
 		<Loader2 size={16} class="mx-auto mb-2 animate-spin" />
-		Loading pages...
+		{i18n.t('ADMIN_NEXT.PAGES.LOADING')}
 	</div>
 {:else}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -300,7 +301,7 @@
 				</div>
 				<div class="flex w-6 justify-center" title={page.published ? 'Published' : 'Draft'}>
 					{#if page.published}
-						<CircleCheck size={14} class="text-green-500" aria-label="Published" />
+						<CircleCheck size={14} class="text-green-500" aria-label={i18n.t('ADMIN_NEXT.PAGES.PUBLISHED')} />
 					{:else}
 						<CircleDashed size={14} class="text-muted-foreground" aria-label="Draft" />
 					{/if}
@@ -312,7 +313,7 @@
 				<button
 					class="absolute right-1 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded bg-background/80 text-muted-foreground opacity-0 backdrop-blur transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 sm:right-2"
 					onclick={() => onDelete(page)}
-					title="Delete"
+					title={i18n.t('ADMIN_NEXT.DELETE')}
 				>
 					<Trash2 size={12} />
 				</button>

@@ -198,9 +198,9 @@
 				{#if filteredMedia.length === 0}
 					<div class="px-3 py-4 text-center text-sm text-muted-foreground">
 						{#if (mediaCtx?.items ?? []).length === 0}
-							No media files uploaded yet
+							{i18n.t('ADMIN_NEXT.FIELDS.FILE_PICKER.NO_MEDIA_UPLOADED')}
 						{:else}
-							No matching files
+							{i18n.t('ADMIN_NEXT.FIELDS.FILE_PICKER.NO_MATCHING_FILES')}
 						{/if}
 					</div>
 				{:else}

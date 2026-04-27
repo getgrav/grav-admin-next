@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -304,7 +305,7 @@
 </script>
 
 <svelte:head>
-	<title>{definition?.title ?? slug} — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.APP.PAGE_TITLE', { name: definition?.title ?? slug })}</title>
 </svelte:head>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -460,7 +461,7 @@
 				<AlertCircle size={32} class="mx-auto text-destructive" />
 				<p class="mt-2 text-sm text-destructive">{error}</p>
 				<Button variant="outline" size="sm" class="mt-3" onclick={() => goto(`${base}/`)}>
-					Back to Dashboard
+					{i18n.t('ADMIN_NEXT.PLUGIN.BACK_TO_DASHBOARD')}
 				</Button>
 			</div>
 		</div>
@@ -479,7 +480,7 @@
 				{:else}
 					<div class="rounded-xl border border-dashed border-border p-8 text-center">
 						<p class="text-sm text-muted-foreground">
-							No content available for this plugin page.
+							{i18n.t('ADMIN_NEXT.PLUGIN.NO_CONTENT_AVAILABLE_FOR_THIS_PLUGIN')}
 						</p>
 					</div>
 				{/if}
@@ -499,7 +500,7 @@
 
 <ConfirmModal
 	open={guard.showModal}
-	title="Unsaved Changes"
+	title={i18n.t('ADMIN_NEXT.UNSAVED_CHANGES')}
 	message="You have unsaved changes. Leave anyway?"
 	confirmLabel="Leave"
 	cancelLabel="Stay"
@@ -509,7 +510,7 @@
 
 <ConfirmModal
 	open={confirmActionOpen}
-	title="Confirm Action"
+	title={i18n.t('ADMIN_NEXT.CONFIRM_ACTION')}
 	message={pendingAction?.confirm ?? ''}
 	confirmLabel="Continue"
 	onconfirm={() => { confirmActionOpen = false; if (pendingAction) doExecuteAction(pendingAction); pendingAction = null; }}

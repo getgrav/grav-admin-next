@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -88,7 +89,7 @@
 			// Strip UI-only fields before sending to API
 			const { _post_entries_save, ...saveData } = configData;
 			const result = await createObject(type, saveData);
-			toast.success('Object created');
+			toast.success(i18n.t('ADMIN_NEXT.FLEX_OBJECTS.NEW.OBJECT_CREATED'));
 
 			if (afterSave === 'create-new') {
 				// Reset form for another new item
@@ -183,7 +184,7 @@
 					class="mt-3"
 					onclick={() => goto(`${base}/flex-objects/${type}`)}
 				>
-					Back to List
+					{i18n.t('ADMIN_NEXT.FLEX_OBJECTS.NEW.BACK_TO_LIST')}
 				</Button>
 			</div>
 		</div>

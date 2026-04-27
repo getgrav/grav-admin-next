@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount } from 'svelte';
 	import { Uppy } from '@uppy/core';
 	import XHRUpload from '@uppy/xhr-upload';
@@ -228,7 +229,7 @@
 				if (errors.length > 0) {
 					toast.error(`Failed to delete ${errors.length} file(s)`);
 				} else {
-					toast.success('Files deleted');
+					toast.success(i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.FILES_DELETED'));
 				}
 			} else if (deleteTarget) {
 				await mediaManager.deleteFile(deleteTarget);
@@ -330,7 +331,7 @@
 							onclick={handleUploadClick}
 						>
 							<Upload size={14} />
-							Upload Files
+							{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.UPLOAD_FILES')}
 						</button>
 					{/if}
 				</div>
@@ -390,7 +391,7 @@
 <!-- Delete confirmation -->
 <ConfirmModal
 	open={deleteModalOpen}
-	title="Delete"
+	title={i18n.t('ADMIN_NEXT.DELETE')}
 	message={deleteMessage}
 	confirmLabel="Delete"
 	variant="destructive"
@@ -407,7 +408,7 @@
 		onclick={(e) => { if (e.target === e.currentTarget) newFolderModalOpen = false; }}
 	>
 		<div class="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-2xl">
-			<h3 class="text-base font-semibold text-foreground">New Folder</h3>
+			<h3 class="text-base font-semibold text-foreground">{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.NEW_FOLDER')}</h3>
 			<p class="mt-1 text-xs text-muted-foreground">
 				{mediaManager.currentPath
 					? `Create in ${mediaManager.currentPath}/`
@@ -415,7 +416,7 @@
 			</p>
 			<input
 				class="mt-4 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-				placeholder="Folder name"
+				placeholder={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.FOLDER_NAME')}
 				bind:value={newFolderName}
 				onkeydown={(e) => { if (e.key === 'Enter') submitNewFolder(); if (e.key === 'Escape') newFolderModalOpen = false; }}
 			/>
@@ -424,14 +425,14 @@
 					class="inline-flex h-9 items-center rounded-md border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-accent"
 					onclick={() => newFolderModalOpen = false}
 				>
-					Cancel
+					{i18n.t('ADMIN_NEXT.CANCEL')}
 				</button>
 				<button
 					class="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:opacity-50"
 					onclick={submitNewFolder}
 					disabled={!newFolderName.trim()}
 				>
-					Create
+					{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.CREATE')}
 				</button>
 			</div>
 		</div>

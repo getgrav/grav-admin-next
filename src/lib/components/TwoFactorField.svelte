@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { generate2fa, enable2fa, disable2fa, type TwoFactorData } from '$lib/api/endpoints/users';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
@@ -51,9 +52,9 @@
 			twoFaData = await generate2fa(username);
 			stage = 'pending';
 			enrollCode = '';
-			toast.success('Scan the QR code with your authenticator app');
+			toast.success(i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.SCAN_THE_QR_CODE_WITH_YOUR'));
 		} catch {
-			toast.error('Failed to generate 2FA secret');
+			toast.error(i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.FAILED_TO_GENERATE_2FA_SECRET'));
 		} finally {
 			busy = false;
 		}
@@ -61,7 +62,7 @@
 
 	async function handleEnable() {
 		if (!/^\d{6}$/.test(enrollCode.trim())) {
-			toast.error('Enter the 6-digit code from your authenticator');
+			toast.error(i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.ENTER_THE_6_DIGIT_CODE_FROM_YOUR'));
 			return;
 		}
 		busy = true;
@@ -70,7 +71,7 @@
 			stage = 'enabled';
 			twoFaData = null;
 			enrollCode = '';
-			toast.success('2FA enabled');
+			toast.success(i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.2FA_ENABLED'));
 			onstatechange?.(true);
 		} catch (err: unknown) {
 			const msg =
@@ -94,7 +95,7 @@
 			stage = 'idle';
 			disableCode = '';
 			showDisable = false;
-			toast.success('2FA disabled');
+			toast.success(i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.2FA_DISABLED'));
 			onstatechange?.(false);
 		} catch (err: unknown) {
 			const msg =
@@ -113,16 +114,16 @@
 		<div class="flex items-center gap-3">
 			<ShieldX size={20} class="text-muted-foreground" />
 			<div class="flex-1">
-				<p class="text-sm font-medium text-foreground">Two-factor authentication is off</p>
+				<p class="text-sm font-medium text-foreground">{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.TWO_FACTOR_AUTHENTICATION_IS_OFF')}</p>
 				<p class="text-xs text-muted-foreground">
-					Add an extra layer of security by requiring a one-time code on sign-in.
+					{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.ADD_AN_EXTRA_LAYER_OF_SECURITY_BY')}
 				</p>
 			</div>
 			<Button size="sm" onclick={handleGenerate} disabled={busy}>
 				{#if busy}
 					<Loader2 size={13} class="animate-spin" />
 				{/if}
-				Enable 2FA
+				{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.ENABLE_2FA')}
 			</Button>
 		</div>
 	{:else if stage === 'pending'}
@@ -130,9 +131,9 @@
 			<div class="flex items-start gap-3">
 				<ShieldAlert size={20} class="mt-0.5 text-amber-500" />
 				<div class="flex-1">
-					<p class="text-sm font-medium text-foreground">Finish enabling 2FA</p>
+					<p class="text-sm font-medium text-foreground">{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.FINISH_ENABLING_2FA')}</p>
 					<p class="text-xs text-muted-foreground">
-						Scan the QR code with your authenticator app, then enter the 6-digit code to verify and activate.
+						{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.SCAN_THE_QR_CODE_WITH_YOUR_2')}
 					</p>
 				</div>
 			</div>
@@ -140,10 +141,10 @@
 			{#if twoFaData}
 				<div class="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
 					<div class="shrink-0 overflow-hidden rounded-lg border border-border bg-white p-2">
-						<img src={twoFaData.qr_code} alt="2FA QR Code" class="h-40 w-40" />
+						<img src={twoFaData.qr_code} alt={i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.2FA_QR_CODE')} class="h-40 w-40" />
 					</div>
 					<div class="min-w-0 flex-1">
-						<span class="text-xs font-medium text-muted-foreground">Secret (for manual entry):</span>
+						<span class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.SECRET_FOR_MANUAL_ENTRY')}</span>
 						<code class="mt-1 block rounded bg-muted px-3 py-2 font-mono text-sm font-semibold tracking-widest text-foreground">
 							{twoFaData.secret}
 						</code>
@@ -151,20 +152,20 @@
 				</div>
 			{:else}
 				<div class="rounded-md border border-dashed border-border bg-background px-3 py-3 text-xs text-muted-foreground">
-					A secret is already generated but not shown for security reasons.
+					{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.A_SECRET_IS_ALREADY_GENERATED_BUT_NOT')}
 					<button
 						type="button"
 						class="ml-1 font-medium text-foreground underline-offset-2 hover:underline"
 						onclick={handleGenerate}
 						disabled={busy}
 					>
-						Regenerate and show QR
+						{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.REGENERATE_AND_SHOW_QR')}
 					</button>
 				</div>
 			{/if}
 
 			<div class="space-y-1.5">
-				<label for="enroll-code" class="text-xs font-medium text-foreground">Verification code</label>
+				<label for="enroll-code" class="text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.VERIFICATION_CODE')}</label>
 				<div class="flex gap-2">
 					<input
 						id="enroll-code"
@@ -181,7 +182,7 @@
 						{#if busy}
 							<Loader2 size={13} class="animate-spin" />
 						{/if}
-						Verify &amp; Enable
+						{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.VERIFY_ENABLE')}
 					</Button>
 				</div>
 			</div>
@@ -191,14 +192,14 @@
 			<div class="flex items-center gap-3">
 				<ShieldCheck size={20} class="text-green-500" />
 				<div class="flex-1">
-					<p class="text-sm font-medium text-foreground">2FA is enabled</p>
+					<p class="text-sm font-medium text-foreground">{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.2FA_IS_ENABLED')}</p>
 					<p class="text-xs text-muted-foreground">
-						A one-time code is required whenever this account signs in.
+						{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.A_ONE_TIME_CODE_IS_REQUIRED_WHENEVER')}
 					</p>
 				</div>
 				{#if !showDisable}
 					<Button variant="outline" size="sm" onclick={() => (showDisable = true)} disabled={busy}>
-						Disable
+						{i18n.t('ADMIN_NEXT.DISABLE')}
 					</Button>
 				{/if}
 			</div>
@@ -207,25 +208,24 @@
 				{#if isAdminActor}
 					<div class="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-3">
 						<p class="text-xs text-foreground">
-							Force-disable 2FA for <span class="font-medium">{username}</span>?
-							Use this only for lost-device recovery.
+							{@html i18n.tHtml('ADMIN_NEXT.TWO_FACTOR_FIELD.FORCE_DISABLE_PROMPT', { username })}
 						</p>
 						<div class="mt-2 flex gap-2">
 							<Button variant="destructive" size="sm" onclick={() => handleDisable(true)} disabled={busy}>
 								{#if busy}
 									<Loader2 size={13} class="animate-spin" />
 								{/if}
-								Force disable
+								{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.FORCE_DISABLE')}
 							</Button>
 							<Button variant="outline" size="sm" onclick={() => (showDisable = false)} disabled={busy}>
-								Cancel
+								{i18n.t('ADMIN_NEXT.CANCEL')}
 							</Button>
 						</div>
 					</div>
 				{:else}
 					<div class="space-y-1.5 rounded-md border border-border bg-background px-3 py-3">
 						<label for="disable-code" class="text-xs font-medium text-foreground">
-							Enter your current 6-digit code to confirm
+							{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.ENTER_YOUR_CURRENT_6_DIGIT_CODE_TO')}
 						</label>
 						<div class="flex gap-2">
 							<input
@@ -243,7 +243,7 @@
 								{#if busy}
 									<Loader2 size={13} class="animate-spin" />
 								{/if}
-								Confirm disable
+								{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.CONFIRM_DISABLE')}
 							</Button>
 							<Button variant="outline" size="sm" onclick={() => (showDisable = false)} disabled={busy}>
 								Cancel

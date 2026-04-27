@@ -86,7 +86,7 @@
 				selectedSlug = plugins[0].slug;
 			}
 		} catch (err) {
-			toast.error('Failed to load plugins');
+			toast.error(i18n.t('ADMIN_NEXT.PLUGINS.FAILED_TO_LOAD_PLUGINS'));
 		} finally {
 			loading = false;
 		}
@@ -140,7 +140,7 @@
 			toast.success(`GPM refreshed — ${result.total} update${result.total !== 1 ? 's' : ''} available`);
 			await loadPlugins();
 		} catch {
-			toast.error('Failed to check for updates');
+			toast.error(i18n.t('ADMIN_NEXT.PLUGINS.FAILED_TO_CHECK_FOR_UPDATES'));
 		} finally {
 			checkingUpdates = false;
 		}
@@ -222,7 +222,7 @@
 </script>
 
 <svelte:head>
-	<title>Plugins — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.PLUGINS.PLUGINS_GRAV_ADMIN')}</title>
 </svelte:head>
 
 <div class="flex h-full flex-col">
@@ -232,7 +232,7 @@
 			<div class="px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
 				<div class="flex items-center justify-between {scrolled ? 'min-h-6' : 'min-h-8'}">
 					<div>
-						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">Plugins</h1>
+						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">{i18n.t('ADMIN_NEXT.NAV.PLUGINS')}</h1>
 						{#if !scrolled && !loading}
 							<p class="mt-0.5 text-xs text-muted-foreground">{plugins.length} installed</p>
 						{/if}
@@ -241,7 +241,7 @@
 					<div class="flex items-center gap-2">
 						<Button variant="outline" size="sm" onclick={handleCheckUpdates} disabled={checkingUpdates || updatingAll}>
 							<RefreshCw size={13} class={checkingUpdates ? 'animate-spin' : ''} />
-							Check Updates
+							{i18n.t('ADMIN_NEXT.PLUGINS.CHECK_UPDATES')}
 						</Button>
 						{#if updatableCount > 0}
 							<Button variant="outline" size="sm" onclick={handleUpdateAll} disabled={updatingAll}>
@@ -276,7 +276,7 @@
 				<input
 					type="text"
 					class="h-8 w-full rounded-md border border-input bg-muted/50 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-					placeholder="Search plugins..."
+					placeholder={i18n.t('ADMIN_NEXT.PLUGINS.SEARCH_PLUGINS')}
 					bind:value={search}
 				/>
 			</div>
@@ -285,8 +285,8 @@
 				bind:value={sortBy}
 			>
 				<option value="name">Name</option>
-				<option value="author">Author</option>
-				<option value="enabled">Status</option>
+				<option value="author">{i18n.t('ADMIN_NEXT.AUTHOR')}</option>
+				<option value="enabled">{i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')}</option>
 			</select>
 		</div>
 
@@ -319,7 +319,7 @@
 									<BadgeCheck size={14} class="shrink-0 text-purple-500" />
 								{/if}
 								{#if plugin.premium}
-									<span class="shrink-0 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">Premium</span>
+									<span class="shrink-0 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">{i18n.t('ADMIN_NEXT.PREMIUM')}</span>
 								{/if}
 								{#if plugin.updatable}
 									<ArrowUpCircle size={12} class="shrink-0 text-amber-500" />
@@ -330,7 +330,7 @@
 
 						<!-- Symlink indicator -->
 						{#if plugin.is_symlink}
-							<span class="inline-flex shrink-0" title="Symlinked"><CornerDownRight size={14} class="text-muted-foreground/60" aria-label="Symlinked" /></span>
+							<span class="inline-flex shrink-0" title={i18n.t('ADMIN_NEXT.PLUGINS.SYMLINKED')}><CornerDownRight size={14} class="text-muted-foreground/60" aria-label={i18n.t('ADMIN_NEXT.PLUGINS.SYMLINKED')} /></span>
 						{/if}
 
 						<!-- Enable toggle -->
@@ -379,10 +379,10 @@
 										<BadgeCheck size={18} class="shrink-0 text-purple-500" />
 									{/if}
 									{#if selectedPlugin.is_symlink}
-										<span class="inline-flex shrink-0" title="Symlinked"><CornerDownRight size={14} class="text-muted-foreground/60" aria-label="Symlinked" /></span>
+										<span class="inline-flex shrink-0" title={i18n.t('ADMIN_NEXT.PLUGINS.SYMLINKED')}><CornerDownRight size={14} class="text-muted-foreground/60" aria-label={i18n.t('ADMIN_NEXT.PLUGINS.SYMLINKED')} /></span>
 									{/if}
 									{#if selectedPlugin.premium}
-										<span class="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">Premium</span>
+										<span class="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">{i18n.t('ADMIN_NEXT.PREMIUM')}</span>
 									{/if}
 								</div>
 								<div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -392,7 +392,7 @@
 									{/if}
 									{#if selectedPlugin.updatable}
 										<span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-600 dark:text-amber-400">
-											Update available: v{selectedPlugin.available_version}
+											{i18n.t('ADMIN_NEXT.UPDATE_AVAILABLE_VERSION', { version: selectedPlugin.available_version })}
 										</span>
 									{/if}
 								</div>
@@ -410,7 +410,7 @@
 										{:else}
 											<ArrowUpCircle size={14} class="mr-1.5" />
 										{/if}
-										Update to v{selectedPlugin.available_version}
+										{i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: selectedPlugin.available_version })}
 									</Button>
 								{/if}
 								<button
@@ -418,7 +418,7 @@
 									class="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
 									onclick={() => openPluginConfig(selectedPlugin.slug)}
 								>
-									Configure
+									{i18n.t('ADMIN_NEXT.PLUGINS.CONFIGURE')}
 									<ChevronRight size={14} />
 								</button>
 							</div>
@@ -441,7 +441,7 @@
 						<div class="mt-6 grid grid-cols-2 gap-4">
 							{#if selectedPlugin.author?.name}
 								<div>
-									<dt class="text-xs font-medium text-muted-foreground">Author</dt>
+									<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.AUTHOR')}</dt>
 									<dd class="mt-0.5 text-sm text-foreground">
 										{#if selectedPlugin.author.url}
 											<a href={selectedPlugin.author.url} target="_blank" rel="noopener" class="text-primary hover:underline">
@@ -457,7 +457,7 @@
 
 							{#if selectedPlugin.homepage}
 								<div>
-									<dt class="text-xs font-medium text-muted-foreground">Homepage</dt>
+									<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.HOMEPAGE')}</dt>
 									<dd class="mt-0.5 text-sm">
 										<a href={selectedPlugin.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
 											Visit
@@ -468,7 +468,7 @@
 							{/if}
 
 							<div>
-								<dt class="text-xs font-medium text-muted-foreground">Status</dt>
+								<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')}</dt>
 								<dd class="mt-0.5 text-sm">
 									<span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
 										{selectedPlugin.enabled
@@ -488,7 +488,7 @@
 						<!-- Keywords -->
 												{#if parseKeywords(selectedPlugin.keywords).length}
 							<div class="mt-4">
-								<dt class="text-xs font-medium text-muted-foreground">Keywords</dt>
+								<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.KEYWORDS')}</dt>
 								<dd class="mt-1.5 flex flex-wrap gap-1.5">
 									{#each parseKeywords(selectedPlugin.keywords) as kw}
 										<span class="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">{kw}</span>
@@ -500,7 +500,7 @@
 						<!-- Dependencies -->
 												{#if parseDependencies(selectedPlugin.dependencies).length}
 							<div class="mt-4">
-								<dt class="text-xs font-medium text-muted-foreground">Dependencies</dt>
+								<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.DEPENDENCIES')}</dt>
 								<dd class="mt-1.5 flex flex-wrap gap-1.5">
 									{#each parseDependencies(selectedPlugin.dependencies) as dep}
 										<span class="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs">
@@ -516,7 +516,7 @@
 					</div>
 				{:else}
 					<div class="flex h-full items-center justify-center text-sm text-muted-foreground">
-						Select a plugin to view details
+						{i18n.t('ADMIN_NEXT.PLUGINS.SELECT_A_PLUGIN_TO_VIEW_DETAILS')}
 					</div>
 				{/if}
 			</div>

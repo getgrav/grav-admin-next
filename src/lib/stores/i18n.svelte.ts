@@ -1,4 +1,5 @@
 import { IntlMessageFormat } from 'intl-messageformat';
+import { marked } from 'marked';
 import { getTranslations } from '$lib/api/endpoints/translations';
 import { getLocalStrings } from '$lib/i18n';
 import { scopedKey } from '$lib/utils/scopedStorage';
@@ -153,6 +154,30 @@ function createI18nStore() {
 
 		// 4. Humanize fallback
 		return humanizeKey(key);
+	}
+
+	/**
+	 * Translate, then render the result as inline markdown (no surrounding
+	 * <p>). Use with `{@html …}` for paragraphs that need bold / italic / code
+	 * / links inline — keeping each user-facing paragraph as a single
+	 * translatable string instead of fragmenting around <strong>/<em>/<a>.
+	 *
+	 * Translators write `**bold**`, `*italic*`, `` `code` ``, `[text](url)`
+	 * etc. ICU placeholders run first, so `{name}` etc. work the same as in
+	 * `t()`. HTML in the original value is escaped by `marked` — the only
+	 * markup that ends up in the DOM comes from the markdown syntax.
+	 *
+	 * Usage:
+	 *   {@html i18n.tHtml('ADMIN_NEXT.SCHEDULER.CRON_INSTRUCTIONS', { user })}
+	 */
+	function tHtml(key: string | undefined, params?: TranslateParams): string {
+		const text = t(key, params);
+		try {
+			return marked.parseInline(text, { async: false }) as string;
+		} catch (err) {
+			console.warn(`[i18n] tHtml render failed for "${key}":`, err);
+			return text;
+		}
 	}
 
 	/**
@@ -311,6 +336,7 @@ function createI18nStore() {
 		get loaded() { return loaded; },
 		get count() { return Object.keys(strings).length; },
 		t,
+		tHtml,
 		tMaybe,
 		has,
 		isTranslationKey,
@@ -337,6 +363,7 @@ export const i18n = createI18nStore();
  */
 export interface GravI18nGlobal {
 	t(key: string, params?: TranslateParams): string;
+	tHtml(key: string, params?: TranslateParams): string;
 	has(key: string): boolean;
 	readonly locale: string;
 	subscribe(fn: (locale: string) => void): () => void;
@@ -351,6 +378,7 @@ declare global {
 if (typeof window !== 'undefined') {
 	const bridge: GravI18nGlobal = {
 		t: (key, params) => i18n.t(key, params),
+		tHtml: (key, params) => i18n.tHtml(key, params),
 		has: (key) => i18n.has(key),
 		get locale() { return i18n.lang; },
 		subscribe: (fn) => i18n.subscribeLocale(fn),

@@ -1,4 +1,5 @@
 import { beforeNavigate, goto } from '$app/navigation';
+import { i18n } from '$lib/stores/i18n.svelte';
 
 /**
  * Creates a navigation guard that shows a custom confirm modal
@@ -9,7 +10,7 @@ import { beforeNavigate, goto } from '$app/navigation';
  *
  *   <ConfirmModal
  *     open={guard.showModal}
- *     title="Unsaved Changes"
+ *     title={i18n.t('ADMIN_NEXT.UNSAVED_CHANGES')}
  *     message="You have unsaved changes. Leave anyway?"
  *     confirmLabel="Leave"
  *     cancelLabel="Stay"

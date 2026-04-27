@@ -1,0 +1,240 @@
+[
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 207,
+    "kind": "text",
+    "text": "Force-disable 2FA for",
+    "reason": "sentence fragment (ends on connector)"
+  },
+  {
+    "path": "src/lib/components/TwoFactorField.svelte",
+    "line": 208,
+    "kind": "text",
+    "text": "?\n\t\t\t\t\t\t\tUse this only for lost-device recovery.",
+    "reason": "multi-tab text bleed"
+  },
+  {
+    "path": "src/lib/components/blueprint/fields/FilePickerField.svelte",
+    "line": 199,
+    "kind": "text",
+    "text": "No media files uploaded yet\n\t\t\t\t\t\t       \n\t\t\t\t\t\t\tNo matching files",
+    "reason": "whitespace gap suggests stripped interpolation"
+  },
+  {
+    "path": "src/lib/components/dashboard/widgets/BackupsWidget.svelte",
+    "line": 47,
+    "kind": "@title",
+    "text": "Download {backup.filename}",
+    "reason": "has expression interpolation"
+  },
+  {
+    "path": "src/lib/components/media/PageMedia.svelte",
+    "line": 367,
+    "kind": "@title",
+    "text": "{item.filename} ({formatSize(item.size)}) — Drag into editor",
+    "reason": "has expression interpolation"
+  },
+  {
+    "path": "src/lib/components/pages/PagesMillerView.svelte",
+    "line": 663,
+    "kind": "@title",
+    "text": "{m.filename} ({(m.size / 1024).toFixed(0)}KB)",
+    "reason": "has expression interpolation"
+  },
+  {
+    "path": "src/lib/components/pages/PagesTreeView.svelte",
+    "line": 484,
+    "kind": "text",
+    "text": "No pages match \"             \"",
+    "reason": "whitespace gap suggests stripped interpolation"
+  },
+  {
+    "path": "src/lib/components/sync/EditorLockNotice.svelte",
+    "line": 32,
+    "kind": "text",
+    "text": "Read-only —             is editing with",
+    "reason": "whitespace gap suggests stripped interpolation"
+  },
+  {
+    "path": "src/lib/components/sync/EditorLockNotice.svelte",
+    "line": 33,
+    "kind": "text",
+    "text": ".\n\t\tMixed editor types can't co-edit;",
+    "reason": "multi-tab text bleed"
+  },
+  {
+    "path": "src/lib/components/tools/SchedulerTab.svelte",
+    "line": 93,
+    "kind": "text",
+    "text": "The scheduler can use either system crontab or webhook triggers to execute commands.\n\t\t\t\tWebhooks are recommended for cloud environments. Only advanced users should configure custom jobs.\n\t\t\t\tMisconfiguration or abuse can lead to security vulnerabilities.",
+    "reason": "multi-tab text bleed"
+  },
+  {
+    "path": "src/lib/components/tools/SchedulerTab.svelte",
+    "line": 107,
+    "kind": "text",
+    "text": "To enable the Scheduler's functionality, you must add the",
+    "reason": "sentence fragment (ends on connector)"
+  },
+  {
+    "path": "src/lib/components/tools/SchedulerTab.svelte",
+    "line": 108,
+    "kind": "text",
+    "text": "to\n\t\t\t\t\tyour system's crontab file for the",
+    "reason": "multi-tab text bleed"
+  },
+  {
+    "path": "src/lib/components/tools/SchedulerTab.svelte",
+    "line": 109,
+    "kind": "text",
+    "text": "user.\n\t\t\t\t\tRun the command above from the terminal to add it automatically. Once saved, refresh this page to see the status.",
+    "reason": "multi-tab text bleed"
+  },
+  {
+    "path": "src/lib/components/tools/SchedulerTab.svelte",
+    "line": 113,
+    "kind": "text",
+    "text": "Alternatively, install the",
+    "reason": "sentence fragment (ends on connector)"
+  },
+  {
+    "path": "src/lib/components/tools/SchedulerTab.svelte",
+    "line": 114,
+    "kind": "text",
+    "text": "plugin to use webhook-based cron firing,\n\t\t\t\t\t\twhich is recommended for cloud environments where system crontab access is not available.",
+    "reason": "multi-tab text bleed"
+  },
+  {
+    "path": "src/lib/components/tools/SchedulerTab.svelte",
+    "line": 124,
+    "kind": "text",
+    "text": "Only advanced users should configure custom scheduler jobs. Incorrect configuration\n\t\t\t\tcan cause performance issues or security vulnerabilities.",
+    "reason": "multi-tab text bleed"
+  },
+  {
+    "path": "src/lib/components/tools/SystemInfoTab.svelte",
+    "line": 101,
+    "kind": "text",
+    "text": "free of",
+    "reason": "sentence fragment (ends on connector)"
+  },
+  {
+    "path": "src/lib/components/ui/EnvironmentSwitcher.svelte",
+    "line": 94,
+    "kind": "text",
+    "text": "Save config to",
+    "reason": "sentence fragment (ends on connector)"
+  },
+  {
+    "path": "src/lib/components/ui/EnvironmentSwitcher.svelte",
+    "line": 150,
+    "kind": "text",
+    "text": "Creates user/env/                     /config/",
+    "reason": "whitespace gap suggests stripped interpolation"
+  },
+  {
+    "path": "src/routes/config/[scope]/+page.svelte",
+    "line": 232,
+    "kind": "text",
+    "text": "Configuration:                     — Grav Admin",
+    "reason": "whitespace gap suggests stripped interpolation"
+  },
+  {
+    "path": "src/routes/forgot/+page.svelte",
+    "line": 71,
+    "kind": "text",
+    "text": "Check your inbox for a reset link.\n\t\t\t\t       \n\t\t\t\t\tEnter your email and we'll send you a reset link.",
+    "reason": "whitespace gap suggests stripped interpolation"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 165,
+    "kind": "text",
+    "text": "Enter your authenticator code to continue\n\t\t\t\t       \n\t\t\t\t\tSign in to manage your site",
+    "reason": "whitespace gap suggests stripped interpolation"
+  },
+  {
+    "path": "src/routes/login/+page.svelte",
+    "line": 280,
+    "kind": "text",
+    "text": "Open your authenticator app and enter the 6-digit code for",
+    "reason": "sentence fragment (ends on connector)"
+  },
+  {
+    "path": "src/routes/pages/+page.svelte",
+    "line": 89,
+    "kind": "text",
+    "text": "page                                     Manage your site content and structure",
+    "reason": "whitespace gap suggests stripped interpolation"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1486,
+    "kind": "text",
+    "text": "Publish on",
+    "reason": "sentence fragment (ends on connector)"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1492,
+    "kind": "text",
+    "text": "Unpublish on",
+    "reason": "sentence fragment (ends on connector)"
+  },
+  {
+    "path": "src/routes/pages/edit/[...route]/+page.svelte",
+    "line": 1544,
+    "kind": "text",
+    "text": "Reset from",
+    "reason": "sentence fragment (ends on connector)"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 428,
+    "kind": "@aria-label",
+    "text": "Update to v{plugin.available_version}",
+    "reason": "has expression interpolation"
+  },
+  {
+    "path": "src/routes/plugins/[slug]/+page.svelte",
+    "line": 429,
+    "kind": "@title",
+    "text": "Update to v{plugin.available_version}",
+    "reason": "has expression interpolation"
+  },
+  {
+    "path": "src/routes/reset/+page.svelte",
+    "line": 96,
+    "kind": "text",
+    "text": "Invalid reset link.\n\t\t\t\t       \n\t\t\t\t\tChoose a new password for",
+    "reason": "whitespace gap suggests stripped interpolation"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 473,
+    "kind": "text",
+    "text": "Live multi-user editing with presence. Requires the",
+    "reason": "sentence fragment (ends on connector)"
+  },
+  {
+    "path": "src/routes/settings/+page.svelte",
+    "line": 509,
+    "kind": "text",
+    "text": "Language for labels, menus, and messages (             strings loaded)",
+    "reason": "whitespace gap suggests stripped interpolation"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 392,
+    "kind": "@aria-label",
+    "text": "Update to v{theme.available_version}",
+    "reason": "has expression interpolation"
+  },
+  {
+    "path": "src/routes/themes/[slug]/+page.svelte",
+    "line": 393,
+    "kind": "@title",
+    "text": "Update to v{theme.available_version}",
+    "reason": "has expression interpolation"
+  }
+]

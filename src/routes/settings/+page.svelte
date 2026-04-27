@@ -69,12 +69,12 @@
 		confirmResetOpen = false;
 		localStorage.removeItem('grav_admin_prefs');
 		localStorage.removeItem('grav_admin_theme');
-		toast.success('Preferences reset. Reload to apply.');
+		toast.success(i18n.t('ADMIN_NEXT.SETTINGS.PREFERENCES_RESET_RELOAD_TO_APPLY'));
 	}
 </script>
 
 <svelte:head>
-	<title>Settings — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.SETTINGS.SETTINGS_GRAV_ADMIN')}</title>
 </svelte:head>
 
 <div>
@@ -83,9 +83,9 @@
 			<div class="px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
 				<div class="flex items-center justify-between {scrolled ? 'min-h-6' : 'min-h-8'}">
 					<div>
-						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">Settings</h1>
+						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">{i18n.t('ADMIN_NEXT.NAV.SETTINGS')}</h1>
 						{#if !scrolled}
-							<p class="mt-0.5 text-xs text-muted-foreground">Admin preferences and appearance</p>
+							<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_PREFERENCES_AND_APPEARANCE')}</p>
 						{/if}
 					</div>
 				</div>
@@ -98,14 +98,14 @@
 	<div class="rounded-xl border border-border bg-muted/30">
 		<div class="px-6 pt-6 pb-2">
 			<h3 class="text-base font-bold text-foreground">Logo</h3>
-			<p class="mt-1 text-sm text-muted-foreground">Customize the logo shown in the sidebar and login page</p>
+			<p class="mt-1 text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.CUSTOMIZE_THE_LOGO_SHOWN_IN_THE_SIDEBAR')}</p>
 		</div>
 		<div class="space-y-5 px-6 py-5">
 			<!-- Logo Mode -->
 			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 				<div class="lg:pt-2.5">
-					<span class="text-sm font-semibold text-foreground">Logo Type</span>
-					<p class="mt-0.5 text-xs text-muted-foreground">Choose how the logo is displayed</p>
+					<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.LOGO_TYPE')}</span>
+					<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.CHOOSE_HOW_THE_LOGO_IS_DISPLAYED')}</p>
 				</div>
 				<div>
 					<div class="inline-flex rounded-md border border-border shadow-sm">
@@ -114,21 +114,21 @@
 								{prefs.logo.mode === 'default' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
 							onclick={() => setLogoMode('default')}
 						>
-							Grav Logo
+							{i18n.t('ADMIN_NEXT.SETTINGS.GRAV_LOGO')}
 						</button>
 						<button
 							class="inline-flex h-9 items-center gap-1.5 px-3 text-sm font-medium transition-colors
 								{prefs.logo.mode === 'text' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
 							onclick={() => setLogoMode('text')}
 						>
-							Custom Text
+							{i18n.t('ADMIN_NEXT.SETTINGS.CUSTOM_TEXT')}
 						</button>
 						<button
 							class="inline-flex h-9 items-center gap-1.5 rounded-r-md px-3 text-sm font-medium transition-colors
 								{prefs.logo.mode === 'custom' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
 							onclick={() => setLogoMode('custom')}
 						>
-							Custom Image
+							{i18n.t('ADMIN_NEXT.SETTINGS.CUSTOM_IMAGE')}
 						</button>
 					</div>
 				</div>
@@ -138,8 +138,8 @@
 			{#if prefs.logo.mode === 'text'}
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
-						<span class="text-sm font-semibold text-foreground">Logo Text</span>
-						<p class="mt-0.5 text-xs text-muted-foreground">The first letter becomes the icon</p>
+						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.LOGO_TEXT')}</span>
+						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.THE_FIRST_LETTER_BECOMES_THE_ICON')}</p>
 					</div>
 					<div>
 						<input
@@ -157,32 +157,32 @@
 			{#if prefs.logo.mode === 'custom'}
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
-						<span class="text-sm font-semibold text-foreground">Light Mode Logo</span>
-						<p class="mt-0.5 text-xs text-muted-foreground">Used on light backgrounds</p>
+						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.LIGHT_MODE_LOGO')}</span>
+						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.USED_ON_LIGHT_BACKGROUNDS')}</p>
 					</div>
 					<div class="flex items-center gap-3">
 						{#if prefs.logo.customLight}
-							<img src={prefs.logo.customLight} alt="Light logo" class="h-8 w-auto rounded border border-border bg-white p-1" />
+							<img src={prefs.logo.customLight} alt={i18n.t('ADMIN_NEXT.SETTINGS.LIGHT_LOGO')} class="h-8 w-auto rounded border border-border bg-white p-1" />
 						{/if}
 						<label class="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50">
 							<Upload size={14} />
-							Upload
+							{i18n.t('ADMIN_NEXT.UPLOAD')}
 							<input type="file" accept="image/svg+xml,image/png,image/jpeg,image/webp" class="hidden" onchange={(e) => handleLogoUpload('customLight', e)} />
 						</label>
 					</div>
 				</div>
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
-						<span class="text-sm font-semibold text-foreground">Dark Mode Logo</span>
-						<p class="mt-0.5 text-xs text-muted-foreground">Used on dark backgrounds</p>
+						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DARK_MODE_LOGO')}</span>
+						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.USED_ON_DARK_BACKGROUNDS')}</p>
 					</div>
 					<div class="flex items-center gap-3">
 						{#if prefs.logo.customDark}
-							<img src={prefs.logo.customDark} alt="Dark logo" class="h-8 w-auto rounded border border-border bg-zinc-900 p-1" />
+							<img src={prefs.logo.customDark} alt={i18n.t('ADMIN_NEXT.SETTINGS.DARK_LOGO')} class="h-8 w-auto rounded border border-border bg-zinc-900 p-1" />
 						{/if}
 						<label class="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50">
 							<Upload size={14} />
-							Upload
+							{i18n.t('ADMIN_NEXT.UPLOAD')}
 							<input type="file" accept="image/svg+xml,image/png,image/jpeg,image/webp" class="hidden" onchange={(e) => handleLogoUpload('customDark', e)} />
 						</label>
 					</div>
@@ -192,7 +192,7 @@
 			<!-- Preview -->
 			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 				<div class="lg:pt-2.5">
-					<span class="text-sm font-semibold text-foreground">Preview</span>
+					<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.PREVIEW')}</span>
 				</div>
 				<div class="flex items-center gap-6">
 					<div class="flex items-center gap-2 rounded-lg border border-border bg-card p-3">
@@ -206,15 +206,15 @@
 	<!-- Appearance -->
 	<div class="rounded-xl border border-border bg-muted/30">
 		<div class="px-6 pt-6 pb-2">
-			<h3 class="text-base font-bold text-foreground">Appearance</h3>
-			<p class="mt-1 text-sm text-muted-foreground">Customize the look and feel of the admin</p>
+			<h3 class="text-base font-bold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.APPEARANCE')}</h3>
+			<p class="mt-1 text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.CUSTOMIZE_THE_LOOK_AND_FEEL_OF_THE_ADMIN')}</p>
 		</div>
 		<div class="space-y-5 px-6 py-5">
 			<!-- Color Mode -->
 			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 				<div class="lg:pt-2.5">
-					<span class="text-sm font-semibold text-foreground">Color Mode</span>
-					<p class="mt-0.5 text-xs text-muted-foreground">Choose between light and dark appearance</p>
+					<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.COLOR_MODE')}</span>
+					<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.CHOOSE_BETWEEN_LIGHT_AND_DARK_APPEARANCE')}</p>
 				</div>
 				<div>
 					<div class="inline-flex rounded-md border border-border shadow-sm">
@@ -239,8 +239,8 @@
 			<!-- Accent Color -->
 			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 				<div class="lg:pt-2.5">
-					<span class="text-sm font-semibold text-foreground">Accent Color</span>
-					<p class="mt-0.5 text-xs text-muted-foreground">Primary color used for buttons, links, and highlights</p>
+					<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ACCENT_COLOR')}</span>
+					<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.PRIMARY_COLOR_USED_FOR_BUTTONS_LINKS')}</p>
 				</div>
 				<div class="space-y-3">
 					<div class="flex flex-wrap gap-2">
@@ -263,13 +263,13 @@
 							class="group relative flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors
 								{customOpen || !ACCENT_PRESETS.some(p => p.hue === theme.accentHue && p.saturation === theme.accentSaturation) ? 'border-foreground/30 bg-accent text-accent-foreground' : 'border-border text-muted-foreground hover:border-foreground/20 hover:bg-accent/50'}"
 							onclick={() => customOpen = !customOpen}
-							title="Custom"
+							title={i18n.t('ADMIN_NEXT.CUSTOM')}
 						>
 							<span
 								class="h-3.5 w-3.5 rounded-full ring-1 ring-black/10"
 								style="background: conic-gradient(from 0deg, hsl(0 80% 55%), hsl(60 80% 55%), hsl(120 80% 55%), hsl(180 80% 55%), hsl(240 80% 55%), hsl(300 80% 55%), hsl(360 80% 55%))"
 							></span>
-							Custom
+							{i18n.t('ADMIN_NEXT.CUSTOM')}
 						</button>
 					</div>
 
@@ -291,7 +291,7 @@
 								<span class="w-10 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{theme.accentHue}°</span>
 							</div>
 							<div class="flex items-center gap-3">
-								<label for="sat-slider" class="w-20 shrink-0 text-xs font-medium text-muted-foreground">Saturation</label>
+								<label for="sat-slider" class="w-20 shrink-0 text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SATURATION')}</label>
 								<input
 									id="sat-slider"
 									type="range"
@@ -314,7 +314,7 @@
 			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 				<div class="lg:pt-2.5">
 					<span class="text-sm font-semibold text-foreground">Font</span>
-					<p class="mt-0.5 text-xs text-muted-foreground">Typeface used throughout the admin</p>
+					<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.TYPEFACE_USED_THROUGHOUT_THE_ADMIN')}</p>
 				</div>
 				<div class="flex flex-wrap gap-2">
 					{#each FONT_OPTIONS as font (font.value)}
@@ -338,14 +338,14 @@
 	<div class="rounded-xl border border-border bg-muted/30">
 		<div class="px-6 pt-6 pb-2">
 			<h3 class="text-base font-bold text-foreground">Pages</h3>
-			<p class="mt-1 text-sm text-muted-foreground">Default settings for the page browser</p>
+			<p class="mt-1 text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_SETTINGS_FOR_THE_PAGE_BROWSER')}</p>
 		</div>
 		<div class="space-y-5 px-6 py-5">
 			<!-- Default View Mode -->
 			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 				<div class="lg:pt-2.5">
-					<span class="text-sm font-semibold text-foreground">Default View</span>
-					<p class="mt-0.5 text-xs text-muted-foreground">How pages are displayed by default</p>
+					<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_VIEW')}</span>
+					<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.HOW_PAGES_ARE_DISPLAYED_BY_DEFAULT')}</p>
 				</div>
 				<div>
 					<div class="inline-flex rounded-md border border-border shadow-sm">
@@ -368,7 +368,7 @@
 								{prefs.pagesViewMode === 'miller' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
 							onclick={() => prefs.pagesViewMode = 'miller'}
 						>
-							Columns
+							{i18n.t('ADMIN_NEXT.PAGES.VIEW_COLUMNS')}
 						</button>
 					</div>
 				</div>
@@ -377,8 +377,8 @@
 			<!-- Items per Page -->
 			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 				<div class="lg:pt-2.5">
-					<span class="text-sm font-semibold text-foreground">Items per Page</span>
-					<p class="mt-0.5 text-xs text-muted-foreground">Number of pages shown in list view</p>
+					<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ITEMS_PER_PAGE')}</span>
+					<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.NUMBER_OF_PAGES_SHOWN_IN_LIST_VIEW')}</p>
 				</div>
 				<select
 					class="flex h-9 max-w-20 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -397,15 +397,15 @@
 	<!-- Editing -->
 	<div class="rounded-xl border border-border bg-muted/30">
 		<div class="px-6 pt-6 pb-2">
-			<h3 class="text-base font-bold text-foreground">Editing</h3>
-			<p class="mt-1 text-sm text-muted-foreground">Auto-save and undo behavior for form editors</p>
+			<h3 class="text-base font-bold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITING')}</h3>
+			<p class="mt-1 text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.AUTO_SAVE_AND_UNDO_BEHAVIOR_FOR_FORM')}</p>
 		</div>
 		<div class="space-y-5 px-6 py-5">
 			<!-- Auto-Save Toggle -->
 			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 				<div class="lg:pt-2.5">
-					<span class="text-sm font-semibold text-foreground">Auto-Save</span>
-					<p class="mt-0.5 text-xs text-muted-foreground">Automatically save when you leave a field</p>
+					<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.AUTO_SAVE')}</span>
+					<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.AUTOMATICALLY_SAVE_WHEN_YOU_LEAVE_A')}</p>
 				</div>
 				<div>
 					<div class="inline-flex rounded-md border border-border shadow-sm">
@@ -431,8 +431,8 @@
 				<!-- Show Toolbar Undo -->
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
-						<span class="text-sm font-semibold text-foreground">Toolbar Undo Button</span>
-						<p class="mt-0.5 text-xs text-muted-foreground">Show an undo button in the editor toolbar</p>
+						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.TOOLBAR_UNDO_BUTTON')}</span>
+						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SHOW_AN_UNDO_BUTTON_IN_THE_EDITOR')}</p>
 					</div>
 					<div class="flex items-center pt-2.5">
 						<label class="flex cursor-pointer items-center gap-2.5">
@@ -442,7 +442,7 @@
 								checked={prefs.autoSaveToolbarUndo}
 								onchange={(e) => prefs.autoSaveToolbarUndo = (e.target as HTMLInputElement).checked}
 							/>
-							<span class="text-sm text-foreground">Enabled</span>
+							<span class="text-sm text-foreground">{i18n.t('ADMIN_NEXT.ENABLED')}</span>
 						</label>
 					</div>
 				</div>
@@ -450,18 +450,18 @@
 				<!-- Batch Window -->
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
-						<span class="text-sm font-semibold text-foreground">Undo Batch Window</span>
-						<p class="mt-0.5 text-xs text-muted-foreground">Group rapid field changes into a single undo step</p>
+						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.UNDO_BATCH_WINDOW')}</span>
+						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.GROUP_RAPID_FIELD_CHANGES_INTO_A_SINGLE')}</p>
 					</div>
 					<select
 						class="flex h-9 max-w-40 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 						value={prefs.autoSaveBatchWindowMs}
 						onchange={(e) => prefs.autoSaveBatchWindowMs = Number((e.target as HTMLSelectElement).value)}
 					>
-						<option value={0}>None (1 field = 1 undo)</option>
+						<option value={0}>{i18n.t('ADMIN_NEXT.SETTINGS.NONE_1_FIELD_1_UNDO')}</option>
 						<option value={500}>500ms</option>
-						<option value={1000}>1 second</option>
-						<option value={2000}>2 seconds</option>
+						<option value={1000}>{i18n.t('ADMIN_NEXT.SETTINGS.1_SECOND')}</option>
+						<option value={2000}>{i18n.t('ADMIN_NEXT.SETTINGS.2_SECONDS')}</option>
 					</select>
 				</div>
 			{/if}
@@ -469,9 +469,9 @@
 			<!-- Real-time Collaboration (experimental) -->
 			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 				<div class="lg:pt-2.5">
-					<span class="text-sm font-semibold text-foreground">Real-time Collaboration</span>
+					<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.REAL_TIME_COLLABORATION')}</span>
 					<p class="mt-0.5 text-xs text-muted-foreground">
-						Live multi-user editing with presence. Requires the <code>sync</code> plugin on the server. Experimental.
+						{@html i18n.tHtml('ADMIN_NEXT.SETTINGS.COLLAB_DESCRIPTION')}
 					</p>
 				</div>
 				<div>
@@ -499,27 +499,27 @@
 	<!-- Language -->
 	<div class="rounded-xl border border-border bg-muted/30">
 		<div class="px-6 pt-6 pb-2">
-			<h3 class="text-base font-bold text-foreground">Language</h3>
-			<p class="mt-1 text-sm text-muted-foreground">Admin interface language</p>
+			<h3 class="text-base font-bold text-foreground">{i18n.t('ADMIN_NEXT.PAGES.INFO_LANGUAGE')}</h3>
+			<p class="mt-1 text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_INTERFACE_LANGUAGE')}</p>
 		</div>
 		<div class="space-y-5 px-6 py-5">
 			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 				<div class="lg:pt-2.5">
-					<span class="text-sm font-semibold text-foreground">Admin Language</span>
-					<p class="mt-0.5 text-xs text-muted-foreground">Language for labels, menus, and messages ({i18n.count} strings loaded)</p>
+					<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_LANGUAGE')}</span>
+					<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_LANGUAGE_DESC', { count: i18n.count })}</p>
 				</div>
 				<select
 					class="flex h-9 max-w-48 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 					value={prefs.adminLanguage}
 					onchange={(e) => handleLanguageChange((e.target as HTMLSelectElement).value)}
 				>
-					<option value="en">English</option>
-					<option value="fr">Fran&ccedil;ais</option>
-					<option value="de">Deutsch</option>
-					<option value="es">Espa&ntilde;ol</option>
-					<option value="it">Italiano</option>
-					<option value="pt">Portugu&ecirc;s</option>
-					<option value="nl">Nederlands</option>
+					<option value="en">{i18n.t('ADMIN_NEXT.SETTINGS.ENGLISH')}</option>
+					<option value="fr">{i18n.t('ADMIN_NEXT.SETTINGS.FRAN_AIS')}</option>
+					<option value="de">{i18n.t('ADMIN_NEXT.SETTINGS.DEUTSCH')}</option>
+					<option value="es">{i18n.t('ADMIN_NEXT.SETTINGS.ESPA_OL')}</option>
+					<option value="it">{i18n.t('ADMIN_NEXT.SETTINGS.ITALIANO')}</option>
+					<option value="pt">{i18n.t('ADMIN_NEXT.SETTINGS.PORTUGU_S')}</option>
+					<option value="nl">{i18n.t('ADMIN_NEXT.SETTINGS.NEDERLANDS')}</option>
 					<option value="ru">Русский</option>
 					<option value="ja">日本語</option>
 					<option value="zh">中文</option>
@@ -531,8 +531,8 @@
 	<!-- Menubar Links -->
 	<div class="rounded-xl border border-border bg-muted/30">
 		<div class="px-6 pt-6 pb-2">
-			<h3 class="text-base font-bold text-foreground">Menubar Links</h3>
-			<p class="mt-1 text-sm text-muted-foreground">Custom shortcuts shown in the top menubar</p>
+			<h3 class="text-base font-bold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.MENUBAR_LINKS')}</h3>
+			<p class="mt-1 text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.CUSTOM_SHORTCUTS_SHOWN_IN_THE_TOP')}</p>
 		</div>
 		<div class="space-y-3 px-6 py-5">
 			{#each editingLinks as link, i}
@@ -563,12 +563,12 @@
 							checked={link.external ?? true}
 							onchange={(e) => updateLink(i, 'external', (e.target as HTMLInputElement).checked)}
 						/>
-						External
+						{i18n.t('ADMIN_NEXT.SETTINGS.EXTERNAL')}
 					</label>
 					<button
 						class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
 						onclick={() => removeLink(i)}
-						title="Remove link"
+						title={i18n.t('ADMIN_NEXT.SETTINGS.REMOVE_LINK')}
 					>
 						<Trash2 size={14} />
 					</button>
@@ -579,7 +579,7 @@
 				onclick={addLink}
 			>
 				<Plus size={14} />
-				Add Link
+				{i18n.t('ADMIN_NEXT.SETTINGS.ADD_LINK')}
 			</button>
 		</div>
 	</div>
@@ -587,13 +587,13 @@
 	<!-- Connection -->
 	<div class="rounded-xl border border-border bg-muted/30">
 		<div class="px-6 pt-6 pb-2">
-			<h3 class="text-base font-bold text-foreground">Connection</h3>
-			<p class="mt-1 text-sm text-muted-foreground">Server connection details</p>
+			<h3 class="text-base font-bold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.CONNECTION')}</h3>
+			<p class="mt-1 text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SERVER_CONNECTION_DETAILS')}</p>
 		</div>
 		<div class="space-y-5 px-6 py-5">
 			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 				<div class="lg:pt-2.5">
-					<span class="text-sm font-semibold text-foreground">Server URL</span>
+					<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SERVER_URL')}</span>
 				</div>
 				<div class="flex h-9 max-w-96 items-center rounded-md border border-input bg-muted/50 px-3 text-sm text-muted-foreground">
 					{auth.serverUrl}
@@ -601,7 +601,7 @@
 			</div>
 			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 				<div class="lg:pt-2.5">
-					<span class="text-sm font-semibold text-foreground">Environment</span>
+					<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ENVIRONMENT')}</span>
 				</div>
 				<div class="flex h-9 max-w-40 items-center rounded-md border border-input bg-muted/50 px-3 text-sm text-muted-foreground">
 					{auth.environment || 'default'}
@@ -609,7 +609,7 @@
 			</div>
 			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 				<div class="lg:pt-2.5">
-					<span class="text-sm font-semibold text-foreground">Authenticated As</span>
+					<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.AUTHENTICATED_AS')}</span>
 				</div>
 				<div class="flex h-9 max-w-48 items-center rounded-md border border-input bg-muted/50 px-3 text-sm text-muted-foreground">
 					{auth.username}
@@ -622,7 +622,7 @@
 	<div class="flex justify-end">
 		<Button variant="outline" onclick={resetPreferences}>
 			<RotateCcw size={14} />
-			Reset All Preferences
+			{i18n.t('ADMIN_NEXT.SETTINGS.RESET_ALL_PREFERENCES')}
 		</Button>
 	</div>
 	</div>
@@ -630,7 +630,7 @@
 
 <ConfirmModal
 	open={confirmResetOpen}
-	title="Reset Preferences"
+	title={i18n.t('ADMIN_NEXT.SETTINGS.RESET_PREFERENCES')}
 	message="Reset all admin preferences to defaults?"
 	confirmLabel="Reset"
 	variant="destructive"

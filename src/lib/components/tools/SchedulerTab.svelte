@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { getSchedulerStatus } from '$lib/api/endpoints/tools';
@@ -35,7 +36,7 @@
 			originalJson = JSON.stringify(cfg.data);
 			etag = cfg.etag;
 		} catch {
-			toast.error('Failed to load scheduler configuration.');
+			toast.error(i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.FAILED_TO_LOAD_SCHEDULER_CONFIGURATION'));
 		} finally {
 			loading = false;
 		}
@@ -63,9 +64,9 @@
 			configData = result.data;
 			originalJson = JSON.stringify(result.data);
 			etag = result.etag;
-			toast.success('Scheduler configuration saved');
+			toast.success(i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.SCHEDULER_CONFIGURATION_SAVED'));
 		} catch {
-			toast.error('Failed to save');
+			toast.error(i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.FAILED_TO_SAVE'));
 		} finally {
 			saving = false;
 		}
@@ -76,25 +77,21 @@
 
 <div class="space-y-4">
 	{#if loading}
-		<div class="p-8 text-center text-sm text-muted-foreground">Loading scheduler...</div>
+		<div class="p-8 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.LOADING_SCHEDULER')}</div>
 	{:else if status}
 
 		<!-- Cron Status Notice -->
 		{#if status.crontab_status !== 'installed'}
 			<div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
 				<AlertTriangle size={16} />
-				Not Enabled for user: <strong>{status.whoami}</strong>
+				{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.NOT_ENABLED_FOR_USER')} <strong>{status.whoami}</strong>
 			</div>
 		{/if}
 
 		<!-- Info Banner -->
 		<div class="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-300">
 			<Info size={16} class="mt-0.5 shrink-0" />
-			<span>
-				The scheduler can use either system crontab or webhook triggers to execute commands.
-				Webhooks are recommended for cloud environments. Only advanced users should configure custom jobs.
-				Misconfiguration or abuse can lead to security vulnerabilities.
-			</span>
+			<span>{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.INFO_BANNER')}</span>
 		</div>
 
 		<!-- Cron Command -->
@@ -105,14 +102,11 @@
 					<CopyButton text={status.cron_command} />
 				</div>
 				<p class="mt-3 text-sm text-muted-foreground">
-					To enable the Scheduler's functionality, you must add the <strong class="text-foreground">Grav Scheduler</strong> to
-					your system's crontab file for the <strong class="text-foreground">{status.whoami}</strong> user.
-					Run the command above from the terminal to add it automatically. Once saved, refresh this page to see the status.
+					{@html i18n.tHtml('ADMIN_NEXT.TOOLS.SCHEDULER.CRONTAB_INSTRUCTIONS', { user: status.whoami })}
 				</p>
 				{#if !status.webhook_installed}
 					<p class="mt-2 text-sm text-muted-foreground">
-						Alternatively, install the <strong class="text-foreground">scheduler-webhook</strong> plugin to use webhook-based cron firing,
-						which is recommended for cloud environments where system crontab access is not available.
+						{@html i18n.tHtml('ADMIN_NEXT.TOOLS.SCHEDULER.WEBHOOK_ALTERNATIVE')}
 					</p>
 				{/if}
 			</div>
@@ -121,10 +115,7 @@
 		<!-- Security Warning -->
 		<div class="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
 			<Shield size={16} class="mt-0.5 shrink-0" />
-			<span>
-				Only advanced users should configure custom scheduler jobs. Incorrect configuration
-				can cause performance issues or security vulnerabilities.
-			</span>
+			<span>{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.SECURITY_WARNING')}</span>
 		</div>
 
 		<!-- Save button (always visible, disabled when no changes) -->
@@ -132,7 +123,7 @@
 			<Button size="sm" onclick={handleSave} disabled={saving || !hasChanges} class={hasChanges ? '' : 'opacity-50'}>
 				{#if saving}
 					<Loader2 size={14} class="animate-spin" />
-					Saving...
+					{i18n.t('ADMIN_NEXT.SAVING')}
 				{:else}
 					<Save size={14} />
 					Save

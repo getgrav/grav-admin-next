@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
@@ -48,7 +49,7 @@
 		loading = true;
 		try {
 			await resetPassword(username, token, password);
-			toast.success('Password reset successfully. Please sign in.');
+			toast.success(i18n.t('ADMIN_NEXT.RESET.PASSWORD_RESET_SUCCESSFULLY_PLEASE_SIGN'));
 			goto(`${base}/login`);
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err) {
@@ -61,7 +62,7 @@
 					toast.error(apiErr.message || 'Unable to reset password');
 				}
 			} else {
-				toast.error('Unable to connect to server.');
+				toast.error(i18n.t('ADMIN_NEXT.RESET.UNABLE_TO_CONNECT_TO_SERVER'));
 			}
 		} finally {
 			loading = false;
@@ -70,7 +71,7 @@
 </script>
 
 <svelte:head>
-	<title>Reset password — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.RESET.RESET_PASSWORD_GRAV_ADMIN')}</title>
 </svelte:head>
 
 <div class="flex min-h-screen items-center justify-center bg-background p-4">
@@ -78,7 +79,7 @@
 		type="button"
 		class="absolute top-4 right-4 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
 		onclick={() => theme.toggleColorMode()}
-		aria-label="Toggle dark mode"
+		aria-label={i18n.t('ADMIN_NEXT.TOGGLE_DARK_MODE')}
 	>
 		{#if theme.isDark}
 			<Sun size={16} />
@@ -92,12 +93,12 @@
 			<div class="mb-4">
 				<BrandLogo size="login" />
 			</div>
-			<h1 class="text-2xl font-semibold tracking-tight text-foreground">Reset password</h1>
+			<h1 class="text-2xl font-semibold tracking-tight text-foreground">{i18n.t('ADMIN_NEXT.RESET.RESET_PASSWORD')}</h1>
 			<p class="mt-1 text-[13px] text-muted-foreground">
 				{#if missingParams}
-					Invalid reset link.
+					{i18n.t('ADMIN_NEXT.RESET.INVALID_LINK')}
 				{:else}
-					Choose a new password for <span class="font-medium text-foreground">{username}</span>.
+					{@html i18n.tHtml('ADMIN_NEXT.RESET.NEW_PASSWORD_FOR', { username })}
 				{/if}
 			</p>
 		</div>
@@ -105,7 +106,7 @@
 		<div class="rounded-lg border border-border bg-card shadow-sm">
 			{#if missingParams}
 				<div class="px-6 py-5 text-center text-[13px] text-muted-foreground">
-					This reset link is missing required parameters. Request a new one from the forgot password page.
+					{i18n.t('ADMIN_NEXT.RESET.THIS_RESET_LINK_IS_MISSING_REQUIRED')}
 				</div>
 			{:else}
 				<form onsubmit={handleSubmit} class="space-y-4 px-6 py-5" novalidate>
@@ -120,7 +121,7 @@
 					/>
 
 					<div class="space-y-1.5">
-						<label for="confirm" class="text-[13px] font-medium text-foreground">Confirm password</label>
+						<label for="confirm" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.RESET.CONFIRM_PASSWORD')}</label>
 						<input
 							id="confirm"
 							type="password"
@@ -133,14 +134,14 @@
 							disabled={loading}
 						/>
 						{#if confirmInvalid}
-							<p class="text-xs text-red-500">Passwords do not match</p>
+							<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.RESET.PASSWORDS_DO_NOT_MATCH')}</p>
 						{/if}
 					</div>
 
 					<Button type="submit" class="w-full" disabled={loading}>
 						{#if loading}
 							<Loader2 size={15} class="animate-spin" />
-							Resetting...
+							{i18n.t('ADMIN_NEXT.RESET.RESETTING')}
 						{:else}
 							<KeyRound size={15} />
 							Reset password
@@ -155,7 +156,7 @@
 					class="flex items-center justify-center gap-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
 				>
 					<ArrowLeft size={12} />
-					Back to sign in
+					{i18n.t('ADMIN_NEXT.RESET.BACK_TO_SIGN_IN')}
 				</a>
 			</div>
 		</div>

@@ -182,7 +182,7 @@
 					type="button"
 					class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground/40 transition-colors hover:bg-red-500/10 hover:text-red-400"
 					onclick={() => removeEntry(entry.id)}
-					title="Remove"
+					title={i18n.t('ADMIN_NEXT.REMOVE')}
 				>
 					<X size={14} />
 				</button>

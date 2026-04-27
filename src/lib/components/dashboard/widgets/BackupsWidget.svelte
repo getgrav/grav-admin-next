@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { Archive, Download, Plus, Loader2 } from 'lucide-svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { getDashboardData } from '$lib/dashboard/context';
@@ -14,7 +15,7 @@
 	<div class="mb-3 flex items-center justify-between gap-2">
 		<h2 class="flex items-center gap-2 text-sm font-semibold text-foreground">
 			<Archive size={15} />
-			Backups
+			{i18n.t('ADMIN_NEXT.DASHBOARD.WIDGETS.BACKUPS')}
 		</h2>
 		{#if data().canWriteSystem}
 			<button
@@ -22,14 +23,14 @@
 				class="inline-flex h-6 items-center gap-1 rounded-md bg-primary px-2 text-[11px] font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:opacity-60"
 				onclick={() => data().onCreateBackup()}
 				disabled={data().creatingBackup}
-				title="Create a new backup now"
+				title={i18n.t('ADMIN_NEXT.BACKUPS_WIDGET.CREATE_A_NEW_BACKUP_NOW')}
 			>
 				{#if data().creatingBackup}
 					<Loader2 size={11} class="animate-spin" />
-					Backing up…
+					{i18n.t('ADMIN_NEXT.BACKUPS_WIDGET.BACKING_UP')}
 				{:else}
 					<Plus size={11} />
-					Backup Now
+					{i18n.t('ADMIN_NEXT.BACKUPS_WIDGET.BACKUP_NOW')}
 				{/if}
 			</button>
 		{/if}
@@ -44,13 +45,13 @@
 					</div>
 					<a href="{auth.serverUrl}{auth.apiPrefix}/system/backups/{encodeURIComponent(backup.filename)}/download?token={auth.accessToken}"
 						class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-						title="Download {backup.filename}" target="_blank">
+						title={i18n.t('ADMIN_NEXT.BACKUPS_WIDGET.DOWNLOAD_FILE', { filename: backup.filename })} target="_blank">
 						<Download size={14} />
 					</a>
 				</div>
 			{/each}
 		</div>
 	{:else}
-		<p class="py-4 text-center text-[13px] text-muted-foreground">No backups found</p>
+		<p class="py-4 text-center text-[13px] text-muted-foreground">{i18n.t('ADMIN_NEXT.BACKUPS_WIDGET.NO_BACKUPS_FOUND')}</p>
 	{/if}
 </div>

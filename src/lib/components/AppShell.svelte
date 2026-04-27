@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -132,7 +133,7 @@
 
 <div class="flex h-screen overflow-hidden bg-background">
 	{#if mobileOpen}
-		<button class="fixed inset-0 z-30 bg-black/50 lg:hidden" onclick={() => mobileOpen = false} aria-label="Close menu"></button>
+		<button class="fixed inset-0 z-30 bg-black/50 lg:hidden" onclick={() => mobileOpen = false} aria-label={i18n.t('ADMIN_NEXT.APP_SHELL.CLOSE_MENU')}></button>
 	{/if}
 
 	<!-- Sidebar -->
@@ -233,7 +234,7 @@
 					<button
 						class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
 						onclick={handleLogout}
-						title="Sign out"
+						title={i18n.t('ADMIN_NEXT.SIGN_OUT')}
 					>
 						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 							<path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" />
@@ -249,8 +250,8 @@
 		<div class="flex items-center gap-2 border-t border-sidebar-border px-4 py-1.5">
 			{#if !collapsed && (auth.gravVersion || auth.adminVersion)}
 				<div class="flex-1 text-xs leading-tight">
-					{#if auth.gravVersion}<div class="text-sidebar-foreground/60">Grav v{auth.gravVersion}</div>{/if}
-					{#if auth.adminVersion}<div class="text-sidebar-foreground/50">Admin v{auth.adminVersion}</div>{/if}
+					{#if auth.gravVersion}<div class="text-sidebar-foreground/60">{i18n.t('ADMIN_NEXT.APP_SHELL.GRAV_VERSION', { version: auth.gravVersion })}</div>{/if}
+					{#if auth.adminVersion}<div class="text-sidebar-foreground/50">{i18n.t('ADMIN_NEXT.APP_SHELL.ADMIN_VERSION', { version: auth.adminVersion })}</div>{/if}
 				</div>
 			{/if}
 			<button
@@ -279,7 +280,7 @@
 	<!-- Main -->
 	<div class="flex min-w-0 flex-1 flex-col overflow-hidden">
 		<header class="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-background px-4">
-			<button class="text-muted-foreground lg:hidden" onclick={() => mobileOpen = !mobileOpen} aria-label="Toggle menu">
+			<button class="text-muted-foreground lg:hidden" onclick={() => mobileOpen = !mobileOpen} aria-label={i18n.t('ADMIN_NEXT.TOGGLE_MENU')}>
 				<Menu size={18} />
 			</button>
 
@@ -310,24 +311,24 @@
 							{prefs.editorMode === 'normal'
 								? 'bg-accent text-accent-foreground'
 								: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
-						title="Normal mode"
-						aria-label="Normal mode"
+						title={i18n.t('ADMIN_NEXT.NORMAL_MODE')}
+						aria-label={i18n.t('ADMIN_NEXT.NORMAL_MODE')}
 						onclick={mt.onNormal}
 					>
 						<FileText size={13} />
-						<span class="hidden sm:inline">Normal</span>
+						<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.PAGES.MODE_NORMAL')}</span>
 					</button>
 					<button
 						class="inline-flex h-7 items-center gap-1.5 rounded-r-md px-2 text-[12px] font-medium transition-colors sm:px-2.5
 							{prefs.editorMode === 'expert'
 								? 'bg-accent text-accent-foreground'
 								: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
-						title="Expert mode"
-						aria-label="Expert mode"
+						title={i18n.t('ADMIN_NEXT.EXPERT_MODE')}
+						aria-label={i18n.t('ADMIN_NEXT.EXPERT_MODE')}
 						onclick={mt.onExpert}
 					>
 						<Code size={13} />
-						<span class="hidden sm:inline">Expert</span>
+						<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.PAGES.MODE_EXPERT')}</span>
 					</button>
 				</div>
 			{/if}
@@ -344,7 +345,7 @@
 
 			<!-- Color mode toggle -->
 			<button class="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-				onclick={() => theme.toggleColorMode()} aria-label="Toggle dark mode">
+				onclick={() => theme.toggleColorMode()} aria-label={i18n.t('ADMIN_NEXT.TOGGLE_DARK_MODE')}>
 				{#if theme.isDark}<Sun size={15} />{:else}<Moon size={15} />{/if}
 			</button>
 		</header>

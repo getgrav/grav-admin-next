@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import WidgetHost from './WidgetHost.svelte';
 	import { GripVertical, EyeOff, Plus } from 'lucide-svelte';
 	import type { ResolvedWidget, WidgetSize } from '$lib/dashboard/types';
@@ -89,7 +90,7 @@
 		>
 			{#if editMode}
 				<div class="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-md border border-border bg-background/95 p-1 shadow-sm backdrop-blur">
-					<span class="flex h-7 w-6 cursor-grab items-center justify-center text-muted-foreground" title="Drag to reorder">
+					<span class="flex h-7 w-6 cursor-grab items-center justify-center text-muted-foreground" title={i18n.t('ADMIN_NEXT.DASHBOARD_GRID.DRAG_TO_REORDER')}>
 						<GripVertical size={14} />
 					</span>
 					{#if widget.sizes.length > 1}
@@ -109,7 +110,7 @@
 						type="button"
 						class="flex h-7 w-7 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground"
 						onclick={() => hideWidget(widget.id)}
-						title="Hide widget"
+						title={i18n.t('ADMIN_NEXT.DASHBOARD.HIDE_WIDGET')}
 					>
 						<EyeOff size={13} />
 					</button>
@@ -128,14 +129,14 @@
 			onclick={() => onAddClick?.()}
 		>
 			<Plus size={20} />
-			<span class="text-[12px] font-medium">Add a widget</span>
+			<span class="text-[12px] font-medium">{i18n.t('ADMIN_NEXT.DASHBOARD.ADD_WIDGET')}</span>
 		</button>
 	{/if}
 </div>
 
 {#if visibleWidgets.length === 0 && !editMode}
 	<div class="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 py-16 text-center">
-		<p class="text-sm font-medium text-foreground">Your dashboard is empty</p>
-		<p class="mt-1 text-xs text-muted-foreground">Click the pencil icon above to add widgets</p>
+		<p class="text-sm font-medium text-foreground">{i18n.t('ADMIN_NEXT.DASHBOARD.EMPTY')}</p>
+		<p class="mt-1 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.DASHBOARD.EMPTY_HINT')}</p>
 	</div>
 {/if}

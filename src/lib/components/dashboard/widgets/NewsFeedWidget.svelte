@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { Rss } from 'lucide-svelte';
 	import { getDashboardData } from '$lib/dashboard/context';
 	import { formatDate } from '$lib/dashboard/format';
@@ -12,7 +13,7 @@
 <div class="h-full rounded-lg border border-border bg-card p-4">
 	<h2 class="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
 		<Rss size={15} />
-		News Feed
+		{i18n.t('ADMIN_NEXT.DASHBOARD.WIDGETS.NEWS_FEED')}
 	</h2>
 	{#if feed.length > 0}
 		<div class="space-y-2.5">
@@ -26,6 +27,6 @@
 			{/each}
 		</div>
 	{:else}
-		<p class="py-4 text-center text-[13px] text-muted-foreground">No feed items</p>
+		<p class="py-4 text-center text-[13px] text-muted-foreground">{i18n.t('ADMIN_NEXT.NEWS_FEED_WIDGET.NO_FEED_ITEMS')}</p>
 	{/if}
 </div>

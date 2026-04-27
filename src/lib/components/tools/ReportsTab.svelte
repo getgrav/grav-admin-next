@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { getReports } from '$lib/api/endpoints/tools';
@@ -14,7 +15,7 @@
 		try {
 			reports = await getReports();
 		} catch {
-			toast.error('Failed to load reports');
+			toast.error(i18n.t('ADMIN_NEXT.TOOLS.REPORTS.FAILED_TO_LOAD_REPORTS'));
 		} finally {
 			loading = false;
 		}
@@ -45,10 +46,10 @@
 	{#if loading}
 		<div class="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
 			<Loader2 size={16} class="animate-spin" />
-			Loading reports...
+			{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.LOADING_REPORTS')}
 		</div>
 	{:else if reports.length === 0}
-		<div class="p-8 text-center text-sm text-muted-foreground">No reports available.</div>
+		<div class="p-8 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.NO_REPORTS_AVAILABLE')}</div>
 	{:else}
 		{#each reports as report (report.id)}
 			{#if report.component}
@@ -80,7 +81,7 @@
 											<span class="font-medium text-primary truncate">{item.route}</span>
 										</div>
 										{#if item.field}
-											<span class="shrink-0 text-muted-foreground">content: {item.field}</span>
+											<span class="shrink-0 text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.CONTENT_FIELD', { field: String(item.field) })}</span>
 										{/if}
 									{:else if 'file' in item}
 										<span class="font-medium text-foreground truncate">{item.file}</span>

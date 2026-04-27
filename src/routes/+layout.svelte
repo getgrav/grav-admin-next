@@ -33,9 +33,15 @@
 		}
 	});
 
-	// Load translations and language config when authenticated
+	// Load translations and language config when authenticated.
+	// We always call load() once per session: cached strings make the UI usable
+	// immediately, and load() internally no-ops if the server checksum matches.
+	// Without this, users stay pinned to whatever they cached previously and
+	// never see new keys added to language YAML files.
+	let i18nLoadedThisSession = $state(false);
 	$effect(() => {
-		if (auth.isAuthenticated && !i18n.loaded) {
+		if (auth.isAuthenticated && !i18nLoadedThisSession) {
+			i18nLoadedThisSession = true;
 			i18n.load();
 		}
 	});

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import CopyButton from '$lib/components/ui/CopyButton.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -28,10 +29,10 @@
 </script>
 
 <div class="space-y-4">
-	<h4 class="text-sm font-semibold text-foreground">How to use webhooks:</h4>
+	<h4 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.FIELDS.WEBHOOK_EXAMPLES.HOW_TO_USE_WEBHOOKS')}</h4>
 
 	<div>
-		<p class="mb-1.5 text-sm text-muted-foreground">Trigger all due jobs (respects schedule):</p>
+		<p class="mb-1.5 text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.WEBHOOK_EXAMPLES.TRIGGER_ALL_DUE_JOBS_RESPECTS_SCHEDULE')}</p>
 		<div class="flex items-start gap-2">
 			<code class="block flex-1 overflow-x-auto whitespace-pre rounded-md bg-muted px-3 py-2.5 font-mono text-xs text-foreground">{triggerAllCmd}</code>
 			<CopyButton text={triggerAllCmd} />
@@ -39,7 +40,7 @@
 	</div>
 
 	<div>
-		<p class="mb-1.5 text-sm text-muted-foreground">Force-run specific job (ignores schedule):</p>
+		<p class="mb-1.5 text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.WEBHOOK_EXAMPLES.FORCE_RUN_SPECIFIC_JOB_IGNORES_SCHEDULE')}</p>
 		<div class="flex items-start gap-2">
 			<code class="block flex-1 overflow-x-auto whitespace-pre rounded-md bg-muted px-3 py-2.5 font-mono text-xs text-foreground">{triggerJobCmd}</code>
 			<CopyButton text={triggerJobCmd} />
@@ -47,7 +48,7 @@
 	</div>
 
 	<div>
-		<p class="mb-1.5 text-sm text-muted-foreground">Check health status:</p>
+		<p class="mb-1.5 text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.WEBHOOK_EXAMPLES.CHECK_HEALTH_STATUS')}</p>
 		<div class="flex items-start gap-2">
 			<code class="block flex-1 overflow-x-auto whitespace-pre rounded-md bg-muted px-3 py-2.5 font-mono text-xs text-foreground">{healthCmd}</code>
 			<CopyButton text={healthCmd} />
@@ -55,7 +56,7 @@
 	</div>
 
 	<div>
-		<p class="mb-2 text-sm font-semibold text-foreground">GitHub Actions example:</p>
+		<p class="mb-2 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.FIELDS.WEBHOOK_EXAMPLES.GITHUB_ACTIONS_EXAMPLE')}</p>
 		<pre class="overflow-x-auto rounded-md bg-muted px-4 py-3 font-mono text-xs text-foreground">{ghActionsExample}</pre>
 	</div>
 </div>

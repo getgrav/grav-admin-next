@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	/**
 	 * In-place re-auth modal. Opens when token expiry or refresh failure is
 	 * detected. Preserves the current route and any queued API requests, then
@@ -128,10 +129,10 @@
 				</div>
 				<div class="min-w-0 flex-1">
 					<h3 id="reauth-title" class="text-base font-semibold text-foreground">
-						Session expired
+						{i18n.t('ADMIN_NEXT.REAUTH_MODAL.SESSION_EXPIRED')}
 					</h3>
 					<p class="mt-1.5 text-sm text-muted-foreground">
-						Please re-enter your password to continue. Your work has been preserved.
+						{i18n.t('ADMIN_NEXT.REAUTH_MODAL.PLEASE_RE_ENTER_YOUR_PASSWORD_TO')}
 					</p>
 				</div>
 			</div>
@@ -139,7 +140,7 @@
 			<form onsubmit={handleSubmit} class="mt-5 space-y-3">
 				<div>
 					<label for="reauth-username" class="text-[13px] font-medium text-foreground">
-						Username
+						{i18n.t('ADMIN_NEXT.USERNAME')}
 					</label>
 					<Input
 						id="reauth-username"
@@ -151,7 +152,7 @@
 				</div>
 				<div>
 					<label for="reauth-password" class="text-[13px] font-medium text-foreground">
-						Password
+						{i18n.t('ADMIN_NEXT.PASSWORD')}
 					</label>
 					<Input
 						id="reauth-password"
@@ -168,7 +169,7 @@
 				{/if}
 				<div class="flex justify-end gap-2 pt-1">
 					<Button type="button" variant="outline" size="sm" onclick={handleSignOut} disabled={submitting}>
-						Sign out
+						{i18n.t('ADMIN_NEXT.SIGN_OUT')}
 					</Button>
 					<Button type="submit" size="sm" disabled={submitting || !password.trim()}>
 						{submitting ? 'Signing in…' : 'Sign in'}

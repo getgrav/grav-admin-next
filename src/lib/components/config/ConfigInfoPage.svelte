@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
 	import { ChevronDown, ChevronRight, Download } from 'lucide-svelte';
@@ -119,7 +120,7 @@
 </script>
 
 {#if loading}
-	<div class="py-20 text-center text-sm text-muted-foreground">Loading system information...</div>
+	<div class="py-20 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.CONFIG_INFO_PAGE.LOADING_SYSTEM_INFORMATION')}</div>
 {:else if error}
 	<div class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
 		{error}
@@ -129,7 +130,7 @@
 	<div class="flex justify-end">
 		<Button variant="outline" size="sm" onclick={exportYaml}>
 			<Download size={14} />
-			Export YAML
+			{i18n.t('ADMIN_NEXT.CONFIG_INFO_PAGE.EXPORT_YAML')}
 		</Button>
 	</div>
 
@@ -137,23 +138,23 @@
 		<!-- Server Info -->
 		<div class="rounded-lg border border-border bg-card">
 			<div class="border-b border-border px-5 py-3">
-				<h3 class="text-sm font-semibold text-foreground">Server</h3>
+				<h3 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.CONFIG_INFO_PAGE.SERVER')}</h3>
 			</div>
 			<dl class="divide-y divide-border">
 				<div class="flex justify-between px-5 py-2.5">
-					<dt class="text-sm text-muted-foreground">Grav Version</dt>
+					<dt class="text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.CONFIG_INFO_PAGE.GRAV_VERSION')}</dt>
 					<dd class="text-sm font-medium text-foreground">{info.grav_version}</dd>
 				</div>
 				<div class="flex justify-between px-5 py-2.5">
-					<dt class="text-sm text-muted-foreground">PHP Version</dt>
+					<dt class="text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.CONFIG_INFO_PAGE.PHP_VERSION')}</dt>
 					<dd class="text-sm font-medium text-foreground">{info.php_version}</dd>
 				</div>
 				<div class="flex justify-between px-5 py-2.5">
-					<dt class="text-sm text-muted-foreground">Server Software</dt>
+					<dt class="text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.CONFIG_INFO_PAGE.SERVER_SOFTWARE')}</dt>
 					<dd class="max-w-[200px] truncate text-sm font-medium text-foreground" title={info.server_software}>{info.server_software}</dd>
 				</div>
 				<div class="flex justify-between px-5 py-2.5">
-					<dt class="text-sm text-muted-foreground">Environment</dt>
+					<dt class="text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.CONFIG_INFO_PAGE.ENVIRONMENT')}</dt>
 					<dd class="text-sm font-medium text-foreground">{info.environment}</dd>
 				</div>
 			</dl>
@@ -163,7 +164,7 @@
 		<div class="rounded-lg border border-border bg-card">
 			<div class="border-b border-border px-5 py-3">
 				<h3 class="text-sm font-semibold text-foreground">
-					PHP Extensions
+					{i18n.t('ADMIN_NEXT.CONFIG_INFO_PAGE.PHP_EXTENSIONS')}
 					<span class="ml-1 text-xs font-normal text-muted-foreground">({info.php_extensions.length})</span>
 				</h3>
 			</div>
@@ -180,7 +181,7 @@
 		<div class="rounded-lg border border-border bg-card">
 			<div class="border-b border-border px-5 py-3">
 				<h3 class="text-sm font-semibold text-foreground">
-					Plugins
+					{i18n.t('ADMIN_NEXT.NAV.PLUGINS')}
 					<span class="ml-1 text-xs font-normal text-muted-foreground">({info.plugins.length})</span>
 				</h3>
 			</div>
@@ -201,7 +202,7 @@
 		<div class="rounded-lg border border-border bg-card">
 			<div class="border-b border-border px-5 py-3">
 				<h3 class="text-sm font-semibold text-foreground">
-					Themes
+					{i18n.t('ADMIN_NEXT.NAV.THEMES')}
 					<span class="ml-1 text-xs font-normal text-muted-foreground">({info.themes.length})</span>
 				</h3>
 			</div>
@@ -223,7 +224,7 @@
 	{#if info.php_config}
 		<div class="mt-2">
 			<div class="mb-3 flex items-center justify-between">
-				<h3 class="text-sm font-semibold text-foreground">PHP Configuration</h3>
+				<h3 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.CONFIG_INFO_PAGE.PHP_CONFIGURATION')}</h3>
 				<button
 					class="text-xs text-muted-foreground transition-colors hover:text-foreground"
 					onclick={() => allExpanded ? collapseAll() : expandAll()}

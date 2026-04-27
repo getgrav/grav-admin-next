@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import Tabs from '$lib/components/ui/Tabs.svelte';
@@ -32,7 +33,7 @@
 </script>
 
 <svelte:head>
-	<title>Tools — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.TOOLS.TOOLS_GRAV_ADMIN')}</title>
 </svelte:head>
 
 <div>
@@ -43,7 +44,7 @@
 					<div>
 						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">Tools</h1>
 						{#if !scrolled}
-							<p class="mt-0.5 text-xs text-muted-foreground">Backups, scheduler, logs, and diagnostics</p>
+							<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS_SCHEDULER_LOGS_AND_DIAGNOSTICS')}</p>
 						{/if}
 					</div>
 				</div>

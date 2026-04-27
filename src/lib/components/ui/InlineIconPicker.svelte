@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { FA_ICONS } from '$lib/data/fa-icons';
 	import { Search, X } from 'lucide-svelte';
 	import { onMount } from 'svelte';
@@ -68,7 +69,7 @@
 				<input
 					type="text"
 					class="flex-1 border-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-					placeholder="Search icons..."
+					placeholder={i18n.t('ADMIN_NEXT.INLINE_ICON_PICKER.SEARCH_ICONS')}
 					bind:value={search}
 					autofocus
 				/>
@@ -105,14 +106,14 @@
 				{/each}
 				{#if filteredIcons.length === 0}
 					<div class="col-span-8 py-3 text-center text-xs text-muted-foreground">
-						No icons found
+						{i18n.t('ADMIN_NEXT.INLINE_ICON_PICKER.NO_ICONS_FOUND')}
 					</div>
 				{/if}
 			</div>
 
 			{#if filteredIcons.length >= 200}
 				<div class="border-t border-border px-3 py-1 text-center text-[10px] text-muted-foreground">
-					Type to narrow results
+					{i18n.t('ADMIN_NEXT.INLINE_ICON_PICKER.TYPE_TO_NARROW_RESULTS')}
 				</div>
 			{/if}
 		</div>

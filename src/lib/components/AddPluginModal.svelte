@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { getRepositoryPlugins, installPlugin, type RepositoryPlugin } from '$lib/api/endpoints/gpm';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
@@ -59,7 +60,7 @@
 			const first = match ?? allPlugins.find((p) => !p.installed);
 			if (first) selectedSlug = first.slug;
 		} catch {
-			toast.error('Failed to load available plugins from GPM');
+			toast.error(i18n.t('ADMIN_NEXT.ADD_PLUGIN_MODAL.FAILED_TO_LOAD_AVAILABLE_PLUGINS_FROM'));
 		} finally {
 			loading = false;
 		}
@@ -140,7 +141,7 @@
 			<!-- Header -->
 			<div class="flex shrink-0 items-center justify-between border-b border-border px-6 py-4">
 				<div>
-					<h2 class="text-lg font-semibold text-foreground">Add Plugin</h2>
+					<h2 class="text-lg font-semibold text-foreground">{i18n.t('ADMIN_NEXT.ADD_PLUGIN_MODAL.ADD_PLUGIN')}</h2>
 					{#if !loading}
 						<p class="mt-0.5 text-xs text-muted-foreground">{available.length} available</p>
 					{/if}
@@ -156,10 +157,10 @@
 							<Button size="sm" onclick={() => handleInstall(selectedPlugin.slug)} disabled={installingSlug === selectedPlugin.slug}>
 								{#if installingSlug === selectedPlugin.slug}
 									<Loader2 size={14} class="mr-1.5 animate-spin" />
-									Installing...
+									{i18n.t('ADMIN_NEXT.INSTALLING')}
 								{:else}
 									<Download size={14} class="mr-1.5" />
-									Install
+									{i18n.t('ADMIN_NEXT.INSTALL')}
 								{/if}
 							</Button>
 						{/if}
@@ -186,7 +187,7 @@
 						<input
 							type="text"
 							class="h-8 w-full rounded-md border border-input bg-muted/50 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-							placeholder="Filter plugins..."
+							placeholder={i18n.t('ADMIN_NEXT.ADD_PLUGIN_MODAL.FILTER_PLUGINS')}
 							bind:value={search}
 						/>
 					</div>
@@ -221,7 +222,7 @@
 											<BadgeCheck size={14} class="shrink-0 text-purple-500" />
 										{/if}
 										{#if plugin.premium}
-											<span class="shrink-0 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">Premium</span>
+											<span class="shrink-0 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">{i18n.t('ADMIN_NEXT.PREMIUM')}</span>
 										{/if}
 									</div>
 									<p class="truncate text-xs text-muted-foreground">{descriptionText(plugin)}</p>
@@ -282,7 +283,7 @@
 												<BadgeCheck size={18} class="shrink-0 text-purple-500" />
 											{/if}
 											{#if selectedPlugin.premium}
-												<span class="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">Premium</span>
+												<span class="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">{i18n.t('ADMIN_NEXT.PREMIUM')}</span>
 											{/if}
 										</div>
 										<div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -311,7 +312,7 @@
 								<div class="mt-6 grid grid-cols-2 gap-4">
 									{#if selectedPlugin.author?.name}
 										<div>
-											<dt class="text-xs font-medium text-muted-foreground">Author</dt>
+											<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.AUTHOR')}</dt>
 											<dd class="mt-0.5 text-sm text-foreground">
 												{#if selectedPlugin.author.url}
 													<a href={selectedPlugin.author.url} target="_blank" rel="noopener" class="text-primary hover:underline">
@@ -327,7 +328,7 @@
 
 									{#if selectedPlugin.homepage}
 										<div>
-											<dt class="text-xs font-medium text-muted-foreground">Homepage</dt>
+											<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.HOMEPAGE')}</dt>
 											<dd class="mt-0.5 text-sm">
 												<a href={selectedPlugin.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
 													Visit
@@ -338,7 +339,7 @@
 									{/if}
 
 									<div>
-										<dt class="text-xs font-medium text-muted-foreground">Version</dt>
+										<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.VERSION')}</dt>
 										<dd class="mt-0.5 font-mono text-xs text-foreground">{selectedPlugin.version}</dd>
 									</div>
 
@@ -351,7 +352,7 @@
 								<!-- Keywords -->
 								{#if parseKeywords(selectedPlugin.keywords).length}
 									<div class="mt-4">
-										<dt class="text-xs font-medium text-muted-foreground">Keywords</dt>
+										<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.KEYWORDS')}</dt>
 										<dd class="mt-1.5 flex flex-wrap gap-1.5">
 											{#each parseKeywords(selectedPlugin.keywords) as kw}
 												<span class="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">{kw}</span>
@@ -363,7 +364,7 @@
 								<!-- Dependencies -->
 								{#if parseDependencies(selectedPlugin.dependencies).length}
 									<div class="mt-4">
-										<dt class="text-xs font-medium text-muted-foreground">Dependencies</dt>
+										<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.DEPENDENCIES')}</dt>
 										<dd class="mt-1.5 flex flex-wrap gap-1.5">
 											{#each parseDependencies(selectedPlugin.dependencies) as dep}
 												<span class="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs">
@@ -379,7 +380,7 @@
 							</div>
 						{:else}
 							<div class="flex h-full items-center justify-center text-sm text-muted-foreground">
-								Select a plugin to view details
+								{i18n.t('ADMIN_NEXT.ADD_PLUGIN_MODAL.SELECT_A_PLUGIN_TO_VIEW_DETAILS')}
 							</div>
 						{/if}
 					</div>
