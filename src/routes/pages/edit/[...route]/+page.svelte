@@ -103,10 +103,17 @@
 			headerData = { ...headerData, content: updatedContent };
 
 			// Directly update editor-pro web component (TipTap).
+			// Use replaceContent() so the update goes through TipTap's setContent
+			// — under collaborative mode this propagates via y-prosemirror to peers.
+			// (The plain `value =` setter bails out under collab to protect routine prop syncs.)
 			// CodeMirror (MarkdownEditor) handles the event directly via its own listener.
-			const editorPro = document.querySelector('grav-editor-pro--editor-pro') as (HTMLElement & { value?: string }) | null;
+			const editorPro = document.querySelector('grav-editor-pro--editor-pro') as (HTMLElement & { value?: string; replaceContent?: (md: string) => void }) | null;
 			if (editorPro) {
-				editorPro.value = updatedContent;
+				if (typeof editorPro.replaceContent === 'function') {
+					editorPro.replaceContent(updatedContent);
+				} else {
+					editorPro.value = updatedContent;
+				}
 			}
 
 			// Trigger auto-save commit

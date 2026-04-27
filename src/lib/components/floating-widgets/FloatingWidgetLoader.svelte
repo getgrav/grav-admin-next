@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api/client';
 	import { floatingWidgetStore } from '$lib/stores/floatingWidgets.svelte';
@@ -178,7 +179,7 @@
 		{@const panelGradient = widget.gradient ?? DEFAULT_GRADIENT}
 		{#if openWidgets[widget.id]}
 			<div
-				class="fw-panel fixed z-50 flex flex-col overflow-hidden rounded-xl border border-border bg-popover shadow-2xl {closingWidgets[widget.id] ? 'fw-closing' : 'fw-opening'}"
+				class="fw-panel fixed z-[60] flex flex-col overflow-hidden rounded-xl border border-border bg-popover shadow-2xl {closingWidgets[widget.id] ? 'fw-closing' : 'fw-opening'}"
 				style="width: {panelWidth}px; height: {panelHeight}px; bottom: {fabBottom + FAB_SIZE + 8}px; right: {FAB_MARGIN}px;"
 			>
 				{#if widget.useStandardHeader !== false}
@@ -241,7 +242,7 @@
 
 		{#if speedDialOpen}
 			<!-- Click-outside backdrop -->
-			<button class="fixed inset-0 z-40 cursor-default" aria-label="Close widgets menu" onclick={() => speedDialOpen = false}></button>
+			<button class="fixed inset-0 z-40 cursor-default" aria-label={i18n.t('ADMIN_NEXT.FLOATING_WIDGET_LOADER.CLOSE_WIDGETS_MENU')} onclick={() => speedDialOpen = false}></button>
 		{/if}
 	{:else}
 		<!-- Stacked FABs (2 or fewer visible widgets) -->
