@@ -42,6 +42,25 @@ function createI18nStore() {
 	// so plugin web-component bundles can react without runes).
 	const localeSubscribers = new Set<(locale: string) => void>();
 
+	// Dev-mode tracking of keys that fall through to humanizeKey().
+	// Lazily evaluated; off by default.
+	const humanizeMisses = new Map<string, { count: number; firstStack?: string }>();
+	let _debugChecked = false;
+	let _debugEnabled = false;
+	function isDebugEnabled(): boolean {
+		if (_debugChecked) return _debugEnabled;
+		_debugChecked = true;
+		if (typeof window === 'undefined') return false;
+		try {
+			const ls = window.localStorage?.getItem('i18n-debug');
+			const url = new URLSearchParams(window.location.search);
+			_debugEnabled = ls === '1' || ls === 'true' || url.has('i18n-debug');
+		} catch {
+			_debugEnabled = false;
+		}
+		return _debugEnabled;
+	}
+
 	function notifyLocaleChanged() {
 		for (const fn of localeSubscribers) {
 			try { fn(lang); } catch { /* ignore subscriber errors */ }
@@ -165,16 +184,36 @@ function createI18nStore() {
 	 * Convert a translation key to a human-readable fallback.
 	 * PLUGIN_ADMIN.CONTENT → "Content"
 	 * PLUGIN_ADMIN.SOME_FIELD_NAME → "Some Field Name"
+	 *
+	 * In debug mode, missed keys are tracked and the rendered string is wrapped
+	 * in unicode brackets (⟦…⟧) so gaps are visually obvious in the UI.
 	 */
 	function humanizeKey(key: string): string {
 		const parts = key.split('.');
 		const last = parts[parts.length - 1];
 
-		return last
+		const humanized = last
 			.replace(/^PLUGIN_\w+_/, '')
 			.replace(/_/g, ' ')
 			.toLowerCase()
 			.replace(/\b\w/g, (c) => c.toUpperCase());
+
+		if (isDebugEnabled()) {
+			const existing = humanizeMisses.get(key);
+			if (existing) {
+				existing.count++;
+			} else {
+				let stack: string | undefined;
+				try {
+					stack = new Error().stack?.split('\n').slice(2, 6).join('\n');
+				} catch { /* ignore */ }
+				humanizeMisses.set(key, { count: 1, firstStack: stack });
+				console.warn(`[i18n] Humanize fallback: ${key}`, stack ? `\n  at ${stack}` : '');
+			}
+			return `⟦${humanized}⟧`;
+		}
+
+		return humanized;
 	}
 
 	/**
@@ -252,6 +291,20 @@ function createI18nStore() {
 		return () => localeSubscribers.delete(fn);
 	}
 
+	/**
+	 * Debug: list every key that fell through to humanizeKey() this session.
+	 * Returns [{ key, count, firstStack }] sorted by miss count descending.
+	 */
+	function getHumanizeMisses() {
+		return [...humanizeMisses.entries()]
+			.map(([key, info]) => ({ key, count: info.count, firstStack: info.firstStack }))
+			.sort((a, b) => b.count - a.count);
+	}
+
+	function clearHumanizeMisses() {
+		humanizeMisses.clear();
+	}
+
 	return {
 		get lang() { return lang; },
 		get loading() { return loading; },
@@ -266,6 +319,8 @@ function createI18nStore() {
 		loadAllInBackground,
 		setLanguage,
 		subscribeLocale,
+		getHumanizeMisses,
+		clearHumanizeMisses,
 	};
 }
 
@@ -305,4 +360,37 @@ if (typeof window !== 'undefined') {
 		writable: false,
 		configurable: false,
 	});
+
+	// Dev-only debug surface. Always installed; functions check the
+	// debug flag themselves so the cost when disabled is one localStorage read
+	// per humanize call, amortised across the session.
+	(window as unknown as { __GRAV_I18N_DEBUG: unknown }).__GRAV_I18N_DEBUG = {
+		enable() {
+			try { localStorage.setItem('i18n-debug', '1'); } catch { /* */ }
+			console.info('[i18n-debug] Enabled. Reload the page so all components pick it up.');
+		},
+		disable() {
+			try { localStorage.removeItem('i18n-debug'); } catch { /* */ }
+			console.info('[i18n-debug] Disabled. Reload the page.');
+		},
+		misses() { return i18n.getHumanizeMisses(); },
+		clear() { i18n.clearHumanizeMisses(); },
+		report() {
+			const misses = i18n.getHumanizeMisses();
+			console.group(`[i18n] ${misses.length} unique humanize fallbacks this session`);
+			for (const m of misses) {
+				console.log(`${String(m.count).padStart(4)} × ${m.key}`);
+			}
+			console.groupEnd();
+			return misses;
+		},
+		yaml() {
+			const misses = i18n.getHumanizeMisses();
+			const out: string[] = ['# Drop these into the appropriate languages/en.yaml under ICU:'];
+			for (const m of misses) {
+				out.push(`# (${m.count}×) ${m.key}: "@@TODO ${m.key}"`);
+			}
+			return out.join('\n');
+		},
+	};
 }
