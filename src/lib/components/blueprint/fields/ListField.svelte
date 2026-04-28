@@ -76,6 +76,7 @@
 	});
 
 	function emitChange() {
+		let payload: unknown;
 		if (keyFieldDef) {
 			// Key-value mode: emit as object keyed by the key field
 			const obj: Record<string, unknown> = {};
@@ -83,16 +84,23 @@
 				const k = item.key || String(item.id);
 				obj[k] = valueFieldDefs.length === 1 ? getItemFieldValue(item, valueFieldDefs[0]) : item.data;
 			}
-			onchange(obj);
+			payload = obj;
 		} else {
 			// Array mode: emit as array
-			onchange(items.map((item) => {
+			payload = items.map((item) => {
 				if (valueFieldDefs.length === 1) {
 					return getItemFieldValue(item, valueFieldDefs[0]);
 				}
 				return { ...item.data };
-			}));
+			});
 		}
+		// Remember what we just emitted so the $effect below can tell our own
+		// round-trip apart from a truly external change. Without this, every
+		// keystroke would re-parse `value` into fresh items — minting new
+		// `id`s (breaking the keyed {#each}, dropping focus) and resetting
+		// `collapsed` to the field default (collapsing the open editor).
+		lastExternalJson = JSON.stringify(payload);
+		onchange(payload);
 	}
 
 	function getItemFieldValue(item: ListItem, fieldDef: BlueprintField): unknown {
