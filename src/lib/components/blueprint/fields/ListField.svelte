@@ -11,9 +11,10 @@
 		getValue: (path: string) => unknown;
 		onFieldChange: (path: string, value: unknown) => void;
 		onFieldCommit?: (path: string, value: unknown, oldValue?: unknown) => void;
+		filter?: string;
 	}
 
-	let { field, value, onchange, getValue, onFieldChange, onFieldCommit }: Props = $props();
+	let { field, value, onchange, getValue, onFieldChange, onFieldCommit, filter = '' }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
 	const childFields = $derived(field.fields ?? []);
@@ -184,6 +185,26 @@
 		const vals = Object.values(item.data).filter((v) => typeof v === 'string' && v);
 		return vals.length > 0 ? String(vals[0]) : `Item`;
 	}
+
+	// Filter support — match item key or any string-y data value
+	const filterQ = $derived(filter.trim().toLowerCase());
+	const isFiltering = $derived(filterQ.length > 0);
+
+	function itemMatches(item: ListItem, q: string): boolean {
+		if (!q) return true;
+		if (item.key && item.key.toLowerCase().includes(q)) return true;
+		for (const v of Object.values(item.data)) {
+			if (v == null) continue;
+			if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+				if (String(v).toLowerCase().includes(q)) return true;
+			}
+		}
+		return false;
+	}
+
+	const visibleItems = $derived(
+		isFiltering ? items.filter((it) => itemMatches(it, filterQ)) : items
+	);
 </script>
 
 <div class="space-y-2">
@@ -200,14 +221,15 @@
 		</div>
 	{/if}
 
-	{#if items.length > 0}
+	{#if visibleItems.length > 0}
 		<div class="space-y-2">
-			{#each items as item, index (item.id)}
+			{#each visibleItems as item, index (item.id)}
+				{@const expanded = !item.collapsed || isFiltering}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
 					class="rounded-lg border border-border bg-card transition-colors
 						{dragOverIndex === index && dragIndex !== index ? 'border-primary' : ''}"
-					draggable={sortable}
+					draggable={sortable && !isFiltering}
 					ondragstart={() => handleDragStart(index)}
 					ondragover={(e) => handleDragOver(e, index)}
 					ondrop={() => handleDrop(index)}
@@ -235,7 +257,7 @@
 							</button>
 						{/if}
 
-						{#if item.collapsed}
+						{#if !expanded}
 							<span class="min-w-0 flex-1 truncate text-sm text-muted-foreground">{itemSummary(item)}</span>
 						{:else}
 							<span class="flex-1"></span>
@@ -252,7 +274,7 @@
 					</div>
 
 					<!-- Item fields (when expanded) -->
-					{#if !item.collapsed}
+					{#if expanded}
 						<div class="{isCompact ? 'grid grid-cols-2 gap-x-4 gap-y-3' : 'space-y-4'} border-t border-border px-4 py-3">
 							{#if keyFieldDef}
 								<div class="space-y-2 {isCompact ? 'col-span-2' : ''}">

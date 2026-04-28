@@ -283,7 +283,7 @@
 					<div class="min-w-0 flex-1">
 						<ConfigNav {sections} />
 					</div>
-					{#if !isInfo && blueprint}
+					{#if isInfo || blueprint}
 						<div class="relative w-full sm:w-48">
 							<Search size={14} class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
 							<input
@@ -325,7 +325,7 @@
 	{#if loading}
 		<div class="py-20 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.CONFIG.LOADING_CONFIGURATION')}</div>
 	{:else if isInfo}
-		<ConfigInfoPage />
+		<ConfigInfoPage {filter} />
 	{:else if blueprint}
 		<BlueprintForm
 			fields={blueprint.fields}

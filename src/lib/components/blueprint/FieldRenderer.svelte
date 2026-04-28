@@ -158,7 +158,7 @@
 {:else if isRawDisplayField}
 	<!-- Suppress display fields containing raw JS/HTML or with empty content -->
 
-{:else if filter && !fieldMatches(field, filter)}
+{:else if filter && !fieldMatches(field, filter, value)}
 	<!-- Filtered out -->
 
 {:else if useTwoColumn}
@@ -504,7 +504,7 @@
 	</div>
 
 {:else if field.type === 'list' && field.fields}
-	<ListField {field} {value} {onchange} {getValue} {onFieldChange} {onFieldCommit} />
+	<ListField {field} {value} {onchange} {getValue} {onFieldChange} {onFieldCommit} {filter} />
 
 {:else if field.type === 'array'}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
