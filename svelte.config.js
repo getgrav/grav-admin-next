@@ -36,6 +36,13 @@ const config = {
 		paths: {
 			base: isPluginBuild ? BASE_PLACEHOLDER : '',
 			relative: false
+		},
+		// Poll _app/version.json every 60s so the SPA detects when admin2 (or
+		// any other plugin) has been updated underneath it. Combined with the
+		// beforeNavigate guard in +layout.svelte, the next intra-app navigation
+		// becomes a full page load — fresh chunks, no 500s from stale hashes.
+		version: {
+			pollInterval: 60_000
 		}
 	}
 };

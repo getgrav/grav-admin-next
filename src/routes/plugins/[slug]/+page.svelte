@@ -6,6 +6,7 @@
 	import { setContext } from 'svelte';
 	import { provideFormCommit } from '$lib/utils/form-commit.svelte';
 	import { getPlugin, getPluginConfig, savePluginConfig, setPluginEnabled, removePlugin, getPluginReadme, getPluginChangelog, updatePackage, type PluginInfo } from '$lib/api/endpoints/gpm';
+	import { reloadIfAdminUpdated } from '$lib/utils/gpm';
 	import { getPluginBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
@@ -283,6 +284,7 @@
 			}
 			toast.success(`${plugin.name} updated`);
 			await loadPlugin();
+			reloadIfAdminUpdated([slug, ...(result.dependencies ?? [])]);
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
 			toast.error(`Failed to update ${plugin.name}: ${detail}`);

@@ -6,6 +6,7 @@
 	import { setContext } from 'svelte';
 	import { provideFormCommit } from '$lib/utils/form-commit.svelte';
 	import { getTheme, getThemeConfig, saveThemeConfig, setActiveTheme, removeTheme, getThemeReadme, getThemeChangelog, updatePackage, type ThemeInfo } from '$lib/api/endpoints/gpm';
+	import { reloadIfAdminUpdated } from '$lib/utils/gpm';
 	import { getThemeBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
@@ -262,6 +263,7 @@
 			}
 			toast.success(`${theme.name} updated`);
 			await loadTheme();
+			reloadIfAdminUpdated([slug, ...(result.dependencies ?? [])]);
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
 			toast.error(`Failed to update ${theme.name}: ${detail}`);

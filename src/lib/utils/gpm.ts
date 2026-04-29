@@ -418,6 +418,23 @@ export function descriptionText(pkg: { description?: string | null; description_
 	return (pkg.description ?? '').replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * If an update operation touched the admin2 plugin (either as the target or as a
+ * cascaded dependency), the SPA's bundled JS/CSS chunks have been replaced on
+ * disk and the running tab will 500 on its next chunk fetch. SvelteKit's
+ * version-poll catches this within ~60s, but for the click-heavy "I just
+ * updated admin2" flow we trigger an immediate hard reload so the user lands
+ * on the fresh bundle without waiting.
+ */
+export function reloadIfAdminUpdated(slugs: Iterable<string>): void {
+	for (const slug of slugs) {
+		if (slug === 'admin2') {
+			window.location.reload();
+			return;
+		}
+	}
+}
+
 export function parseDependencies(deps: unknown): PackageDep[] {
 	if (!Array.isArray(deps)) return [];
 	return deps.map((d) => {

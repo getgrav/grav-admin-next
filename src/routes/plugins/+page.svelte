@@ -3,6 +3,7 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
 	import { getInstalledPlugins, setPluginEnabled, checkUpdates, updatePackage, updateAllPackages, type PluginInfo } from '$lib/api/endpoints/gpm';
+	import { reloadIfAdminUpdated } from '$lib/utils/gpm';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { onMount } from 'svelte';
@@ -162,6 +163,7 @@
 			}
 			toast.success(`${plugin.name} updated`);
 			await loadPlugins();
+			reloadIfAdminUpdated([plugin.slug, ...(result.dependencies ?? [])]);
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
 			toast.error(`Failed to update ${plugin.name}: ${detail}`);
@@ -195,6 +197,7 @@
 				);
 			}
 			await loadPlugins();
+			reloadIfAdminUpdated([...result.updated, ...result.cascaded_dependencies]);
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
 			toast.error(`Update failed: ${detail}`);

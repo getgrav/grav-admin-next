@@ -8,6 +8,7 @@
 	} from '$lib/api/endpoints/dashboard';
 	import { getWidgets, saveUserLayout, saveSiteLayout } from '$lib/api/endpoints/dashboard-widgets';
 	import { updateAllPackages, upgradeGrav } from '$lib/api/endpoints/gpm';
+	import { reloadIfAdminUpdated } from '$lib/utils/gpm';
 	import { createBackup } from '$lib/api/endpoints/tools';
 	import { canWrite } from '$lib/utils/permissions';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
@@ -224,6 +225,7 @@
 				);
 			}
 			await loadDashboard({ silent: true });
+			reloadIfAdminUpdated([...result.updated, ...result.cascaded_dependencies]);
 		} catch (err: unknown) {
 			toast.error(`Update failed: ${err instanceof Error ? err.message : String(err)}`, { id: toastId });
 		} finally {

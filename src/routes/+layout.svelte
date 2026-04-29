@@ -1,8 +1,8 @@
 <script lang="ts">
 	import './layout.css';
 	import '@fortawesome/fontawesome-free/css/all.min.css';
-	import { page } from '$app/state';
-	import { goto } from '$app/navigation';
+	import { page, updated } from '$app/state';
+	import { goto, beforeNavigate } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
@@ -78,6 +78,19 @@
 		window.__GRAV_DIALOGS = {
 			confirm: (options) => dialogs.confirm(options),
 		};
+	});
+
+	// SvelteKit's version-poll (configured in svelte.config.js) flips
+	// `updated.current` to true when _app/version.json changes — i.e. admin2
+	// (or anything else writing to the SPA's bundle) has been updated under
+	// us. The next intra-app navigation must be a full page load instead of
+	// an SPA fetch; otherwise the router asks for a chunk hash that no
+	// longer exists on disk and the user sees a 500.
+	beforeNavigate((nav) => {
+		if (updated.current && !nav.willUnload && nav.to?.url) {
+			nav.cancel();
+			window.location.href = nav.to.url.href;
+		}
 	});
 
 	// Focus-based invalidation safety net: if the tab was blurred for >30s,
