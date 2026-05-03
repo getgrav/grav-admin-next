@@ -15,6 +15,29 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { faIconClass, parseKeywords, parseDependencies, isFirstParty, descriptionText } from '$lib/utils/gpm';
 	import { canWrite } from '$lib/utils/permissions';
+	import { scopedKey } from '$lib/utils/scopedStorage';
+
+	const SELECTED_STORAGE_KEY = 'admin-next:plugins:selected-slug';
+
+	function readStoredSlug(): string | null {
+		if (typeof localStorage === 'undefined') return null;
+		try {
+			return localStorage.getItem(scopedKey(SELECTED_STORAGE_KEY));
+		} catch {
+			return null;
+		}
+	}
+
+	function writeStoredSlug(slug: string | null): void {
+		if (typeof localStorage === 'undefined') return;
+		try {
+			const key = scopedKey(SELECTED_STORAGE_KEY);
+			if (slug) localStorage.setItem(key, slug);
+			else localStorage.removeItem(key);
+		} catch {
+			/* quota or disabled — selection still works in-memory */
+		}
+	}
 
 	const canWriteGpm = $derived(canWrite('gpm'));
 
@@ -82,9 +105,10 @@
 		loading = true;
 		try {
 			plugins = await getInstalledPlugins();
-			// Auto-select first if none selected
 			if (!selectedSlug && plugins.length > 0) {
-				selectedSlug = plugins[0].slug;
+				const stored = readStoredSlug();
+				const restored = stored && plugins.some((p) => p.slug === stored) ? stored : null;
+				selectedSlug = restored ?? plugins[0].slug;
 			}
 		} catch (err) {
 			toast.error(i18n.t('ADMIN_NEXT.PLUGINS.FAILED_TO_LOAD_PLUGINS'));
@@ -128,6 +152,7 @@
 			return;
 		}
 		selectedSlug = slug;
+		writeStoredSlug(slug);
 	}
 
 	function openPluginConfig(slug: string) {

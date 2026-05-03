@@ -13,6 +13,29 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
+	import { scopedKey } from '$lib/utils/scopedStorage';
+
+	const SELECTED_STORAGE_KEY = 'admin-next:themes:selected-slug';
+
+	function readStoredSlug(): string | null {
+		if (typeof localStorage === 'undefined') return null;
+		try {
+			return localStorage.getItem(scopedKey(SELECTED_STORAGE_KEY));
+		} catch {
+			return null;
+		}
+	}
+
+	function writeStoredSlug(slug: string | null): void {
+		if (typeof localStorage === 'undefined') return;
+		try {
+			const key = scopedKey(SELECTED_STORAGE_KEY);
+			if (slug) localStorage.setItem(key, slug);
+			else localStorage.removeItem(key);
+		} catch {
+			/* quota or disabled — selection still works in-memory */
+		}
+	}
 
 	const canWriteGpm = $derived(canWrite('gpm'));
 
@@ -73,7 +96,9 @@
 		try {
 			themes = await getInstalledThemes();
 			if (!selectedSlug && themes.length > 0) {
-				selectedSlug = themes[0].slug;
+				const stored = readStoredSlug();
+				const restored = stored && themes.some((t) => t.slug === stored) ? stored : null;
+				selectedSlug = restored ?? themes[0].slug;
 			}
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.THEMES.FAILED_TO_LOAD_THEMES'));
@@ -93,6 +118,7 @@
 			return;
 		}
 		selectedSlug = slug;
+		writeStoredSlug(slug);
 	}
 
 	function openThemeConfig(slug: string) {
