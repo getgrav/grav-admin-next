@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { marked } from 'marked';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { DatePicker } from 'bits-ui';
@@ -256,6 +257,11 @@
 	</DatePicker.Root>
 
 	{#if field.description}
-		<p class="text-xs text-muted-foreground">{translateLabel(field.description)}</p>
+		{@const desc = translateLabel(field.description)}
+		{#if field.markdown}
+			<p class="text-xs text-muted-foreground">{@html marked.parseInline(desc)}</p>
+		{:else}
+			<p class="text-xs text-muted-foreground">{desc}</p>
+		{/if}
 	{/if}
 </div>

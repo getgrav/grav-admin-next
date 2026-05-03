@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { marked } from 'marked';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldSizeClass } from '$lib/utils/field-size';
@@ -78,10 +79,13 @@
 				oninput={handleInput}
 			/>
 		{/if}
-		{#if field.description && field.markdown}
-			<p class="text-xs text-muted-foreground">{@html field.description}</p>
-		{:else if field.description}
-			<p class="text-xs text-muted-foreground">{translateLabel(field.description)}</p>
+		{#if field.description}
+			{@const desc = translateLabel(field.description)}
+			{#if field.markdown}
+				<p class="text-xs text-muted-foreground">{@html marked.parseInline(desc)}</p>
+			{:else}
+				<p class="text-xs text-muted-foreground">{desc}</p>
+			{/if}
 		{/if}
 	</div>
 {:else}

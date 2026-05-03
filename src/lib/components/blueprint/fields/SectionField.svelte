@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { marked } from 'marked';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import FieldRenderer from '../FieldRenderer.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
@@ -96,7 +97,12 @@
 				{translateLabel(field.title || field.label)}
 			</h3>
 			{#if field.description}
-				<p class="mt-1 text-sm text-muted-foreground">{translateLabel(field.description)}</p>
+				{@const desc = translateLabel(field.description)}
+				{#if field.markdown}
+					<p class="mt-1 text-sm text-muted-foreground">{@html marked.parseInline(desc)}</p>
+				{:else}
+					<p class="mt-1 text-sm text-muted-foreground">{desc}</p>
+				{/if}
 			{/if}
 		</div>
 	{/if}
