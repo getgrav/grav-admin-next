@@ -41,7 +41,7 @@
 		onchange,
 		language = 'yaml',
 		placeholder = '',
-		minHeight = '120px',
+		minHeight = 'auto',
 		maxHeight = '400px',
 		disabled = false,
 		readonly: isReadonly = false,
@@ -205,5 +205,5 @@
 <div
 	bind:this={containerEl}
 	class="overflow-hidden rounded-lg border border-input bg-muted/50 shadow-sm focus-within:ring-1 focus-within:ring-ring {className}"
-	style="min-height: {minHeight}; max-height: {maxHeight}; overflow-y: auto;"
+	style="{minHeight && minHeight !== 'auto' ? `min-height: ${minHeight};` : ''} max-height: {maxHeight}; overflow-y: auto;"
 ></div>

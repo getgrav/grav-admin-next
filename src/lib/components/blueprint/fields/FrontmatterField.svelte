@@ -32,7 +32,6 @@
 		value={stringValue}
 		onchange={(v) => onchange(v)}
 		language="yaml"
-		minHeight="200px"
 		maxHeight="600px"
 		disabled={field.disabled}
 		readonly={field.readonly}
