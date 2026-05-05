@@ -35,6 +35,7 @@
 	import WebhookExamplesField from './fields/WebhookExamplesField.svelte';
 	import CustomFieldWrapper from './fields/CustomFieldWrapper.svelte';
 	import PageExistsField from './fields/PageExistsField.svelte';
+	import ColorPickerField from './fields/ColorPickerField.svelte';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldMatches } from '$lib/utils/field-filter';
@@ -277,6 +278,27 @@
 					/>
 				{/each}
 			</div>
+		{/each}
+	</div>
+
+{:else if field.type === 'column' && field.fields}
+	<!-- Standalone `column` (not nested inside a `columns` parent) — admin-classic
+		 treats this as a transparent group and just renders its children. Without
+		 this branch the field falls through to RawField and shows the unknown-type
+		 debug rendering. -->
+	{@const childFields = field.fields.filter(f => !suppressedNames.has(f.name) && !suppressedTypes.has(f.type))}
+	<div class="space-y-4">
+		{#each childFields as childField (childField.name)}
+			<svelte:self
+				field={childField}
+				value={getValue(childField.name)}
+				onchange={(val: unknown) => onFieldChange(childField.name, val)}
+				oncommit={onFieldCommit ? (val: unknown, old?: unknown) => onFieldCommit(childField.name, val, old) : undefined}
+				{getValue}
+				{onFieldChange}
+				{onFieldCommit}
+				{filter}
+			/>
 		{/each}
 	</div>
 
@@ -545,7 +567,7 @@
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
 		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
-		<TextField field={{ ...field, type: 'color' }} {value} {onchange} />
+		<ColorPickerField {field} {value} {onchange} />
 	</div>
 
 {:else if field.type === 'elements'}

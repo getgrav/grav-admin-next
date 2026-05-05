@@ -18,13 +18,22 @@ const BASE_PLACEHOLDER = '/__GRAV_ADMIN2_BASE__';
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	compilerOptions: {
-		// defaults to rune mode for the project, execept for `node_modules`. Can be removed in svelte 6.
+		// Defaults to rune mode for the project, except for `node_modules`. Can
+		// be removed in svelte 6.
+		//
+		// Allowlist Svelte 5-native libraries we ship with our own source —
+		// they use snippets (`{@render children?.()}`) which silently fall back
+		// to legacy slots and lose children when compiled in non-runes mode.
 		runes: ({ filename }) => {
 			const relativePath = relative(import.meta.dirname, filename);
 			const pathSegments = relativePath.toLowerCase().split(sep);
 			const isExternalLibrary = pathSegments.includes('node_modules');
+			if (!isExternalLibrary) return true;
 
-			return isExternalLibrary ? undefined : true;
+			const runesLibraries = ['@hueycolor'];
+			if (runesLibraries.some((lib) => pathSegments.includes(lib))) return true;
+
+			return undefined;
 		}
 	},
 	kit: {

@@ -68,6 +68,10 @@ export interface BlueprintField {
 	folder?: string;
 	condition?: string;
 	translate?: boolean;
+	/** colorpicker — when false, hides the alpha slider and emits a 6-digit
+	 * #RRGGBB hex (matches Grav's classic colorpicker convention). Defaults
+	 * to true so the slider is shown and 8-digit #RRGGBBAA may be emitted. */
+	alpha?: boolean;
 }
 
 export interface BlueprintSchema {
