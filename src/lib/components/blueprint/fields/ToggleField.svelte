@@ -99,8 +99,11 @@
 		</div>
 	{/if}
 
-	<!-- Segmented toggle with CSS-based sliding indicator -->
-	<div class="relative inline-grid rounded-lg border border-input bg-muted/30 p-0.5"
+	<!-- Segmented toggle with CSS-based sliding indicator. `isolate` keeps the
+	     button `z-10` (which is needed to sit above the sliding highlight)
+	     scoped here, instead of leaking into the global stacking context and
+	     punching through sticky bars (e.g. blueprint tab strip). -->
+	<div class="relative isolate inline-grid rounded-lg border border-input bg-muted/30 p-0.5"
 		style="grid-template-columns: repeat({count}, minmax(0, 1fr));"
 	>
 		<!-- Sliding highlight (CSS positioned by grid fraction) -->
