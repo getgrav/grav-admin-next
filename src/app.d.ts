@@ -31,6 +31,11 @@ declare global {
 				variant?: 'destructive' | 'default';
 			}) => Promise<boolean>;
 		};
+		__GRAV_ADMIN_BASE: string;
+		__GRAV_NAVIGATE: (
+			url: string,
+			opts?: { replaceState?: boolean; noScroll?: boolean; keepFocus?: boolean; invalidateAll?: boolean }
+		) => Promise<void>;
 	}
 }
 

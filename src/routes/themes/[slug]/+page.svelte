@@ -5,7 +5,7 @@
 	import { base } from '$app/paths';
 	import { setContext } from 'svelte';
 	import { provideFormCommit } from '$lib/utils/form-commit.svelte';
-	import { getTheme, getThemeConfig, saveThemeConfig, setActiveTheme, removeTheme, getThemeReadme, getThemeChangelog, updatePackage, type ThemeInfo } from '$lib/api/endpoints/gpm';
+	import { getTheme, getThemeConfig, saveThemeConfig, setActiveTheme, removeTheme, getThemeReadme, getThemeChangelog, updatePackage, getRepositoryThemes, type ThemeInfo } from '$lib/api/endpoints/gpm';
 	import { reloadIfAdminUpdated } from '$lib/utils/gpm';
 	import { getThemeBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
@@ -139,6 +139,17 @@
 			originalJson = JSON.stringify(configResult.data);
 			etag = configResult.etag;
 		} catch {
+			// Theme isn't installed locally — if the slug exists in the GPM
+			// repository, hand off to the themes list with the install modal
+			// pre-opened on this slug. Saves users from a dead-end error when
+			// they bookmark or share a /themes/<slug> URL.
+			try {
+				const repo = await getRepositoryThemes();
+				if (repo.some((t) => t.slug === slug)) {
+					goto(`${base}/themes?install=${encodeURIComponent(slug)}`, { replaceState: true });
+					return;
+				}
+			} catch { /* fall through to error display */ }
 			error = `Failed to load theme '${slug}'.`;
 		} finally {
 			loading = false;

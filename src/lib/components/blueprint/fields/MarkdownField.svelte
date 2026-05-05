@@ -30,6 +30,13 @@
 	type CollabCtx = (fieldName: string) => EditorCollab | null;
 	const collabCtx = getContext<CollabCtx | undefined>('editorCollab');
 	const collab = $derived(collabCtx ? collabCtx(field.name) : null);
+	// Defer first mount when this field participates in collab and the
+	// room hasn't connected yet — otherwise CodeMirror would mount in
+	// solo mode, then need to be torn down and remounted to pick up
+	// `yText`, flashing whatever the editor showed in the meantime.
+	type CollabPendingCtx = (fieldName: string) => boolean;
+	const collabPendingCtx = getContext<CollabPendingCtx | undefined>('collabPending');
+	const collabPending = $derived(collabPendingCtx ? collabPendingCtx(field.name) : false);
 </script>
 
 <div class="space-y-2">
@@ -41,6 +48,11 @@
 			{/if}
 		</span>
 	{/if}
+	{#if collabPending}
+		<div class="flex h-64 items-center justify-center rounded-lg border border-border bg-card text-sm text-muted-foreground">
+			<span class="animate-pulse">{i18n.t('ADMIN_NEXT.PAGES.EDIT.CONNECTING_TO_COLLAB')}</span>
+		</div>
+	{:else}
 	<MarkdownEditor
 		value={typeof value === 'string' ? value : (value != null ? String(value) : (typeof field.default === 'string' ? field.default : ''))}
 		onchange={(v) => onchange(v)}
@@ -52,6 +64,7 @@
 		yAwareness={collab?.awareness ?? null}
 		yUser={collab?.user ?? null}
 	/>
+	{/if}
 	{#if field.help}
 		<span class="text-xs text-muted-foreground">{translateLabel(field.help)}</span>
 	{/if}

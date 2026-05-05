@@ -80,6 +80,15 @@
 		};
 	});
 
+	// Expose the admin route base + SPA navigation so plugin web components
+	// can build correct URLs (admin may be mounted at any route, e.g. /admin
+	// or /grav-api/admin) and navigate without triggering a full page load.
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+		window.__GRAV_ADMIN_BASE = base;
+		window.__GRAV_NAVIGATE = (url, opts) => goto(url, opts);
+	});
+
 	// SvelteKit's version-poll (configured in svelte.config.js) flips
 	// `updated.current` to true when _app/version.json changes — i.e. admin2
 	// (or anything else writing to the SPA's bundle) has been updated under

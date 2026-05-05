@@ -10,13 +10,19 @@
 		open: boolean;
 		onclose: () => void;
 		oninstalled: () => void;
+		initialSearch?: string;
 	}
 
-	let { open, onclose, oninstalled }: Props = $props();
+	let { open, onclose, oninstalled, initialSearch = '' }: Props = $props();
 
 	let allThemes = $state<RepositoryTheme[]>([]);
 	let loading = $state(false);
-	let search = $state('');
+	let search = $state(initialSearch);
+
+	// Update search when initialSearch changes (e.g., navigated with ?install=slug)
+	$effect(() => {
+		if (initialSearch) search = initialSearch;
+	});
 	let selectedSlug = $state<string | null>(null);
 	let installingSlug = $state<string | null>(null);
 
@@ -58,7 +64,9 @@
 		loading = true;
 		try {
 			allThemes = await getRepositoryThemes();
-			const first = allThemes.find((t) => !t.installed);
+			// Auto-select matching theme if initialSearch is a slug, otherwise first available
+			const match = initialSearch ? allThemes.find((t) => !t.installed && t.slug === initialSearch) : null;
+			const first = match ?? allThemes.find((t) => !t.installed);
 			if (first) selectedSlug = first.slug;
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.ADD_THEME_MODAL.FAILED_TO_LOAD_AVAILABLE_THEMES_FROM_GPM'));
@@ -104,7 +112,7 @@
 
 	$effect(() => {
 		if (open) {
-			search = '';
+			search = initialSearch || '';
 			selectedSlug = null;
 			loadThemes();
 		}

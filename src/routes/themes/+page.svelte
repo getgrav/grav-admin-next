@@ -2,6 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { page } from '$app/state';
 	import { getInstalledThemes, checkUpdates, updatePackage, updateAllPackages, type ThemeInfo } from '$lib/api/endpoints/gpm';
 	import { reloadIfAdminUpdated } from '$lib/utils/gpm';
 	import { Button } from '$lib/components/ui/button';
@@ -45,9 +46,19 @@
 	let sortBy = $state<'name' | 'author' | 'enabled'>('name');
 	let selectedSlug = $state<string | null>(null);
 	let addModalOpen = $state(false);
+	let installSlug = $state('');
 	let checkingUpdates = $state(false);
 	let updatingSlug = $state<string | null>(null);
 	let updatingAll = $state(false);
+
+	// Auto-open install modal when navigating with ?install=slug
+	$effect(() => {
+		const slug = page.url.searchParams.get('install');
+		if (slug) {
+			installSlug = slug;
+			addModalOpen = true;
+		}
+	});
 
 	const updatableCount = $derived(themes.filter((t) => t.updatable).length);
 
@@ -515,6 +526,7 @@
 
 <AddThemeModal
 	open={addModalOpen}
-	onclose={() => (addModalOpen = false)}
+	initialSearch={installSlug}
+	onclose={() => { addModalOpen = false; installSlug = ''; if (page.url.searchParams.has('install')) goto(`${base}/themes`, { replaceState: true }); }}
 	oninstalled={handleThemeInstalled}
 />

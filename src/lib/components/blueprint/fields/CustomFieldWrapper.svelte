@@ -4,7 +4,7 @@
 	import { api } from '$lib/api/client';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
-	import { getContext, onMount } from 'svelte';
+	import { getContext } from 'svelte';
 
 	/**
 	 * Optional collaborative-editing context. The page editor provides a
@@ -20,6 +20,16 @@
 	}
 	type CollabCtx = (fieldName: string) => EditorCollab | null;
 	const collabCtx = getContext<CollabCtx | undefined>('editorCollab');
+	// When this field participates in collab and the room hasn't
+	// connected yet, defer the first mount of the web component. If
+	// we mounted in solo mode and then needed collab, we'd have to
+	// destroy and rebuild the editor — flashing whatever the editor
+	// happened to be displaying (often stale Y.XmlFragment content)
+	// during the gap. The deferred mount lands once with the right
+	// yFragment/yAwareness/yUser from the start.
+	type CollabPendingCtx = (fieldName: string) => boolean;
+	const collabPendingCtx = getContext<CollabPendingCtx | undefined>('collabPending');
+	const collabPending = $derived(collabPendingCtx ? collabPendingCtx(field.name) : false);
 
 	interface Props {
 		field: BlueprintField;
@@ -160,7 +170,15 @@
 		window.__GRAV_CONTENT_LANG = contentLang.activeLang;
 	});
 
-	onMount(() => {
+	// Defer initial loadComponent() until the collab room (if any) is
+	// ready. Once collabPending flips false the effect runs and the
+	// element mounts with collab props in place; if collab is off
+	// entirely it runs on first call and we mount immediately.
+	let mountStarted = $state(false);
+	$effect(() => {
+		if (collabPending) return;
+		if (mountStarted) return;
+		mountStarted = true;
 		loadComponent();
 	});
 </script>
@@ -182,6 +200,10 @@
 	{#if error}
 		<div class="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
 			{error}
+		</div>
+	{:else if collabPending}
+		<div class="flex h-64 items-center justify-center rounded-lg border border-border bg-card text-sm text-muted-foreground">
+			<span class="animate-pulse">{i18n.t('ADMIN_NEXT.PAGES.EDIT.CONNECTING_TO_COLLAB')}</span>
 		</div>
 	{:else if !loaded}
 		<div class="flex h-10 items-center justify-center rounded-lg border border-dashed border-border">

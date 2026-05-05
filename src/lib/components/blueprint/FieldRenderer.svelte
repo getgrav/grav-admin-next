@@ -289,7 +289,7 @@
 		{#if field.markdown}
 			<div class="prose prose-sm dark:prose-invert max-w-none text-muted-foreground">{@html marked.parse(displayText)}</div>
 		{:else}
-			<div class="text-sm text-muted-foreground">{displayText}</div>
+			<div class="text-sm text-muted-foreground">{@html displayText}</div>
 		{/if}
 	{/if}
 

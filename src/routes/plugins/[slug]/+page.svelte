@@ -5,7 +5,7 @@
 	import { base } from '$app/paths';
 	import { setContext } from 'svelte';
 	import { provideFormCommit } from '$lib/utils/form-commit.svelte';
-	import { getPlugin, getPluginConfig, savePluginConfig, setPluginEnabled, removePlugin, getPluginReadme, getPluginChangelog, updatePackage, type PluginInfo } from '$lib/api/endpoints/gpm';
+	import { getPlugin, getPluginConfig, savePluginConfig, setPluginEnabled, removePlugin, getPluginReadme, getPluginChangelog, updatePackage, getRepositoryPlugins, type PluginInfo } from '$lib/api/endpoints/gpm';
 	import { reloadIfAdminUpdated } from '$lib/utils/gpm';
 	import { getPluginBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
@@ -143,6 +143,17 @@
 				customFieldRegistry.register(slug, pluginResult.custom_fields as Record<string, string>);
 			}
 		} catch (err: unknown) {
+			// Plugin isn't installed locally — if the slug exists in the GPM
+			// repository, hand off to the plugins list with the install modal
+			// pre-opened on this slug. Saves users from a dead-end error when
+			// they bookmark or share a /plugins/<slug> URL.
+			try {
+				const repo = await getRepositoryPlugins();
+				if (repo.some((p) => p.slug === slug)) {
+					goto(`${base}/plugins?install=${encodeURIComponent(slug)}`, { replaceState: true });
+					return;
+				}
+			} catch { /* fall through to error display */ }
 			error = `Failed to load plugin '${slug}'.`;
 		} finally {
 			loading = false;

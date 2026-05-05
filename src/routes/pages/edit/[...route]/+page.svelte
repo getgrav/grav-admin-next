@@ -184,6 +184,18 @@
 	});
 	let syncReady = $state(false);
 	/**
+	 * True while collab is enabled but the room hasn't connected/seeded yet.
+	 * Editors that participate in collab read this via context and defer
+	 * their first mount until it's false — avoiding a solo→collab remount
+	 * that would otherwise flash stale content while the Y document
+	 * settles (especially for editor-pro, where the Y.XmlFragment is
+	 * separate from the Y.Text and only gets primed on first mount).
+	 */
+	const collabPending = $derived(prefs.collabEnabled && !syncReady);
+	setContext('collabPending', (fieldName: string): boolean => {
+		return fieldName === 'content' && collabPending;
+	});
+	/**
 	 * Guard flag: set while we're applying a remote sync snapshot to Svelte
 	 * state so our own $effect watchers don't push the same values back out
 	 * on the wire. Not needed for the (path, value) push-on-change callers
@@ -246,9 +258,14 @@
 
 		if (!enabled || !loaded || !currentRoute) return;
 
-		const roomId = currentLang
-			? `${currentRoute.replace(/^\//, '')}.${currentLang}@${currentTemplate}`
-			: `${currentRoute.replace(/^\//, '')}@${currentTemplate}`;
+		// Room id format mirrors RoomRegistry on the server side:
+		//   <route>@<template>            — default language
+		//   <route>@<template>@<lang>     — explicit language
+		// The server re-derives this from URL route + body lang, so the
+		// value here is mostly local (provider state, awareness keys),
+		// but we keep them aligned for log/debug consistency.
+		const baseId = `${currentRoute.replace(/^\//, '')}@${currentTemplate}`;
+		const roomId = currentLang ? `${baseId}@${currentLang}` : baseId;
 
 		// All construction below happens inside an async IIFE because the
 		// capability fetch (Polling vs Mercure) needs to settle before we
@@ -1294,7 +1311,11 @@
 						<div class="overflow-hidden rounded-lg border border-border bg-card"
 							onfocusout={() => { if (!editorLock && prefs.autoSaveEnabled && content !== (pageData?.content ?? '')) autoSave.oncommit('content', content, pageData?.content ?? ''); }}
 						>
-							{#key editorCollab ? 'collab' : 'solo'}
+							{#if collabPending}
+								<div class="flex h-64 items-center justify-center text-sm text-muted-foreground">
+									<span class="animate-pulse">{i18n.t('ADMIN_NEXT.PAGES.EDIT.CONNECTING_TO_COLLAB')}</span>
+								</div>
+							{:else}
 								<MarkdownEditor
 									value={content}
 									onchange={(v) => { content = v; }}
@@ -1306,7 +1327,7 @@
 									yAwareness={editorCollab?.awareness ?? null}
 									yUser={editorCollab?.user ?? null}
 								/>
-							{/key}
+							{/if}
 						</div>
 						<div class="rounded-lg border border-border bg-card p-4">
 							<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} />
@@ -1363,10 +1384,14 @@
 						</div>
 					{/if}
 				{:else if blueprint}
-					<!-- Normal mode: Blueprint-driven form. Re-key on collab
-					     transition so MarkdownField's CodeMirror remounts and
-					     picks up the now-available yText prop. -->
-					{#key blueprint.name + (editorCollab ? '|collab' : '|solo')}
+					<!-- Normal mode: Blueprint-driven form. Key on blueprint
+					     name only — when collab transitions from solo to
+					     ready, the content-field renderers (MarkdownField /
+					     CustomFieldWrapper) defer their initial mount via
+					     the `collabPending` context so they pick up
+					     yText / yFragment from the start instead of
+					     remounting the whole form. -->
+					{#key blueprint.name}
 						<BlueprintForm
 							fields={blueprint.fields}
 							data={headerData}
@@ -1389,7 +1414,11 @@
 					{#if editorLock}
 						<EditorLockNotice ownerType={editorLock.ownerType} ownerName={editorLock.ownerName} />
 					{/if}
-					{#key editorCollab ? 'collab' : 'solo'}
+					{#if collabPending}
+						<div class="flex h-64 items-center justify-center rounded-lg border border-border bg-card text-sm text-muted-foreground">
+							<span class="animate-pulse">{i18n.t('ADMIN_NEXT.PAGES.EDIT.CONNECTING_TO_COLLAB')}</span>
+						</div>
+					{:else}
 						<MarkdownEditor
 							value={content}
 							onchange={(v) => { content = v; }}
@@ -1400,7 +1429,7 @@
 							yAwareness={editorCollab?.awareness ?? null}
 							yUser={editorCollab?.user ?? null}
 						/>
-					{/key}
+					{/if}
 				{/if}
 			</div>
 
