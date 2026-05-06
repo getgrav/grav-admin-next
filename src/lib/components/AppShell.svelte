@@ -78,6 +78,7 @@
 			invalidations.subscribe('plugins:update:admin', () => refreshMe()),
 			invalidations.subscribe('plugins:update:admin2', () => refreshMe()),
 			invalidations.subscribe('plugins:update:api', () => refreshMe()),
+			invalidations.subscribe('grav:update', () => refreshMe()),
 		];
 		return () => { for (const u of unsubs) u(); };
 	});
