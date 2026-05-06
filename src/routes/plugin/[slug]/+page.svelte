@@ -161,7 +161,16 @@
 			return;
 		}
 
-		if (!action.endpoint) return;
+		// Blueprint-mode actions without endpoint — dispatch a window event so a
+		// plugin's auto-loaded widget script (or any other listener) can react.
+		// Lets a blueprint page open a modal / launch a wizard without having to
+		// drop into full component mode just for the sake of one action button.
+		if (!action.endpoint) {
+			window.dispatchEvent(new CustomEvent('grav:plugin-page-action', {
+				detail: { plugin: slug, action: { id: action.id, label: action.label } },
+			}));
+			return;
+		}
 
 		if (action.confirm) {
 			pendingAction = action;
