@@ -170,7 +170,7 @@
 				<span class="text-sm font-semibold text-foreground">{translateLabel(field.label)}</span>
 			{/if}
 			{#if field.help}
-				<p class="mt-0.5 text-xs text-muted-foreground">{translateLabel(field.help)}</p>
+				<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
 			{/if}
 		</div>
 		<div>
@@ -325,7 +325,7 @@
 					<label class="text-sm font-semibold text-foreground">{translateLabel(field.label)}</label>
 				{/if}
 				{#if field.help}
-					<p class="mt-0.5 text-xs text-muted-foreground">{translateLabel(field.help)}</p>
+					<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
 				{/if}
 			</div>
 		{/if}
@@ -460,7 +460,7 @@
 			<span class="text-sm font-semibold text-foreground">{translateLabel(field.label)}</span>
 		</label>
 		{#if field.help}
-			<p class="mt-0.5 ml-7 text-xs text-muted-foreground">{translateLabel(field.help)}</p>
+			<p class="mt-0.5 ml-7 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
 		{/if}
 	</div>
 
@@ -473,7 +473,7 @@
 					<span class="block text-sm font-semibold text-foreground">{translateLabel(field.label)}</span>
 				{/if}
 				{#if field.help}
-					<p class="mt-0.5 text-xs text-muted-foreground">{translateLabel(field.help)}</p>
+					<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
 				{/if}
 			</div>
 		{/if}
@@ -511,7 +511,7 @@
 					<span class="block text-sm font-semibold text-foreground">{translateLabel(field.label)}</span>
 				{/if}
 				{#if field.help}
-					<p class="mt-0.5 text-xs text-muted-foreground">{translateLabel(field.help)}</p>
+					<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
 				{/if}
 			</div>
 		{/if}

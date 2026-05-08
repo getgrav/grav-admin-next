@@ -66,6 +66,6 @@
 	/>
 	{/if}
 	{#if field.help}
-		<span class="text-xs text-muted-foreground">{translateLabel(field.help)}</span>
+		<span class="text-xs text-muted-foreground">{@html translateLabel(field.help)}</span>
 	{/if}
 </div>

@@ -96,12 +96,12 @@
 			<h3 class="text-base font-bold text-foreground">
 				{translateLabel(field.title || field.label)}
 			</h3>
-			{#if field.description}
-				{@const desc = translateLabel(field.description)}
+			{#if field.text || field.description}
+				{@const desc = translateLabel(field.text || field.description)}
 				{#if field.markdown}
 					<p class="mt-1 text-sm text-muted-foreground">{@html marked.parseInline(desc)}</p>
 				{:else}
-					<p class="mt-1 text-sm text-muted-foreground">{desc}</p>
+					<p class="mt-1 text-sm text-muted-foreground">{@html desc}</p>
 				{/if}
 			{/if}
 		</div>
