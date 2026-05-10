@@ -89,7 +89,11 @@ function createPreferencesStore() {
 	let autoSaveToolbarUndo = $state(stored.autoSaveToolbarUndo ?? true);
 	let autoSaveBatchWindowMs = $state(stored.autoSaveBatchWindowMs ?? 0);
 	let fontFamily = $state<FontFamily>(stored.fontFamily ?? 'google-sans');
-	let collabEnabled = $state(stored.collabEnabled ?? false);
+	// Default ON — installing sync should give you collab without flipping a
+	// hidden toggle. The page editor degrades cleanly to solo mode if sync
+	// isn't installed or the handshake fails (e.g. missing `api.collab.*`),
+	// so leaving this on is safe even when sync isn't available.
+	let collabEnabled = $state(stored.collabEnabled ?? true);
 
 	applyFont(fontFamily);
 

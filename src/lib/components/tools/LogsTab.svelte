@@ -2,8 +2,8 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { getLogs } from '$lib/api/endpoints/tools';
-	import type { LogEntry } from '$lib/api/endpoints/tools';
+	import { getLogs, getLogFiles } from '$lib/api/endpoints/tools';
+	import type { LogEntry, LogFile } from '$lib/api/endpoints/tools';
 	import { Button } from '$lib/components/ui/button';
 	import { usePoll } from '$lib/utils/poll.svelte';
 	import { RefreshCw, ChevronLeft, ChevronRight, Search, X } from 'lucide-svelte';
@@ -13,10 +13,15 @@
 	let total = $state(0);
 	let expandedRows = $state<Set<number>>(new Set());
 
-	// Filters — persist level and lines in localStorage
+	// Available log files (populated via /system/logs/files on mount)
+	let files = $state<LogFile[]>([]);
+	let selectedFile = $state('grav.log');
+
+	// Filters — persist level, lines, and selected file in localStorage
 	const stored = typeof localStorage !== 'undefined' ? JSON.parse(localStorage.getItem('grav_logs_prefs') || '{}') : {};
 	let level = $state(stored.level ?? '');
 	let perPage = $state(Number(stored.perPage) || 50);
+	const storedFile = stored.file ?? '';
 	let page = $state(1);
 	let search = $state('');
 	let searchInput = $state('');
@@ -25,7 +30,7 @@
 	const poller = usePoll(() => load(), 5000, { runImmediately: false });
 
 	function persistPrefs() {
-		localStorage.setItem('grav_logs_prefs', JSON.stringify({ level, perPage: Number(perPage) }));
+		localStorage.setItem('grav_logs_prefs', JSON.stringify({ level, perPage: Number(perPage), file: selectedFile }));
 	}
 
 	function toggleAutoRefresh() {
@@ -69,10 +74,26 @@
 		DEBUG: 'bg-muted text-muted-foreground',
 	};
 
+	async function loadFiles() {
+		try {
+			const result = await getLogFiles();
+			files = result.files || [];
+			// Honor stored pref only if it's still in the registered whitelist
+			// (a plugin may have been disabled since last visit).
+			const validStored = storedFile && files.some((f) => f.file === storedFile);
+			selectedFile = validStored ? storedFile : (result.default || files[0]?.file || 'grav.log');
+		} catch {
+			toast.error(i18n.t('ADMIN_NEXT.TOOLS.LOGS.FAILED_TO_LOAD_LOG_FILES'));
+			// Fall back to grav.log so the viewer still works on server error.
+			files = [{ file: 'grav.log', label: 'Grav System Log' }];
+			selectedFile = 'grav.log';
+		}
+	}
+
 	async function load() {
 		loading = true;
 		try {
-			const result = await getLogs({ page, per_page: perPage, level: level || undefined, search: search || undefined });
+			const result = await getLogs({ page, per_page: perPage, level: level || undefined, search: search || undefined, file: selectedFile });
 			entries = result.data || [];
 			total = result.meta?.pagination?.total ?? 0;
 		} catch {
@@ -123,7 +144,10 @@
 		});
 	}
 
-	onMount(load);
+	onMount(async () => {
+		await loadFiles();
+		await load();
+	});
 </script>
 
 <div class="space-y-4">
@@ -150,6 +174,19 @@
 				</button>
 			{/if}
 		</div>
+
+		{#if files.length > 1}
+			<select
+				class="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+				aria-label={i18n.t('ADMIN_NEXT.TOOLS.LOGS.LOG_FILE')}
+				bind:value={selectedFile}
+				onchange={handleFilterChange}
+			>
+				{#each files as f (f.file)}
+					<option value={f.file}>{f.label}</option>
+				{/each}
+			</select>
+		{/if}
 
 		<select
 			class="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"

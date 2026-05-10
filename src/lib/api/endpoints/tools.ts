@@ -114,17 +114,33 @@ export interface LogsResponse {
 	};
 }
 
+export interface LogFile {
+	file: string;
+	label: string;
+}
+
+export interface LogFilesResponse {
+	files: LogFile[];
+	default: string;
+}
+
+export async function getLogFiles(): Promise<LogFilesResponse> {
+	return api.get<LogFilesResponse>('/system/logs/files');
+}
+
 export async function getLogs(params: {
 	page?: number;
 	per_page?: number;
 	level?: string;
 	search?: string;
+	file?: string;
 }): Promise<LogsResponse> {
 	const qp: Record<string, string> = {};
 	if (params.page) qp.page = String(params.page);
 	if (params.per_page) qp.per_page = String(params.per_page);
 	if (params.level) qp.level = params.level;
 	if (params.search) qp.search = params.search;
+	if (params.file) qp.file = params.file;
 	return api.getFullBody<LogsResponse>('/system/logs', qp);
 }
 
