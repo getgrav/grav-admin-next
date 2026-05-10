@@ -12,6 +12,7 @@
 		RotateCcw, Plus, Trash2, GripVertical, Upload
 	} from 'lucide-svelte';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
+	import SegmentedToggle from '$lib/components/ui/SegmentedToggle.svelte';
 
 	let confirmResetOpen = $state(false);
 	let customOpen = $state(!ACCENT_PRESETS.some(p => p.hue === theme.accentHue && p.saturation === theme.accentSaturation));
@@ -108,29 +109,15 @@
 					<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.CHOOSE_HOW_THE_LOGO_IS_DISPLAYED')}</p>
 				</div>
 				<div>
-					<div class="inline-flex rounded-md border border-border shadow-sm">
-						<button
-							class="inline-flex h-9 items-center gap-1.5 rounded-l-md px-3 text-sm font-medium transition-colors
-								{prefs.logo.mode === 'default' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
-							onclick={() => setLogoMode('default')}
-						>
-							{i18n.t('ADMIN_NEXT.SETTINGS.GRAV_LOGO')}
-						</button>
-						<button
-							class="inline-flex h-9 items-center gap-1.5 px-3 text-sm font-medium transition-colors
-								{prefs.logo.mode === 'text' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
-							onclick={() => setLogoMode('text')}
-						>
-							{i18n.t('ADMIN_NEXT.SETTINGS.CUSTOM_TEXT')}
-						</button>
-						<button
-							class="inline-flex h-9 items-center gap-1.5 rounded-r-md px-3 text-sm font-medium transition-colors
-								{prefs.logo.mode === 'custom' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
-							onclick={() => setLogoMode('custom')}
-						>
-							{i18n.t('ADMIN_NEXT.SETTINGS.CUSTOM_IMAGE')}
-						</button>
-					</div>
+					<SegmentedToggle
+						value={prefs.logo.mode}
+						onchange={(v) => setLogoMode(v as LogoMode)}
+						options={[
+							{ value: 'default', label: i18n.t('ADMIN_NEXT.SETTINGS.GRAV_LOGO') },
+							{ value: 'text', label: i18n.t('ADMIN_NEXT.SETTINGS.CUSTOM_TEXT') },
+							{ value: 'custom', label: i18n.t('ADMIN_NEXT.SETTINGS.CUSTOM_IMAGE') }
+						]}
+					/>
 				</div>
 			</div>
 
@@ -217,22 +204,14 @@
 					<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.CHOOSE_BETWEEN_LIGHT_AND_DARK_APPEARANCE')}</p>
 				</div>
 				<div>
-					<div class="inline-flex rounded-md border border-border shadow-sm">
-						<button
-							class="inline-flex h-9 items-center gap-1.5 rounded-l-md px-3 text-sm font-medium transition-colors
-								{!theme.isDark ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
-							onclick={() => theme.setColorMode('light')}
-						>
-							Light
-						</button>
-						<button
-							class="inline-flex h-9 items-center gap-1.5 rounded-r-md px-3 text-sm font-medium transition-colors
-								{theme.isDark ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
-							onclick={() => theme.setColorMode('dark')}
-						>
-							Dark
-						</button>
-					</div>
+					<SegmentedToggle
+						value={theme.isDark ? 'dark' : 'light'}
+						onchange={(v) => theme.setColorMode(v as 'light' | 'dark')}
+						options={[
+							{ value: 'light', label: 'Light' },
+							{ value: 'dark', label: 'Dark' }
+						]}
+					/>
 				</div>
 			</div>
 
@@ -348,29 +327,15 @@
 					<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.HOW_PAGES_ARE_DISPLAYED_BY_DEFAULT')}</p>
 				</div>
 				<div>
-					<div class="inline-flex rounded-md border border-border shadow-sm">
-						<button
-							class="inline-flex h-9 items-center gap-1.5 rounded-l-md px-3 text-sm font-medium transition-colors
-								{prefs.pagesViewMode === 'tree' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
-							onclick={() => prefs.pagesViewMode = 'tree'}
-						>
-							Tree
-						</button>
-						<button
-							class="inline-flex h-9 items-center gap-1.5 px-3 text-sm font-medium transition-colors
-								{prefs.pagesViewMode === 'list' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
-							onclick={() => prefs.pagesViewMode = 'list'}
-						>
-							List
-						</button>
-						<button
-							class="inline-flex h-9 items-center gap-1.5 rounded-r-md px-3 text-sm font-medium transition-colors
-								{prefs.pagesViewMode === 'miller' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
-							onclick={() => prefs.pagesViewMode = 'miller'}
-						>
-							{i18n.t('ADMIN_NEXT.PAGES.VIEW_COLUMNS')}
-						</button>
-					</div>
+					<SegmentedToggle
+						value={prefs.pagesViewMode}
+						onchange={(v) => prefs.pagesViewMode = v as 'tree' | 'list' | 'miller'}
+						options={[
+							{ value: 'tree', label: 'Tree' },
+							{ value: 'list', label: 'List' },
+							{ value: 'miller', label: i18n.t('ADMIN_NEXT.PAGES.VIEW_COLUMNS') }
+						]}
+					/>
 				</div>
 			</div>
 
@@ -408,22 +373,14 @@
 					<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.AUTOMATICALLY_SAVE_WHEN_YOU_LEAVE_A')}</p>
 				</div>
 				<div>
-					<div class="inline-flex rounded-md border border-border shadow-sm">
-						<button
-							class="inline-flex h-9 items-center gap-1.5 rounded-l-md px-3 text-sm font-medium transition-colors
-								{!prefs.autoSaveEnabled ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
-							onclick={() => prefs.autoSaveEnabled = false}
-						>
-							Off
-						</button>
-						<button
-							class="inline-flex h-9 items-center gap-1.5 rounded-r-md px-3 text-sm font-medium transition-colors
-								{prefs.autoSaveEnabled ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
-							onclick={() => prefs.autoSaveEnabled = true}
-						>
-							On
-						</button>
-					</div>
+					<SegmentedToggle
+						value={prefs.autoSaveEnabled}
+						onchange={(v) => prefs.autoSaveEnabled = v as boolean}
+						options={[
+							{ value: false, label: 'Off' },
+							{ value: true, label: 'On' }
+						]}
+					/>
 				</div>
 			</div>
 
@@ -475,22 +432,14 @@
 					</p>
 				</div>
 				<div>
-					<div class="inline-flex rounded-md border border-border shadow-sm">
-						<button
-							class="inline-flex h-9 items-center gap-1.5 rounded-l-md px-3 text-sm font-medium transition-colors
-								{!prefs.collabEnabled ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
-							onclick={() => prefs.collabEnabled = false}
-						>
-							Off
-						</button>
-						<button
-							class="inline-flex h-9 items-center gap-1.5 rounded-r-md px-3 text-sm font-medium transition-colors
-								{prefs.collabEnabled ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'}"
-							onclick={() => prefs.collabEnabled = true}
-						>
-							On
-						</button>
-					</div>
+					<SegmentedToggle
+						value={prefs.collabEnabled}
+						onchange={(v) => prefs.collabEnabled = v as boolean}
+						options={[
+							{ value: false, label: 'Off' },
+							{ value: true, label: 'On' }
+						]}
+					/>
 				</div>
 			</div>
 		</div>

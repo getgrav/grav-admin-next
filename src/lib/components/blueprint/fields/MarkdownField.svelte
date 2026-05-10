@@ -62,7 +62,6 @@
 		readonly={field.readonly}
 		yText={collab?.yText ?? null}
 		yAwareness={collab?.awareness ?? null}
-		yUser={collab?.user ?? null}
 	/>
 	{/if}
 	{#if field.help}

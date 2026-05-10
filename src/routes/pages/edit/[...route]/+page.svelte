@@ -183,6 +183,10 @@
 		return fieldName === 'content' ? editorCollab : null;
 	});
 	let syncReady = $state(false);
+	// Set when the collab handshake terminally fails (e.g. user lacks
+	// api.collab.read so init/pull return 403). Stops `collabPending` from
+	// blocking the editor mount forever — we fall through to solo mode.
+	let syncFailed = $state(false);
 	/**
 	 * True while collab is enabled but the room hasn't connected/seeded yet.
 	 * Editors that participate in collab read this via context and defer
@@ -191,7 +195,7 @@
 	 * settles (especially for editor-pro, where the Y.XmlFragment is
 	 * separate from the Y.Text and only gets primed on first mount).
 	 */
-	const collabPending = $derived(prefs.collabEnabled && !syncReady);
+	const collabPending = $derived(prefs.collabEnabled && !syncReady && !syncFailed);
 	setContext('collabPending', (fieldName: string): boolean => {
 		return fieldName === 'content' && collabPending;
 	});
@@ -272,8 +276,13 @@
 		// can pick a provider. References used by the cleanup closure are
 		// declared in this outer scope so teardown can null-check them
 		// regardless of which await point we were at.
+		// Sync 1.1.1+ returns transports as structured objects
+		// `[{id, name, priority, supports}, ...]`; older versions returned bare
+		// strings `['polling', 'mercure']`. Accept both shapes so the editor
+		// works against either rev of the sync plugin.
+		type CapabilitiesTransport = string | { id?: string; name?: string };
 		type Capabilities = {
-			transports?: string[];
+			transports?: CapabilitiesTransport[];
 			preferred?: string;
 			mercure?: { hub: string };
 		};
@@ -293,10 +302,14 @@
 			let useMercure = false;
 			try {
 				const caps = await apiClient.get<Capabilities>('/sync/capabilities');
+				const hasMercure = Array.isArray(caps.transports)
+					&& caps.transports.some(t =>
+						(typeof t === 'string' && t === 'mercure')
+						|| (typeof t === 'object' && t?.id === 'mercure')
+					);
 				useMercure =
 					caps.preferred === 'mercure' &&
-					Array.isArray(caps.transports) &&
-					caps.transports.includes('mercure') &&
+					hasMercure &&
 					!!caps.mercure?.hub;
 			} catch { /* fall back to polling */ }
 			if (cancelled) return;
@@ -394,7 +407,15 @@
 						localOrigin: Symbol('seed:local'),
 						remoteOrigin: Symbol('seed:remote'),
 					});
-					tempBinding.seed({ ...headerData, content });
+					// Seed must reflect the *room's* template (currentTemplate),
+					// not whatever `headerData.name` happens to hold. The two
+					// drift when the user changed template via a path that
+					// only updates the local `template` state (e.g. the
+					// Expert-mode template select). If we seed with a stale
+					// `name`, applyRemoteSnapshot will read it back, decide
+					// the template "changed", and flip us out of this room
+					// in a tight loop.
+					tempBinding.seed({ ...headerData, content, name: currentTemplate });
 					const seedBytes = Y.encodeStateAsUpdate(tempDoc);
 					tempBinding.dispose();
 					tempDoc.destroy();
@@ -426,7 +447,9 @@
 				syncBinding = binding;
 				syncReady = true;
 			} catch {
-				/* leave room cold; status already reflects error */
+				// Connect/seed failed (commonly 403 from missing api.collab.*).
+				// Unblock collabPending so the editor mounts in solo mode.
+				if (!cancelled) syncFailed = true;
 			}
 		})();
 
@@ -434,6 +457,7 @@
 			cancelled = true;
 			offRemote?.();
 			syncReady = false;
+			syncFailed = false;
 			syncBinding = null;
 			editorCollab = null;
 			syncStatus = 'idle';
@@ -1325,7 +1349,6 @@
 									readonly={!!editorLock}
 									yText={editorCollab?.yText ?? null}
 									yAwareness={editorCollab?.awareness ?? null}
-									yUser={editorCollab?.user ?? null}
 								/>
 							{/if}
 						</div>
@@ -1375,6 +1398,12 @@
 								onchange={(v) => {
 									const old = template;
 									template = v as string;
+									// Keep headerData.name in lockstep with `template`.
+									// The room effect re-keys on `template` and re-seeds
+									// from headerData; if these drift, the seed says one
+									// template while the room id says another and the
+									// reconnect/snapshot loop kicks in.
+									headerData = { ...headerData, name: v as string };
 									getPageBlueprint(v as string).then(bp => { blueprint = bp; }).catch(() => { blueprint = null; });
 									if (prefs.autoSaveEnabled && v !== pageData?.template) {
 										autoSave.oncommit('template', v, old);
@@ -1427,7 +1456,6 @@
 							readonly={!!editorLock}
 							yText={editorCollab?.yText ?? null}
 							yAwareness={editorCollab?.awareness ?? null}
-							yUser={editorCollab?.user ?? null}
 						/>
 					{/if}
 				{/if}

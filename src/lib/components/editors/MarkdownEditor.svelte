@@ -48,7 +48,6 @@
 		 */
 		yText?: Y.Text | null;
 		yAwareness?: Awareness | null;
-		yUser?: { name: string; color: string } | null;
 	}
 
 	let {
@@ -62,7 +61,6 @@
 		readonly: isReadonly = false,
 		yText = null,
 		yAwareness = null,
-		yUser = null,
 	}: Props = $props();
 
 	let showPreview = $state(false);
@@ -730,6 +728,46 @@
 	}
 	.markdown-editor-cm :global(.cm-scroller) {
 		font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+	}
+
+	/* Remote-peer cursors and selections (y-codemirror.next).
+	   y-codemirror.next applies per-peer colors as inline styles using
+	   `awareness.user.color` (set by editorBinding); we only override
+	   layout + visibility here. The label shows the user's name from
+	   `awareness.user.name`, mirroring editor-pro's labeled-cursor look
+	   so a mixed CM + editor-pro session feels consistent. */
+	.markdown-editor-cm :global(.cm-ySelectionCaret) {
+		position: relative;
+		margin-left: -1px;
+		margin-right: -1px;
+		border-left-width: 2px;
+		border-left-style: solid;
+		box-sizing: border-box;
+	}
+	.markdown-editor-cm :global(.cm-ySelectionCaretDot) {
+		position: absolute;
+		top: -3px;
+		left: -4px;
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+	}
+	.markdown-editor-cm :global(.cm-ySelectionInfo) {
+		position: absolute;
+		top: -1.4em;
+		left: -2px;
+		font-size: 11px;
+		font-weight: 500;
+		font-family: ui-sans-serif, system-ui, sans-serif;
+		line-height: 1.2;
+		color: #fff;
+		padding: 2px 6px;
+		border-radius: 4px;
+		white-space: nowrap;
+		pointer-events: none;
+		user-select: none;
+		opacity: 1;
+		transition: opacity 200ms ease;
 	}
 
 	/* Markdown-specific syntax coloring */

@@ -117,6 +117,8 @@
 	}
 
 	$effect(() => {
+		// Callers without api.users.read get an auto-filtered listing (just
+		// their own row) from the API, so the list page renders for everyone.
 		loadUsers();
 	});
 

@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { getPermissionsBlueprint, type PermissionAction } from '$lib/api/endpoints/blueprints';
-	import { Loader2, ChevronDown, Crown, Check, Ban, Minus } from 'lucide-svelte';
+	import { Loader2, ChevronDown } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
+	import PermissionRow from './PermissionRow.svelte';
 
 	interface Props {
 		value: Record<string, unknown>;
@@ -34,46 +35,23 @@
 		return JSON.parse(JSON.stringify(obj));
 	}
 
-	/** Unwrap the $state proxy once for reading. */
-	function plainValue(): Record<string, unknown> {
-		try {
-			return JSON.parse(JSON.stringify(value));
-		} catch {
-			return {};
-		}
-	}
-
-	function getPermValue(name: string): 'allowed' | 'denied' | 'unset' {
+	function getPathValue(tree: Record<string, unknown>, name: string): unknown {
 		const parts = name.split('.');
-		let current: unknown = plainValue();
+		let current: unknown = tree;
 		for (const part of parts) {
 			if (current && typeof current === 'object') {
 				current = (current as Record<string, unknown>)[part];
 			} else {
-				return 'unset';
+				return undefined;
 			}
 		}
-		if (current === true) return 'allowed';
-		if (current === false) return 'denied';
-		return 'unset';
+		return current;
 	}
 
-	/** Check if admin.super is explicitly allowed. */
-	const isSuperAdmin = $derived.by(() => {
-		return getPermValue('admin.super') === 'allowed';
-	});
+	/** Whether admin.super is explicitly allowed in the access tree. */
+	const superAdmin = $derived(getPathValue(value, 'admin.super') === true);
 
-	/**
-	 * Check if a permission is implicitly granted by admin.super.
-	 * admin.super grants all admin.* and site.* permissions, but NOT api.* ones.
-	 */
-	function isImplicitlyGranted(name: string): boolean {
-		if (!isSuperAdmin) return false;
-		if (name === 'admin.super') return false; // Don't show crown on itself
-		return name.startsWith('admin.') || name.startsWith('site.');
-	}
-
-	function setPermValue(name: string, newVal: 'allowed' | 'denied' | 'unset') {
+	function handleToggle(name: string, newVal: 'allowed' | 'denied' | 'unset') {
 		const parts = name.split('.');
 		const updated = deepClone(value);
 		let current: Record<string, unknown> = updated;
@@ -112,67 +90,13 @@
 	});
 </script>
 
-{#snippet toggle(name: string)}
-	{@const val = getPermValue(name)}
-	{@const implicit = isImplicitlyGranted(name)}
-	<div class="flex shrink-0 items-center gap-2">
-		{#if implicit}
-			<Crown size={14} class="text-purple-500" />
-		{/if}
-		<div class="flex shrink-0 overflow-hidden rounded-md border border-border text-[11px] font-medium">
-			<button
-				type="button"
-				class="flex items-center justify-center px-2 py-1.5 transition-colors
-					{val === 'allowed' ? 'bg-green-500 text-white' : 'text-muted-foreground hover:bg-muted'}"
-				title={i18n.t('ADMIN_NEXT.ALLOWED')}
-				aria-label={i18n.t('ADMIN_NEXT.ALLOWED')}
-				onclick={() => setPermValue(name, val === 'allowed' ? 'unset' : 'allowed')}
-			>
-				<Check size={14} />
-			</button>
-			<button
-				type="button"
-				class="flex items-center justify-center border-x border-border px-2 py-1.5 transition-colors
-					{val === 'denied' ? 'bg-red-400 text-white' : 'text-muted-foreground hover:bg-muted'}"
-				title={i18n.t('ADMIN_NEXT.DENIED')}
-				aria-label={i18n.t('ADMIN_NEXT.DENIED')}
-				onclick={() => setPermValue(name, val === 'denied' ? 'unset' : 'denied')}
-			>
-				<Ban size={14} />
-			</button>
-			<button
-				type="button"
-				class="flex items-center justify-center px-2 py-1.5 transition-colors
-					{val === 'unset' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted'}"
-				title={i18n.t('ADMIN_NEXT.PERMISSIONS_FIELD.NOT_SET')}
-				aria-label={i18n.t('ADMIN_NEXT.PERMISSIONS_FIELD.NOT_SET')}
-				onclick={() => setPermValue(name, 'unset')}
-			>
-				<Minus size={14} />
-			</button>
-		</div>
-	</div>
-{/snippet}
-
-{#snippet permRow(action: PermissionAction, depth: number)}
-	<div class="flex items-center justify-between border-t border-border px-4 py-2" style="padding-left: {16 + depth * 24}px">
-		<span class="text-sm {depth > 0 ? 'text-muted-foreground' : 'text-foreground'}">{action.label}</span>
-		{@render toggle(action.name)}
-	</div>
-	{#if action.children}
-		{#each action.children as child}
-			{@render permRow(child, depth + 1)}
-		{/each}
-	{/if}
-{/snippet}
-
 {#if loading}
 	<div class="flex items-center justify-center py-8">
 		<Loader2 size={20} class="animate-spin text-muted-foreground" />
 	</div>
 {:else}
 	<div class="space-y-3">
-		{#each sections as section}
+		{#each sections as section (section.name)}
 			<div class="overflow-hidden rounded-lg border border-border">
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -188,8 +112,14 @@
 				</div>
 
 				{#if expandedSections.has(section.name) && section.children}
-					{#each section.children as action}
-						{@render permRow(action, 0)}
+					{#each section.children as action (action.name)}
+						<PermissionRow
+							{action}
+							depth={0}
+							{value}
+							{superAdmin}
+							onToggle={handleToggle}
+						/>
 					{/each}
 				{/if}
 			</div>

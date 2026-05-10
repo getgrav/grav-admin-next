@@ -81,10 +81,19 @@ export class MercureProvider implements SyncProvider {
 	private peers: Peer[] = [];
 	private awareness: Awareness | null = null;
 	private awarenessMeta: Record<string, unknown> | null = null;
+	// Awareness updates that arrive on the SSE `aw` stream BEFORE the page
+	// editor has called setAwareness() get parked here and drained on the
+	// first setAwareness call. Without buffering, the early peer-state
+	// updates are silently dropped — y-codemirror.next then has no
+	// `state.user.color/name` for the peer until that peer's next cursor
+	// move, leaving cursors invisible to a freshly-loaded tab.
+	private pendingAwUpdates: Uint8Array[] = [];
 
 	private docSource: EventSource | null = null;
 	private awSource: EventSource | null = null;
 	private presenceTimer: ReturnType<typeof setTimeout> | null = null;
+	private tokenRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+	private refreshingToken = false;
 	private disposed = false;
 
 	private remoteUpdateHandlers = new Set<RemoteUpdateHandler>();
@@ -120,6 +129,7 @@ export class MercureProvider implements SyncProvider {
 
 			this.openStream(token, 'doc');
 			this.openStream(token, 'aw');
+			this.scheduleTokenRefresh(token.expires_in);
 
 			// Send first awareness/presence heartbeat right away so
 			// other peers see us promptly.
@@ -140,6 +150,8 @@ export class MercureProvider implements SyncProvider {
 		this.docSource = this.awSource = null;
 		if (this.presenceTimer) clearTimeout(this.presenceTimer);
 		this.presenceTimer = null;
+		if (this.tokenRefreshTimer) clearTimeout(this.tokenRefreshTimer);
+		this.tokenRefreshTimer = null;
 		this.uninstallUnloadHandler();
 		try {
 			await api.post(this.presencePath(), { clientId: this.clientId, leave: true, lang: this.lang });
@@ -189,6 +201,13 @@ export class MercureProvider implements SyncProvider {
 
 	setAwareness(awareness: Awareness): void {
 		this.awareness = awareness;
+		// Drain anything that arrived on the `aw` stream before now.
+		if (this.pendingAwUpdates.length) {
+			for (const bytes of this.pendingAwUpdates) {
+				try { applyAwarenessUpdate(awareness, bytes, 'mercure'); } catch { /* skip malformed */ }
+			}
+			this.pendingAwUpdates = [];
+		}
 	}
 
 	onRemoteUpdate(handler: RemoteUpdateHandler): void {
@@ -221,7 +240,29 @@ export class MercureProvider implements SyncProvider {
 				for (const h of this.remoteUpdateHandlers) h(bytes);
 			}
 		}
+		this.consumePeerAwareness(peers);
 		this.emitPeers(peers);
+	}
+
+	/**
+	 * Apply each peer's last-known awareness state from their PresenceStore
+	 * meta. Mirrors PollingProvider — Mercure used to rely solely on the
+	 * live `aw` SSE stream, but freshly-joined peers don't get a state
+	 * snapshot from peers who haven't moved their cursor since join.
+	 * Buffers when awareness isn't wired yet (drained in setAwareness).
+	 */
+	private consumePeerAwareness(peers: Peer[]): void {
+		for (const peer of peers) {
+			if (peer.clientId === this.clientId) continue;
+			const updateB64 = (peer.meta as Record<string, unknown> | undefined)?.awarenessUpdate;
+			if (typeof updateB64 !== 'string' || updateB64.length === 0) continue;
+			const bytes = b64ToBytes(updateB64);
+			if (this.awareness) {
+				try { applyAwarenessUpdate(this.awareness, bytes, 'mercure'); } catch { /* skip */ }
+			} else {
+				this.pendingAwUpdates.push(bytes);
+			}
+		}
 	}
 
 	private async heartbeatOnce(): Promise<void> {
@@ -242,6 +283,7 @@ export class MercureProvider implements SyncProvider {
 			meta,
 			lang: this.lang,
 		});
+		this.consumePeerAwareness(peers);
 		this.emitPeers(peers);
 	}
 
@@ -274,17 +316,27 @@ export class MercureProvider implements SyncProvider {
 			const bytes = b64ToBytes(env.bytes);
 			if (env.channel === 'doc') {
 				for (const h of this.remoteUpdateHandlers) h(bytes);
-			} else if (env.channel === 'aw' && this.awareness) {
-				try {
-					applyAwarenessUpdate(this.awareness, bytes, 'mercure');
-				} catch { /* skip malformed */ }
+			} else if (env.channel === 'aw') {
+				if (this.awareness) {
+					try {
+						applyAwarenessUpdate(this.awareness, bytes, 'mercure');
+					} catch { /* skip malformed */ }
+				} else {
+					// Buffer until setAwareness() lands, then drain.
+					this.pendingAwUpdates.push(bytes);
+				}
 			}
 		};
 		es.onerror = () => {
-			// Browsers auto-reconnect EventSources after transient failures;
-			// status reflects the disconnect briefly.
 			if (this.disposed) return;
 			this.setStatus('connecting', 'mercure stream reconnecting');
+			// Browsers auto-reconnect EventSources after transient network
+			// failures (readyState stays CONNECTING). For hard failures —
+			// notably a 401 once the JWT in the URL has expired — Chrome
+			// closes the source (CLOSED). Re-mint the token and reopen.
+			if (es.readyState === EventSource.CLOSED) {
+				void this.refreshToken();
+			}
 		};
 		es.onopen = () => {
 			if (!this.disposed) this.setStatus('connected');
@@ -297,6 +349,47 @@ export class MercureProvider implements SyncProvider {
 	private emitPeers(peers: Peer[]): void {
 		this.peers = peers;
 		for (const h of this.peerHandlers) h(peers);
+	}
+
+	/**
+	 * Re-fetch the subscriber JWT and reopen both SSE streams. Called
+	 * proactively before `expires_in` elapses, and reactively when an
+	 * EventSource closes hard (Chrome closes on 401). Coalesces concurrent
+	 * callers via `refreshingToken`.
+	 */
+	private async refreshToken(): Promise<void> {
+		if (this.disposed || this.refreshingToken) return;
+		this.refreshingToken = true;
+		try {
+			const token = await api.post<TokenResponse>('/sync/mercure/token', {
+				route: this.route,
+				lang: this.lang,
+			});
+			if (this.disposed) return;
+			this.docSource?.close();
+			this.awSource?.close();
+			this.docSource = this.awSource = null;
+			this.openStream(token, 'doc');
+			this.openStream(token, 'aw');
+			this.scheduleTokenRefresh(token.expires_in);
+		} catch (e) {
+			if (!this.disposed) this.setStatus('error', (e as Error).message);
+		} finally {
+			this.refreshingToken = false;
+		}
+	}
+
+	private scheduleTokenRefresh(expiresInSeconds: number | undefined): void {
+		if (this.tokenRefreshTimer) clearTimeout(this.tokenRefreshTimer);
+		this.tokenRefreshTimer = null;
+		if (this.disposed) return;
+		// Refresh at 80% of TTL, clamped to a sane window. Server returns
+		// expires_in in seconds; we work in ms here.
+		const ttl = typeof expiresInSeconds === 'number' && expiresInSeconds > 0
+			? expiresInSeconds * 1000
+			: 600_000;
+		const lead = Math.max(30_000, Math.min(ttl * 0.8, ttl - 30_000));
+		this.tokenRefreshTimer = setTimeout(() => { void this.refreshToken(); }, lead);
 	}
 
 	private setStatus(status: SyncStatus, detail?: string): void {

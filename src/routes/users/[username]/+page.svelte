@@ -31,6 +31,15 @@
 	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
 
 	const canEditUsers = $derived(canWrite('users'));
+	const isSelf = $derived(page.params.username === auth.username);
+	// Self-edit is permitted by the API with just api.access — sensitive
+	// fields (state, access) are filtered server-side, so editing your own
+	// profile shouldn't require api.users.write.
+	const canSave = $derived(canEditUsers || isSelf);
+	// Permissions and the account-state toggle are governance fields. Render
+	// the form without them when the current user can't manage users —
+	// they'd 403 server-side anyway, and showing them is misleading.
+	const canManagePermissions = $derived(canEditUsers);
 	let accessDenied = $state(false);
 
 	const REDACTED = '********';
@@ -63,7 +72,7 @@
 
 	const hasChanges = $derived(
 		JSON.stringify(configData) !== originalJson ||
-		JSON.stringify(access) !== originalAccessJson
+		(canManagePermissions && JSON.stringify(access) !== originalAccessJson)
 	);
 
 	// Names of fields/sections handled manually outside the blueprint form
@@ -185,6 +194,14 @@
 			delete body.username;
 			if (!body.password || body.password === '') {
 				delete body.password;
+			}
+			// Governance fields require api.users.write server-side. The API
+			// rejects the whole request if these keys are present (regardless
+			// of whether the values changed), so omit them entirely when the
+			// caller can't manage users.
+			if (!canManagePermissions) {
+				delete body.access;
+				delete body.state;
 			}
 
 			const result = await updateUser(username, body, etag);
@@ -355,12 +372,12 @@
 								Undo
 							</Button>
 						{/if}
-						{#if user && canEditUsers}
+						{#if user && canEditUsers && !isSelf}
 							<Button
 								variant="destructive"
 								size="sm"
 								onclick={handleDelete}
-								disabled={deleting || user.username === auth.username}
+								disabled={deleting}
 								aria-label={i18n.t('ADMIN_NEXT.DELETE')}
 								title={i18n.t('ADMIN_NEXT.DELETE')}
 							>
@@ -371,7 +388,8 @@
 								{/if}
 								<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.DELETE')}</span>
 							</Button>
-
+						{/if}
+						{#if user && canSave}
 							<Button
 								size="sm"
 								onclick={handleSave}
@@ -451,13 +469,17 @@
 					</div>
 				{/if}
 
-				<!-- Permissions (always rendered separately) -->
-				<div class="rounded-xl border border-border bg-card p-5">
-					<h2 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.USERS.PERMISSIONS')}</h2>
-					<div class="mt-4">
-						<PermissionsField value={access} onchange={handleAccessChange} />
+				<!-- Permissions — hidden for non-managers since the API rejects
+				     writes to `access` without api.users.write, and the
+				     read-only display alone would be misleading. -->
+				{#if canManagePermissions}
+					<div class="rounded-xl border border-border bg-card p-5">
+						<h2 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.USERS.PERMISSIONS')}</h2>
+						<div class="mt-4">
+							<PermissionsField value={access} onchange={handleAccessChange} />
+						</div>
 					</div>
-				</div>
+				{/if}
 
 				<!-- API Keys -->
 				<ApiKeysField username={user.username} />
