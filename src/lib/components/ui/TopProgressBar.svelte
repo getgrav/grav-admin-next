@@ -20,17 +20,17 @@
 		animation: top-progress-slide 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 	}
 
+	/* Bar width stays constant so translateX (which is relative to the
+	   bar's own width) maps to a stable horizontal position. The earlier
+	   width-pulse variant produced apparent backwards motion in the last
+	   quarter of the cycle, when the shrinking width made the same
+	   translateX percentage resolve to a smaller pixel offset. */
 	@keyframes top-progress-slide {
-		0% {
+		from {
 			transform: translateX(-100%);
-			width: 30%;
 		}
-		50% {
-			width: 60%;
-		}
-		100% {
+		to {
 			transform: translateX(250%);
-			width: 30%;
 		}
 	}
 </style>
