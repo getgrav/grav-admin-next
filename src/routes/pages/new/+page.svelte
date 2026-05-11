@@ -202,7 +202,14 @@
 		saving = true;
 		try {
 			const route = parentRoute === '/' ? `/${slug}` : `${parentRoute}/${slug}`;
-			const order = visible === 'yes' || visible === 'auto' ? 1 : undefined;
+			// `auto` defers to the server: it scans the parent's children and
+			// assigns the next free numeric prefix, or omits one when no
+			// siblings carry a prefix. `yes` forces visibility — request
+			// `auto` so the server still picks the next free number, then add
+			// `header.visible: true` so the page shows in nav even when the
+			// parent has no numerically ordered children.
+			const order: number | 'auto' | undefined =
+				visible === 'no' ? undefined : 'auto';
 			const header: Record<string, unknown> = {};
 			if (visible === 'yes') header.visible = true;
 			if (visible === 'no') header.visible = false;

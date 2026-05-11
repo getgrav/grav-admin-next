@@ -115,7 +115,7 @@ export interface CreatePageBody {
 	template?: string;
 	content?: string;
 	header?: Record<string, unknown>;
-	order?: number;
+	order?: number | 'auto';
 	lang?: string;
 }
 
