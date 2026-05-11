@@ -445,3 +445,52 @@ export function parseDependencies(deps: unknown): PackageDep[] {
 		return { name: JSON.stringify(d) };
 	});
 }
+
+/**
+ * One row of the compatibility section: a label like "Grav" / "PHP" and the
+ * value(s) the blueprint declares the package is compatible with. The value
+ * is always rendered as a list of chips even when the underlying YAML had a
+ * single string — the UI shape stays consistent that way.
+ */
+export interface CompatibilityRow {
+	key: string;
+	label: string;
+	values: string[];
+}
+
+const COMPATIBILITY_LABELS: Record<string, string> = {
+	grav: 'Grav',
+	php: 'PHP',
+	api: 'API',
+};
+
+/**
+ * Normalize the `compatibility` object the API plugin emits into an ordered
+ * list of rows for display. Drops empty entries. Renders well-known keys
+ * (`grav`, `php`, `api`) first in a stable order; any other keys (forward-
+ * compat for future blueprint extensions) are appended in their original
+ * order with a title-cased label.
+ */
+export function parseCompatibility(compatibility: unknown): CompatibilityRow[] {
+	if (!compatibility || typeof compatibility !== 'object') return [];
+	const obj = compatibility as Record<string, unknown>;
+	const toValues = (v: unknown): string[] => {
+		if (Array.isArray(v)) return v.map(String).filter((s) => s.length > 0);
+		if (typeof v === 'string' && v.length > 0) return [v];
+		return [];
+	};
+	const labelFor = (key: string) =>
+		COMPATIBILITY_LABELS[key] ?? key.charAt(0).toUpperCase() + key.slice(1);
+	const knownOrder = ['grav', 'php', 'api'];
+	const rows: CompatibilityRow[] = [];
+	for (const key of knownOrder) {
+		const values = toValues(obj[key]);
+		if (values.length) rows.push({ key, label: labelFor(key), values });
+	}
+	for (const key of Object.keys(obj)) {
+		if (knownOrder.includes(key)) continue;
+		const values = toValues(obj[key]);
+		if (values.length) rows.push({ key, label: labelFor(key), values });
+	}
+	return rows;
+}

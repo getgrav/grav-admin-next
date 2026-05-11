@@ -13,7 +13,7 @@
 	import { toast } from 'svelte-sonner';
 	import { Search, Puzzle, ExternalLink, ArrowUpCircle, ChevronRight, Loader2, Plus, RefreshCw, BadgeCheck, CornerDownRight } from 'lucide-svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { faIconClass, parseKeywords, parseDependencies, isFirstParty, descriptionText } from '$lib/utils/gpm';
+	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText } from '$lib/utils/gpm';
 	import { canWrite } from '$lib/utils/permissions';
 	import { scopedKey } from '$lib/utils/scopedStorage';
 
@@ -520,6 +520,23 @@
 								<dd class="mt-1.5 flex flex-wrap gap-1.5">
 									{#each parseKeywords(selectedPlugin.keywords) as kw}
 										<span class="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">{kw}</span>
+									{/each}
+								</dd>
+							</div>
+						{/if}
+
+						<!-- Compatibility -->
+						{#if parseCompatibility(selectedPlugin.compatibility).length}
+							<div class="mt-4">
+								<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.COMPATIBILITY')}</dt>
+								<dd class="mt-1.5 space-y-1.5">
+									{#each parseCompatibility(selectedPlugin.compatibility) as row}
+										<div class="flex flex-wrap items-center gap-1.5 text-xs">
+											<span class="min-w-12 font-medium text-foreground">{row.label}</span>
+											{#each row.values as v}
+												<span class="rounded-md bg-muted px-2 py-0.5 text-muted-foreground">{v}</span>
+											{/each}
+										</div>
 									{/each}
 								</dd>
 							</div>

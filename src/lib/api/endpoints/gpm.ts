@@ -23,6 +23,8 @@ export interface PluginInfo {
 	premium?: boolean;
 	is_symlink?: boolean;
 	dependencies?: string[];
+	/** Compatibility metadata from the blueprint. Common keys: `grav` (string array), `php`, `api`. */
+	compatibility?: Record<string, string | string[]>;
 	keywords?: string[];
 	icon?: string;
 	/** Custom admin-next field types provided by this plugin (type → type name) */
@@ -109,6 +111,8 @@ export interface RepositoryPlugin {
 	licensed?: boolean;
 	purchase_url?: string;
 	dependencies?: string[];
+	/** Compatibility metadata from the blueprint. Common keys: `grav` (string array), `php`, `api`. */
+	compatibility?: Record<string, string | string[]>;
 	keywords?: string[];
 	icon?: string;
 }
@@ -215,6 +219,8 @@ export interface ThemeInfo {
 	premium?: boolean;
 	is_symlink?: boolean;
 	dependencies?: string[];
+	/** Compatibility metadata from the blueprint. Common keys: `grav` (string array), `php`, `api`. */
+	compatibility?: Record<string, string | string[]>;
 	keywords?: string[];
 	icon?: string;
 	thumbnail?: string | null;
@@ -279,6 +285,8 @@ export interface RepositoryTheme {
 	licensed?: boolean;
 	purchase_url?: string;
 	dependencies?: string[];
+	/** Compatibility metadata from the blueprint. Common keys: `grav` (string array), `php`, `api`. */
+	compatibility?: Record<string, string | string[]>;
 	keywords?: string[];
 	icon?: string;
 	screenshot?: string | null;

@@ -4,7 +4,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
 	import { Search, X, Palette, ExternalLink, Download, Loader2, ShoppingCart, BadgeCheck } from 'lucide-svelte';
-	import { faIconClass, parseKeywords, parseDependencies, isFirstParty, descriptionText } from '$lib/utils/gpm';
+	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText } from '$lib/utils/gpm';
 
 	interface Props {
 		open: boolean;
@@ -345,6 +345,22 @@
 										<dd class="mt-1.5 flex flex-wrap gap-1.5">
 											{#each parseKeywords(selectedTheme.keywords) as kw}
 												<span class="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">{kw}</span>
+											{/each}
+										</dd>
+									</div>
+								{/if}
+
+								{#if parseCompatibility(selectedTheme.compatibility).length}
+									<div class="mt-4">
+										<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.COMPATIBILITY')}</dt>
+										<dd class="mt-1.5 space-y-1.5">
+											{#each parseCompatibility(selectedTheme.compatibility) as row}
+												<div class="flex flex-wrap items-center gap-1.5 text-xs">
+													<span class="min-w-12 font-medium text-foreground">{row.label}</span>
+													{#each row.values as v}
+														<span class="rounded-md bg-muted px-2 py-0.5 text-muted-foreground">{v}</span>
+													{/each}
+												</div>
 											{/each}
 										</dd>
 									</div>
