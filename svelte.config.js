@@ -6,13 +6,22 @@ import { fileURLToPath } from 'node:url';
 const isPluginBuild = !!process.env.ADMIN2_PLUGIN_BUILD;
 const pluginAppDir = dirname(fileURLToPath(import.meta.url)) + '/../grav-plugin-admin2/app';
 
-// When building for the plugin, the base path is a placeholder token that
-// the admin2 PHP plugin substitutes in materialized assets on first request
-// per-site (and whenever the configured route or site root changes). This
-// lets the plugin be mounted at any route without rebuilding.
+// Build-time placeholder the admin2 PHP plugin rewrites at request time.
+// `paths.base` is used both for in-app navigation (the route the SPA is
+// mounted at) and as the URL prefix for the entry-chunk preload links in
+// index.html. admin2.php substitutes this placeholder when serving the
+// shell HTML (pointing it at the on-disk bundle location), and injects a
+// `globalThis.__sveltekit_<nonce>` runtime override so the SPA reports the
+// correct route base for in-app navigation. Keeping these separate at
+// runtime lets one shared plugin install serve any number of sites with
+// different routes or subfolder rootUrls — no per-site copy.
 //
-// For standalone dev / build (no plugin), base stays empty so the app runs
-// at root — e.g. `npm run dev` serves at http://localhost:5173/ as normal.
+// `paths.relative: true` keeps chunk-to-chunk imports and CSS `url()`
+// references relative, so Apache can serve them directly from
+// user/plugins/admin2/app/ without any per-site rewriting of those files.
+//
+// For standalone dev / build (no plugin), base stays empty so `npm run dev`
+// serves at http://localhost:5173/ as normal.
 const BASE_PLACEHOLDER = '/__GRAV_ADMIN2_BASE__';
 
 /** @type {import('@sveltejs/kit').Config} */
@@ -44,12 +53,16 @@ const config = {
 		}),
 		paths: {
 			base: isPluginBuild ? BASE_PLACEHOLDER : '',
-			relative: false
+			relative: true
 		},
 		// Poll _app/version.json every 60s so the SPA detects when admin2 (or
-		// any other plugin) has been updated underneath it. Combined with the
-		// beforeNavigate guard in +layout.svelte, the next intra-app navigation
-		// becomes a full page load — fresh chunks, no 500s from stale hashes.
+		// any other plugin) has been updated underneath it. The poll URL is
+		// derived from `globalThis.__sveltekit_<nonce>.assets` at runtime;
+		// admin2.php sets that global to the admin route (e.g. `/admin`) so
+		// polls hit the PHP entry point and bypass Grav's `user/*.json`
+		// .htaccess block. Combined with the beforeNavigate guard in
+		// +layout.svelte, the next intra-app navigation becomes a full page
+		// load — fresh chunks, no 500s from stale hashes.
 		version: {
 			pollInterval: 60_000
 		}
