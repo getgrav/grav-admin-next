@@ -160,6 +160,38 @@
 	let expertFrontmatter = $state('');
 	let expertFrontmatterOriginal = $state('');
 
+	// Source-of-truth snapshots taken once at page load. Used by
+	// handleBlueprintChange to decide whether an incoming field value is a
+	// real edit or a no-op echo (custom web components and ArrayField
+	// re-emit their initial value on mount, which would otherwise mark the
+	// form dirty before the user has touched anything).
+	let originalHeader: Record<string, unknown> = {};
+	let originalTitle = '';
+	let originalContent = '';
+	let originalTemplate = '';
+
+	// Cheap deep-equal for blueprint values, which are always plain
+	// JSON-serializable (strings, numbers, booleans, arrays, plain objects).
+	function valuesEqual(a: unknown, b: unknown): boolean {
+		if (a === b) return true;
+		try {
+			return JSON.stringify(a) === JSON.stringify(b);
+		} catch {
+			return false;
+		}
+	}
+
+	// Resolve a dot-path against the original header snapshot.
+	function getOriginalHeaderValue(headerPath: string): unknown {
+		const parts = headerPath.split('.');
+		let cur: unknown = originalHeader;
+		for (const p of parts) {
+			if (cur === null || cur === undefined || typeof cur !== 'object') return undefined;
+			cur = (cur as Record<string, unknown>)[p];
+		}
+		return cur;
+	}
+
 	// Expert mode tabs & advanced fields
 	let expertTab = $state<'content' | 'advanced'>('content');
 	let expertSlug = $state('');
@@ -542,13 +574,19 @@
 			if (parsed && typeof parsed === 'object') {
 				title = (parsed.title as string) ?? title;
 				headerData = { header: { ...parsed }, content, folder: pageData?.slug ?? '', name: template };
-				headerChanges = {};
-				// Mark all fields as changed so save picks them up
+				// Only stage keys whose Expert-edited value differs from the
+				// original snapshot. Pre-seeding every parsed key (as the old
+				// code did) marked the form dirty on Expert→Normal even when
+				// Expert had no edits.
+				const next: Record<string, unknown> = {};
 				for (const [key, val] of Object.entries(parsed)) {
-					if (key !== 'title') {
-						headerChanges[key] = val;
+					if (key === 'title') continue;
+					const orig = (originalHeader as Record<string, unknown>)[key];
+					if (!valuesEqual(val, orig)) {
+						next[key] = val;
 					}
 				}
+				headerChanges = next;
 			}
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.PAGES.EDIT.INVALID_YAML_FRONTMATTER'));
@@ -668,6 +706,15 @@
 			expertFrontmatter = yaml.dump({ ...(data.header ?? {}), title: data.title }, { lineWidth: -1, noRefs: true }).trimEnd();
 			expertFrontmatterOriginal = expertFrontmatter;
 
+			// Immutable snapshots of the loaded values. handleBlueprintChange
+			// compares incoming field values against these to filter out
+			// mount-time onchange echoes from custom field wrappers.
+			originalHeader = JSON.parse(JSON.stringify(data.header ?? {})) as Record<string, unknown>;
+			originalTitle = data.title;
+			originalContent = data.content ?? '';
+			originalTemplate = data.template;
+			headerChanges = {};
+
 			// Initialize expert advanced state (strip any leading periods from slug)
 			expertSlug = data.slug.replace(/^\.+/, '');
 			expertParent = deriveParent(data.route, data.slug);
@@ -716,29 +763,43 @@
 			syncBinding.pushLocal(path, value);
 		}
 
-		// Sync special fields back to their state variables
+		// Sync special fields back to their state variables. We only assign
+		// when the incoming value actually differs from the original so that
+		// mount-time onchange echoes don't trip `hasChanges`.
 		if (path === 'content') {
-			content = value as string;
+			if (!valuesEqual(value, originalContent) || content !== originalContent) {
+				content = value as string;
+			}
 		} else if (path === 'header.title') {
-			title = value as string;
+			if (!valuesEqual(value, originalTitle) || title !== originalTitle) {
+				title = value as string;
+			}
 		} else if (path === 'name') {
 			// Template changed — reload the blueprint for the new template
 			const newTemplate = value as string;
-			template = newTemplate;
-			try {
-				blueprint = await getPageBlueprint(newTemplate);
-			} catch {
-				blueprint = null;
+			if (newTemplate !== template) {
+				template = newTemplate;
+				try {
+					blueprint = await getPageBlueprint(newTemplate);
+				} catch {
+					blueprint = null;
+				}
 			}
 		}
 
-		// Track header field changes for save
+		// Track header field changes for save. Compare against the original
+		// snapshot rather than current state so reverting a field back to its
+		// original value clears the entry, and mount-time echoes (which
+		// already equal the original) never get recorded.
 		if (path.startsWith('header.')) {
 			const headerPath = path.slice(7); // Remove 'header.' prefix
-			if (value === undefined) {
-				const next = { ...headerChanges };
-				delete next[headerPath];
-				headerChanges = next;
+			const originalValue = getOriginalHeaderValue(headerPath);
+			if (value === undefined || valuesEqual(value, originalValue)) {
+				if (headerPath in headerChanges) {
+					const next = { ...headerChanges };
+					delete next[headerPath];
+					headerChanges = next;
+				}
 			} else {
 				headerChanges = { ...headerChanges, [headerPath]: value };
 			}
@@ -831,6 +892,12 @@
 				template = updated.template;
 				headerData = { header: { ...updated.header ?? {}, title: updated.title }, content: updated.content ?? '', folder: updated.slug, name: updated.template };
 				headerChanges = {};
+
+				// Reset baselines so subsequent edits diff against the just-saved state
+				originalHeader = JSON.parse(JSON.stringify(updated.header ?? {})) as Record<string, unknown>;
+				originalTitle = updated.title;
+				originalContent = updated.content ?? '';
+				originalTemplate = updated.template;
 
 				// Reload blueprint if template changed
 				if (body.template) {

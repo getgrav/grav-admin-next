@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { prefs, type MenubarLink, type LogoMode, FONT_OPTIONS } from '$lib/stores/preferences.svelte';
+	import { prefs, type MenubarLink, type LogoMode, FONT_OPTIONS, FONT_SIZE_OPTIONS, type FontSize } from '$lib/stores/preferences.svelte';
 	import { theme, ACCENT_PRESETS } from '$lib/stores/theme.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -306,6 +306,27 @@
 							title={font.label}
 						>
 							{font.label}
+						</button>
+					{/each}
+				</div>
+			</div>
+
+			<!-- Font Size -->
+			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+				<div class="lg:pt-2.5">
+					<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.FONT_SIZE')}</span>
+					<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.TEXT_SIZE_USED_THROUGHOUT_THE_ADMIN')}</p>
+				</div>
+				<div class="flex flex-wrap gap-2">
+					{#each FONT_SIZE_OPTIONS as size (size.value)}
+						{@const isActive = prefs.fontSize === size.value}
+						<button
+							class="group relative flex h-9 items-center gap-2 rounded-md border px-3 text-sm transition-colors
+								{isActive ? 'border-foreground/30 bg-accent text-accent-foreground' : 'border-border text-muted-foreground hover:border-foreground/20 hover:bg-accent/50'}"
+							onclick={() => prefs.fontSize = size.value as FontSize}
+							title={i18n.t(`ADMIN_NEXT.SETTINGS.FONT_SIZE_${size.value.toUpperCase()}`)}
+						>
+							{i18n.t(`ADMIN_NEXT.SETTINGS.FONT_SIZE_${size.value.toUpperCase()}`)}
 						</button>
 					{/each}
 				</div>

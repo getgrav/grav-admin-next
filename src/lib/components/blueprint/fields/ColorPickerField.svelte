@@ -29,10 +29,15 @@
 	// don't break).
 	const alphaEnabled = $derived(field.alpha !== false);
 
-	// Initial color — fall back to placeholder, then to a sensible default.
+	// Initial color — prefer the explicit blueprint default, then placeholder,
+	// then a sensible fallback. The default is visual-only: the swatch shows
+	// it but we don't emit it as a value (mirrors the placeholder-suppression
+	// behaviour below so the form doesn't go dirty on mount).
 	const initialHex = $derived.by(() => {
 		const v = typeof value === 'string' ? value.trim() : '';
 		if (v) return v;
+		const d = typeof field.default === 'string' ? field.default.trim() : '';
+		if (d) return d;
 		const ph = (field.placeholder || '').trim();
 		if (ph) return ph;
 		return '#000000';

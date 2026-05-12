@@ -7,6 +7,7 @@ export type MediaViewMode = 'grid' | 'list';
 export type ColorMode = 'light' | 'dark' | 'system';
 export type EditorMode = 'normal' | 'expert';
 export type FontFamily = 'inter' | 'google-sans' | 'public-sans' | 'nunito-sans' | 'jost';
+export type FontSize = 'small' | 'normal' | 'large' | 'xlarge';
 
 export interface FontOption {
 	value: FontFamily;
@@ -22,6 +23,21 @@ export const FONT_OPTIONS: FontOption[] = [
 	{ value: 'jost',         label: 'Jost',         stack: "'Jost', ui-sans-serif, system-ui, -apple-system, sans-serif" },
 ];
 
+export interface FontSizeOption {
+	value: FontSize;
+	/** English fallback label. Translate at the call-site via i18n. */
+	label: string;
+	/** Root html font-size; rem-based Tailwind cascades from here. */
+	rootSize: string;
+}
+
+export const FONT_SIZE_OPTIONS: FontSizeOption[] = [
+	{ value: 'small',  label: 'Small',   rootSize: '14px' },
+	{ value: 'normal', label: 'Normal',  rootSize: '16px' },
+	{ value: 'large',  label: 'Large',   rootSize: '18px' },
+	{ value: 'xlarge', label: 'X-Large', rootSize: '20px' },
+];
+
 function fontStack(value: FontFamily): string {
 	return (FONT_OPTIONS.find(f => f.value === value) ?? FONT_OPTIONS[0]).stack;
 }
@@ -29,6 +45,18 @@ function fontStack(value: FontFamily): string {
 function applyFont(value: FontFamily) {
 	if (typeof document === 'undefined') return;
 	document.documentElement.style.setProperty('--font-sans', fontStack(value));
+}
+
+function rootSizeForValue(value: FontSize): string {
+	return (FONT_SIZE_OPTIONS.find(o => o.value === value) ?? FONT_SIZE_OPTIONS[1]).rootSize;
+}
+
+function applyFontSize(value: FontSize) {
+	if (typeof document === 'undefined') return;
+	// Scale the html root font-size; rem-based spacing/typography cascades.
+	// This is intentional for accessibility — it scales all layout, not
+	// just text. See layout.css `html { font-size: var(--app-font-size) }`.
+	document.documentElement.style.setProperty('--app-font-size', rootSizeForValue(value));
 }
 
 export interface MenubarLink {
@@ -61,6 +89,7 @@ interface Preferences {
 	autoSaveToolbarUndo: boolean;
 	autoSaveBatchWindowMs: number;
 	fontFamily: FontFamily;
+	fontSize: FontSize;
 	collabEnabled: boolean;
 }
 
@@ -89,6 +118,7 @@ function createPreferencesStore() {
 	let autoSaveToolbarUndo = $state(stored.autoSaveToolbarUndo ?? true);
 	let autoSaveBatchWindowMs = $state(stored.autoSaveBatchWindowMs ?? 0);
 	let fontFamily = $state<FontFamily>(stored.fontFamily ?? 'google-sans');
+	let fontSize = $state<FontSize>(stored.fontSize ?? 'normal');
 	// Default ON — installing sync should give you collab without flipping a
 	// hidden toggle. The page editor degrades cleanly to solo mode if sync
 	// isn't installed or the handshake fails (e.g. missing `api.collab.*`),
@@ -96,6 +126,7 @@ function createPreferencesStore() {
 	let collabEnabled = $state(stored.collabEnabled ?? true);
 
 	applyFont(fontFamily);
+	applyFontSize(fontSize);
 
 	function persist() {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -112,6 +143,7 @@ function createPreferencesStore() {
 			autoSaveToolbarUndo,
 			autoSaveBatchWindowMs,
 			fontFamily,
+			fontSize,
 			collabEnabled,
 		}));
 	}
@@ -155,6 +187,9 @@ function createPreferencesStore() {
 
 		get fontFamily() { return fontFamily; },
 		set fontFamily(v: FontFamily) { fontFamily = v; applyFont(v); persist(); },
+
+		get fontSize() { return fontSize; },
+		set fontSize(v: FontSize) { fontSize = v; applyFontSize(v); persist(); },
 
 		get collabEnabled() { return collabEnabled; },
 		set collabEnabled(v: boolean) { collabEnabled = v; persist(); },

@@ -35,6 +35,21 @@
 		field.options && field.options.length > 0 ? field.options : resolvedOptions
 	);
 
+	// When constrained, drop any saved entries whose value isn't in the
+	// resolved option list — they reference something not installed in this
+	// Grav instance (e.g. 'ably' on a site without sync-ably). Filtering on
+	// render also re-emits the cleaned list so saving persists what the user
+	// can actually see.
+	$effect(() => {
+		if (!constrained || valueOptions.length === 0) return;
+		const valid = new Set(valueOptions.map((o) => o.value));
+		const filtered = entries.filter((e) => e.value === '' || valid.has(e.value));
+		if (filtered.length !== entries.length) {
+			entries = filtered;
+			emitChange();
+		}
+	});
+
 	// When constrained, hide "Add" once every available option is in the list —
 	// there's nothing left to pick. Falsy until options have loaded so the
 	// button isn't temporarily hidden mid-resolve.

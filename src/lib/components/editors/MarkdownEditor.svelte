@@ -673,48 +673,51 @@
 	</div>
 
 	<!-- Editor / Preview -->
-	{#if showPreview}
-		<div
-			class="prose prose-sm dark:prose-invert max-w-none overflow-y-auto px-4 py-3"
-			style:min-height={minHeight}
-			style:max-height={maxHeight || 'none'}
-		>
+	<!-- Both panes stay mounted; visibility toggles via CSS so CodeMirror's
+	     view is never orphaned when Preview is toggled off. -->
+	<div
+		class="prose prose-sm dark:prose-invert max-w-none overflow-y-auto px-4 py-3"
+		style:min-height={minHeight}
+		style:max-height={maxHeight || 'none'}
+		style:display={showPreview ? '' : 'none'}
+	>
+		{#if showPreview}
 			{#if previewHtml}
 				{@html previewHtml}
 			{:else}
 				<p class="text-muted-foreground italic">{i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.NOTHING_TO_PREVIEW')}</p>
 			{/if}
-		</div>
-	{:else}
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div
-			bind:this={editorContainer}
-			class="markdown-editor-cm"
-			ondragover={(e) => {
-				if (e.dataTransfer?.types.includes('application/x-grav-media') || e.dataTransfer?.types.includes('Files')) {
-					e.preventDefault();
-					if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
-				}
-			}}
-			ondragenter={(e) => {
-				if (e.dataTransfer?.types.includes('application/x-grav-media') || e.dataTransfer?.types.includes('Files')) {
-					e.preventDefault();
-				}
-			}}
-			ondrop={(e) => {
-				const mdText = e.dataTransfer?.getData('application/x-grav-media')
-					? e.dataTransfer?.getData('text/plain')
-					: null;
-				if (mdText) {
-					e.preventDefault();
-					const pos = view?.posAtCoords({ x: e.clientX, y: e.clientY }) ?? view?.state.doc.length ?? 0;
-					view?.dispatch({ changes: { from: pos, insert: mdText } });
-				}
-			}}
-			style:min-height={minHeight}
-			style:max-height={maxHeight}
-		></div>
-	{/if}
+		{/if}
+	</div>
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		bind:this={editorContainer}
+		class="markdown-editor-cm"
+		ondragover={(e) => {
+			if (e.dataTransfer?.types.includes('application/x-grav-media') || e.dataTransfer?.types.includes('Files')) {
+				e.preventDefault();
+				if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+			}
+		}}
+		ondragenter={(e) => {
+			if (e.dataTransfer?.types.includes('application/x-grav-media') || e.dataTransfer?.types.includes('Files')) {
+				e.preventDefault();
+			}
+		}}
+		ondrop={(e) => {
+			const mdText = e.dataTransfer?.getData('application/x-grav-media')
+				? e.dataTransfer?.getData('text/plain')
+				: null;
+			if (mdText) {
+				e.preventDefault();
+				const pos = view?.posAtCoords({ x: e.clientX, y: e.clientY }) ?? view?.state.doc.length ?? 0;
+				view?.dispatch({ changes: { from: pos, insert: mdText } });
+			}
+		}}
+		style:min-height={minHeight}
+		style:max-height={maxHeight}
+		style:display={showPreview ? 'none' : ''}
+	></div>
 </div>
 
 <style>

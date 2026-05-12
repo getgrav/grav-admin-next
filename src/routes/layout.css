@@ -83,6 +83,12 @@
 		border-color: var(--border);
 	}
 
+	/* Root font-size hook for the Font Size preference. Scales rem-based
+	   spacing/typography across the admin. Default 16px matches Tailwind. */
+	html {
+		font-size: var(--app-font-size, 16px);
+	}
+
 	body {
 		background-color: var(--background);
 		color: var(--foreground);

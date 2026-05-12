@@ -116,8 +116,15 @@
 		return (mediaCtx?.items ?? []).find((m) => m.filename === currentValue) ?? null;
 	});
 
-	// Auto-clear value when the selected file is deleted from media
+	// Auto-clear value when the selected file is deleted from the page's
+	// own media. Only safe when the field is bound to the current page's
+	// media — for custom folders (page://videos, @self/verter, etc.)
+	// mediaCtx doesn't know what exists, so we must not clear.
+	const usesPageMedia = $derived(
+		!field.folder || field.folder === 'self@' || field.folder === '@self' || field.folder === '@self/'
+	);
 	$effect(() => {
+		if (!usesPageMedia) return;
 		const items = mediaCtx?.items;
 		if (!items || items.length === 0 || !currentValue) return;
 		const exists = items.some((m) => m.filename === currentValue);

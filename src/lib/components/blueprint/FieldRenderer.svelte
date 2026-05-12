@@ -71,6 +71,13 @@
 
 	let { field, value, onchange, oncommit, getValue, onFieldChange, onFieldCommit, filter = '', externalLabel = false }: Props = $props();
 
+	// Per-component-instance unique id used to scope browser radio groups so
+	// radios inside list-field items don't collide across siblings. See
+	// admin2 issue #13 — without this all radios with the same blueprint
+	// `field.name` share one browser radio group, and selecting in item N
+	// silently un-selects item M.
+	const radioGroupId = $props.id();
+
 	// --- Auto-save commit categorization ---
 	// Blur-commit: fields where user types text — commit on focusout
 	const blurCommitTypes = new Set([
@@ -479,9 +486,10 @@
 		{/if}
 		<div class="space-y-1.5">
 			{#each field.options as opt (opt.value)}
+				{@const optStr = String(opt.value ?? '')}
 				{@const checked = useKeys
 					? (value != null && typeof value === 'object' && !Array.isArray(value) && !!(value as Record<string, unknown>)[opt.value])
-					: (Array.isArray(value) && value.includes(opt.value))}
+					: (Array.isArray(value) && value.some((v) => String(v ?? '') === optStr))}
 				<label class="flex cursor-pointer items-center gap-2.5">
 					<input type="checkbox" class="h-[18px] w-[18px] shrink-0 appearance-none rounded border border-input bg-muted/50 checked:border-primary checked:bg-primary checked:bg-[url('data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22white%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M12.207%204.793a1%201%200%20010%201.414l-5%205a1%201%200%2001-1.414%200l-2-2a1%201%200%20011.414-1.414L6.5%209.086l4.293-4.293a1%201%200%20011.414%200z%22%2F%3E%3C%2Fsvg%3E')] checked:bg-no-repeat checked:bg-center" {checked} onchange={(e) => {
 						const isChecked = (e.target as HTMLInputElement).checked;
@@ -518,7 +526,7 @@
 		<div class="space-y-1">
 			{#each field.options as opt (opt.value)}
 				<label class="flex cursor-pointer items-center gap-2">
-					<input type="radio" class="radio" name={field.name} value={opt.value} checked={value === opt.value} onchange={() => { oncommit?.(opt.value); onchange(opt.value); }} />
+					<input type="radio" class="radio" name={`${field.name}-${radioGroupId}`} value={opt.value} checked={String(value ?? '') === String(opt.value ?? '')} onchange={() => { oncommit?.(opt.value); onchange(opt.value); }} />
 					<span class="text-sm text-muted-foreground">{translateLabel(opt.label)}</span>
 				</label>
 			{/each}
