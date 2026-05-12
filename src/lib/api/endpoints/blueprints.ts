@@ -57,6 +57,10 @@ export interface BlueprintField {
 	min_height?: string;
 	selectunique?: unknown;
 	value_only?: boolean;
+	/** array field — when false, each row renders as a constrained <select>
+	 * populated from `options` / `data_options` instead of a free-form text
+	 * input. Mirrors selectize's `create: false` semantic. Default true. */
+	create?: boolean;
 	show_all?: boolean;
 	show_modular?: boolean;
 	show_root?: boolean;

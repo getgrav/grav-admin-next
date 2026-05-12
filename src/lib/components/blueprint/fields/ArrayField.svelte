@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { GripVertical, Plus, X } from 'lucide-svelte';
+	import { resolveDataOptions } from '$lib/api/endpoints/data';
+	import { ChevronsUpDown, GripVertical, Plus, X } from 'lucide-svelte';
 
 	interface Props {
 		field: BlueprintField;
@@ -15,6 +16,29 @@
 	const valueOnly = field.value_only ?? false;
 	const placeholderKey = field.placeholder_key ? translateLabel(field.placeholder_key) : 'Key';
 	const placeholderValue = field.placeholder_value ? translateLabel(field.placeholder_value) : 'Value';
+
+	// When create === false, the value input is a constrained <select> sourced
+	// from `options` / `data_options`. The "Add" button still works — it
+	// inserts a row with an empty value the user then picks from the dropdown.
+	const constrained = field.create === false;
+	let resolvedOptions = $state<Array<{ value: string; label: string }>>([]);
+
+	$effect(() => {
+		if (constrained && field.data_options && (!field.options || field.options.length === 0)) {
+			resolveDataOptions(field.data_options).then((opts) => {
+				resolvedOptions = opts;
+			});
+		}
+	});
+
+	const valueOptions = $derived(
+		field.options && field.options.length > 0 ? field.options : resolvedOptions
+	);
+
+	// When constrained, hide "Add" once every available option is in the list —
+	// there's nothing left to pick. Falsy until options have loaded so the
+	// button isn't temporarily hidden mid-resolve.
+	const canAdd = $derived(!constrained || (valueOptions.length > 0 && entries.length < valueOptions.length));
 
 	// Internal representation: always work with an array of {key, value} pairs
 	interface Entry {
@@ -168,14 +192,33 @@
 					/>
 				{/if}
 
-				<!-- Value input -->
-				<input
-					type="text"
-					class="flex h-9 min-w-0 flex-1 rounded-lg border border-input bg-muted/50 px-3 py-1.5 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-					value={entry.value}
-					placeholder={placeholderValue}
-					oninput={(e) => updateValue(entry.id, (e.target as HTMLInputElement).value)}
-				/>
+				<!-- Value input — constrained <select> when create === false,
+				     otherwise a free-form text input. -->
+				{#if constrained}
+					<div class="relative flex min-w-0 flex-1 items-center">
+						<select
+							class="flex h-9 w-full appearance-none rounded-lg border border-input bg-muted/50 pl-3 pr-8 py-1.5 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+							value={entry.value}
+							onchange={(e) => updateValue(entry.id, (e.target as HTMLSelectElement).value)}
+						>
+							<option value="" disabled={entry.value !== ''}>{placeholderValue}</option>
+							{#each valueOptions as opt (opt.value)}
+								<option value={opt.value} selected={entry.value === opt.value}>{translateLabel(opt.label)}</option>
+							{/each}
+						</select>
+						<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5">
+							<ChevronsUpDown size={14} class="text-muted-foreground" />
+						</div>
+					</div>
+				{:else}
+					<input
+						type="text"
+						class="flex h-9 min-w-0 flex-1 rounded-lg border border-input bg-muted/50 px-3 py-1.5 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+						value={entry.value}
+						placeholder={placeholderValue}
+						oninput={(e) => updateValue(entry.id, (e.target as HTMLInputElement).value)}
+					/>
+				{/if}
 
 				<!-- Remove button -->
 				<button
@@ -190,13 +233,16 @@
 		{/each}
 	</div>
 
-	<!-- Add button -->
-	<button
-		type="button"
-		class="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
-		onclick={addEntry}
-	>
-		<Plus size={14} />
-		Add {valueOnly ? 'item' : 'entry'}
-	</button>
+	<!-- Add button — hidden when constrained and every option is already
+	     in the list (nothing left to pick). -->
+	{#if canAdd}
+		<button
+			type="button"
+			class="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
+			onclick={addEntry}
+		>
+			<Plus size={14} />
+			Add {valueOnly ? 'item' : 'entry'}
+		</button>
+	{/if}
 </div>
