@@ -17,7 +17,15 @@
 	let { field, getValue, onFieldChange, onFieldCommit, filter = '' }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
-	const tabs = $derived((field.fields ?? []).filter((f) => f.type === 'tab' || f.fields));
+	// A real tab needs an explicit `type: tab`, OR a title/label combined with
+	// child fields. Grav blueprints that use `unset@: true` to remove a tab can
+	// leave behind a husk entry without a title and with a wrong default type
+	// (e.g. 'text') — those should not be rendered as tabs.
+	const tabs = $derived(
+		(field.fields ?? []).filter(
+			(f) => f.type === 'tab' || (f.fields && (f.title || f.label))
+		)
+	);
 	const isSideTabs = $derived(field.classes?.includes('side-tabs') ?? false);
 
 	const tabHasMatch = $derived(
