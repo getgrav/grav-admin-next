@@ -17,18 +17,18 @@
 			<Clock size={15} />
 			{i18n.t('ADMIN_NEXT.DASHBOARD.WIDGETS.RECENT_PAGES')}
 		</h2>
-		<a href="{base}/pages" class="text-[11px] text-primary hover:underline">{i18n.t('ADMIN_NEXT.RECENT_PAGES_WIDGET.VIEW_ALL')}</a>
+		<a href="{base}/pages" class="text-[0.6875rem] text-primary hover:underline">{i18n.t('ADMIN_NEXT.RECENT_PAGES_WIDGET.VIEW_ALL')}</a>
 	</div>
 	{#if recentPages.length > 0}
 		<div class="space-y-0.5">
 			{#each recentPages.slice(0, max) as pg}
 				<a href="{base}/pages/edit{pg.route}" class="group flex items-center justify-between gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-accent">
 					<div class="min-w-0 flex-1">
-						<div class="truncate text-[13px] font-medium text-foreground group-hover:text-primary">{pg.title}</div>
-						<div class="truncate text-[11px] text-muted-foreground">{pg.route}</div>
+						<div class="truncate text-[0.8125rem] font-medium text-foreground group-hover:text-primary">{pg.title}</div>
+						<div class="truncate text-[0.6875rem] text-muted-foreground">{pg.route}</div>
 					</div>
 					<div class="flex shrink-0 items-center gap-2">
-						<span class="text-[11px] tabular-nums text-muted-foreground">{formatDate(pg.modified)}</span>
+						<span class="text-[0.6875rem] tabular-nums text-muted-foreground">{formatDate(pg.modified)}</span>
 						{#if pg.published}
 							<div class="h-1.5 w-1.5 rounded-full bg-emerald-500"></div>
 						{:else}

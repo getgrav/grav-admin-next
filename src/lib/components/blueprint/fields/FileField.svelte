@@ -362,7 +362,7 @@
 							class="h-8 w-8 shrink-0 rounded border border-border object-cover"
 						/>
 					{:else}
-						<div class="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted text-[10px] font-semibold text-muted-foreground">
+						<div class="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted text-[0.625rem] font-semibold text-muted-foreground">
 							{entry.name.split('.').pop()?.toUpperCase().slice(0, 4) ?? ''}
 						</div>
 					{/if}
@@ -408,7 +408,7 @@
 					{dragOver ? 'Drop file here' : 'Drop file or click to upload'}
 				</p>
 				{#if field.accept?.length}
-					<p class="text-[10px] text-muted-foreground/60">
+					<p class="text-[0.625rem] text-muted-foreground/60">
 						{field.accept.join(', ')}
 					</p>
 				{/if}

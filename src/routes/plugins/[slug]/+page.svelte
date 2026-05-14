@@ -99,7 +99,7 @@
 			.replace(/^\d+\.\s*\[]\(#(\w+)\)\s*$/gm, (_match, type: string) => {
 				const color = badgeColors[type] ?? 'background:#6b7280;color:white';
 				const label = badgeLabels[type] ?? type;
-				return `<span style="${color};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;display:inline-block;margin-top:8px">${label}</span>\n`;
+				return `<span style="${color};padding:2px 8px;border-radius:4px;font-size:0.6875rem;font-weight:600;display:inline-block;margin-top:8px">${label}</span>\n`;
 			})
 			// Convert indented "* item" to flat bullets (remove extra nesting)
 			.replace(/^ {4}\* /gm, '- ')
@@ -567,7 +567,7 @@
 							{#if parseKeywords(plugin.keywords).length}
 								<div class="mt-2 flex flex-wrap gap-1">
 									{#each parseKeywords(plugin.keywords) as kw}
-										<span class="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{kw}</span>
+										<span class="rounded bg-muted px-1.5 py-0.5 text-[0.625rem] text-muted-foreground">{kw}</span>
 									{/each}
 								</div>
 							{/if}

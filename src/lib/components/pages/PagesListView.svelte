@@ -204,7 +204,7 @@
 
 {#snippet sortHeader(label: string, field: PageListParams['sort'], width: string, align: string = 'left')}
 	<button
-		class="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider transition-colors
+		class="flex items-center gap-1 text-[0.6875rem] font-medium uppercase tracking-wider transition-colors
 			{sortField === field ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}
 			{align === 'right' ? 'ml-auto' : ''}"
 		onclick={() => toggleSort(field)}
@@ -226,15 +226,15 @@
 	<div class="min-w-0 flex-1">{@render sortHeader('Title', 'title', 'flex-1')}</div>
 	{#if !reorderMode}
 		<div class="hidden w-20 text-center md:block">
-			<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_TEMPLATE')}</span>
+			<span class="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_TEMPLATE')}</span>
 		</div>
 		<div class="w-6 text-center" title={i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')}>
-			<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">·</span>
+			<span class="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">·</span>
 		</div>
 		<div class="hidden w-20 text-right sm:block">{@render sortHeader('Modified', 'modified', 'w-20', 'right')}</div>
 	{:else}
 		<div class="w-32 text-right">
-			<span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_PARENT')}</span>
+			<span class="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_PARENT')}</span>
 		</div>
 	{/if}
 </div>
@@ -291,7 +291,7 @@
 							</div>
 						{/if}
 					</div>
-					<div class="truncate text-[11px] text-muted-foreground">{page.route}</div>
+					<div class="truncate text-[0.6875rem] text-muted-foreground">{page.route}</div>
 				</button>
 			</div>
 
@@ -306,7 +306,7 @@
 						<CircleDashed size={14} class="text-muted-foreground" aria-label="Draft" />
 					{/if}
 				</div>
-				<div class="hidden w-20 text-right text-[11px] text-muted-foreground sm:block">
+				<div class="hidden w-20 text-right text-[0.6875rem] text-muted-foreground sm:block">
 					{formatDate(page.modified)}
 				</div>
 				{#if onDelete}
@@ -319,7 +319,7 @@
 				</button>
 				{/if}
 			{:else}
-				<div class="w-32 text-right text-[11px] text-muted-foreground">
+				<div class="w-32 text-right text-[0.6875rem] text-muted-foreground">
 					{getParentRoute(page)}
 				</div>
 			{/if}

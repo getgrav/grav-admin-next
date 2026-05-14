@@ -121,7 +121,7 @@
 				<BrandLogo size="login" />
 			</div>
 			<h1 class="text-2xl font-semibold tracking-tight text-foreground">{i18n.t('ADMIN_NEXT.SETUP.WELCOME_TO_GRAV')}</h1>
-			<p class="mt-1 text-[13px] text-muted-foreground">
+			<p class="mt-1 text-[0.8125rem] text-muted-foreground">
 				{i18n.t('ADMIN_NEXT.SETUP.CREATE_YOUR_ADMINISTRATOR_ACCOUNT_TO')}
 			</p>
 		</div>
@@ -130,14 +130,14 @@
 			{#if checking}
 				<div class="flex items-center justify-center px-6 py-10 text-muted-foreground">
 					<Loader2 size={16} class="animate-spin" />
-					<span class="ml-2 text-[13px]">{i18n.t('ADMIN_NEXT.SETUP.CHECKING_SERVER')}</span>
+					<span class="ml-2 text-[0.8125rem]">{i18n.t('ADMIN_NEXT.SETUP.CHECKING_SERVER')}</span>
 				</div>
 			{:else}
 				<!-- Server config (collapsible) -->
 				<div class="border-b border-border px-6 py-3">
 					<button
 						type="button"
-						class="flex w-full items-center gap-2 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+						class="flex w-full items-center gap-2 text-[0.8125rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
 						onclick={() => showServerConfig = !showServerConfig}
 					>
 						<Server size={13} />
@@ -148,7 +148,7 @@
 					{#if showServerConfig}
 						<div class="mt-3 space-y-3 pb-1">
 							<div class="space-y-1.5">
-								<label for="server-url" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETUP.SERVER_URL')}</label>
+								<label for="server-url" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETUP.SERVER_URL')}</label>
 								<div class="flex rounded-md shadow-sm">
 									<span class="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-muted-foreground">
 										<Globe size={13} />
@@ -162,7 +162,7 @@
 								</div>
 							</div>
 							<div class="space-y-1.5">
-								<label for="environment" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETUP.ENVIRONMENT')}</label>
+								<label for="environment" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETUP.ENVIRONMENT')}</label>
 								<input
 									id="environment"
 									type="text"
@@ -176,7 +176,7 @@
 
 				<form onsubmit={handleSetup} class="space-y-4 px-6 py-5">
 					<div class="space-y-1.5">
-						<label for="username" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.USERNAME')}</label>
+						<label for="username" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.USERNAME')}</label>
 						<input
 							id="username"
 							type="text"
@@ -192,7 +192,7 @@
 					</div>
 
 					<div class="space-y-1.5">
-						<label for="fullname" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETUP.FULL_NAME')} <span class="text-muted-foreground">{i18n.t('ADMIN_NEXT.SETUP.OPTIONAL')}</span></label>
+						<label for="fullname" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETUP.FULL_NAME')} <span class="text-muted-foreground">{i18n.t('ADMIN_NEXT.SETUP.OPTIONAL')}</span></label>
 						<input
 							id="fullname"
 							type="text"
@@ -204,7 +204,7 @@
 					</div>
 
 					<div class="space-y-1.5">
-						<label for="email" class="text-[13px] font-medium text-foreground">Email</label>
+						<label for="email" class="text-[0.8125rem] font-medium text-foreground">Email</label>
 						<input
 							id="email"
 							type="email"
@@ -230,7 +230,7 @@
 					/>
 
 					<div class="space-y-1.5">
-						<label for="confirm" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETUP.CONFIRM_PASSWORD')}</label>
+						<label for="confirm" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETUP.CONFIRM_PASSWORD')}</label>
 						<input
 							id="confirm"
 							type="password"

@@ -41,8 +41,8 @@
 							onclick={() => { onAdd(w.id); open = false; }}
 						>
 							<div class="min-w-0">
-								<div class="text-[13px] font-medium text-foreground">{i18n.t(w.label)}</div>
-								<div class="text-[11px] text-muted-foreground">{w.id}</div>
+								<div class="text-[0.8125rem] font-medium text-foreground">{i18n.t(w.label)}</div>
+								<div class="text-[0.6875rem] text-muted-foreground">{w.id}</div>
 							</div>
 							<Plus size={14} class="shrink-0 text-muted-foreground" />
 						</button>

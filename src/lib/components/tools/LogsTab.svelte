@@ -269,7 +269,7 @@
 									{formatDate(entry.date)}
 								</td>
 								<td class="px-4 py-2.5 align-top">
-									<span class="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium {levelColors[entry.level] ?? 'bg-muted text-muted-foreground'}">
+									<span class="inline-flex items-center rounded-md px-2 py-0.5 text-[0.6875rem] font-medium {levelColors[entry.level] ?? 'bg-muted text-muted-foreground'}">
 										{entry.level}
 									</span>
 								</td>

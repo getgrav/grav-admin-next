@@ -93,7 +93,7 @@
 		</div>
 		<div class="min-w-0 flex-1">
 			<div class="text-sm font-medium text-foreground">{props.folder.name}</div>
-			<div class="text-[11px] text-muted-foreground">
+			<div class="text-[0.6875rem] text-muted-foreground">
 				{props.folder.file_count} file{props.folder.file_count !== 1 ? 's' : ''}
 			</div>
 		</div>
@@ -131,22 +131,22 @@
 		<div class="min-w-0 flex-1">
 			<div class="truncate text-sm font-medium text-foreground">{props.item.filename}</div>
 			{#if props.item.path}
-				<div class="truncate text-[11px] text-muted-foreground">{props.item.path}</div>
+				<div class="truncate text-[0.6875rem] text-muted-foreground">{props.item.path}</div>
 			{/if}
 		</div>
 
 		<!-- Type -->
-		<div class="hidden w-20 text-right text-[11px] text-muted-foreground sm:block">
+		<div class="hidden w-20 text-right text-[0.6875rem] text-muted-foreground sm:block">
 			{getMimeLabel(props.item.type)}
 		</div>
 
 		<!-- Size -->
-		<div class="w-16 text-right text-[11px] text-muted-foreground">
+		<div class="w-16 text-right text-[0.6875rem] text-muted-foreground">
 			{formatSize(props.item.size)}
 		</div>
 
 		<!-- Date -->
-		<div class="hidden w-24 text-right text-[11px] text-muted-foreground md:block">
+		<div class="hidden w-24 text-right text-[0.6875rem] text-muted-foreground md:block">
 			{formatDate(props.item.modified)}
 		</div>
 	</div>

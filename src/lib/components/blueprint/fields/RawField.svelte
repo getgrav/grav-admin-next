@@ -27,7 +27,7 @@
 <label class="label">
 	<span class="flex items-center gap-2 text-sm font-semibold text-foreground">
 		{translateLabel(field.label) || field.name}
-		<span class="inline-flex items-center rounded-md border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{field.type}</span>
+		<span class="inline-flex items-center rounded-md border border-border px-2 py-0.5 text-[0.625rem] font-medium text-muted-foreground">{field.type}</span>
 	</span>
 	<textarea
 		class="flex min-h-[80px] w-full rounded-lg border border-input bg-muted/50 px-3 py-2.5 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"

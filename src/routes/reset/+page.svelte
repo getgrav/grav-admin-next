@@ -94,7 +94,7 @@
 				<BrandLogo size="login" />
 			</div>
 			<h1 class="text-2xl font-semibold tracking-tight text-foreground">{i18n.t('ADMIN_NEXT.RESET.RESET_PASSWORD')}</h1>
-			<p class="mt-1 text-[13px] text-muted-foreground">
+			<p class="mt-1 text-[0.8125rem] text-muted-foreground">
 				{#if missingParams}
 					{i18n.t('ADMIN_NEXT.RESET.INVALID_LINK')}
 				{:else}
@@ -105,7 +105,7 @@
 
 		<div class="rounded-lg border border-border bg-card shadow-sm">
 			{#if missingParams}
-				<div class="px-6 py-5 text-center text-[13px] text-muted-foreground">
+				<div class="px-6 py-5 text-center text-[0.8125rem] text-muted-foreground">
 					{i18n.t('ADMIN_NEXT.RESET.THIS_RESET_LINK_IS_MISSING_REQUIRED')}
 				</div>
 			{:else}
@@ -121,7 +121,7 @@
 					/>
 
 					<div class="space-y-1.5">
-						<label for="confirm" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.RESET.CONFIRM_PASSWORD')}</label>
+						<label for="confirm" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.RESET.CONFIRM_PASSWORD')}</label>
 						<input
 							id="confirm"
 							type="password"
@@ -153,7 +153,7 @@
 			<div class="border-t border-border px-6 py-3">
 				<a
 					href="{base}/login"
-					class="flex items-center justify-center gap-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+					class="flex items-center justify-center gap-1.5 text-[0.75rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
 				>
 					<ArrowLeft size={12} />
 					{i18n.t('ADMIN_NEXT.RESET.BACK_TO_SIGN_IN')}

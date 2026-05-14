@@ -62,7 +62,7 @@
 			{#if current.icon}
 				<span class="shrink-0 text-lg leading-none">{current.icon}</span>
 			{/if}
-			<div class="min-w-0 flex-1 text-[13px] leading-relaxed text-foreground">
+			<div class="min-w-0 flex-1 text-[0.8125rem] leading-relaxed text-foreground">
 				{#if current.title}
 					<span class="font-semibold">{current.title}</span>
 					<span class="mx-1 text-muted-foreground">—</span>
@@ -75,7 +75,7 @@
 					href={current.action.url}
 					target="_blank"
 					rel="noopener noreferrer"
-					class="shrink-0 rounded-md border border-purple-500/40 bg-purple-500/10 px-3 py-1 text-[12px] font-semibold text-foreground transition-colors hover:bg-purple-500/20"
+					class="shrink-0 rounded-md border border-purple-500/40 bg-purple-500/10 px-3 py-1 text-[0.75rem] font-semibold text-foreground transition-colors hover:bg-purple-500/20"
 				>
 					{current.action.label}
 				</a>
@@ -92,7 +92,7 @@
 						>
 							<ChevronLeft size={14} />
 						</button>
-						<span class="text-[10px] tabular-nums text-muted-foreground px-1">{activeIdx + 1}/{visible.length}</span>
+						<span class="text-[0.625rem] tabular-nums text-muted-foreground px-1">{activeIdx + 1}/{visible.length}</span>
 						<button
 							type="button"
 							class="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"

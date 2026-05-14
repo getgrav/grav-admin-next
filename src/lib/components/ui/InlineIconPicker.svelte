@@ -81,7 +81,7 @@
 				{#if normalized}
 					<button
 						type="button"
-						class="rounded px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+						class="rounded px-1.5 py-0.5 text-[0.625rem] text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
 						onclick={clear}
 					>
 						Clear
@@ -112,7 +112,7 @@
 			</div>
 
 			{#if filteredIcons.length >= 200}
-				<div class="border-t border-border px-3 py-1 text-center text-[10px] text-muted-foreground">
+				<div class="border-t border-border px-3 py-1 text-center text-[0.625rem] text-muted-foreground">
 					{i18n.t('ADMIN_NEXT.INLINE_ICON_PICKER.TYPE_TO_NARROW_RESULTS')}
 				</div>
 			{/if}

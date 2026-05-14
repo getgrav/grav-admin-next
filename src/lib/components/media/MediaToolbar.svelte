@@ -62,7 +62,7 @@
 <!-- Breadcrumbs -->
 <div class="flex items-center gap-1 border-b border-border px-4 py-2 text-sm">
 	<button
-		class="rounded px-1.5 py-0.5 text-[13px] font-medium transition-colors
+		class="rounded px-1.5 py-0.5 text-[0.8125rem] font-medium transition-colors
 			{!mediaManager.currentPath && !mediaManager.isSearching
 				? 'text-foreground'
 				: 'text-muted-foreground hover:text-foreground'}"
@@ -76,7 +76,7 @@
 	{#each breadcrumbs as segment, i}
 		<ChevronRight size={12} class="text-muted-foreground/50" />
 		<button
-			class="rounded px-1.5 py-0.5 text-[13px] font-medium transition-colors
+			class="rounded px-1.5 py-0.5 text-[0.8125rem] font-medium transition-colors
 				{i === breadcrumbs.length - 1
 					? 'text-foreground'
 					: 'text-muted-foreground hover:text-foreground'}"
@@ -87,7 +87,7 @@
 	{/each}
 	{#if mediaManager.isSearching}
 		<ChevronRight size={12} class="text-muted-foreground/50" />
-		<span class="text-[13px] text-muted-foreground">
+		<span class="text-[0.8125rem] text-muted-foreground">
 			Search: "{mediaManager.searchQuery}"
 		</span>
 	{/if}
@@ -120,7 +120,7 @@
 	<div class="hidden items-center sm:flex">
 		{#each typeFilters as filter}
 			<button
-				class="inline-flex h-8 items-center gap-1 px-2.5 text-[12px] font-medium transition-colors first:rounded-l-md first:border first:border-r-0 last:rounded-r-md last:border last:border-l-0 [&:not(:first-child):not(:last-child)]:border-y
+				class="inline-flex h-8 items-center gap-1 px-2.5 text-[0.75rem] font-medium transition-colors first:rounded-l-md first:border first:border-r-0 last:rounded-r-md last:border last:border-l-0 [&:not(:first-child):not(:last-child)]:border-y
 					{mediaManager.typeFilter === filter.value
 						? 'border-primary/30 bg-primary/10 text-primary'
 						: 'border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
@@ -174,7 +174,7 @@
 	<!-- Bulk actions -->
 	{#if selectionCount > 0}
 		<button
-			class="inline-flex h-8 items-center gap-1.5 rounded-md border border-destructive/30 bg-destructive/10 px-3 text-[12px] font-medium text-destructive transition-colors hover:bg-destructive/20"
+			class="inline-flex h-8 items-center gap-1.5 rounded-md border border-destructive/30 bg-destructive/10 px-3 text-[0.75rem] font-medium text-destructive transition-colors hover:bg-destructive/20"
 			onclick={ondeleteselected}
 		>
 			<Trash2 size={13} />
@@ -184,7 +184,7 @@
 
 	<!-- New folder -->
 	<button
-		class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+		class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-[0.75rem] font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 		onclick={onnewfolder}
 		aria-label={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.NEW_FOLDER')}
 	>
@@ -194,7 +194,7 @@
 
 	<!-- Upload -->
 	<button
-		class="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-[12px] font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+		class="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-[0.75rem] font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
 		onclick={onupload}
 	>
 		<Upload size={13} />

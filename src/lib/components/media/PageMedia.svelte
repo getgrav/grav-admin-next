@@ -379,7 +379,7 @@
 								<span class="text-lg text-muted-foreground">
 									{item.filename.split('.').pop()?.toUpperCase()}
 								</span>
-								<span class="max-w-full truncate text-[10px] text-muted-foreground">
+								<span class="max-w-full truncate text-[0.625rem] text-muted-foreground">
 									{item.filename}
 								</span>
 							</div>
@@ -388,7 +388,7 @@
 						<!-- Overlay on hover -->
 						<div class="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100">
 							<div class="flex w-full items-center justify-between p-1.5">
-								<span class="max-w-[calc(100%-24px)] truncate text-[10px] text-white/90">
+								<span class="max-w-[calc(100%-24px)] truncate text-[0.625rem] text-white/90">
 									{item.filename}
 								</span>
 								<button

@@ -52,7 +52,7 @@
 		{#if implicit}
 			<Crown size={14} class="text-purple-500" />
 		{/if}
-		<div class="flex shrink-0 overflow-hidden rounded-md border border-border text-[11px] font-medium">
+		<div class="flex shrink-0 overflow-hidden rounded-md border border-border text-[0.6875rem] font-medium">
 			<button
 				type="button"
 				class="flex items-center justify-center px-2 py-1.5 transition-colors

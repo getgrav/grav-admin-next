@@ -82,7 +82,7 @@
 				<Icon size={14} />
 			{/if}
 			{#if badge && badge > 0}
-				<span class="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+				<span class="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[0.625rem] font-bold leading-none text-white">
 					{badge > 99 ? '99+' : badge}
 				</span>
 			{/if}

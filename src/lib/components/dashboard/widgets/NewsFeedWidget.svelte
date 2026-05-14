@@ -20,13 +20,13 @@
 			{#each feed.slice(0, max) as item}
 				<a href={item.url} target="_blank" rel="noopener noreferrer" class="group flex items-start justify-between gap-3 border-b border-border/50 pb-2 last:border-0 last:pb-0">
 					<div class="min-w-0 flex-1">
-						<p class="text-[12px] font-medium text-foreground group-hover:text-primary">{item.title}</p>
+						<p class="text-[0.75rem] font-medium text-foreground group-hover:text-primary">{item.title}</p>
 					</div>
-					<span class="shrink-0 text-[11px] tabular-nums text-muted-foreground">{formatDate(item.date)}</span>
+					<span class="shrink-0 text-[0.6875rem] tabular-nums text-muted-foreground">{formatDate(item.date)}</span>
 				</a>
 			{/each}
 		</div>
 	{:else}
-		<p class="py-4 text-center text-[13px] text-muted-foreground">{i18n.t('ADMIN_NEXT.NEWS_FEED_WIDGET.NO_FEED_ITEMS')}</p>
+		<p class="py-4 text-center text-[0.8125rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.NEWS_FEED_WIDGET.NO_FEED_ITEMS')}</p>
 	{/if}
 </div>

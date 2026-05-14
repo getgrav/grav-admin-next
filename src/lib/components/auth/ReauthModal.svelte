@@ -139,7 +139,7 @@
 
 			<form onsubmit={handleSubmit} class="mt-5 space-y-3">
 				<div>
-					<label for="reauth-username" class="text-[13px] font-medium text-foreground">
+					<label for="reauth-username" class="text-[0.8125rem] font-medium text-foreground">
 						{i18n.t('ADMIN_NEXT.USERNAME')}
 					</label>
 					<Input
@@ -151,7 +151,7 @@
 					/>
 				</div>
 				<div>
-					<label for="reauth-password" class="text-[13px] font-medium text-foreground">
+					<label for="reauth-password" class="text-[0.8125rem] font-medium text-foreground">
 						{i18n.t('ADMIN_NEXT.PASSWORD')}
 					</label>
 					<Input
@@ -165,7 +165,7 @@
 					/>
 				</div>
 				{#if error}
-					<p class="text-[13px] text-destructive">{error}</p>
+					<p class="text-[0.8125rem] text-destructive">{error}</p>
 				{/if}
 				<div class="flex justify-end gap-2 pt-1">
 					<Button type="button" variant="outline" size="sm" onclick={handleSignOut} disabled={submitting}>

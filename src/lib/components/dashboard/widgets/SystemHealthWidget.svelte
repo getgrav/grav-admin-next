@@ -34,14 +34,14 @@
 					{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPDATES')}
 				</h2>
 				{#if totalUpdates > 0}
-					<span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+					<span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-[0.6875rem] font-semibold text-amber-600 dark:text-amber-400">
 						{totalUpdates} available
 					</span>
 				{/if}
 			</div>
 
 			{#if totalUpdates === 0}
-				<div class="flex items-center gap-2 text-[13px] text-emerald-600 dark:text-emerald-400">
+				<div class="flex items-center gap-2 text-[0.8125rem] text-emerald-600 dark:text-emerald-400">
 					<CheckCircle2 size={14} />
 					{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.EVERYTHING_UP_TO_DATE')}
 				</div>
@@ -50,23 +50,23 @@
 					<div class="relative mb-3 overflow-hidden rounded-lg border border-purple-500/30 bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent p-3 shadow-sm">
 						<div class="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-purple-500/10 blur-2xl"></div>
 						<div class="relative">
-							<div class="flex items-center gap-2 text-[13px] font-semibold text-purple-600 dark:text-purple-400">
+							<div class="flex items-center gap-2 text-[0.8125rem] font-semibold text-purple-600 dark:text-purple-400">
 								<ArrowUpCircle size={13} />
 								{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.GRAV_UPDATE_AVAILABLE')}
 							</div>
-							<div class="mt-1.5 flex items-center gap-1.5 text-[12px] text-muted-foreground">
+							<div class="mt-1.5 flex items-center gap-1.5 text-[0.75rem] text-muted-foreground">
 								<span class="tabular-nums">v{updates.grav.current}</span>
 								<ArrowRight size={11} class="text-purple-500" />
 								<span class="font-semibold tabular-nums text-purple-600 dark:text-purple-400">v{updates.grav.available}</span>
 							</div>
 							{#if canWriteGpm}
 								{#if updates.grav.is_symlink}
-									<div class="mt-2 text-[11px] italic text-muted-foreground">
+									<div class="mt-2 text-[0.6875rem] italic text-muted-foreground">
 										{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.GRAV_IS_INSTALLED_VIA_SYMLINK_UPGRADE')}
 									</div>
 								{:else}
 									<button type="button"
-										class="mt-2.5 inline-flex h-8 items-center gap-1.5 rounded-md bg-purple-600 px-3 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-purple-700 disabled:opacity-60 dark:bg-purple-500 dark:hover:bg-purple-600"
+										class="mt-2.5 inline-flex h-8 items-center gap-1.5 rounded-md bg-purple-600 px-3 text-[0.75rem] font-semibold text-white shadow-sm transition-colors hover:bg-purple-700 disabled:opacity-60 dark:bg-purple-500 dark:hover:bg-purple-600"
 										onclick={() => data().onUpgradeGrav()}
 										disabled={updatingAll || upgradingGrav}
 									>
@@ -81,11 +81,11 @@
 
 				{#if packageCount > 0}
 					<div class="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
-						<div class="flex items-center gap-2 text-[13px] font-medium text-amber-600 dark:text-amber-400">
+						<div class="flex items-center gap-2 text-[0.8125rem] font-medium text-amber-600 dark:text-amber-400">
 							<AlertTriangle size={13} />
 							{packageCount} package{packageCount > 1 ? 's' : ''} outdated
 						</div>
-						<ul class="mt-2 space-y-0.5 text-[12px] text-muted-foreground">
+						<ul class="mt-2 space-y-0.5 text-[0.75rem] text-muted-foreground">
 							{#each updatablePlugins.slice(0, 4) as p}
 								<li class="flex items-center justify-between gap-2">
 									<span class="truncate">{p.name}</span>
@@ -99,12 +99,12 @@
 								</li>
 							{/each}
 							{#if packageCount > 4}
-								<li class="text-[11px] italic text-muted-foreground/70">+ {packageCount - 4} more…</li>
+								<li class="text-[0.6875rem] italic text-muted-foreground/70">+ {packageCount - 4} more…</li>
 							{/if}
 						</ul>
 						{#if canWriteGpm}
 							<button type="button"
-								class="mt-2.5 inline-flex h-8 items-center gap-1.5 rounded-md bg-amber-500 px-3 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 disabled:opacity-60"
+								class="mt-2.5 inline-flex h-8 items-center gap-1.5 rounded-md bg-amber-500 px-3 text-[0.75rem] font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 disabled:opacity-60"
 								onclick={() => data().onUpdateAll()}
 								disabled={updatingAll || upgradingGrav}
 							>
@@ -123,7 +123,7 @@
 			<Server size={15} />
 			{i18n.t('ADMIN_NEXT.NAV.SYSTEM')}
 		</h2>
-		<dl class="space-y-2.5 text-[13px]">
+		<dl class="space-y-2.5 text-[0.8125rem]">
 			{#if stats}
 				<div class="flex items-center justify-between">
 					<dt class="text-muted-foreground">Grav</dt>
@@ -158,13 +158,13 @@
 					<HardDrive size={15} />
 					Disk
 				</h2>
-				<span class="text-[11px] tabular-nums text-muted-foreground">{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.PERCENT_USED', { percent: diskUsedPercent })}</span>
+				<span class="text-[0.6875rem] tabular-nums text-muted-foreground">{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.PERCENT_USED', { percent: diskUsedPercent })}</span>
 			</div>
 			<div class="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
 				<div class="h-full rounded-full {diskUsedPercent > 90 ? 'bg-red-500' : diskUsedPercent > 70 ? 'bg-amber-500' : 'bg-primary'}"
 					style="width: {animated ? diskUsedPercent : 0}%; transition: width 0.8s cubic-bezier(0.16,1,0.3,1);"></div>
 			</div>
-			<div class="mt-2 flex justify-between text-[11px] text-muted-foreground">
+			<div class="mt-2 flex justify-between text-[0.6875rem] text-muted-foreground">
 				<span>{formatBytes(reports.disk.total_space - reports.disk.free_space)} used</span>
 				<span>{formatBytes(reports.disk.free_space)} free</span>
 			</div>

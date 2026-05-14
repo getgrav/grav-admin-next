@@ -19,7 +19,7 @@
 	<!-- Name -->
 	<div class="flex-1">
 		<button
-			class="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider transition-colors
+			class="flex items-center gap-1 text-[0.6875rem] font-medium uppercase tracking-wider transition-colors
 				{sortField === 'name' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => toggleSort('name')}
 		>
@@ -33,7 +33,7 @@
 	<!-- Type -->
 	<div class="hidden w-20 text-right sm:block">
 		<button
-			class="ml-auto flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider transition-colors
+			class="ml-auto flex items-center gap-1 text-[0.6875rem] font-medium uppercase tracking-wider transition-colors
 				{sortField === 'type' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => toggleSort('type')}
 		>
@@ -47,7 +47,7 @@
 	<!-- Size -->
 	<div class="w-16 text-right">
 		<button
-			class="ml-auto flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider transition-colors
+			class="ml-auto flex items-center gap-1 text-[0.6875rem] font-medium uppercase tracking-wider transition-colors
 				{sortField === 'size' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => toggleSort('size')}
 		>
@@ -61,7 +61,7 @@
 	<!-- Date -->
 	<div class="hidden w-24 text-right md:block">
 		<button
-			class="ml-auto flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider transition-colors
+			class="ml-auto flex items-center gap-1 text-[0.6875rem] font-medium uppercase tracking-wider transition-colors
 				{sortField === 'modified' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => toggleSort('modified')}
 		>

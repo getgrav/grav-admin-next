@@ -759,7 +759,7 @@
 		position: absolute;
 		top: -1.4em;
 		left: -2px;
-		font-size: 11px;
+		font-size: 0.6875rem;
 		font-weight: 500;
 		font-family: ui-sans-serif, system-ui, sans-serif;
 		line-height: 1.2;

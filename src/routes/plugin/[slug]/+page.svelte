@@ -400,7 +400,7 @@
 								<div class="absolute right-0 top-full z-50 mt-1 min-w-[220px] rounded-md border border-border bg-popover py-1 shadow-md">
 									{#each action.children as child (child.id)}
 										<button
-											class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-popover-foreground transition-colors hover:bg-accent/50"
+											class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[0.8125rem] text-popover-foreground transition-colors hover:bg-accent/50"
 											onclick={() => { openDropdown = null; executeAction(child); }}
 										>
 											{#if child.icon}

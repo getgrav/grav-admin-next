@@ -222,7 +222,7 @@
 											<BadgeCheck size={14} class="shrink-0 text-purple-500" />
 										{/if}
 										{#if plugin.premium}
-											<span class="shrink-0 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">{i18n.t('ADMIN_NEXT.PREMIUM')}</span>
+											<span class="shrink-0 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-medium text-red-600 dark:text-red-400">{i18n.t('ADMIN_NEXT.PREMIUM')}</span>
 										{/if}
 									</div>
 									<p class="truncate text-xs text-muted-foreground">{descriptionText(plugin)}</p>

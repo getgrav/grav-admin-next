@@ -1209,7 +1209,7 @@
 								<div class="flex items-center gap-2">
 									<h1 class="truncate font-semibold text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-lg'}">{title || 'Untitled'}</h1>
 									{#if contentLang.enabled && effectiveLang}
-										<Badge variant={isFallback ? 'secondary' : 'default'} class="uppercase text-[10px]">{effectiveLang}</Badge>
+										<Badge variant={isFallback ? 'secondary' : 'default'} class="uppercase text-[0.625rem]">{effectiveLang}</Badge>
 									{/if}
 								</div>
 								{#if !scrolled}
@@ -1317,7 +1317,7 @@
 						<div class="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-md border border-border bg-popover py-1 shadow-md">
 							{#each saveAsLanguages as lang}
 								<button
-									class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-popover-foreground transition-colors hover:bg-accent/50"
+									class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[0.8125rem] text-popover-foreground transition-colors hover:bg-accent/50"
 									onclick={() => handleSaveAsTranslation(lang)}
 								>
 									<Languages size={14} class="text-muted-foreground" />
@@ -1535,7 +1535,7 @@
 				<!-- Page Status & Info -->
 				<div class="rounded-lg border border-border bg-card p-4">
 					<h3 class="mb-3 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.PAGES.PAGE_INFO')}</h3>
-					<dl class="space-y-2.5 text-[13px]">
+					<dl class="space-y-2.5 text-[0.8125rem]">
 						<!-- Status indicators -->
 						<div class="flex justify-between">
 							<dt class="flex items-center gap-1.5 text-muted-foreground">
@@ -1590,7 +1590,7 @@
 						{#if contentLang.enabled}
 							<div class="flex justify-between">
 								<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.INFO_LANGUAGE')}</dt>
-								<dd class="font-medium text-foreground">{effectiveLang?.toUpperCase()}{#if isFallback} <span class="text-amber-500 text-[11px]">{i18n.t('ADMIN_NEXT.PAGES.EDIT.FALLBACK')}</span>{/if}</dd>
+								<dd class="font-medium text-foreground">{effectiveLang?.toUpperCase()}{#if isFallback} <span class="text-amber-500 text-[0.6875rem]">{i18n.t('ADMIN_NEXT.PAGES.EDIT.FALLBACK')}</span>{/if}</dd>
 							</div>
 						{/if}
 						{#if pageData.order}
@@ -1636,29 +1636,29 @@
 							{#if pageData.translated_languages}
 								{#each Object.keys(pageData.translated_languages) as lang}
 									<button
-										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors
+										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[0.8125rem] transition-colors
 											{lang === contentLang.activeLang ? 'bg-accent font-medium text-accent-foreground' : 'text-foreground hover:bg-accent/50'}"
 										onclick={() => handleLanguageSwitch(lang)}
 									>
-										<span class="inline-flex h-5 w-6 items-center justify-center rounded text-[10px] font-bold uppercase
+										<span class="inline-flex h-5 w-6 items-center justify-center rounded text-[0.625rem] font-bold uppercase
 											{lang === contentLang.activeLang ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}"
 										>{lang}</span>
 										{contentLang.getLanguageName(lang)}
 										{#if lang === contentLang.activeLang}
-											<span class="ml-auto text-[10px] text-muted-foreground">current</span>
+											<span class="ml-auto text-[0.625rem] text-muted-foreground">current</span>
 										{/if}
 									</button>
 								{/each}
 							{/if}
 							{#if pageData.untranslated_languages && pageData.untranslated_languages.length > 0}
 								<div class="my-1 border-t border-border"></div>
-								<p class="px-2 text-[11px] text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.NOT_TRANSLATED')}</p>
+								<p class="px-2 text-[0.6875rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.NOT_TRANSLATED')}</p>
 								{#each pageData.untranslated_languages as lang}
 									<button
-										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[0.8125rem] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 										onclick={() => handleSaveAsTranslation(lang)}
 									>
-										<span class="inline-flex h-5 w-6 items-center justify-center rounded bg-muted/50 text-[10px] font-bold uppercase text-muted-foreground/50"
+										<span class="inline-flex h-5 w-6 items-center justify-center rounded bg-muted/50 text-[0.625rem] font-bold uppercase text-muted-foreground/50"
 										>{lang}</span>
 										<span class="italic">{i18n.t('ADMIN_NEXT.PAGES.EDIT.CREATE_LANGUAGE', { language: contentLang.getLanguageName(lang) })}</span>
 									</button>
@@ -1666,13 +1666,13 @@
 							{/if}
 							{#if !contentLang.isDefault && pageData.translated_languages && Object.keys(pageData.translated_languages).length > 1}
 								<div class="my-1 border-t border-border"></div>
-								<p class="px-2 text-[11px] text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.RESET_CONTENT_FROM')}</p>
+								<p class="px-2 text-[0.6875rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.RESET_CONTENT_FROM')}</p>
 								{#each Object.keys(pageData.translated_languages).filter(l => l !== contentLang.activeLang) as lang}
 									<button
-										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[0.8125rem] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 										onclick={() => handleSyncFrom(lang)}
 									>
-										<span class="inline-flex h-5 w-6 items-center justify-center rounded bg-amber-500/15 text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400"
+										<span class="inline-flex h-5 w-6 items-center justify-center rounded bg-amber-500/15 text-[0.625rem] font-bold uppercase text-amber-600 dark:text-amber-400"
 										>{lang}</span>
 										{i18n.t('ADMIN_NEXT.PAGES.EDIT.RESET_FROM', { language: contentLang.getLanguageName(lang) })}
 									</button>
@@ -1755,7 +1755,7 @@
 						href={frontendPreviewUrl}
 						target="_blank"
 						rel="noopener"
-						class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+						class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-[0.75rem] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 					>
 						<ExternalLink size={13} />
 						{i18n.t('ADMIN_NEXT.PAGES.EDIT.OPEN_IN_NEW_TAB')}

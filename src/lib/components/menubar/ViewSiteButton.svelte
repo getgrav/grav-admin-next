@@ -15,7 +15,7 @@
 	href={siteUrl}
 	target="_blank"
 	rel="noopener noreferrer"
-	class="inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-md border border-border px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground lg:px-2.5"
+	class="inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-md border border-border px-2 text-[0.75rem] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground lg:px-2.5"
 	title={i18n.t('ADMIN_NEXT.VIEW_SITE_BUTTON.OPEN_SITE_FRONTEND_IN_A_NEW_TAB')}
 	aria-label={i18n.t('ADMIN_NEXT.VIEW_SITE_BUTTON.VIEW_SITE')}
 >

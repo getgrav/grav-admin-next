@@ -347,7 +347,7 @@
 									<BadgeCheck size={14} class="shrink-0 text-purple-500" />
 								{/if}
 								{#if plugin.premium}
-									<span class="shrink-0 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">{i18n.t('ADMIN_NEXT.PREMIUM')}</span>
+									<span class="shrink-0 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-medium text-red-600 dark:text-red-400">{i18n.t('ADMIN_NEXT.PREMIUM')}</span>
 								{/if}
 								{#if plugin.updatable}
 									<ArrowUpCircle size={12} class="shrink-0 text-amber-500" />
@@ -364,7 +364,7 @@
 						<!-- Enable toggle -->
 						<button
 							type="button"
-							class="shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-medium transition-colors
+							class="shrink-0 rounded-full px-2.5 py-0.5 text-[0.625rem] font-medium transition-colors
 								{plugin.enabled
 									? 'bg-green-500/15 text-green-600 hover:bg-green-500/25 dark:text-green-400'
 									: 'bg-muted text-muted-foreground hover:bg-muted/80'}"

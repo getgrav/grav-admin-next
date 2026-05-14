@@ -33,7 +33,7 @@
 {:else if widget.source === 'plugin'}
 	<PluginWidgetLoader {widget} />
 {:else}
-	<div class="rounded-lg border border-dashed border-amber-500/30 bg-amber-500/5 p-4 text-center text-[12px] text-amber-600 dark:text-amber-400">
+	<div class="rounded-lg border border-dashed border-amber-500/30 bg-amber-500/5 p-4 text-center text-[0.75rem] text-amber-600 dark:text-amber-400">
 		{i18n.t('ADMIN_NEXT.WIDGET_HOST.UNKNOWN_WIDGET', { id: widget.id })}
 	</div>
 {/if}

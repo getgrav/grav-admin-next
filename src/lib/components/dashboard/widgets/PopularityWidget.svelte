@@ -23,23 +23,23 @@
 				<TrendingUp size={15} />
 				{i18n.t('ADMIN_NEXT.DASHBOARD.WIDGETS.POPULARITY')}
 			</h2>
-			<p class="mt-0.5 text-[11px] text-muted-foreground">{i18n.t('ADMIN_NEXT.POPULARITY_WIDGET.LAST_14_DAYS')}</p>
+			<p class="mt-0.5 text-[0.6875rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.POPULARITY_WIDGET.LAST_14_DAYS')}</p>
 		</div>
 		{#if popularity}
 			<div class="flex items-center gap-4">
 				<div class="text-right">
 					<div class="text-lg font-semibold tabular-nums text-foreground">{formatNumber(popularity.summary.today)}</div>
-					<div class="text-[11px] text-muted-foreground">Today</div>
+					<div class="text-[0.6875rem] text-muted-foreground">Today</div>
 				</div>
 				<div class="h-8 w-px bg-border"></div>
 				<div class="text-right">
 					<div class="text-lg font-semibold tabular-nums text-foreground">{formatNumber(popularity.summary.week)}</div>
-					<div class="text-[11px] text-muted-foreground">{i18n.t('ADMIN_NEXT.POPULARITY_WIDGET.THIS_WEEK')}</div>
+					<div class="text-[0.6875rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.POPULARITY_WIDGET.THIS_WEEK')}</div>
 				</div>
 				<div class="h-8 w-px bg-border"></div>
 				<div class="text-right">
 					<div class="text-lg font-semibold tabular-nums text-foreground">{formatNumber(popularity.summary.month)}</div>
-					<div class="text-[11px] text-muted-foreground">{i18n.t('ADMIN_NEXT.POPULARITY_WIDGET.THIS_MONTH')}</div>
+					<div class="text-[0.6875rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.POPULARITY_WIDGET.THIS_MONTH')}</div>
 				</div>
 			</div>
 		{/if}

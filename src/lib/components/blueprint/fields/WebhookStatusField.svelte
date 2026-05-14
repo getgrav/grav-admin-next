@@ -58,7 +58,7 @@
 	<div class="rounded-lg border border-border bg-card p-4">
 		<h4 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.WEBHOOK_PLUGIN_REQUIRED')}</h4>
 		<p class="mt-1 text-sm text-muted-foreground">
-			The <span class="inline-flex items-center rounded-md bg-red-600/10 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:bg-red-500/15 dark:text-red-300">scheduler-webhook</span> {i18n.t('ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.PLUGIN_IS_REQUIRED_FOR_WEBHOOK')}
+			The <span class="inline-flex items-center rounded-md bg-red-600/10 px-2 py-0.5 text-[0.6875rem] font-medium text-red-700 dark:bg-red-500/15 dark:text-red-300">scheduler-webhook</span> {i18n.t('ADMIN_NEXT.FIELDS.WEBHOOK_STATUS.PLUGIN_IS_REQUIRED_FOR_WEBHOOK')}
 		</p>
 		<div class="mt-3 flex items-center gap-3">
 			<Button size="sm" onclick={handleInstall}>

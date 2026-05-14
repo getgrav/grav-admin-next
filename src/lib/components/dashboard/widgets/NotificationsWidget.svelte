@@ -32,7 +32,7 @@
 	</h2>
 
 	{#if promos.length === 0 && items.length === 0}
-		<p class="py-4 text-center text-[13px] text-muted-foreground">{i18n.t('ADMIN_NEXT.NOTIFICATIONS_WIDGET.NO_NOTIFICATIONS')}</p>
+		<p class="py-4 text-center text-[0.8125rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.NOTIFICATIONS_WIDGET.NO_NOTIFICATIONS')}</p>
 	{:else}
 		{#each promos as promo (promo.id)}
 			<div class="mb-3 overflow-hidden rounded-lg bg-gradient-to-br {gradientFor(promo.accent)} p-5 text-white shadow-sm">
@@ -41,7 +41,7 @@
 				{:else if promo.title}
 					<div class="mb-2 text-base font-semibold">{promo.title}</div>
 				{/if}
-				<p class="mb-4 text-[13px] leading-relaxed text-white/90">
+				<p class="mb-4 text-[0.8125rem] leading-relaxed text-white/90">
 					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 					{@html renderInlineMarkdown(promo.message)}
 				</p>
@@ -50,7 +50,7 @@
 						href={promo.action.url}
 						target="_blank"
 						rel="noopener noreferrer"
-						class="inline-block rounded-md border border-white/40 px-3.5 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-white/10"
+						class="inline-block rounded-md border border-white/40 px-3.5 py-1.5 text-[0.75rem] font-semibold text-white transition-colors hover:bg-white/10"
 					>
 						{promo.action.label}
 					</a>
@@ -89,12 +89,12 @@
 	{/if}
 	<div class="min-w-0 flex-1">
 		{#if notif.title}
-			<div class="text-[12px] font-semibold text-foreground group-hover:text-primary">{notif.title}</div>
+			<div class="text-[0.75rem] font-semibold text-foreground group-hover:text-primary">{notif.title}</div>
 		{/if}
-		<p class="text-[12px] leading-relaxed text-foreground/80 group-hover:text-primary">
+		<p class="text-[0.75rem] leading-relaxed text-foreground/80 group-hover:text-primary">
 			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 			{@html renderInlineMarkdown(notif.message)}
 		</p>
 	</div>
-	<span class="shrink-0 text-[11px] tabular-nums text-muted-foreground">{formatDate(notif.date)}</span>
+	<span class="shrink-0 text-[0.6875rem] tabular-nums text-muted-foreground">{formatDate(notif.date)}</span>
 {/snippet}

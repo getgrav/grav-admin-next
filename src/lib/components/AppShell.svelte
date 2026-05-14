@@ -151,7 +151,7 @@
 				{#each visibleNavItems as item}
 					<li>
 						<a href={item.href}
-							class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors
+							class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium transition-colors
 								{isActive(item.href)
 									? 'bg-primary/10 text-primary'
 									: 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
@@ -161,7 +161,7 @@
 							{#if !collapsed}
 								<span>{item.label}</span>
 								{#if item.badgeKey && navBadges.counts[item.badgeKey] != null}
-									<span class="ml-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">{navBadges.counts[item.badgeKey]}</span>
+									<span class="ml-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">{navBadges.counts[item.badgeKey]}</span>
 								{/if}
 							{/if}
 						</a>
@@ -172,17 +172,17 @@
 					{#each visiblePluginItems as item (item.id)}
 						<li>
 							<a href="{base}{item.route}"
-								class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors
+								class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium transition-colors
 									{isActive(`${base}${item.route}`)
 										? 'bg-primary/10 text-primary'
 										: 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
 								onclick={() => mobileOpen = false}
 								title={collapsed ? item.label : undefined}>
-								<i class="fa-solid {item.icon.startsWith('fa-') ? item.icon : 'fa-' + item.icon} w-4 text-center text-[13px]"></i>
+								<i class="fa-solid {item.icon.startsWith('fa-') ? item.icon : 'fa-' + item.icon} w-4 text-center text-[0.8125rem]"></i>
 								{#if !collapsed}
 									<span>{item.label}</span>
 									{#if item.badge != null}
-										<span class="ml-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">{item.badge}</span>
+										<span class="ml-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">{item.badge}</span>
 									{/if}
 								{/if}
 							</a>
@@ -195,7 +195,7 @@
 		<!-- Settings link -->
 		<div class="border-t border-sidebar-border px-2 pt-2">
 			<a href={settingsItem.href}
-				class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors
+				class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium transition-colors
 					{isActive(settingsItem.href)
 						? 'bg-primary/10 text-primary'
 						: 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
@@ -228,7 +228,7 @@
 						/>
 					</a>
 					<div class="min-w-0 flex-1">
-						<a href="{base}/users/{auth.username}" class="block truncate text-[13px] font-medium text-foreground hover:underline">
+						<a href="{base}/users/{auth.username}" class="block truncate text-[0.8125rem] font-medium text-foreground hover:underline">
 							{auth.fullname || auth.username}
 						</a>
 					</div>
@@ -308,7 +308,7 @@
 				{@const mt = pageEditorBar.modeToggle}
 				<div class="inline-flex rounded-md border border-border shadow-sm">
 					<button
-						class="inline-flex h-7 items-center gap-1.5 rounded-l-md px-2 text-[12px] font-medium transition-colors sm:px-2.5
+						class="inline-flex h-7 items-center gap-1.5 rounded-l-md px-2 text-[0.75rem] font-medium transition-colors sm:px-2.5
 							{prefs.editorMode === 'normal'
 								? 'bg-accent text-accent-foreground'
 								: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
@@ -320,7 +320,7 @@
 						<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.PAGES.MODE_NORMAL')}</span>
 					</button>
 					<button
-						class="inline-flex h-7 items-center gap-1.5 rounded-r-md px-2 text-[12px] font-medium transition-colors sm:px-2.5
+						class="inline-flex h-7 items-center gap-1.5 rounded-r-md px-2 text-[0.75rem] font-medium transition-colors sm:px-2.5
 							{prefs.editorMode === 'expert'
 								? 'bg-accent text-accent-foreground'
 								: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"

@@ -69,7 +69,7 @@
 				<BrandLogo size="login" />
 			</div>
 			<h1 class="text-2xl font-semibold tracking-tight text-foreground">{i18n.t('ADMIN_NEXT.FORGOT.FORGOT_PASSWORD')}</h1>
-			<p class="mt-1 text-[13px] text-muted-foreground">
+			<p class="mt-1 text-[0.8125rem] text-muted-foreground">
 				{#if submitted}
 					{i18n.t('ADMIN_NEXT.FORGOT.CHECK_INBOX')}
 				{:else}
@@ -82,7 +82,7 @@
 			{#if !submitted}
 				<form onsubmit={handleSubmit} class="space-y-4 px-6 py-5" novalidate>
 					<div class="space-y-1.5">
-						<label for="email" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.FORGOT.EMAIL_ADDRESS')}</label>
+						<label for="email" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.FORGOT.EMAIL_ADDRESS')}</label>
 						<div class="flex rounded-md shadow-sm">
 							<span class="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-muted-foreground">
 								<Mail size={13} />
@@ -115,7 +115,7 @@
 					</Button>
 				</form>
 			{:else}
-				<div class="px-6 py-5 text-center text-[13px] text-muted-foreground">
+				<div class="px-6 py-5 text-center text-[0.8125rem] text-muted-foreground">
 					{i18n.t('ADMIN_NEXT.FORGOT.IF_AN_ACCOUNT_EXISTS_FOR_THAT_EMAIL_A')}
 				</div>
 			{/if}
@@ -123,7 +123,7 @@
 			<div class="border-t border-border px-6 py-3">
 				<a
 					href="{base}/login"
-					class="flex items-center justify-center gap-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+					class="flex items-center justify-center gap-1.5 text-[0.75rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
 				>
 					<ArrowLeft size={12} />
 					{i18n.t('ADMIN_NEXT.FORGOT.BACK_TO_SIGN_IN')}

@@ -99,8 +99,8 @@
 	{:else if loadState === 'error'}
 		<div class="flex h-full flex-col items-center justify-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-center">
 			<AlertTriangle size={16} class="text-amber-500" />
-			<p class="text-[12px] font-medium text-amber-600 dark:text-amber-400">{i18n.t('ADMIN_NEXT.PLUGIN_WIDGET_LOADER.WIDGET_FAILED_TO_LOAD')}</p>
-			<p class="text-[10px] text-muted-foreground">{error}</p>
+			<p class="text-[0.75rem] font-medium text-amber-600 dark:text-amber-400">{i18n.t('ADMIN_NEXT.PLUGIN_WIDGET_LOADER.WIDGET_FAILED_TO_LOAD')}</p>
+			<p class="text-[0.625rem] text-muted-foreground">{error}</p>
 		</div>
 	{/if}
 </div>

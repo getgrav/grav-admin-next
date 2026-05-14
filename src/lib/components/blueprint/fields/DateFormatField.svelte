@@ -131,6 +131,6 @@
 		</div>
 	</div>
 	{#if currentDisplay}
-		<p class="text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.DATE_FORMAT.FORMAT_STRING')} <code class="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">{value}</code></p>
+		<p class="text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.DATE_FORMAT.FORMAT_STRING')} <code class="rounded bg-muted px-1 py-0.5 font-mono text-[0.6875rem]">{value}</code></p>
 	{/if}
 </div>

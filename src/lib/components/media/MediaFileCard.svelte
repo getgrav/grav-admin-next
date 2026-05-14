@@ -91,8 +91,8 @@
 	>
 		<Folder size={32} class="text-primary/70" />
 		<div class="w-full text-center">
-			<div class="truncate text-[13px] font-medium text-foreground">{props.folder.name}</div>
-			<div class="text-[11px] text-muted-foreground">
+			<div class="truncate text-[0.8125rem] font-medium text-foreground">{props.folder.name}</div>
+			<div class="text-[0.6875rem] text-muted-foreground">
 				{props.folder.file_count} file{props.folder.file_count !== 1 ? 's' : ''}
 				{#if props.folder.children_count > 0}
 					, {props.folder.children_count} folder{props.folder.children_count !== 1 ? 's' : ''}
@@ -124,7 +124,7 @@
 			{:else}
 				<div class="flex h-full w-full flex-col items-center justify-center gap-2 {fileInfo.bg}">
 					<fileInfo.icon size={28} />
-					<span class="rounded bg-background/80 px-2 py-0.5 text-[10px] font-semibold tracking-wide">
+					<span class="rounded bg-background/80 px-2 py-0.5 text-[0.625rem] font-semibold tracking-wide">
 						{getExtension(props.item.filename)}
 					</span>
 				</div>
@@ -143,8 +143,8 @@
 
 		<!-- File info -->
 		<div class="flex flex-col gap-0.5 px-2.5 py-2">
-			<div class="truncate text-[12px] font-medium text-foreground">{props.item.filename}</div>
-			<div class="text-[11px] text-muted-foreground">{formatSize(props.item.size)}</div>
+			<div class="truncate text-[0.75rem] font-medium text-foreground">{props.item.filename}</div>
+			<div class="text-[0.6875rem] text-muted-foreground">{formatSize(props.item.size)}</div>
 		</div>
 	</div>
 {/if}

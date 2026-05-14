@@ -322,7 +322,7 @@
 									<BadgeCheck size={14} class="shrink-0 text-purple-500" />
 								{/if}
 								{#if theme.premium}
-									<span class="shrink-0 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">{i18n.t('ADMIN_NEXT.PREMIUM')}</span>
+									<span class="shrink-0 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-medium text-red-600 dark:text-red-400">{i18n.t('ADMIN_NEXT.PREMIUM')}</span>
 								{/if}
 								{#if theme.updatable}
 									<ArrowUpCircle size={12} class="shrink-0 text-amber-500" />
@@ -338,7 +338,7 @@
 
 						<!-- Active badge -->
 						{#if theme.enabled}
-							<span class="shrink-0 rounded-full bg-green-500/15 px-2.5 py-0.5 text-[10px] font-medium text-green-600 dark:text-green-400">
+							<span class="shrink-0 rounded-full bg-green-500/15 px-2.5 py-0.5 text-[0.625rem] font-medium text-green-600 dark:text-green-400">
 								<Check size={10} class="mr-0.5 inline" /> {i18n.t('ADMIN_NEXT.ACTIVE')}
 							</span>
 						{/if}

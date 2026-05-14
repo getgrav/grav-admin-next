@@ -98,7 +98,7 @@
 							{#each widget.sizes as size}
 								<button
 									type="button"
-									class="h-5 px-1.5 text-[10px] font-semibold uppercase {widget.size === size ? 'bg-primary text-primary-foreground rounded-sm' : 'text-muted-foreground hover:text-foreground'}"
+									class="h-5 px-1.5 text-[0.625rem] font-semibold uppercase {widget.size === size ? 'bg-primary text-primary-foreground rounded-sm' : 'text-muted-foreground hover:text-foreground'}"
 									onclick={() => changeSize(widget.id, size)}
 								>
 									{size}
@@ -129,7 +129,7 @@
 			onclick={() => onAddClick?.()}
 		>
 			<Plus size={20} />
-			<span class="text-[12px] font-medium">{i18n.t('ADMIN_NEXT.DASHBOARD.ADD_WIDGET')}</span>
+			<span class="text-[0.75rem] font-medium">{i18n.t('ADMIN_NEXT.DASHBOARD.ADD_WIDGET')}</span>
 		</button>
 	{/if}
 </div>

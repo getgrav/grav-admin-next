@@ -134,7 +134,7 @@
 			<!-- Reorder mode toggle -->
 			{#if canEditPages}
 			<button
-				class="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-[12px] font-medium transition-colors
+				class="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-[0.75rem] font-medium transition-colors
 					{reorderMode
 						? 'border-primary bg-primary/10 text-primary'
 						: 'border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
@@ -150,7 +150,7 @@
 			<div class="inline-flex rounded-md border border-border shadow-sm">
 				{#each viewModes as vm}
 					<button
-						class="inline-flex h-8 items-center gap-1.5 px-3 text-[12px] font-medium transition-colors first:rounded-l-md last:rounded-r-md
+						class="inline-flex h-8 items-center gap-1.5 px-3 text-[0.75rem] font-medium transition-colors first:rounded-l-md last:rounded-r-md
 							{prefs.pagesViewMode === vm.mode
 								? 'bg-accent text-accent-foreground'
 								: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
@@ -181,7 +181,7 @@
 
 		<!-- Footer stats -->
 		{#if stats}
-			<div class="flex items-center gap-4 border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
+			<div class="flex items-center gap-4 border-t border-border px-4 py-2 text-[0.6875rem] text-muted-foreground">
 				<span>{stats.total} total</span>
 				<span class="text-border">|</span>
 				<span>{stats.published} published</span>

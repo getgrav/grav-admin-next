@@ -20,7 +20,7 @@
 		<div class="space-y-2">
 			{#each popularity.top_pages.slice(0, max) as page}
 				<div class="group">
-					<div class="flex items-center justify-between text-[12px]">
+					<div class="flex items-center justify-between text-[0.75rem]">
 						<span class="min-w-0 flex-1 truncate font-medium text-foreground">{page.route}</span>
 						<span class="ml-2 shrink-0 tabular-nums text-muted-foreground">{page.views}</span>
 					</div>
@@ -32,6 +32,6 @@
 			{/each}
 		</div>
 	{:else}
-		<p class="py-4 text-center text-[13px] text-muted-foreground">{i18n.t('ADMIN_NEXT.TOP_PAGES_WIDGET.NO_VIEW_DATA_YET')}</p>
+		<p class="py-4 text-center text-[0.8125rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.TOP_PAGES_WIDGET.NO_VIEW_DATA_YET')}</p>
 	{/if}
 </div>

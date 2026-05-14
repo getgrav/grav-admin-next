@@ -162,7 +162,7 @@
 				<BrandLogo size="login" />
 			</div>
 			<h1 class="text-2xl font-semibold tracking-tight text-foreground">{i18n.t('ADMIN_NEXT.LOGIN.GRAV_ADMIN')}</h1>
-			<p class="mt-1 text-[13px] text-muted-foreground">
+			<p class="mt-1 text-[0.8125rem] text-muted-foreground">
 				{#if stage === '2fa'}
 					{i18n.t('ADMIN_NEXT.LOGIN.TWOFA_SUBTITLE')}
 				{:else}
@@ -178,7 +178,7 @@
 				<div class="border-b border-border px-6 py-3">
 					<button
 						type="button"
-						class="flex w-full items-center gap-2 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+						class="flex w-full items-center gap-2 text-[0.8125rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
 						onclick={() => showServerConfig = !showServerConfig}
 					>
 						<Server size={13} />
@@ -189,7 +189,7 @@
 					{#if showServerConfig}
 						<div class="mt-3 space-y-3 pb-1">
 							<div class="space-y-1.5">
-								<label for="server-url" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.LOGIN.SERVER_URL')}</label>
+								<label for="server-url" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.LOGIN.SERVER_URL')}</label>
 								<div class="flex rounded-md shadow-sm">
 									<span class="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-muted-foreground">
 										<Globe size={13} />
@@ -204,7 +204,7 @@
 							</div>
 
 							<div class="space-y-1.5">
-								<label for="environment" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.LOGIN.ENVIRONMENT')}</label>
+								<label for="environment" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.LOGIN.ENVIRONMENT')}</label>
 								<input
 									id="environment"
 									type="text"
@@ -219,7 +219,7 @@
 				<!-- Credentials form -->
 				<form onsubmit={handleLogin} class="space-y-4 px-6 py-5">
 					<div class="space-y-1.5">
-						<label for="username" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.USERNAME')}</label>
+						<label for="username" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.USERNAME')}</label>
 						<input
 							id="username"
 							type="text"
@@ -237,7 +237,7 @@
 					</div>
 
 					<div class="space-y-1.5">
-						<label for="password" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.PASSWORD')}</label>
+						<label for="password" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.PASSWORD')}</label>
 						<input
 							id="password"
 							type="password"
@@ -255,7 +255,7 @@
 						<div class="pt-0.5 text-right">
 							<a
 								href="{base}/forgot"
-								class="text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+								class="text-[0.75rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
 							>
 								{i18n.t('ADMIN_NEXT.LOGIN.FORGOT_PASSWORD')}
 							</a>
@@ -277,13 +277,13 @@
 				<form onsubmit={handleVerify} class="space-y-4 px-6 py-5">
 					<div class="flex items-center gap-3 rounded-md border border-border bg-muted/40 px-3 py-2.5">
 						<ShieldCheck size={16} class="shrink-0 text-muted-foreground" />
-						<p class="text-[12px] text-muted-foreground">
+						<p class="text-[0.75rem] text-muted-foreground">
 							{@html i18n.tHtml('ADMIN_NEXT.LOGIN.AUTH_CODE_PROMPT', { username })}
 						</p>
 					</div>
 
 					<div class="space-y-1.5">
-						<label for="twofa-code" class="text-[13px] font-medium text-foreground">{i18n.t('ADMIN_NEXT.LOGIN.AUTHENTICATION_CODE')}</label>
+						<label for="twofa-code" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.LOGIN.AUTHENTICATION_CODE')}</label>
 						<input
 							id="twofa-code"
 							type="text"
@@ -317,7 +317,7 @@
 					<button
 						type="button"
 						onclick={backToCredentials}
-						class="flex w-full items-center justify-center gap-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+						class="flex w-full items-center justify-center gap-1.5 text-[0.75rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
 						disabled={loading}
 					>
 						<ArrowLeft size={12} />

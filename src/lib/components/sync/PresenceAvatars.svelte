@@ -35,7 +35,7 @@
 		<div class="flex -space-x-2">
 			{#each visible as p (p.clientId)}
 				<span
-					class="relative inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-background text-[11px] font-semibold text-white ring-0"
+					class="relative inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-background text-[0.6875rem] font-semibold text-white ring-0"
 					style="background-color: {colorFor(p.clientId)}"
 					title={p.user ?? p.clientId}
 				>
@@ -44,7 +44,7 @@
 			{/each}
 			{#if overflow > 0}
 				<span
-					class="relative inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[11px] font-semibold text-foreground"
+					class="relative inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[0.6875rem] font-semibold text-foreground"
 					title={`${overflow} more`}
 				>
 					+{overflow}

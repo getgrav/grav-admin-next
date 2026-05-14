@@ -157,7 +157,7 @@
 		>
 			<Clock size={14} class="shrink-0 text-muted-foreground" />
 			<span class="flex-1 text-sm text-foreground">{description}</span>
-			<code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">{cronStr}</code>
+			<code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.6875rem] text-muted-foreground">{cronStr}</code>
 			<ChevronDown size={14} class="shrink-0 text-muted-foreground transition-transform {showAdvanced ? 'rotate-180' : ''}" />
 		</button>
 
@@ -234,7 +234,7 @@
 						placeholder="* * * * *"
 						oninput={(e) => onchange((e.target as HTMLInputElement).value)}
 					/>
-					<span class="hidden text-[10px] text-muted-foreground/60 sm:block">{i18n.t('ADMIN_NEXT.FIELDS.CRON.MIN_HR_DOM_MON_DOW')}</span>
+					<span class="hidden text-[0.625rem] text-muted-foreground/60 sm:block">{i18n.t('ADMIN_NEXT.FIELDS.CRON.MIN_HR_DOM_MON_DOW')}</span>
 				</div>
 			</div>
 		{/if}

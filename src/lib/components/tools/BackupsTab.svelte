@@ -133,19 +133,19 @@
 		<div class="grid grid-cols-4 divide-x divide-primary/10 border-t border-primary/10 bg-primary/[0.03]">
 			<div class="px-4 py-3 text-center">
 				<p class="text-2xl font-bold text-foreground">{totalCount}</p>
-				<p class="text-[11px] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.NUMBER_OF_BACKUPS')}</p>
+				<p class="text-[0.6875rem] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.NUMBER_OF_BACKUPS')}</p>
 			</div>
 			<div class="px-4 py-3 text-center">
 				<p class="text-2xl font-bold text-foreground">{profilesCount}</p>
-				<p class="text-[11px] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.NUMBER_OF_PROFILES')}</p>
+				<p class="text-[0.6875rem] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.NUMBER_OF_PROFILES')}</p>
 			</div>
 			<div class="px-4 py-3 text-center">
 				<p class="text-2xl font-bold text-foreground">{relativeTime(newestDate)}</p>
-				<p class="text-[11px] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.NEWEST_BACKUP')}</p>
+				<p class="text-[0.6875rem] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.NEWEST_BACKUP')}</p>
 			</div>
 			<div class="px-4 py-3 text-center">
 				<p class="text-2xl font-bold text-foreground">{relativeTime(oldestDate)}</p>
-				<p class="text-[11px] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.OLDEST_BACKUP')}</p>
+				<p class="text-[0.6875rem] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.OLDEST_BACKUP')}</p>
 			</div>
 		</div>
 	</div>

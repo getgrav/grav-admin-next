@@ -210,7 +210,7 @@
 							</div>
 
 							<!-- State badge -->
-							<span class="shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-medium
+							<span class="shrink-0 rounded-full px-2.5 py-0.5 text-[0.625rem] font-medium
 								{user.state === 'enabled'
 									? 'bg-green-500/15 text-green-600 dark:text-green-400'
 									: 'bg-red-500/15 text-red-600 dark:text-red-400'}">

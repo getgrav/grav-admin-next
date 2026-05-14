@@ -161,7 +161,7 @@
 							class="h-8 w-8 shrink-0 rounded border border-border object-cover"
 						/>
 					{:else}
-						<div class="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted text-[10px] font-semibold text-muted-foreground">
+						<div class="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted text-[0.625rem] font-semibold text-muted-foreground">
 							{currentValue.split('.').pop()?.toUpperCase().slice(0, 4) ?? ''}
 						</div>
 					{/if}
@@ -230,7 +230,7 @@
 										class="h-8 w-8 shrink-0 rounded object-cover"
 									/>
 								{:else}
-									<div class="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted text-[10px] font-medium text-muted-foreground">
+									<div class="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted text-[0.625rem] font-medium text-muted-foreground">
 										{item.filename.split('.').pop()?.toUpperCase().slice(0, 4)}
 									</div>
 								{/if}

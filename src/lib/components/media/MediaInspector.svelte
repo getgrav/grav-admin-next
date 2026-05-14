@@ -185,26 +185,26 @@
 		<div class="mt-4 space-y-3">
 			{#if file.path}
 				<div>
-					<dt class="text-[11px] font-medium text-muted-foreground">Path</dt>
+					<dt class="text-[0.6875rem] font-medium text-muted-foreground">Path</dt>
 					<dd class="mt-0.5 text-sm text-foreground">{file.path}/</dd>
 				</div>
 			{/if}
 			<div>
-				<dt class="text-[11px] font-medium text-muted-foreground">Type</dt>
+				<dt class="text-[0.6875rem] font-medium text-muted-foreground">Type</dt>
 				<dd class="mt-0.5 text-sm text-foreground">{file.type}</dd>
 			</div>
 			<div>
-				<dt class="text-[11px] font-medium text-muted-foreground">Size</dt>
+				<dt class="text-[0.6875rem] font-medium text-muted-foreground">Size</dt>
 				<dd class="mt-0.5 text-sm text-foreground">{formatSize(file.size)}</dd>
 			</div>
 			{#if file.dimensions}
 				<div>
-					<dt class="text-[11px] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.DIMENSIONS')}</dt>
+					<dt class="text-[0.6875rem] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.DIMENSIONS')}</dt>
 					<dd class="mt-0.5 text-sm text-foreground">{file.dimensions.width} &times; {file.dimensions.height}</dd>
 				</div>
 			{/if}
 			<div>
-				<dt class="text-[11px] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_MODIFIED')}</dt>
+				<dt class="text-[0.6875rem] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_MODIFIED')}</dt>
 				<dd class="mt-0.5 text-sm text-foreground">{formatDate(file.modified)}</dd>
 			</div>
 		</div>
@@ -212,14 +212,14 @@
 		<!-- Copy actions -->
 		<div class="mt-5 space-y-2">
 			<button
-				class="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-left text-[12px] transition-colors hover:bg-accent/50"
+				class="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-left text-[0.75rem] transition-colors hover:bg-accent/50"
 				onclick={() => copyToClipboard(getMediaStreamPath(), 'Media path')}
 			>
 				<Copy size={13} class="shrink-0 text-muted-foreground" />
 				<span class="min-w-0 flex-1 truncate font-mono text-muted-foreground">{getMediaStreamPath()}</span>
 			</button>
 			<button
-				class="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-left text-[12px] transition-colors hover:bg-accent/50"
+				class="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-left text-[0.75rem] transition-colors hover:bg-accent/50"
 				onclick={() => copyToClipboard(getMarkdownSnippet(), 'Markdown')}
 			>
 				<Copy size={13} class="shrink-0 text-muted-foreground" />
@@ -233,14 +233,14 @@
 				href={resolveUrl(file.url)}
 				target="_blank"
 				rel="noopener"
-				class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+				class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-[0.75rem] font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 			>
 				<ExternalLink size={13} />
 				Open
 			</a>
 			<div class="flex-1"></div>
 			<button
-				class="inline-flex h-8 items-center gap-1.5 rounded-md border border-destructive/30 bg-destructive/10 px-3 text-[12px] font-medium text-destructive transition-colors hover:bg-destructive/20"
+				class="inline-flex h-8 items-center gap-1.5 rounded-md border border-destructive/30 bg-destructive/10 px-3 text-[0.75rem] font-medium text-destructive transition-colors hover:bg-destructive/20"
 				onclick={() => ondelete(file)}
 			>
 				<Trash2 size={13} />

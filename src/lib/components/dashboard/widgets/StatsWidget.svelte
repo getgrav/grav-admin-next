@@ -51,7 +51,7 @@
 			</div>
 			<div class="min-w-0">
 				<div class="text-3xl font-semibold tabular-nums leading-tight text-foreground">{displayPages}</div>
-				<div class="text-[12px] text-muted-foreground">Pages</div>
+				<div class="text-[0.75rem] text-muted-foreground">Pages</div>
 			</div>
 		</a>
 
@@ -61,7 +61,7 @@
 			</div>
 			<div class="min-w-0">
 				<div class="text-3xl font-semibold tabular-nums leading-tight text-foreground">{displayUsers}</div>
-				<div class="text-[12px] text-muted-foreground">Users</div>
+				<div class="text-[0.75rem] text-muted-foreground">Users</div>
 			</div>
 		</a>
 
@@ -76,7 +76,7 @@
 						<Badge variant="default">{totalUpdates} update{totalUpdates > 1 ? 's' : ''}</Badge>
 					{/if}
 				</div>
-				<div class="text-[12px] text-muted-foreground">{i18n.t('ADMIN_NEXT.NAV.PLUGINS')} <span class="text-foreground/50">({stats.plugins.active} active)</span></div>
+				<div class="text-[0.75rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.NAV.PLUGINS')} <span class="text-foreground/50">({stats.plugins.active} active)</span></div>
 			</div>
 		</a>
 
@@ -86,7 +86,7 @@
 			</div>
 			<div class="min-w-0">
 				<div class="text-lg font-semibold leading-tight text-foreground">{stats.theme}</div>
-				<div class="text-[12px] text-muted-foreground">{i18n.t('ADMIN_NEXT.STATS_WIDGET.ACTIVE_THEME')}</div>
+				<div class="text-[0.75rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.STATS_WIDGET.ACTIVE_THEME')}</div>
 			</div>
 		</a>
 	</div>

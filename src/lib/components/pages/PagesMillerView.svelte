@@ -438,7 +438,7 @@
 </script>
 
 <!-- Breadcrumb + Sort -->
-<div class="flex items-center gap-1 border-b border-border px-4 py-2 text-[12px]">
+<div class="flex items-center gap-1 border-b border-border px-4 py-2 text-[0.75rem]">
 	<button
 		class="font-medium text-muted-foreground transition-colors hover:text-foreground"
 		onclick={() => {
@@ -470,7 +470,7 @@
 	<div class="ml-auto flex items-center gap-1.5 text-muted-foreground">
 		<ArrowUpDown size={11} />
 		<select
-			class="h-6 rounded border-0 bg-transparent pr-6 text-[11px] font-medium focus:outline-none focus:ring-0"
+			class="h-6 rounded border-0 bg-transparent pr-6 text-[0.6875rem] font-medium focus:outline-none focus:ring-0"
 			value={`${sortField}:${sortOrder}`}
 			onchange={handleSortChange}
 		>
@@ -548,11 +548,11 @@
 							{/if}
 							<div class="min-w-0 flex-1">
 								<div class="flex items-center gap-1.5">
-									<div class="truncate text-[13px] font-medium
+									<div class="truncate text-[0.8125rem] font-medium
 										{isUntranslated ? (isActive ? 'text-primary-foreground/60 italic' : 'text-muted-foreground italic') : ''}">{page.menu}</div>
 									{#if !page.published}
 										<span
-											class="inline-flex h-4 shrink-0 items-center rounded px-1 text-[9px] font-bold uppercase leading-none
+											class="inline-flex h-4 shrink-0 items-center rounded px-1 text-[0.5625rem] font-bold uppercase leading-none
 												{isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'}"
 											title={i18n.t('ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.DRAFT_UNPUBLISHED')}
 										>Draft</span>
@@ -564,7 +564,7 @@
 										/>
 									{/if}
 								</div>
-								<div class="truncate text-[11px] {isActive ? 'text-primary-foreground/70' : 'text-muted-foreground'}">{page.route}</div>
+								<div class="truncate text-[0.6875rem] {isActive ? 'text-primary-foreground/70' : 'text-muted-foreground'}">{page.route}</div>
 							</div>
 							{#if page.has_children}
 								<ChevronRight size={12} class="shrink-0 {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground/50'}" />
@@ -597,7 +597,7 @@
 					<div class="flex items-start justify-between gap-2">
 						<div class="min-w-0">
 							<h3 class="text-base font-semibold text-foreground">{previewPage.title}</h3>
-							<p class="mt-0.5 text-[11px] text-muted-foreground">{previewPage.route}</p>
+							<p class="mt-0.5 text-[0.6875rem] text-muted-foreground">{previewPage.route}</p>
 						</div>
 						<Button size="sm" onclick={() => onEdit(pageApiRoute(previewPage!))} class="shrink-0">
 							<ExternalLink size={13} />
@@ -622,7 +622,7 @@
 					</div>
 
 					<!-- Metadata -->
-					<dl class="mt-4 space-y-1.5 text-[12px]">
+					<dl class="mt-4 space-y-1.5 text-[0.75rem]">
 						<div class="flex justify-between">
 							<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_MODIFIED')}</dt>
 							<dd class="text-foreground">{new Date(previewPage.modified).toLocaleString()}</dd>
@@ -644,8 +644,8 @@
 					<!-- Content summary -->
 					{#if previewPage.summary}
 						<div class="mt-4 border-t border-border pt-4">
-							<h4 class="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.SUMMARY')}</h4>
-							<div class="prose prose-sm dark:prose-invert max-w-none text-[13px] leading-relaxed text-foreground/80">
+							<h4 class="mb-2 text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.SUMMARY')}</h4>
+							<div class="prose prose-sm dark:prose-invert max-w-none text-[0.8125rem] leading-relaxed text-foreground/80">
 								{@html previewPage.summary}
 							</div>
 						</div>
@@ -654,7 +654,7 @@
 					<!-- Media -->
 					{#if previewPage.media && previewPage.media.length > 0}
 						<div class="mt-4 border-t border-border pt-4">
-							<h4 class="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Media ({previewPage.media.length})</h4>
+							<h4 class="mb-2 text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">Media ({previewPage.media.length})</h4>
 							<div class="grid grid-cols-4 gap-1.5">
 								{#each previewPage.media as m}
 									{@const isImage = m.type?.startsWith('image/')}
@@ -666,7 +666,7 @@
 										{#if isImage && thumbUrl}
 											<img src={thumbUrl} alt={m.filename} class="h-full w-full object-cover" loading="lazy" />
 										{:else}
-											<div class="flex h-full w-full items-center justify-center text-[10px] font-medium text-muted-foreground">
+											<div class="flex h-full w-full items-center justify-center text-[0.625rem] font-medium text-muted-foreground">
 												{m.filename.split('.').pop()?.toUpperCase()}
 											</div>
 										{/if}

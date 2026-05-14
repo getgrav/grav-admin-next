@@ -75,7 +75,7 @@
 <div class="relative" onkeydown={handleKeydown}>
 	<button
 		type="button"
-		class="inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium transition-colors
+		class="inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[0.6875rem] font-medium transition-colors
 			{targetIsMissing
 				? 'border-destructive/40 bg-destructive/10 text-destructive'
 				: configEnv.target === ''
@@ -92,14 +92,14 @@
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<div class="fixed inset-0 z-40" onclick={() => open = false}></div>
 		<div class="absolute left-0 z-50 mt-1 min-w-[240px] rounded-md border border-border bg-popover py-1 shadow-md">
-			<div class="px-3 pb-1 pt-1 text-[10px] uppercase tracking-wide text-muted-foreground/70">
+			<div class="px-3 pb-1 pt-1 text-[0.625rem] uppercase tracking-wide text-muted-foreground/70">
 				{i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.SAVE_CONFIG_TO')}
 			</div>
 
 			{#each configEnv.environments as env}
 				<button
 					type="button"
-					class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] transition-colors
+					class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[0.8125rem] transition-colors
 						{env.name === configEnv.target
 							? 'bg-accent text-accent-foreground font-medium'
 							: 'text-popover-foreground hover:bg-accent/50'}"
@@ -112,7 +112,7 @@
 					</span>
 					<span class="flex-1">{env.label}</span>
 					{#if env.hasOverrides}
-						<span class="text-[10px] text-muted-foreground">{i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.HAS_OVERRIDES')}</span>
+						<span class="text-[0.625rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.HAS_OVERRIDES')}</span>
 					{/if}
 				</button>
 			{/each}
@@ -121,7 +121,7 @@
 				{#if !showCreateInput}
 					<button
 						type="button"
-						class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-popover-foreground transition-colors hover:bg-accent/50"
+						class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[0.8125rem] text-popover-foreground transition-colors hover:bg-accent/50"
 						onclick={showCreate}
 					>
 						<Plus size={13} />
@@ -139,23 +139,23 @@
 							type="text"
 							placeholder="env-name"
 							disabled={creating}
-							class="h-7 flex-1 rounded border border-border bg-background px-2 text-[12px] focus:outline-none focus:ring-1 focus:ring-primary"
+							class="h-7 flex-1 rounded border border-border bg-background px-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-primary"
 							pattern="[A-Za-z0-9][A-Za-z0-9._-]*"
 						/>
 						<button
 							type="submit"
-							class="h-7 rounded bg-primary px-2 text-[11px] font-medium text-primary-foreground disabled:opacity-50"
+							class="h-7 rounded bg-primary px-2 text-[0.6875rem] font-medium text-primary-foreground disabled:opacity-50"
 							disabled={creating || !newName.trim()}
 						>{creating ? '…' : 'Create'}</button>
 					</form>
-					<p class="px-3 pb-1 text-[10px] text-muted-foreground">
+					<p class="px-3 pb-1 text-[0.625rem] text-muted-foreground">
 						{i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.CREATES_PATH', { name: newName || '<name>' })}
 					</p>
 				{/if}
 			</div>
 
 			{#if targetIsMissing}
-				<div class="mt-1 border-t border-border px-3 py-1.5 text-[11px] text-destructive">
+				<div class="mt-1 border-t border-border px-3 py-1.5 text-[0.6875rem] text-destructive">
 					{i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.SELECTED_ENV')} <code>{configEnv.target}</code> {i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.NO_LONGER_EXISTS_PICK_ANOTHER')}
 				</div>
 			{/if}

@@ -442,7 +442,7 @@
 								<h4 class="text-sm font-semibold text-foreground">Branding</h4>
 								<p class="mt-0.5 text-xs text-muted-foreground">Logo and brand text shown everywhere in the admin.</p>
 							</div>
-							<span class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Saved automatically</span>
+							<span class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[0.625rem] font-medium uppercase tracking-wider text-muted-foreground">Saved automatically</span>
 						</div>
 
 						<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
@@ -545,7 +545,7 @@
 							<div class="space-y-5">
 								<div class="flex items-baseline justify-between border-b border-border/60 pb-2">
 									<h5 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Default Appearance</h5>
-									<span class="text-[10px] text-muted-foreground/70">Users may override</span>
+									<span class="text-[0.625rem] text-muted-foreground/70">Users may override</span>
 								</div>
 
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
@@ -673,7 +673,7 @@
 							<div class="space-y-5">
 								<div class="flex items-baseline justify-between border-b border-border/60 pb-2">
 									<h5 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Default Pages</h5>
-									<span class="text-[10px] text-muted-foreground/70">Users may override</span>
+									<span class="text-[0.625rem] text-muted-foreground/70">Users may override</span>
 								</div>
 
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
@@ -716,7 +716,7 @@
 							<div class="space-y-5">
 								<div class="flex items-baseline justify-between border-b border-border/60 pb-2">
 									<h5 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Default Language</h5>
-									<span class="text-[10px] text-muted-foreground/70">Users may override</span>
+									<span class="text-[0.625rem] text-muted-foreground/70">Users may override</span>
 								</div>
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
@@ -746,7 +746,7 @@
 							<div class="space-y-5">
 								<div class="flex items-baseline justify-between border-b border-border/60 pb-2">
 									<h5 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Editor</h5>
-									<span class="text-[10px] text-muted-foreground/70">Users may override</span>
+									<span class="text-[0.625rem] text-muted-foreground/70">Users may override</span>
 								</div>
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
@@ -770,7 +770,7 @@
 							<div class="space-y-5">
 								<div class="flex items-baseline justify-between border-b border-border/60 pb-2">
 									<h5 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITING')}</h5>
-									<span class="text-[10px] text-muted-foreground/70">Site-wide only</span>
+									<span class="text-[0.625rem] text-muted-foreground/70">Site-wide only</span>
 								</div>
 
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
@@ -848,7 +848,7 @@
 							<div class="space-y-5">
 								<div class="flex items-baseline justify-between border-b border-border/60 pb-2">
 									<h5 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.MENUBAR_LINKS')}</h5>
-									<span class="text-[10px] text-muted-foreground/70">Site-wide only</span>
+									<span class="text-[0.625rem] text-muted-foreground/70">Site-wide only</span>
 								</div>
 								<p class="text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.CUSTOM_SHORTCUTS_SHOWN_IN_THE_TOP')}</p>
 								<div class="space-y-3">

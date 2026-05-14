@@ -226,7 +226,7 @@
 		height: 32px;
 		padding: 0 8px;
 		font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
-		font-size: 13px;
+		font-size: 0.8125rem;
 		text-transform: uppercase;
 		color: hsl(var(--foreground));
 		background: hsl(var(--muted) / 0.5);

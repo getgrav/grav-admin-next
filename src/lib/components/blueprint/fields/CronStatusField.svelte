@@ -160,11 +160,11 @@
 					</div>
 					<div class="grid grid-cols-2 gap-3">
 						<div class="rounded-md bg-muted/50 px-4 py-3">
-							<p class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.LAST_RUN')}</p>
+							<p class="text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.LAST_RUN')}</p>
 							<p class="mt-1 text-lg font-bold text-foreground">{relativeAge(status.health.last_run_age)}</p>
 						</div>
 						<div class="rounded-md bg-muted/50 px-4 py-3">
-							<p class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.SCHEDULED_JOBS')}</p>
+							<p class="text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.SCHEDULED_JOBS')}</p>
 							<p class="mt-1 text-lg font-bold text-foreground">{status.health.scheduled_jobs}</p>
 						</div>
 					</div>

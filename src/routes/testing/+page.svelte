@@ -156,14 +156,14 @@
 			<div class="grid gap-4 lg:grid-cols-2">
 				<!-- Text Input -->
 				<div class="space-y-1.5">
-					<label for="test-text" class="text-[13px] font-medium text-foreground">Text Input</label>
+					<label for="test-text" class="text-[0.8125rem] font-medium text-foreground">Text Input</label>
 					<input id="test-text" type="text" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" bind:value={textValue} />
 					<p class="text-xs text-muted-foreground">Helper text goes here</p>
 				</div>
 
 				<!-- Select -->
 				<div class="space-y-1.5">
-					<label for="test-select" class="text-[13px] font-medium text-foreground">Select</label>
+					<label for="test-select" class="text-[0.8125rem] font-medium text-foreground">Select</label>
 					<select id="test-select" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" bind:value={selectValue}>
 						<option value="">Select an option...</option>
 						<option value="default">Default</option>
@@ -174,13 +174,13 @@
 
 				<!-- Disabled Input -->
 				<div class="space-y-1.5">
-					<label class="text-[13px] font-medium text-foreground">Disabled Input</label>
+					<label class="text-[0.8125rem] font-medium text-foreground">Disabled Input</label>
 					<input type="text" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value="Can't edit this" disabled />
 				</div>
 
 				<!-- Error Input -->
 				<div class="space-y-1.5">
-					<label class="text-[13px] font-medium text-foreground">Error State</label>
+					<label class="text-[0.8125rem] font-medium text-foreground">Error State</label>
 					<input type="text" class="flex h-9 w-full rounded-md border border-red-500 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors ring-1 ring-red-500/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500" value="Invalid value" />
 					<p class="text-xs text-red-500">This field has an error</p>
 				</div>
@@ -188,7 +188,7 @@
 
 			<!-- Textarea -->
 			<div class="space-y-1.5">
-				<label for="test-textarea" class="text-[13px] font-medium text-foreground">Textarea</label>
+				<label for="test-textarea" class="text-[0.8125rem] font-medium text-foreground">Textarea</label>
 				<textarea id="test-textarea" class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" rows={3} bind:value={textareaValue} style="resize: vertical;"></textarea>
 			</div>
 
@@ -245,7 +245,7 @@
 
 			<!-- Range -->
 			<div class="space-y-1.5">
-				<label class="text-[13px] font-medium text-foreground">Range: {rangeValue}%</label>
+				<label class="text-[0.8125rem] font-medium text-foreground">Range: {rangeValue}%</label>
 				<input type="range" min="0" max="100" bind:value={rangeValue} class="w-full accent-[hsl(var(--ring))]" />
 			</div>
 		</div>
@@ -259,14 +259,14 @@
 		<div class="grid gap-4 lg:grid-cols-3">
 			<div class="rounded-lg border border-border bg-card p-4">
 				<h3 class="text-sm font-semibold text-foreground">Basic Card</h3>
-				<p class="mt-1 text-[13px] text-muted-foreground">A simple card with title and description content.</p>
+				<p class="mt-1 text-[0.8125rem] text-muted-foreground">A simple card with title and description content.</p>
 			</div>
 			<div class="rounded-lg border border-border bg-card p-4">
 				<div class="flex items-center justify-between">
 					<h3 class="text-sm font-semibold text-foreground">With Actions</h3>
 					<Button variant="ghost" size="icon"><Settings size={14} /></Button>
 				</div>
-				<p class="mt-1 text-[13px] text-muted-foreground">Card with header action button.</p>
+				<p class="mt-1 text-[0.8125rem] text-muted-foreground">Card with header action button.</p>
 				<div class="mt-3 flex gap-2">
 					<Button variant="outline" size="sm">Cancel</Button>
 					<Button size="sm">Save</Button>
@@ -277,7 +277,7 @@
 					<h3 class="text-sm font-semibold text-foreground">With Header</h3>
 				</div>
 				<div class="p-4">
-					<p class="text-[13px] text-muted-foreground">Card with a distinct header section.</p>
+					<p class="text-[0.8125rem] text-muted-foreground">Card with a distinct header section.</p>
 				</div>
 			</div>
 		</div>
@@ -327,7 +327,7 @@
 	<section class="space-y-3">
 		<h2 class="text-sm font-semibold text-foreground">Translation (i18n)</h2>
 		<div class="rounded-lg border border-border bg-card p-4">
-			<dl class="space-y-1.5 text-[13px]">
+			<dl class="space-y-1.5 text-[0.8125rem]">
 				<div class="flex justify-between">
 					<dt class="text-muted-foreground">Language</dt>
 					<dd class="font-medium text-foreground">{i18n.lang}</dd>

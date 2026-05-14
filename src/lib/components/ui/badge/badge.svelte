@@ -20,6 +20,6 @@
 	};
 </script>
 
-<span class={cn('inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium transition-colors', variants[variant], className)}>
+<span class={cn('inline-flex items-center rounded-md px-2 py-0.5 text-[0.6875rem] font-medium transition-colors', variants[variant], className)}>
 	{#if children}{@render children()}{/if}
 </span>

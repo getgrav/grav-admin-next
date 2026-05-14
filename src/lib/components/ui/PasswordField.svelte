@@ -69,12 +69,12 @@
 	{#if label || (showHint && policy && policy.rules.length > 0)}
 		<div class="flex items-center justify-between">
 			{#if label}
-				<label for={id} class="text-[13px] font-medium text-foreground">{label}</label>
+				<label for={id} class="text-[0.8125rem] font-medium text-foreground">{label}</label>
 			{/if}
 			{#if showHint && policy && policy.rules.length > 0}
 				<button
 					type="button"
-					class="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+					class="ml-auto inline-flex items-center gap-1 text-[0.6875rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
 					onclick={() => (modalOpen = true)}
 					tabindex="-1"
 					aria-label={i18n.t('ADMIN_NEXT.PASSWORD_FIELD.PASSWORD_REQUIREMENTS')}
@@ -135,7 +135,7 @@
 				></div>
 			</div>
 			{#if policy && policy.rules.length > 0}
-				<div class="flex items-center justify-between text-[11px] text-muted-foreground">
+				<div class="flex items-center justify-between text-[0.6875rem] text-muted-foreground">
 					<span>
 						{#if result.tier === 'weak'}
 							Too weak
@@ -181,7 +181,7 @@
 			</div>
 			<ul class="space-y-2 px-5 py-4">
 				{#each result.rules as check (check.rule.id)}
-					<li class="flex items-start gap-2 text-[13px]">
+					<li class="flex items-start gap-2 text-[0.8125rem]">
 						<span
 							class="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full {check.met
 								? 'bg-green-500/15 text-green-600 dark:text-green-400'

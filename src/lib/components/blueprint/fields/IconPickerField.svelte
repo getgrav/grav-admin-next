@@ -145,7 +145,7 @@
 				</div>
 
 				{#if filteredIcons.length >= 200}
-					<div class="border-t border-border px-3 py-1.5 text-center text-[10px] text-muted-foreground">
+					<div class="border-t border-border px-3 py-1.5 text-center text-[0.625rem] text-muted-foreground">
 						{i18n.t('ADMIN_NEXT.FIELDS.ICON_PICKER.SHOWING_FIRST_200_RESULTS_TYPE_TO_NARROW')}
 					</div>
 				{/if}
