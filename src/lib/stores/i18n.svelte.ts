@@ -4,13 +4,17 @@ import { getTranslations } from '$lib/api/endpoints/translations';
 import { getLocalStrings } from '$lib/i18n';
 import { scopedKey } from '$lib/utils/scopedStorage';
 
-const CACHE_KEY = scopedKey('grav_admin_i18n');
+// v2 cache key: shape grew a `dir` field. Old v1 entries (no dir) are ignored.
+const CACHE_KEY = scopedKey('grav_admin_i18n_v2');
 const CACHE_CHECKSUM_KEY = scopedKey('grav_admin_i18n_checksum');
 
 const ICU_PREFIX = 'ICU.';
 
+type Direction = 'ltr' | 'rtl';
+
 interface CachedTranslations {
 	lang: string;
+	dir: Direction;
 	checksum: string;
 	strings: Record<string, string>;
 }
@@ -30,6 +34,7 @@ function createI18nStore() {
 	const cached = loadCached();
 
 	let lang = $state(cached?.lang ?? 'en');
+	let dir = $state<Direction>(cached?.dir ?? 'ltr');
 	let strings = $state<Record<string, string>>({ ...getLocalStrings(cached?.lang ?? 'en'), ...(cached?.strings ?? {}) });
 	let checksum = $state(cached?.checksum ?? '');
 	let loading = $state(false);
@@ -99,7 +104,7 @@ function createI18nStore() {
 
 	function persist() {
 		try {
-			localStorage.setItem(CACHE_KEY, JSON.stringify({ lang, checksum, strings }));
+			localStorage.setItem(CACHE_KEY, JSON.stringify({ lang, dir, checksum, strings }));
 		} catch {
 			// localStorage full — translations still work from memory
 		}
@@ -251,9 +256,10 @@ function createI18nStore() {
 		try {
 			const data = await getTranslations(targetLang);
 
-			if (data.checksum !== checksum || data.lang !== lang) {
+			if (data.checksum !== checksum || data.lang !== lang || data.dir !== dir) {
 				const langChanged = data.lang !== lang;
 				lang = data.lang;
+				dir = data.dir ?? 'ltr';
 				strings = data.strings;
 				checksum = data.checksum;
 				resetFormatterCache();
@@ -282,6 +288,7 @@ function createI18nStore() {
 			const data = await getTranslations(targetLang, prefix);
 			const langChanged = data.lang !== lang;
 			lang = data.lang;
+			dir = data.dir ?? 'ltr';
 			strings = { ...strings, ...data.strings };
 			resetFormatterCache();
 			applyLocalFallback();
@@ -332,6 +339,7 @@ function createI18nStore() {
 
 	return {
 		get lang() { return lang; },
+		get dir() { return dir; },
 		get loading() { return loading; },
 		get loaded() { return loaded; },
 		get count() { return Object.keys(strings).length; },
@@ -366,6 +374,11 @@ export interface GravI18nGlobal {
 	tHtml(key: string, params?: TranslateParams): string;
 	has(key: string): boolean;
 	readonly locale: string;
+	/** Active text direction. Plugin web components should consult this to
+	 *  pick mirrored layouts/icons. Always reflects the latest /translations
+	 *  response; `subscribe()` fires when locale changes (and so by extension
+	 *  when direction may have changed). */
+	readonly dir: 'ltr' | 'rtl';
 	subscribe(fn: (locale: string) => void): () => void;
 }
 
@@ -381,6 +394,7 @@ if (typeof window !== 'undefined') {
 		tHtml: (key, params) => i18n.tHtml(key, params),
 		has: (key) => i18n.has(key),
 		get locale() { return i18n.lang; },
+		get dir() { return i18n.dir; },
 		subscribe: (fn) => i18n.subscribeLocale(fn),
 	};
 	Object.defineProperty(window, '__GRAV_I18N', {

@@ -16,6 +16,22 @@ export interface SiteLanguages {
 	active: string | null;
 }
 
+/**
+ * Locale the admin UI itself can be rendered in (i.e. has a translation
+ * file in the admin2 plugin's `languages/` directory). Distinct from
+ * site content languages.
+ */
+export interface AdminLanguageInfo {
+	code: string;
+	name: string;
+	native_name: string;
+	rtl: boolean;
+}
+
+export interface AdminLanguages {
+	languages: AdminLanguageInfo[];
+}
+
 export interface PageTranslationStatus {
 	route: string;
 	default_language: string | null;
@@ -45,6 +61,10 @@ export interface CompareResult {
 
 export async function getSiteLanguages(): Promise<SiteLanguages> {
 	return api.get<SiteLanguages>('/languages');
+}
+
+export async function getAdminLanguages(): Promise<AdminLanguages> {
+	return api.get<AdminLanguages>('/admin/languages');
 }
 
 export async function getPageTranslations(route: string): Promise<PageTranslationStatus> {

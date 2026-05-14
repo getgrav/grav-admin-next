@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { goto } from '$app/navigation';
+	import { page as pageStore } from '$app/state';
 	import { base } from '$app/paths';
 	import { createPage } from '$lib/api/endpoints/pages';
 	import { getPageTypes, type PageType } from '$lib/api/endpoints/blueprints';
@@ -14,6 +15,15 @@
 		ChevronRight, ChevronDown, Folder, FolderOpen, File,
 		Check, Search, X, ChevronsUpDown, RefreshCw,
 	} from 'lucide-svelte';
+
+	// `?kind=page|folder|module` selects which classic-admin variant of
+	// add-page this form represents. Keeps a single form file but lets the
+	// labels, fields, and create payload diverge per kind.
+	type Kind = 'page' | 'folder' | 'module';
+	const kind = $derived<Kind>(((): Kind => {
+		const k = pageStore.url.searchParams.get('kind');
+		return k === 'folder' || k === 'module' ? k : 'page';
+	})());
 
 	// ── Form state ──────────────────────────────────────────────────
 	let title = $state('');
@@ -39,7 +49,12 @@
 	let filterInputEl = $state<HTMLInputElement | null>(null);
 
 	// ── Derived ─────────────────────────────────────────────────────
-	const canSave = $derived(title.trim().length > 0 && slug.trim().length > 0 && template.length > 0);
+	// Folder kind has no Title field (no .md, no frontmatter); page/module do
+	// and also need a template.
+	const canSave = $derived(
+		slug.trim().length > 0
+		&& (kind === 'folder' || (title.trim().length > 0 && template.length > 0))
+	);
 
 	const parentLabel = $derived(() => {
 		if (parentRoute === '/') return '<root> /';
@@ -48,17 +63,34 @@
 	});
 
 	// ── Init ────────────────────────────────────────────────────────
+	// Re-load templates whenever `kind` flips between page/module so the
+	// dropdown reflects the right template set. Folder mode skips template
+	// loading entirely (no .md gets written).
 	$effect(() => {
-		loadPageTypes();
+		if (kind === 'folder') {
+			pageTypesLoading = false;
+			pageTypes = [];
+			// Folders default to "no prefix" — a folder-only page is almost
+			// never something authors want to surface in nav, and the
+			// numeric prefix would otherwise also alphabetize it among real
+			// pages. Authors can flip to Auto if they really do want it.
+			if (visible !== 'no') visible = 'no';
+		} else {
+			loadPageTypes(kind === 'module');
+			// Module: drop the unsupported 'yes' option.
+			if (kind === 'module' && visible === 'yes') visible = 'auto';
+		}
 	});
 
-	async function loadPageTypes() {
+	async function loadPageTypes(modular: boolean) {
 		pageTypesLoading = true;
 		try {
-			pageTypes = await getPageTypes();
-			// Set default template
-			if (pageTypes.length > 0 && !pageTypes.find(t => t.type === 'default')) {
-				template = pageTypes[0].type;
+			pageTypes = await getPageTypes(modular);
+			// Reset template choice to a sensible default for the current set.
+			if (pageTypes.length > 0) {
+				if (!pageTypes.find(t => t.type === template)) {
+					template = pageTypes.find(t => t.type === 'default')?.type ?? pageTypes[0].type;
+				}
 			}
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.PAGES.NEW.FAILED_TO_LOAD_PAGE_TEMPLATES'));
@@ -208,27 +240,50 @@
 			// `auto` so the server still picks the next free number, then add
 			// `header.visible: true` so the page shows in nav even when the
 			// parent has no numerically ordered children.
+			//
+			// `header.visible` only applies to regular pages — modular sub-pages
+			// never show in nav (they're embedded inside a modular parent), and
+			// folder-only pages have no .md to carry a header. For those kinds
+			// the toggle is repurposed as a pure ordering control.
 			const order: number | 'auto' | undefined =
 				visible === 'no' ? undefined : 'auto';
 			const header: Record<string, unknown> = {};
-			if (visible === 'yes') header.visible = true;
-			if (visible === 'no') header.visible = false;
+			if (kind === 'page') {
+				if (visible === 'yes') header.visible = true;
+				if (visible === 'no') header.visible = false;
+			}
 
-			await createPage({
+			const created = await createPage({
 				route,
-				title,
-				template,
+				// The server requires a `title`, but folder-only pages have no
+				// .md to carry one. Fall back to the slug so the create call
+				// validates; the value is discarded server-side for folder kind.
+				title: kind === 'folder' ? slug : title,
+				kind,
+				template: kind === 'folder' ? undefined : template,
 				order,
 				header,
 				lang: contentLang.activeLang || undefined,
 			});
 
-			toast.success(`Page "${title}" created`);
-			goto(`${base}/pages/edit${route}`);
+			// Server may rewrite the route (e.g. module kind adds `_` prefix
+			// to the slug). Use the server-returned route when present.
+			const finalRoute = (created as { route?: string }).route ?? route;
+			const successKey = kind === 'folder'
+				? 'ADMIN_NEXT.PAGES.NEW.FOLDER_CREATED'
+				: kind === 'module'
+					? 'ADMIN_NEXT.PAGES.NEW.MODULE_CREATED'
+					: 'ADMIN_NEXT.PAGES.NEW.PAGE_CREATED';
+			toast.success(i18n.t(successKey, { title }));
+			if (kind === 'folder') {
+				goto(`${base}/pages`);
+			} else {
+				goto(`${base}/pages/edit${finalRoute}`);
+			}
 		} catch (err: unknown) {
 			const message = err && typeof err === 'object' && 'message' in err
 				? (err as { message: string }).message
-				: 'Failed to create page';
+				: i18n.t('ADMIN_NEXT.PAGES.NEW.FAILED_TO_CREATE');
 			toast.error(message);
 		} finally {
 			saving = false;
@@ -268,7 +323,11 @@
 								<FilePlus size={16} />
 							</div>
 						{/if}
-						<h1 class="font-semibold text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-lg'}">{i18n.t('ADMIN_NEXT.ADD_PAGE')}</h1>
+						<h1 class="font-semibold text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-lg'}">{i18n.t(
+							kind === 'folder' ? 'ADMIN_NEXT.PAGES.ADD_FOLDER'
+								: kind === 'module' ? 'ADMIN_NEXT.PAGES.ADD_MODULE'
+									: 'ADMIN_NEXT.PAGES.ADD_PAGE'
+						)}</h1>
 					</div>
 
 					<Button
@@ -292,23 +351,28 @@
 	<div class="flex-1 overflow-y-auto">
 		<div class="mx-auto max-w-2xl space-y-6 px-6 py-6">
 			<div class="rounded-xl border border-border bg-card p-5">
-				<h2 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.PAGES.NEW.PAGE_DETAILS')}</h2>
+				<h2 class="text-sm font-semibold text-foreground">{i18n.t(
+					kind === 'folder' ? 'ADMIN_NEXT.PAGES.NEW.FOLDER_DETAILS' : 'ADMIN_NEXT.PAGES.NEW.PAGE_DETAILS'
+				)}</h2>
 				<div class="mt-4 space-y-5">
 
-					<!-- Page Title -->
-					<div>
-						<label for="page-title" class="block text-xs font-medium text-muted-foreground">
-							{i18n.t('ADMIN_NEXT.PAGES.NEW.PAGE_TITLE')} <span class="text-destructive">*</span>
-						</label>
-						<input
-							id="page-title"
-							type="text"
-							value={title}
-							oninput={handleTitleInput}
-							placeholder={i18n.t('ADMIN_NEXT.PAGES.NEW.MY_NEW_PAGE')}
-							class="mt-1 h-10 w-full rounded-lg border border-input bg-muted/50 px-3 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-						/>
-					</div>
+					{#if kind !== 'folder'}
+						<!-- Page Title (hidden for folder — folder-only pages have
+							 no .md so there's no title to set in frontmatter) -->
+						<div>
+							<label for="page-title" class="block text-xs font-medium text-muted-foreground">
+								{i18n.t('ADMIN_NEXT.PAGES.NEW.PAGE_TITLE')} <span class="text-destructive">*</span>
+							</label>
+							<input
+								id="page-title"
+								type="text"
+								value={title}
+								oninput={handleTitleInput}
+								placeholder={i18n.t('ADMIN_NEXT.PAGES.NEW.MY_NEW_PAGE')}
+								class="mt-1 h-10 w-full rounded-lg border border-input bg-muted/50 px-3 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+							/>
+						</div>
+					{/if}
 
 					<!-- Folder Name (Slug) -->
 					<div>
@@ -323,16 +387,18 @@
 								value={slug}
 								oninput={handleSlugInput}
 								placeholder="my-new-page"
-								class="flex h-10 min-w-0 flex-1 rounded-l-lg border border-r-0 border-input bg-muted/50 px-3 font-mono text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+								class="flex h-10 min-w-0 flex-1 {kind === 'folder' ? 'rounded-lg border' : 'rounded-l-lg border border-r-0'} border-input bg-muted/50 px-3 font-mono text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 							/>
-							<button
-								type="button"
-								class="flex h-10 w-10 shrink-0 items-center justify-center rounded-r-lg border border-input bg-muted/50 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-								onclick={regenerateSlug}
-								title={i18n.t('ADMIN_NEXT.FIELDS.REGENERATE_SLUG')}
-							>
-								<RefreshCw size={14} />
-							</button>
+							{#if kind !== 'folder'}
+								<button
+									type="button"
+									class="flex h-10 w-10 shrink-0 items-center justify-center rounded-r-lg border border-input bg-muted/50 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+									onclick={regenerateSlug}
+									title={i18n.t('ADMIN_NEXT.FIELDS.REGENERATE_SLUG')}
+								>
+									<RefreshCw size={14} />
+								</button>
+							{/if}
 						</div>
 					</div>
 
@@ -409,48 +475,88 @@
 						</div>
 					</div>
 
-					<!-- Page Template -->
-					<div>
-						<label for="page-template" class="block text-xs font-medium text-muted-foreground">
-							{i18n.t('ADMIN_NEXT.PAGES.NEW.PAGE_TEMPLATE')} <span class="text-destructive">*</span>
-						</label>
-						<select
-							id="page-template"
-							bind:value={template}
-							disabled={pageTypesLoading}
-							class="mt-1 h-10 w-full rounded-lg border border-input bg-muted/50 px-3 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
-						>
-							{#if pageTypesLoading}
-								<option value="">{i18n.t('ADMIN_NEXT.PAGES.NEW.LOADING_TEMPLATES')}</option>
-							{:else}
-								{#each pageTypes as pt}
-									<option value={pt.type}>{pt.label}</option>
-								{/each}
-							{/if}
-						</select>
-					</div>
-
-					<!-- Visible -->
-					<div>
-						<label class="block text-xs font-medium text-muted-foreground">
-							{i18n.t('ADMIN_NEXT.PAGES.NEW.VISIBLE')} <span class="text-destructive">*</span>
-						</label>
-						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.NEW.CONTROLS_WHETHER_THIS_PAGE_APPEARS_IN')}</p>
-						<div class="mt-2 inline-flex rounded-lg border border-input">
-							{#each (['auto', 'yes', 'no'] as const) as opt}
-								<button
-									type="button"
-									class="px-4 py-1.5 text-sm font-medium capitalize transition-colors first:rounded-l-lg last:rounded-r-lg
-										{visible === opt
-											? 'bg-primary text-primary-foreground'
-											: 'bg-muted/50 text-foreground hover:bg-muted'}"
-									onclick={() => visible = opt}
-								>
-									{opt === 'auto' ? 'Auto' : opt === 'yes' ? 'Yes' : 'No'}
-								</button>
-							{/each}
+					{#if kind !== 'folder'}
+						<!-- Page Template (hidden for folder kind — folder-only
+							 pages have no .md and therefore no template) -->
+						<div>
+							<label for="page-template" class="block text-xs font-medium text-muted-foreground">
+								{i18n.t('ADMIN_NEXT.PAGES.NEW.PAGE_TEMPLATE')} <span class="text-destructive">*</span>
+							</label>
+							<select
+								id="page-template"
+								bind:value={template}
+								disabled={pageTypesLoading}
+								class="mt-1 h-10 w-full rounded-lg border border-input bg-muted/50 px-3 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+							>
+								{#if pageTypesLoading}
+									<option value="">{i18n.t('ADMIN_NEXT.PAGES.NEW.LOADING_TEMPLATES')}</option>
+								{:else}
+									{#each pageTypes as pt}
+										<option value={pt.type}>{pt.label}</option>
+									{/each}
+								{/if}
+							</select>
 						</div>
-					</div>
+					{/if}
+
+					<!-- Visible / Ordering toggle. For regular pages this controls
+						 nav-menu visibility (and implicitly numeric prefix). For
+						 modules and folder-only pages, "visibility" is meaningless,
+						 so the same control becomes a pure ordering picker
+						 (Auto = numeric prefix, None = no prefix). -->
+					{#if kind === 'page'}
+						<div>
+							<label class="block text-xs font-medium text-muted-foreground">
+								{i18n.t('ADMIN_NEXT.PAGES.NEW.VISIBLE')} <span class="text-destructive">*</span>
+							</label>
+							<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.NEW.CONTROLS_WHETHER_THIS_PAGE_APPEARS_IN')}</p>
+							<div class="mt-2 inline-flex rounded-lg border border-input">
+								{#each (['auto', 'yes', 'no'] as const) as opt}
+									<button
+										type="button"
+										class="px-4 py-1.5 text-sm font-medium capitalize transition-colors first:rounded-l-lg last:rounded-r-lg
+											{visible === opt
+												? 'bg-primary text-primary-foreground'
+												: 'bg-muted/50 text-foreground hover:bg-muted'}"
+										onclick={() => visible = opt}
+									>
+										{opt === 'auto'
+											? i18n.t('PLUGIN_ADMIN.AUTO')
+											: opt === 'yes'
+												? i18n.t('PLUGIN_ADMIN.YES')
+												: i18n.t('PLUGIN_ADMIN.NO')}
+									</button>
+								{/each}
+							</div>
+						</div>
+					{:else}
+						<div>
+							<label class="block text-xs font-medium text-muted-foreground">
+								{i18n.t('ADMIN_NEXT.PAGES.NEW.ORDERING')}
+							</label>
+							<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t(
+								kind === 'module'
+									? 'ADMIN_NEXT.PAGES.NEW.ORDERING_HELP_MODULE'
+									: 'ADMIN_NEXT.PAGES.NEW.ORDERING_HELP_FOLDER'
+							)}</p>
+							<div class="mt-2 inline-flex rounded-lg border border-input">
+								{#each (['auto', 'no'] as const) as opt}
+									<button
+										type="button"
+										class="px-4 py-1.5 text-sm font-medium capitalize transition-colors first:rounded-l-lg last:rounded-r-lg
+											{visible === opt
+												? 'bg-primary text-primary-foreground'
+												: 'bg-muted/50 text-foreground hover:bg-muted'}"
+										onclick={() => visible = opt}
+									>
+										{opt === 'auto'
+											? i18n.t('PLUGIN_ADMIN.AUTO')
+											: i18n.t('ADMIN_NEXT.PAGES.NEW.ORDERING_NONE')}
+									</button>
+								{/each}
+							</div>
+						</div>
+					{/if}
 
 				</div>
 			</div>

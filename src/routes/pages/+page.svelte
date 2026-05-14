@@ -17,7 +17,7 @@
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import LanguageSwitcher from '$lib/components/ui/LanguageSwitcher.svelte';
 	import {
-		Plus, Search, TreePine, List, Columns3, X, ArrowUpDown
+		Plus, Search, TreePine, List, Columns3, X, ArrowUpDown, ChevronDown, FilePlus, FolderPlus, LayoutGrid
 	} from 'lucide-svelte';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import { canWrite } from '$lib/utils/permissions';
@@ -29,6 +29,14 @@
 	let confirmDeleteOpen = $state(false);
 	let pendingDeletePage = $state<PageSummary | null>(null);
 	let stats = $state<DashboardStats['pages'] | null>(null);
+
+	// Add dropdown (Page / Folder / Module) — inline implementation; we don't
+	// yet have a shared DropdownMenu primitive, mirrors EnvironmentSwitcher.
+	let addOpen = $state(false);
+	function startAdd(kind: 'page' | 'folder' | 'module') {
+		addOpen = false;
+		goto(`${base}/pages/new?kind=${kind}`);
+	}
 
 	async function loadStats() {
 		try {
@@ -85,7 +93,7 @@
 			<div class="space-y-3 px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
 				<div class="flex items-center justify-between {scrolled ? 'min-h-6' : 'min-h-8'}">
 					<div>
-						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">Pages</h1>
+						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">{i18n.t('ADMIN_NEXT.PAGES.TITLE')}</h1>
 						{#if !scrolled}
 							<p class="mt-0.5 text-xs text-muted-foreground">
 								{#if stats}{i18n.t('ADMIN_NEXT.PAGES.PAGE_COUNT', { n: stats.total })}{:else}{i18n.t('ADMIN_NEXT.PAGES.SUBTITLE')}{/if}
@@ -93,10 +101,54 @@
 						{/if}
 					</div>
 					{#if canEditPages}
-					<Button size="sm" onclick={() => goto(`${base}/pages/new`)}>
-						<Plus size={14} />
-						{i18n.t('ADMIN_NEXT.ADD_PAGE')}
-					</Button>
+					<!-- Split button: primary action is "Add Page"; the chevron
+						 opens a menu to add a Folder (no .md) or a Module
+						 (modular sub-page). Mirrors classic admin's 3-way split. -->
+					<div class="relative inline-flex">
+						<Button size="sm" class="rounded-r-none" onclick={() => goto(`${base}/pages/new?kind=page`)}>
+							<Plus size={14} />
+							{i18n.t('ADMIN_NEXT.ADD_PAGE')}
+						</Button>
+						<Button
+							size="sm"
+							class="rounded-l-none border-l border-primary-foreground/20 px-2"
+							aria-label={i18n.t('ADMIN_NEXT.PAGES.ADD_MENU')}
+							onclick={() => addOpen = !addOpen}
+						>
+							<ChevronDown size={14} />
+						</Button>
+
+						{#if addOpen}
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<div class="fixed inset-0 z-40" onclick={() => addOpen = false}></div>
+							<div class="absolute right-0 z-50 mt-9 min-w-[200px] overflow-hidden rounded-md border border-border bg-popover py-1 shadow-md">
+								<button
+									type="button"
+									class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-popover-foreground transition-colors hover:bg-accent/50"
+									onclick={() => startAdd('page')}
+								>
+									<FilePlus size={14} class="shrink-0 text-muted-foreground" />
+									<span>{i18n.t('ADMIN_NEXT.PAGES.ADD_PAGE')}</span>
+								</button>
+								<button
+									type="button"
+									class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-popover-foreground transition-colors hover:bg-accent/50"
+									onclick={() => startAdd('folder')}
+								>
+									<FolderPlus size={14} class="shrink-0 text-muted-foreground" />
+									<span>{i18n.t('ADMIN_NEXT.PAGES.ADD_FOLDER')}</span>
+								</button>
+								<button
+									type="button"
+									class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-popover-foreground transition-colors hover:bg-accent/50"
+									onclick={() => startAdd('module')}
+								>
+									<LayoutGrid size={14} class="shrink-0 text-muted-foreground" />
+									<span>{i18n.t('ADMIN_NEXT.PAGES.ADD_MODULE')}</span>
+								</button>
+							</div>
+						{/if}
+					</div>
 					{/if}
 				</div>
 

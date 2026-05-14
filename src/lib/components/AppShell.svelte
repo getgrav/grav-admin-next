@@ -8,6 +8,7 @@
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
 	import { logout, refreshMe } from '$lib/api/auth';
+	import { flushNow } from '$lib/stores/_serverSync';
 	import { api } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { can } from '$lib/utils/permissions';
@@ -86,15 +87,19 @@
 	let collapsed = $state(false);
 	let mobileOpen = $state(false);
 
-	const navItems: { href: string; label: string; icon: typeof LayoutDashboard; badgeKey?: string; permission?: string }[] = [
-		{ href: `${base}/`, label: 'Dashboard', icon: LayoutDashboard },
-		{ href: `${base}/config`, label: 'Configuration', icon: Settings, permission: 'api.config.read' },
-		{ href: `${base}/users`, label: 'Users', icon: Users, badgeKey: 'users', permission: 'api.users.read' },
-		{ href: `${base}/pages`, label: 'Pages', icon: FileText, badgeKey: 'pages', permission: 'api.pages.read' },
-		{ href: `${base}/media`, label: 'Media', icon: Image, badgeKey: 'media', permission: 'api.media.read' },
-		{ href: `${base}/plugins`, label: 'Plugins', icon: Puzzle, badgeKey: 'plugins', permission: 'api.gpm.read' },
-		{ href: `${base}/themes`, label: 'Themes', icon: Palette, badgeKey: 'themes', permission: 'api.gpm.read' },
-		{ href: `${base}/tools`, label: 'Tools', icon: Wrench, permission: 'api.system.read' },
+	// `labelKey` is resolved via i18n.t() at render time so the sidebar
+	// follows the active admin language. Plugin-supplied sidebar items
+	// (see visiblePluginItems below) keep arriving as pre-translated plain
+	// text from the API server — that contract is documented separately.
+	const navItems: { href: string; labelKey: string; icon: typeof LayoutDashboard; badgeKey?: string; permission?: string }[] = [
+		{ href: `${base}/`, labelKey: 'ADMIN_NEXT.NAV.DASHBOARD', icon: LayoutDashboard },
+		{ href: `${base}/config`, labelKey: 'ADMIN_NEXT.NAV.CONFIGURATION', icon: Settings, permission: 'api.config.read' },
+		{ href: `${base}/users`, labelKey: 'ADMIN_NEXT.NAV.USERS', icon: Users, badgeKey: 'users', permission: 'api.users.read' },
+		{ href: `${base}/pages`, labelKey: 'ADMIN_NEXT.NAV.PAGES', icon: FileText, badgeKey: 'pages', permission: 'api.pages.read' },
+		{ href: `${base}/media`, labelKey: 'ADMIN_NEXT.NAV.MEDIA', icon: Image, badgeKey: 'media', permission: 'api.media.read' },
+		{ href: `${base}/plugins`, labelKey: 'ADMIN_NEXT.NAV.PLUGINS', icon: Puzzle, badgeKey: 'plugins', permission: 'api.gpm.read' },
+		{ href: `${base}/themes`, labelKey: 'ADMIN_NEXT.NAV.THEMES', icon: Palette, badgeKey: 'themes', permission: 'api.gpm.read' },
+		{ href: `${base}/tools`, labelKey: 'ADMIN_NEXT.NAV.TOOLS', icon: Wrench, permission: 'api.system.read' },
 	];
 
 	const visibleNavItems = $derived(
@@ -105,7 +110,7 @@
 		sidebarStore.items
 	);
 
-	const settingsItem = { href: `${base}/settings`, label: 'Settings', icon: SlidersHorizontal };
+	const settingsItem = { href: `${base}/settings`, labelKey: 'ADMIN_NEXT.NAV.SETTINGS', icon: SlidersHorizontal };
 
 	function isActive(href: string): boolean {
 		if (href === `${base}/`) return page.url.pathname === `${base}/`;
@@ -113,6 +118,11 @@
 	}
 
 	async function handleLogout() {
+		// Flush any queued preference patches (e.g. an in-debounce language
+		// change) before clearing auth. Without this, a user who picks a new
+		// admin language and clicks Sign Out within ~200ms loses the change —
+		// the debounced PATCH fires after auth is gone and silently fails.
+		try { await flushNow(); } catch { /* best-effort */ }
 		await logout();
 		goto(`${base}/login`);
 	}
@@ -156,10 +166,10 @@
 									? 'bg-primary/10 text-primary'
 									: 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
 							onclick={() => mobileOpen = false}
-							title={collapsed ? item.label : undefined}>
+							title={collapsed ? i18n.t(item.labelKey) : undefined}>
 							<item.icon size={16} strokeWidth={isActive(item.href) ? 2 : 1.5} />
 							{#if !collapsed}
-								<span>{item.label}</span>
+								<span>{i18n.t(item.labelKey)}</span>
 								{#if item.badgeKey && navBadges.counts[item.badgeKey] != null}
 									<span class="ml-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">{navBadges.counts[item.badgeKey]}</span>
 								{/if}
@@ -200,9 +210,9 @@
 						? 'bg-primary/10 text-primary'
 						: 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
 				onclick={() => mobileOpen = false}
-				title={collapsed ? settingsItem.label : undefined}>
+				title={collapsed ? i18n.t(settingsItem.labelKey) : undefined}>
 				<settingsItem.icon size={16} strokeWidth={isActive(settingsItem.href) ? 2 : 1.5} />
-				{#if !collapsed}<span>{settingsItem.label}</span>{/if}
+				{#if !collapsed}<span>{i18n.t(settingsItem.labelKey)}</span>{/if}
 			</a>
 		</div>
 
@@ -258,7 +268,7 @@
 			<button
 				class="ml-auto hidden h-7 w-7 shrink-0 items-center justify-center rounded-md p-1.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground lg:flex {collapsed ? 'mx-auto' : ''}"
 				onclick={() => collapsed = !collapsed}
-				aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+				aria-label={collapsed ? i18n.t('ADMIN_NEXT.EXPAND_SIDEBAR') : i18n.t('ADMIN_NEXT.COLLAPSE_SIDEBAR')}>
 				{#if collapsed}
 					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 						<path d="M20 12l-10 0" />

@@ -2,6 +2,7 @@ import { api } from '../client';
 
 export interface TranslationsResponse {
 	lang: string;
+	dir: 'ltr' | 'rtl';
 	count: number;
 	checksum: string;
 	strings: Record<string, string>;

@@ -35,7 +35,7 @@
 				</h2>
 				{#if totalUpdates > 0}
 					<span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-[0.6875rem] font-semibold text-amber-600 dark:text-amber-400">
-						{totalUpdates} available
+						{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPDATES_AVAILABLE_COUNT', { n: totalUpdates })}
 					</span>
 				{/if}
 			</div>
@@ -83,7 +83,7 @@
 					<div class="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
 						<div class="flex items-center gap-2 text-[0.8125rem] font-medium text-amber-600 dark:text-amber-400">
 							<AlertTriangle size={13} />
-							{packageCount} package{packageCount > 1 ? 's' : ''} outdated
+							{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.PACKAGES_OUTDATED', { n: packageCount })}
 						</div>
 						<ul class="mt-2 space-y-0.5 text-[0.75rem] text-muted-foreground">
 							{#each updatablePlugins.slice(0, 4) as p}
@@ -99,7 +99,7 @@
 								</li>
 							{/each}
 							{#if packageCount > 4}
-								<li class="text-[0.6875rem] italic text-muted-foreground/70">+ {packageCount - 4} more…</li>
+								<li class="text-[0.6875rem] italic text-muted-foreground/70">{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.MORE_COUNT', { n: packageCount - 4 })}</li>
 							{/if}
 						</ul>
 						{#if canWriteGpm}
@@ -142,7 +142,7 @@
 			{/if}
 			{#if reports}
 				<div class="flex items-center justify-between">
-					<dt class="text-muted-foreground">Cache</dt>
+					<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.CACHE')}</dt>
 					<dd class="font-medium text-foreground">
 						{#if reports.cache.enabled}<span class="text-emerald-500">{reports.cache.driver}</span>{:else}<span class="text-amber-500">{i18n.t('ADMIN_NEXT.DISABLED')}</span>{/if}
 					</dd>
@@ -156,7 +156,7 @@
 			<div class="flex items-center justify-between">
 				<h2 class="flex items-center gap-2 text-sm font-semibold text-foreground">
 					<HardDrive size={15} />
-					Disk
+					{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.DISK')}
 				</h2>
 				<span class="text-[0.6875rem] tabular-nums text-muted-foreground">{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.PERCENT_USED', { percent: diskUsedPercent })}</span>
 			</div>
@@ -165,8 +165,8 @@
 					style="width: {animated ? diskUsedPercent : 0}%; transition: width 0.8s cubic-bezier(0.16,1,0.3,1);"></div>
 			</div>
 			<div class="mt-2 flex justify-between text-[0.6875rem] text-muted-foreground">
-				<span>{formatBytes(reports.disk.total_space - reports.disk.free_space)} used</span>
-				<span>{formatBytes(reports.disk.free_space)} free</span>
+				<span>{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.BYTES_USED', { size: formatBytes(reports.disk.total_space - reports.disk.free_space) })}</span>
+				<span>{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.BYTES_FREE', { size: formatBytes(reports.disk.free_space) })}</span>
 			</div>
 		</div>
 	{/if}

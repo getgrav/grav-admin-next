@@ -24,7 +24,11 @@
 		open = false;
 		if (name === configEnv.target) return;
 		configEnv.setTarget(name);
-		toast.info(name === '' ? 'Saving to default (user/config)' : `Saving to env: ${name}`);
+		toast.info(
+			name === ''
+				? i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.SAVING_TO_DEFAULT')
+				: i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.SAVING_TO_ENV', { name }),
+		);
 	}
 
 	async function showCreate() {
@@ -40,13 +44,13 @@
 		creating = true;
 		try {
 			await configEnv.createAndSelect(name);
-			toast.success(`Environment '${name}' created and selected`);
+			toast.success(i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.ENV_CREATED', { name }));
 			showCreateInput = false;
 			open = false;
 		} catch (e) {
 			const msg = e && typeof e === 'object' && 'message' in e
 				? (e as { message: string }).message
-				: 'Failed to create environment';
+				: i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.FAILED_TO_CREATE');
 			toast.error(msg);
 		} finally {
 			creating = false;
@@ -63,7 +67,7 @@
 		}
 	}
 
-	const badgeLabel = $derived(configEnv.target === '' ? 'Default' : configEnv.target);
+	const badgeLabel = $derived(configEnv.target === '' ? i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.DEFAULT') : configEnv.target);
 	const targetIsMissing = $derived(
 		configEnv.target !== '' &&
 		configEnv.environments.length > 0 &&
@@ -127,8 +131,8 @@
 						<Plus size={13} />
 						<span>
 							{configEnv.detected
-								? `Create env "${configEnv.detected}"…`
-								: 'Create environment…'}
+								? i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.CREATE_ENV_NAMED', { name: configEnv.detected })
+								: i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.CREATE_ENVIRONMENT')}
 						</span>
 					</button>
 				{:else}
@@ -146,7 +150,7 @@
 							type="submit"
 							class="h-7 rounded bg-primary px-2 text-[0.6875rem] font-medium text-primary-foreground disabled:opacity-50"
 							disabled={creating || !newName.trim()}
-						>{creating ? '…' : 'Create'}</button>
+						>{creating ? '…' : i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.CREATE')}</button>
 					</form>
 					<p class="px-3 pb-1 text-[0.625rem] text-muted-foreground">
 						{i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.CREATES_PATH', { name: newName || '<name>' })}

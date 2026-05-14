@@ -93,8 +93,9 @@ export interface PageType {
 	label: string;
 }
 
-export async function getPageTypes(): Promise<PageType[]> {
-	return api.get<PageType[]>('/blueprints/pages');
+export async function getPageTypes(modular?: boolean): Promise<PageType[]> {
+	const params = modular ? { modular: 'true' } : undefined;
+	return api.get<PageType[]>('/blueprints/pages', params);
 }
 
 export async function getPageBlueprint(template: string): Promise<BlueprintSchema> {

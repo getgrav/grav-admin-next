@@ -51,7 +51,7 @@
 			</div>
 			<div class="min-w-0">
 				<div class="text-3xl font-semibold tabular-nums leading-tight text-foreground">{displayPages}</div>
-				<div class="text-[0.75rem] text-muted-foreground">Pages</div>
+				<div class="text-[0.75rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.NAV.PAGES')}</div>
 			</div>
 		</a>
 
@@ -61,7 +61,7 @@
 			</div>
 			<div class="min-w-0">
 				<div class="text-3xl font-semibold tabular-nums leading-tight text-foreground">{displayUsers}</div>
-				<div class="text-[0.75rem] text-muted-foreground">Users</div>
+				<div class="text-[0.75rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.NAV.USERS')}</div>
 			</div>
 		</a>
 
@@ -73,10 +73,10 @@
 				<div class="flex items-center gap-2">
 					<span class="text-3xl font-semibold tabular-nums leading-tight text-foreground">{displayPlugins}</span>
 					{#if totalUpdates > 0}
-						<Badge variant="default">{totalUpdates} update{totalUpdates > 1 ? 's' : ''}</Badge>
+						<Badge variant="default">{i18n.t('ADMIN_NEXT.STATS_WIDGET.UPDATE_COUNT', { n: totalUpdates })}</Badge>
 					{/if}
 				</div>
-				<div class="text-[0.75rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.NAV.PLUGINS')} <span class="text-foreground/50">({stats.plugins.active} active)</span></div>
+				<div class="text-[0.75rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.NAV.PLUGINS')} <span class="text-foreground/50">{i18n.t('ADMIN_NEXT.STATS_WIDGET.ACTIVE_COUNT', { n: stats.plugins.active })}</span></div>
 			</div>
 		</a>
 

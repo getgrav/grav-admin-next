@@ -5,6 +5,8 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { saveSitePreferences, type LogoMode, type PreferenceValues, type SiteSettings } from '$lib/api/endpoints/preferences';
+	import { getAdminLanguages, type AdminLanguageInfo } from '$lib/api/endpoints/languages';
+	import { flushNow } from '$lib/stores/_serverSync';
 	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
@@ -21,13 +23,26 @@
 	let confirmResetOpen = $state(false);
 	let customOpen = $state(!ACCENT_PRESETS.some(p => p.hue === theme.accentHue && p.saturation === theme.accentSaturation));
 
+	// Locales the admin can render in. Enumerated server-side from
+	// admin2/languages/*.yaml so the dropdown reflects reality instead of a
+	// hardcoded list. English fallback covers the case where the API call
+	// hasn't returned yet or fails outright.
+	let adminLanguages = $state<AdminLanguageInfo[]>([
+		{ code: 'en', name: 'English', native_name: 'English', rtl: false },
+	]);
+	$effect(() => {
+		getAdminLanguages()
+			.then((res) => { if (res.languages?.length) adminLanguages = res.languages; })
+			.catch(() => { /* keep English fallback */ });
+	});
+
 	// ── Site branding (super-admin only, live save) ──────────────────────────
 	async function setLogoMode(mode: LogoMode) {
-		try { await branding.save({ mode }); } catch { toast.error('Failed to save logo mode.'); }
+		try { await branding.save({ mode }); } catch { toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_SAVE_LOGO_MODE')); }
 	}
 
 	async function setLogoText(text: string) {
-		try { await branding.save({ text }); } catch { toast.error('Failed to save logo text.'); }
+		try { await branding.save({ text }); } catch { toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_SAVE_LOGO_TEXT')); }
 	}
 
 	async function handleLogoUpload(variant: 'light' | 'dark', event: Event) {
@@ -36,9 +51,11 @@
 		if (!file) return;
 		try {
 			await branding.uploadLogo(variant, file);
-			toast.success(`${variant === 'light' ? 'Light' : 'Dark'} logo uploaded.`);
+			toast.success(i18n.t(
+				variant === 'light' ? 'ADMIN_NEXT.SETTINGS.LIGHT_LOGO_UPLOADED' : 'ADMIN_NEXT.SETTINGS.DARK_LOGO_UPLOADED'
+			));
 		} catch {
-			toast.error('Logo upload failed.');
+			toast.error(i18n.t('ADMIN_NEXT.SETTINGS.LOGO_UPLOAD_FAILED'));
 		}
 		input.value = '';
 	}
@@ -46,9 +63,11 @@
 	async function deleteLogo(variant: 'light' | 'dark') {
 		try {
 			await branding.deleteLogo(variant);
-			toast.success(`${variant === 'light' ? 'Light' : 'Dark'} logo removed.`);
+			toast.success(i18n.t(
+				variant === 'light' ? 'ADMIN_NEXT.SETTINGS.LIGHT_LOGO_REMOVED' : 'ADMIN_NEXT.SETTINGS.DARK_LOGO_REMOVED'
+			));
 		} catch {
-			toast.error('Failed to remove logo.');
+			toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_REMOVE_LOGO'));
 		}
 	}
 
@@ -89,9 +108,9 @@
 		try {
 			const resp = await saveSitePreferences(siteDraft);
 			prefs.init(resp);
-			toast.success('Site defaults saved. All users will see these on next reload.');
+			toast.success(i18n.t('ADMIN_NEXT.SETTINGS.SITE_DEFAULTS_SAVED'));
 		} catch {
-			toast.error('Failed to save site defaults.');
+			toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_SAVE_SITE_DEFAULTS'));
 		}
 	}
 
@@ -116,7 +135,11 @@
 	function handleLanguageChange(lang: string) {
 		prefs.adminLanguage = lang;
 		i18n.setLanguage(lang);
-		toast.success(`Language changed to ${lang}`);
+		// Bypass the debounce: language is a single decisive action and a
+		// quick logout-after-change would otherwise lose it.
+		void flushNow();
+		const display = adminLanguages.find((l) => l.code === lang)?.native_name ?? lang;
+		toast.success(i18n.t('ADMIN_NEXT.SETTINGS.LANGUAGE_CHANGED', { language: display }));
 	}
 
 	function resetPreferences() {
@@ -134,7 +157,7 @@
 			);
 			toast.success(i18n.t('ADMIN_NEXT.SETTINGS.PREFERENCES_RESET_RELOAD_TO_APPLY'));
 		} catch {
-			toast.error('Failed to reset preferences.');
+			toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_RESET_PREFERENCES'));
 		}
 	}
 </script>
@@ -179,8 +202,8 @@
 							value={theme.isDark ? 'dark' : 'light'}
 							onchange={(v) => theme.setColorMode(v as 'light' | 'dark')}
 							options={[
-								{ value: 'light', label: 'Light' },
-								{ value: 'dark', label: 'Dark' }
+								{ value: 'light', label: i18n.t('ADMIN_NEXT.SETTINGS.LIGHT') },
+								{ value: 'dark', label: i18n.t('ADMIN_NEXT.SETTINGS.DARK') }
 							]}
 						/>
 					</div>
@@ -228,7 +251,7 @@
 						{#if customOpen || !ACCENT_PRESETS.some(p => p.hue === theme.accentHue && p.saturation === theme.accentSaturation)}
 							<div class="rounded-md border border-border bg-background/50 p-4 space-y-3">
 								<div class="flex items-center gap-3">
-									<label for="hue-slider" class="w-20 shrink-0 text-xs font-medium text-muted-foreground">Hue</label>
+									<label for="hue-slider" class="w-20 shrink-0 text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.HUE')}</label>
 									<input
 										id="hue-slider"
 										type="range" min="0" max="360" step="1"
@@ -259,7 +282,7 @@
 				<!-- Font -->
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
-						<span class="text-sm font-semibold text-foreground">Font</span>
+						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.FONT')}</span>
 						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.TYPEFACE_USED_THROUGHOUT_THE_ADMIN')}</p>
 					</div>
 					<div class="flex flex-wrap gap-2">
@@ -306,7 +329,7 @@
 		<!-- Pages — per user (Tier B) -->
 		<div class="rounded-xl border border-border bg-muted/30">
 			<div class="px-6 pt-6 pb-2">
-				<h3 class="text-base font-bold text-foreground">Pages</h3>
+				<h3 class="text-base font-bold text-foreground">{i18n.t('ADMIN_NEXT.PAGES.TITLE')}</h3>
 				<p class="mt-1 text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_SETTINGS_FOR_THE_PAGE_BROWSER')}</p>
 			</div>
 			<div class="space-y-5 px-6 py-5">
@@ -320,8 +343,8 @@
 							value={prefs.pagesViewMode}
 							onchange={(v) => prefs.pagesViewMode = v as PagesViewMode}
 							options={[
-								{ value: 'tree', label: 'Tree' },
-								{ value: 'list', label: 'List' },
+								{ value: 'tree', label: i18n.t('ADMIN_NEXT.PAGES.VIEW_TREE') },
+								{ value: 'list', label: i18n.t('ADMIN_NEXT.PAGES.VIEW_LIST') },
 								{ value: 'miller', label: i18n.t('ADMIN_NEXT.PAGES.VIEW_COLUMNS') }
 							]}
 						/>
@@ -364,16 +387,9 @@
 						value={prefs.adminLanguage}
 						onchange={(e) => handleLanguageChange((e.target as HTMLSelectElement).value)}
 					>
-						<option value="en">{i18n.t('ADMIN_NEXT.SETTINGS.ENGLISH')}</option>
-						<option value="fr">{i18n.t('ADMIN_NEXT.SETTINGS.FRAN_AIS')}</option>
-						<option value="de">{i18n.t('ADMIN_NEXT.SETTINGS.DEUTSCH')}</option>
-						<option value="es">{i18n.t('ADMIN_NEXT.SETTINGS.ESPA_OL')}</option>
-						<option value="it">{i18n.t('ADMIN_NEXT.SETTINGS.ITALIANO')}</option>
-						<option value="pt">{i18n.t('ADMIN_NEXT.SETTINGS.PORTUGU_S')}</option>
-						<option value="nl">{i18n.t('ADMIN_NEXT.SETTINGS.NEDERLANDS')}</option>
-						<option value="ru">Русский</option>
-						<option value="ja">日本語</option>
-						<option value="zh">中文</option>
+						{#each adminLanguages as lang (lang.code)}
+							<option value={lang.code}>{lang.native_name}</option>
+						{/each}
 					</select>
 				</div>
 			</div>
@@ -417,7 +433,7 @@
 		<div class="flex justify-end">
 			<Button variant="outline" onclick={resetPreferences}>
 				<RotateCcw size={14} />
-				Reset my preferences to site defaults
+				{i18n.t('ADMIN_NEXT.SETTINGS.RESET_TO_SITE_DEFAULTS')}
 			</Button>
 		</div>
 
@@ -427,10 +443,10 @@
 				<div class="px-6 pt-6 pb-2">
 					<div class="flex items-center gap-2">
 						<Shield size={16} class="text-amber-700 dark:text-amber-400" />
-						<h3 class="text-base font-bold text-foreground">Site Defaults</h3>
+						<h3 class="text-base font-bold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SITE_DEFAULTS')}</h3>
 					</div>
 					<p class="mt-1 text-sm text-muted-foreground">
-						Settings below apply to every admin user as the baseline. Tier B items (appearance, pages, language, editor) can be overridden in each user's own preferences above. Tier A items (editing, menubar) are site-wide and not overridable.
+						{i18n.t('ADMIN_NEXT.SETTINGS.SITE_DEFAULTS_DESCRIPTION')}
 					</p>
 				</div>
 
@@ -439,15 +455,15 @@
 					<div class="space-y-4 rounded-lg border border-border bg-card/50 p-4">
 						<div class="flex items-start justify-between gap-4">
 							<div>
-								<h4 class="text-sm font-semibold text-foreground">Branding</h4>
-								<p class="mt-0.5 text-xs text-muted-foreground">Logo and brand text shown everywhere in the admin.</p>
+								<h4 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.BRANDING')}</h4>
+								<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.BRANDING_DESC')}</p>
 							</div>
-							<span class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[0.625rem] font-medium uppercase tracking-wider text-muted-foreground">Saved automatically</span>
+							<span class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[0.625rem] font-medium uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SAVED_AUTOMATICALLY')}</span>
 						</div>
 
 						<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 							<div class="lg:pt-2.5">
-								<span class="text-xs font-medium text-foreground">Logo type</span>
+								<span class="text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.LOGO_TYPE')}</span>
 							</div>
 							<div>
 								<SegmentedToggle
@@ -464,7 +480,7 @@
 
 						<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 							<div class="lg:pt-2.5">
-								<span class="text-xs font-medium text-foreground">Preview</span>
+								<span class="text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.PREVIEW')}</span>
 							</div>
 							<div class="flex items-center gap-2 rounded-md border border-border bg-card p-3 max-w-fit">
 								<BrandLogo size="sidebar" showLabel={true} />
@@ -474,8 +490,8 @@
 						{#if branding.mode === 'text'}
 							<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 								<div class="lg:pt-2.5">
-									<span class="text-xs font-medium text-foreground">Logo text</span>
-									<p class="mt-0.5 text-xs text-muted-foreground">First letter becomes the icon.</p>
+									<span class="text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.LOGO_TEXT')}</span>
+									<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.THE_FIRST_LETTER_BECOMES_THE_ICON')}</p>
 								</div>
 								<input
 									type="text"
@@ -500,7 +516,7 @@
 											type="button"
 											class="text-xs text-muted-foreground hover:text-destructive"
 											onclick={() => deleteLogo('light')}
-										>Remove</button>
+										>{i18n.t('ADMIN_NEXT.REMOVE')}</button>
 									{/if}
 									<label class="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50">
 										<Upload size={14} />
@@ -521,7 +537,7 @@
 											type="button"
 											class="text-xs text-muted-foreground hover:text-destructive"
 											onclick={() => deleteLogo('dark')}
-										>Remove</button>
+										>{i18n.t('ADMIN_NEXT.REMOVE')}</button>
 									{/if}
 									<label class="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50">
 										<Upload size={14} />
@@ -536,31 +552,31 @@
 					<!-- Site Settings card (draft + save) ────────────────────── -->
 					<div class="rounded-lg border border-border bg-card/50">
 						<div class="border-b border-border px-6 pt-5 pb-4">
-							<h4 class="text-sm font-semibold text-foreground">Site Settings</h4>
-							<p class="mt-0.5 text-xs text-muted-foreground">Default preferences for new users plus site-wide behavior. Changes apply on next reload for affected users.</p>
+							<h4 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SITE_SETTINGS_HEADING')}</h4>
+							<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SITE_SETTINGS_DESC')}</p>
 						</div>
 
 						<div class="space-y-8 px-6 py-5">
 							<!-- ─── Appearance defaults (Tier B) ───────────────── -->
 							<div class="space-y-5">
 								<div class="flex items-baseline justify-between border-b border-border/60 pb-2">
-									<h5 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Default Appearance</h5>
-									<span class="text-[0.625rem] text-muted-foreground/70">Users may override</span>
+									<h5 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_APPEARANCE')}</h5>
+									<span class="text-[0.625rem] text-muted-foreground/70">{i18n.t('ADMIN_NEXT.SETTINGS.USERS_MAY_OVERRIDE')}</span>
 								</div>
 
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
 										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.COLOR_MODE')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">Default color appearance for new users.</p>
+										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_COLOR_APPEARANCE_DESC')}</p>
 									</div>
 									<div>
 										<SegmentedToggle
 											value={siteDraft.colorMode ?? ''}
 											onchange={(v) => siteDraft = { ...siteDraft, colorMode: v as '' | 'light' | 'dark' }}
 											options={[
-												{ value: '', label: 'Follow OS' },
-												{ value: 'light', label: 'Light' },
-												{ value: 'dark', label: 'Dark' }
+												{ value: '', label: i18n.t('ADMIN_NEXT.SETTINGS.FOLLOW_OS') },
+												{ value: 'light', label: i18n.t('ADMIN_NEXT.SETTINGS.LIGHT') },
+												{ value: 'dark', label: i18n.t('ADMIN_NEXT.SETTINGS.DARK') }
 											]}
 										/>
 									</div>
@@ -569,7 +585,7 @@
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
 										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ACCENT_COLOR')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">Default primary color for buttons, links, and highlights.</p>
+										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_PRIMARY_COLOR_DESC')}</p>
 									</div>
 									<div class="space-y-3">
 										<div class="flex flex-wrap gap-2">
@@ -601,7 +617,7 @@
 										{#if siteCustomAccentOpen || !ACCENT_PRESETS.some(p => p.hue === siteHue() && p.saturation === siteSat())}
 											<div class="rounded-md border border-border bg-background/50 p-4 space-y-3">
 												<div class="flex items-center gap-3">
-													<label for="site-hue-slider" class="w-20 shrink-0 text-xs font-medium text-muted-foreground">Hue</label>
+													<label for="site-hue-slider" class="w-20 shrink-0 text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.HUE')}</label>
 													<input id="site-hue-slider" type="range" min="0" max="360" step="1"
 														value={siteHue()}
 														class="h-2 flex-1 cursor-pointer appearance-none rounded-full accent-primary"
@@ -627,8 +643,8 @@
 
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
-										<span class="text-sm font-semibold text-foreground">Font</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">Default typeface for the admin UI.</p>
+										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.FONT')}</span>
+										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_TYPEFACE_DESC')}</p>
 									</div>
 									<div class="flex flex-wrap gap-2">
 										{#each FONT_OPTIONS as font (font.value)}
@@ -650,7 +666,7 @@
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
 										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.FONT_SIZE')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">Default text size for the admin UI.</p>
+										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_TEXT_SIZE_DESC')}</p>
 									</div>
 									<div class="flex flex-wrap gap-2">
 										{#each FONT_SIZE_OPTIONS as size (size.value)}
@@ -672,8 +688,8 @@
 							<!-- ─── Pages defaults (Tier B) ────────────────────── -->
 							<div class="space-y-5">
 								<div class="flex items-baseline justify-between border-b border-border/60 pb-2">
-									<h5 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Default Pages</h5>
-									<span class="text-[0.625rem] text-muted-foreground/70">Users may override</span>
+									<h5 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_PAGES')}</h5>
+									<span class="text-[0.625rem] text-muted-foreground/70">{i18n.t('ADMIN_NEXT.SETTINGS.USERS_MAY_OVERRIDE')}</span>
 								</div>
 
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
@@ -686,8 +702,8 @@
 											value={siteDraft.pagesViewMode ?? 'tree'}
 											onchange={(v) => siteDraft = { ...siteDraft, pagesViewMode: v as PagesViewMode }}
 											options={[
-												{ value: 'tree', label: 'Tree' },
-												{ value: 'list', label: 'List' },
+												{ value: 'tree', label: i18n.t('ADMIN_NEXT.PAGES.VIEW_TREE') },
+												{ value: 'list', label: i18n.t('ADMIN_NEXT.PAGES.VIEW_LIST') },
 												{ value: 'miller', label: i18n.t('ADMIN_NEXT.PAGES.VIEW_COLUMNS') }
 											]}
 										/>
@@ -715,29 +731,22 @@
 							<!-- ─── Language default (Tier B) ──────────────────── -->
 							<div class="space-y-5">
 								<div class="flex items-baseline justify-between border-b border-border/60 pb-2">
-									<h5 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Default Language</h5>
-									<span class="text-[0.625rem] text-muted-foreground/70">Users may override</span>
+									<h5 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_LANGUAGE')}</h5>
+									<span class="text-[0.625rem] text-muted-foreground/70">{i18n.t('ADMIN_NEXT.SETTINGS.USERS_MAY_OVERRIDE')}</span>
 								</div>
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
 										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_LANGUAGE')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">Default interface language for new users.</p>
+										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_INTERFACE_LANGUAGE_DESC')}</p>
 									</div>
 									<select
 										class="flex h-9 max-w-48 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 										value={siteDraft.adminLanguage ?? 'en'}
 										onchange={(e) => siteDraft = { ...siteDraft, adminLanguage: (e.target as HTMLSelectElement).value }}
 									>
-										<option value="en">English</option>
-										<option value="fr">Français</option>
-										<option value="de">Deutsch</option>
-										<option value="es">Español</option>
-										<option value="it">Italiano</option>
-										<option value="pt">Português</option>
-										<option value="nl">Nederlands</option>
-										<option value="ru">Русский</option>
-										<option value="ja">日本語</option>
-										<option value="zh">中文</option>
+										{#each adminLanguages as lang (lang.code)}
+											<option value={lang.code}>{lang.native_name}</option>
+										{/each}
 									</select>
 								</div>
 							</div>
@@ -745,21 +754,21 @@
 							<!-- ─── Editor mode (Tier B) ───────────────────────── -->
 							<div class="space-y-5">
 								<div class="flex items-baseline justify-between border-b border-border/60 pb-2">
-									<h5 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Editor</h5>
-									<span class="text-[0.625rem] text-muted-foreground/70">Users may override</span>
+									<h5 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEADING')}</h5>
+									<span class="text-[0.625rem] text-muted-foreground/70">{i18n.t('ADMIN_NEXT.SETTINGS.USERS_MAY_OVERRIDE')}</span>
 								</div>
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
-										<span class="text-sm font-semibold text-foreground">Editor mode</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">Default form editor density.</p>
+										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_MODE')}</span>
+										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_FORM_EDITOR_DENSITY')}</p>
 									</div>
 									<div>
 										<SegmentedToggle
 											value={siteDraft.editorMode ?? 'normal'}
 											onchange={(v) => siteDraft = { ...siteDraft, editorMode: v as 'normal' | 'expert' }}
 											options={[
-												{ value: 'normal', label: 'Normal' },
-												{ value: 'expert', label: 'Expert' }
+												{ value: 'normal', label: i18n.t('ADMIN_NEXT.PAGES.MODE_NORMAL') },
+												{ value: 'expert', label: i18n.t('ADMIN_NEXT.PAGES.MODE_EXPERT') }
 											]}
 										/>
 									</div>
@@ -770,7 +779,7 @@
 							<div class="space-y-5">
 								<div class="flex items-baseline justify-between border-b border-border/60 pb-2">
 									<h5 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITING')}</h5>
-									<span class="text-[0.625rem] text-muted-foreground/70">Site-wide only</span>
+									<span class="text-[0.625rem] text-muted-foreground/70">{i18n.t('ADMIN_NEXT.SETTINGS.SITE_WIDE_ONLY')}</span>
 								</div>
 
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
@@ -783,8 +792,8 @@
 											value={siteDraft.autoSaveEnabled ?? false}
 											onchange={(v) => siteDraft = { ...siteDraft, autoSaveEnabled: v as boolean }}
 											options={[
-												{ value: false, label: 'Off' },
-												{ value: true, label: 'On' }
+												{ value: false, label: i18n.t('ADMIN_NEXT.SETTINGS.OFF') },
+												{ value: true, label: i18n.t('ADMIN_NEXT.SETTINGS.ON') }
 											]}
 										/>
 									</div>
@@ -801,8 +810,8 @@
 												value={siteDraft.autoSaveToolbarUndo ?? true}
 												onchange={(v) => siteDraft = { ...siteDraft, autoSaveToolbarUndo: v as boolean }}
 												options={[
-													{ value: false, label: 'Off' },
-													{ value: true, label: 'On' }
+													{ value: false, label: i18n.t('ADMIN_NEXT.SETTINGS.OFF') },
+													{ value: true, label: i18n.t('ADMIN_NEXT.SETTINGS.ON') }
 												]}
 											/>
 										</div>
@@ -836,8 +845,8 @@
 											value={siteDraft.collabEnabled ?? true}
 											onchange={(v) => siteDraft = { ...siteDraft, collabEnabled: v as boolean }}
 											options={[
-												{ value: false, label: 'Off' },
-												{ value: true, label: 'On' }
+												{ value: false, label: i18n.t('ADMIN_NEXT.SETTINGS.OFF') },
+												{ value: true, label: i18n.t('ADMIN_NEXT.SETTINGS.ON') }
 											]}
 										/>
 									</div>
@@ -848,7 +857,7 @@
 							<div class="space-y-5">
 								<div class="flex items-baseline justify-between border-b border-border/60 pb-2">
 									<h5 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.MENUBAR_LINKS')}</h5>
-									<span class="text-[0.625rem] text-muted-foreground/70">Site-wide only</span>
+									<span class="text-[0.625rem] text-muted-foreground/70">{i18n.t('ADMIN_NEXT.SETTINGS.SITE_WIDE_ONLY')}</span>
 								</div>
 								<p class="text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.CUSTOM_SHORTCUTS_SHOWN_IN_THE_TOP')}</p>
 								<div class="space-y-3">
@@ -905,8 +914,8 @@
 						</div>
 
 						<div class="flex items-center justify-end gap-2 border-t border-border bg-muted/40 px-6 py-3">
-							<Button variant="outline" size="sm" onclick={resetSiteDraft}>Revert changes</Button>
-							<Button size="sm" onclick={saveSiteDefaults}>Save site defaults</Button>
+							<Button variant="outline" size="sm" onclick={resetSiteDraft}>{i18n.t('ADMIN_NEXT.SETTINGS.REVERT_CHANGES')}</Button>
+							<Button size="sm" onclick={saveSiteDefaults}>{i18n.t('ADMIN_NEXT.SETTINGS.SAVE_SITE_DEFAULTS')}</Button>
 						</div>
 					</div>
 				</div>
@@ -917,9 +926,9 @@
 
 <ConfirmModal
 	open={confirmResetOpen}
-	title="Reset preferences"
-	message="Remove all your personal overrides and revert to the site defaults?"
-	confirmLabel="Reset"
+	title={i18n.t('ADMIN_NEXT.SETTINGS.RESET_PREFERENCES')}
+	message={i18n.t('ADMIN_NEXT.SETTINGS.RESET_PREFERENCES_MSG')}
+	confirmLabel={i18n.t('ADMIN_NEXT.SETTINGS.RESET')}
 	variant="destructive"
 	onconfirm={confirmReset}
 	oncancel={() => { confirmResetOpen = false; }}

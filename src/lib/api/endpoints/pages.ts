@@ -112,6 +112,10 @@ export async function getChildren(parentRoute: string, sort: string = 'order', o
 export interface CreatePageBody {
 	route: string;
 	title: string;
+	/** 'page' = folder + <template>.md (default). 'folder' = folder only, no
+	 *  .md written. 'module' = folder gets a leading `_` (Grav's modular
+	 *  sub-page convention) and .md is still written. */
+	kind?: 'page' | 'folder' | 'module';
 	template?: string;
 	content?: string;
 	header?: Record<string, unknown>;

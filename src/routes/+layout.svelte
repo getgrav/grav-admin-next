@@ -43,12 +43,28 @@
 	// immediately, and load() internally no-ops if the server checksum matches.
 	// Without this, users stay pinned to whatever they cached previously and
 	// never see new keys added to language YAML files.
+	//
+	// Gate on `prefs.loaded` so we pass the user's `adminLanguage` into load().
+	// Without this gate, load() runs with the builtin default ('en') and the
+	// admin boots in English regardless of what the user picked in preferences.
 	let i18nLoadedThisSession = $state(false);
 	$effect(() => {
-		if (auth.isAuthenticated && !i18nLoadedThisSession) {
+		if (auth.isAuthenticated && prefs.loaded && !i18nLoadedThisSession) {
 			i18nLoadedThisSession = true;
-			i18n.load();
+			i18n.load(prefs.adminLanguage);
 		}
+	});
+
+	// Reflect the active locale and text direction on <html>. Can't do this
+	// statically in app.html because SvelteKit serves the same HTML to every
+	// user — the language and direction depend on the authenticated user's
+	// preference, which we only know after prefs + translations have loaded.
+	// Bits-ui (DatePicker, dropdowns, menus) reads `dir` from the document, so
+	// updating this is also what flips its internal layouts for RTL.
+	$effect(() => {
+		if (typeof document === 'undefined') return;
+		document.documentElement.setAttribute('lang', i18n.lang);
+		document.documentElement.setAttribute('dir', i18n.dir);
 	});
 
 	$effect(() => {

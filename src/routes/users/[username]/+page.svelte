@@ -75,8 +75,13 @@
 		(canManagePermissions && JSON.stringify(access) !== originalAccessJson)
 	);
 
-	// Names of fields/sections handled manually outside the blueprint form
-	const SUPPRESSED_NAMES = new Set(['security', 'twofa_check', 'avatar', 'multiavatar_only', 'api_check', 'api_section']);
+	// Names of fields/sections handled manually outside the blueprint form.
+	// `language` (the user blueprint's site content language picker) is hidden
+	// in admin-next because it duplicates the user-level admin UI language
+	// setting visible in Settings → Admin Language, and the two concepts
+	// being side-by-side confuses authors. Classic admin still shows the
+	// field, so the underlying yaml shape is unchanged.
+	const SUPPRESSED_NAMES = new Set(['security', 'twofa_check', 'avatar', 'multiavatar_only', 'api_check', 'api_section', 'language']);
 
 	// Recursively filter out suppressed field types and named sections from blueprint
 	function filterFields(fields: BlueprintSchema['fields']): BlueprintSchema['fields'] {
