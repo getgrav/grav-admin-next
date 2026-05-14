@@ -6,7 +6,8 @@
 	import type { LogEntry, LogFile } from '$lib/api/endpoints/tools';
 	import { Button } from '$lib/components/ui/button';
 	import { usePoll } from '$lib/utils/poll.svelte';
-	import { RefreshCw, ChevronLeft, ChevronRight, Search, X } from 'lucide-svelte';
+	import { RefreshCw, Search, X } from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	let entries = $state<LogEntry[]>([]);
 	let loading = $state(true);
@@ -292,7 +293,7 @@
 			</span>
 			<div class="flex items-center gap-1">
 				<Button size="sm" variant="outline" disabled={page <= 1} onclick={() => goToPage(page - 1)}>
-					<ChevronLeft size={14} />
+					<DirectionalIcon name="chevron-back" size={14} />
 				</Button>
 				{#each visiblePages as p, idx (idx)}
 					{#if p === -1}
@@ -308,7 +309,7 @@
 					{/if}
 				{/each}
 				<Button size="sm" variant="outline" disabled={page >= totalPages} onclick={() => goToPage(page + 1)}>
-					<ChevronRight size={14} />
+					<DirectionalIcon name="chevron-forward" size={14} />
 				</Button>
 			</div>
 		</div>

@@ -11,7 +11,8 @@
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import AddPluginModal from '$lib/components/AddPluginModal.svelte';
 	import { toast } from 'svelte-sonner';
-	import { Search, Puzzle, ExternalLink, ArrowUpCircle, ChevronRight, Loader2, Plus, RefreshCw, BadgeCheck, CornerDownRight } from 'lucide-svelte';
+	import { Search, Puzzle, ExternalLink, ArrowUpCircle, Loader2, Plus, RefreshCw, BadgeCheck, CornerDownRight } from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText } from '$lib/utils/gpm';
 	import { canWrite } from '$lib/utils/permissions';
@@ -447,7 +448,7 @@
 									onclick={() => openPluginConfig(selectedPlugin.slug)}
 								>
 									{i18n.t('ADMIN_NEXT.PLUGINS.CONFIGURE')}
-									<ChevronRight size={14} />
+									<DirectionalIcon name="chevron-forward" size={14} />
 								</button>
 							</div>
 						</div>

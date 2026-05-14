@@ -4,8 +4,9 @@
 	import { mediaManager } from '$lib/stores/mediaManager.svelte';
 	import {
 		Folder, FileVideo2, FileAudio, FileText, FileArchive,
-		FileSpreadsheet, FileCode, File, Check, ChevronRight
+		FileSpreadsheet, FileCode, File, Check
 	} from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	interface FileProps {
 		kind: 'file';
@@ -97,7 +98,7 @@
 				{props.folder.file_count} file{props.folder.file_count !== 1 ? 's' : ''}
 			</div>
 		</div>
-		<ChevronRight size={14} class="text-muted-foreground/40" />
+		<DirectionalIcon name="chevron-forward" size={14} class="text-muted-foreground/40" />
 	</div>
 {:else}
 	{@const fileInfo = getFileIcon(props.item.type)}

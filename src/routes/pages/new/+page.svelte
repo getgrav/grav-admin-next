@@ -11,10 +11,11 @@
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
-		ArrowLeft, FilePlus, Loader2, Save,
-		ChevronRight, ChevronDown, Folder, FolderOpen, File,
+		FilePlus, Loader2, Save,
+		ChevronDown, Folder, FolderOpen, File,
 		Check, Search, X, ChevronsUpDown, RefreshCw,
 	} from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	// `?kind=page|folder|module` selects which classic-admin variant of
 	// add-page this form represents. Keeps a single form file but lets the
@@ -316,7 +317,7 @@
 							class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 							onclick={() => goto(`${base}/pages`)}
 						>
-							<ArrowLeft size={16} />
+							<DirectionalIcon name="arrow-back" size={16} />
 						</button>
 						{#if !scrolled}
 							<div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -591,7 +592,7 @@
 					{:else if isExpanded}
 						<ChevronDown size={12} />
 					{:else}
-						<ChevronRight size={12} />
+						<DirectionalIcon name="chevron-forward" size={12} />
 					{/if}
 				</span>
 			{:else}

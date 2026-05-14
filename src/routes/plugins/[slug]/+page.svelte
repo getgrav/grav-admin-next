@@ -16,9 +16,10 @@
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
 	import {
-		Save, ArrowLeft, Loader2, AlertCircle, Trash2, BadgeCheck,
+		Save, Loader2, AlertCircle, Trash2, BadgeCheck,
 		Puzzle, ExternalLink, Power, PowerOff, BookOpen, FileText, ArrowUpCircle, CornerDownRight
 	} from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	import { faIconClass, parseKeywords, parseDependencies, isFirstParty } from '$lib/utils/gpm';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
@@ -382,7 +383,7 @@
 				class="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 				onclick={() => goto(`${base}/plugins`)}
 			>
-				<ArrowLeft size={16} />
+				<DirectionalIcon name="arrow-back" size={16} />
 			</button>
 			{#if plugin}
 				<div class="flex items-center gap-3">

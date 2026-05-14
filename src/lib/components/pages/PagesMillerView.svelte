@@ -11,8 +11,9 @@
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
-		Folder, File, Loader2, ChevronRight, ExternalLink, ArrowUpDown, GripVertical
+		Folder, File, Loader2, ExternalLink, ArrowUpDown, GripVertical
 	} from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	type SortField = 'default' | 'order' | 'title' | 'modified' | 'date';
 
@@ -450,7 +451,7 @@
 		Pages
 	</button>
 	{#each breadcrumb as crumb, i}
-		<ChevronRight size={11} class="text-muted-foreground/50" />
+		<DirectionalIcon name="chevron-forward" size={11} class="text-muted-foreground/50" />
 		<button
 			class="max-w-[120px] truncate transition-colors {i === breadcrumb.length - 1 ? 'font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => {
@@ -567,7 +568,7 @@
 								<div class="truncate text-[0.6875rem] {isActive ? 'text-primary-foreground/70' : 'text-muted-foreground'}">{page.route}</div>
 							</div>
 							{#if page.has_children}
-								<ChevronRight size={12} class="shrink-0 {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground/50'}" />
+								<DirectionalIcon name="chevron-forward" size={12} class="shrink-0 {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground/50'}" />
 							{/if}
 							</button>
 						</div>

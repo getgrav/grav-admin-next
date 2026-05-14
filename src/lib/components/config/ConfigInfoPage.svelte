@@ -2,7 +2,8 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
-	import { ChevronDown, ChevronRight, Download } from 'lucide-svelte';
+	import { ChevronDown, Download } from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	interface Props {
 		/** Optional substring filter — matches against section/key/value text. */
@@ -321,7 +322,7 @@
 							{#if isExpanded}
 								<ChevronDown size={14} class="shrink-0 text-muted-foreground" />
 							{:else}
-								<ChevronRight size={14} class="shrink-0 text-muted-foreground" />
+								<DirectionalIcon name="chevron-forward" size={14} class="shrink-0 text-muted-foreground" />
 							{/if}
 							<span class="text-sm font-semibold text-foreground">{@html highlight(section)}</span>
 							<span class="text-xs text-muted-foreground">({rows.length}{isFiltering && rows.length !== Object.keys(info.php_config[section] ?? {}).length ? ` / ${Object.keys(info.php_config[section] ?? {}).length}` : ''})</span>

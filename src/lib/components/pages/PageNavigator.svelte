@@ -5,6 +5,7 @@
 	import type { PageSummary } from '$lib/api/endpoints/pages';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-svelte';
+	import { i18n } from '$lib/stores/i18n.svelte';
 
 	interface Props {
 		route: string;
@@ -27,8 +28,14 @@
 	const nextSibling = $derived(currentIndex >= 0 && currentIndex < siblings.length - 1 ? siblings[currentIndex + 1] : null);
 	const canUp = $derived(parentRoute() !== '/');
 	const canDown = $derived(hasChildren);
-	const canLeft = $derived(prevSibling !== null);
-	const canRight = $derived(nextSibling !== null);
+	// In RTL the d-pad's left quadrant means "next" and right means "previous".
+	// Keep the chevrons pointing the same physical direction; swap the targets.
+	const leftSibling = $derived(i18n.dir === 'rtl' ? nextSibling : prevSibling);
+	const rightSibling = $derived(i18n.dir === 'rtl' ? prevSibling : nextSibling);
+	const canLeft = $derived(leftSibling !== null);
+	const canRight = $derived(rightSibling !== null);
+	const leftLabel = $derived(i18n.dir === 'rtl' ? 'Next' : 'Previous');
+	const rightLabel = $derived(i18n.dir === 'rtl' ? 'Previous' : 'Next');
 
 	// Load siblings on mount / route change
 	$effect(() => {
@@ -125,22 +132,22 @@
 			<ChevronDown size={22} strokeWidth={2.5} />
 		</button>
 
-		<!-- Left (previous sibling) -->
+		<!-- Left quadrant: prev in LTR, next in RTL -->
 		<button
 			class="nav-quadrant nav-left {canLeft ? '' : 'nav-disabled'}"
 			disabled={!canLeft}
-			onclick={() => prevSibling && navigate(pageApiRoute(prevSibling))}
-			title={canLeft ? `Previous: ${prevSibling?.menu || prevSibling?.title}` : 'No previous sibling'}
+			onclick={() => leftSibling && navigate(pageApiRoute(leftSibling))}
+			title={canLeft ? `${leftLabel}: ${leftSibling?.menu || leftSibling?.title}` : `No ${leftLabel.toLowerCase()} sibling`}
 		>
 			<ChevronLeft size={22} strokeWidth={2.5} />
 		</button>
 
-		<!-- Right (next sibling) -->
+		<!-- Right quadrant: next in LTR, prev in RTL -->
 		<button
 			class="nav-quadrant nav-right {canRight ? '' : 'nav-disabled'}"
 			disabled={!canRight}
-			onclick={() => nextSibling && navigate(pageApiRoute(nextSibling))}
-			title={canRight ? `Next: ${nextSibling?.menu || nextSibling?.title}` : 'No next sibling'}
+			onclick={() => rightSibling && navigate(pageApiRoute(rightSibling))}
+			title={canRight ? `${rightLabel}: ${rightSibling?.menu || rightSibling?.title}` : `No ${rightLabel.toLowerCase()} sibling`}
 		>
 			<ChevronRight size={22} strokeWidth={2.5} />
 		</button>

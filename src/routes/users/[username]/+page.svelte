@@ -25,8 +25,9 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
 	import {
-		Save, ArrowLeft, Loader2, AlertCircle, Trash2, User, Undo2
+		Save, Loader2, AlertCircle, Trash2, User, Undo2
 	} from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
 
@@ -345,7 +346,7 @@
 							class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 							onclick={() => goto(`${base}/users`)}
 						>
-							<ArrowLeft size={16} />
+							<DirectionalIcon name="arrow-back" size={16} />
 						</button>
 						{#if user}
 							<div class="flex items-center gap-3">

@@ -5,10 +5,11 @@
 	import { mediaManager } from '$lib/stores/mediaManager.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
-		X, ChevronLeft, ChevronRight, Trash2, Copy, PenLine,
+		X, Trash2, Copy, PenLine,
 		FileVideo2, FileAudio, FileText, FileArchive, FileSpreadsheet,
 		FileCode, File, ExternalLink
 	} from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	interface Props {
 		file: MediaItem;
@@ -119,14 +120,14 @@
 				onclick={() => mediaManager.navigateInspector('prev')}
 				aria-label={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.PREVIOUS_FILE')}
 			>
-				<ChevronLeft size={14} />
+				<DirectionalIcon name="chevron-back" size={14} />
 			</button>
 			<button
 				class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 				onclick={() => mediaManager.navigateInspector('next')}
 				aria-label={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.NEXT_FILE')}
 			>
-				<ChevronRight size={14} />
+				<DirectionalIcon name="chevron-forward" size={14} />
 			</button>
 		</div>
 		<button

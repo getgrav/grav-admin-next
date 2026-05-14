@@ -24,7 +24,8 @@
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
-	import { Save, ArrowLeft, Loader2, AlertCircle, Trash2, Undo2 } from 'lucide-svelte';
+	import { Save, Loader2, AlertCircle, Trash2, Undo2 } from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	const type = $derived(page.params.type ?? '');
 	const key = $derived(page.params.key ?? '');
@@ -230,7 +231,7 @@
 							class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 							onclick={() => goto(`${base}/flex-objects/${type}`)}
 						>
-							<ArrowLeft size={16} />
+							<DirectionalIcon name="arrow-back" size={16} />
 						</button>
 						<div class="min-w-0">
 							<h1 class="truncate font-semibold text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-lg'}">{editTitle}</h1>

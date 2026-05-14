@@ -177,9 +177,22 @@
 	.switch:checked::after {
 		transform: translateY(-50%) translateX(1.25rem);
 	}
+	[dir="rtl"] .switch::after {
+		left: auto;
+		right: 2px;
+	}
+	[dir="rtl"] .switch:checked::after {
+		transform: translateY(-50%) translateX(-1.25rem);
+	}
 	.switch:focus-visible {
 		outline: none;
 		box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+	}
+
+	/* One-off utility for icons that have no direction-aware equivalent.
+	   Mirrors via transform — use sparingly; prefer DirectionalIcon. */
+	[dir="rtl"] .flip-rtl {
+		transform: scaleX(-1);
 	}
 
 	/* Checkbox */

@@ -10,9 +10,10 @@
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
-		Search, User, Plus, Loader2, ChevronRight, ChevronLeft,
+		Search, User, Plus, Loader2,
 		Mail, Shield, ShieldCheck, ShieldOff, BadgeCheck
 	} from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 
 	const canEditUsers = $derived(canWrite('users'));
@@ -240,7 +241,7 @@
 								onclick={() => loadUsers(currentPage - 1)}
 								class="h-7 w-7"
 							>
-								<ChevronLeft size={14} />
+								<DirectionalIcon name="chevron-back" size={14} />
 							</Button>
 							<Button
 								variant="outline"
@@ -249,7 +250,7 @@
 								onclick={() => loadUsers(currentPage + 1)}
 								class="h-7 w-7"
 							>
-								<ChevronRight size={14} />
+								<DirectionalIcon name="chevron-forward" size={14} />
 							</Button>
 						</div>
 					</div>
@@ -286,7 +287,7 @@
 								onclick={() => openUserEdit(selectedUser.username)}
 							>
 								Edit
-								<ChevronRight size={14} />
+								<DirectionalIcon name="chevron-forward" size={14} />
 							</button>
 						</div>
 

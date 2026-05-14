@@ -4,7 +4,8 @@
 	import { forgotPassword } from '$lib/api/auth';
 	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
-	import { Sun, Moon, Mail, ArrowLeft, Loader2 } from 'lucide-svelte';
+	import { Sun, Moon, Mail, Loader2 } from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
 	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
 
@@ -125,7 +126,7 @@
 					href="{base}/login"
 					class="flex items-center justify-center gap-1.5 text-[0.75rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
 				>
-					<ArrowLeft size={12} />
+					<DirectionalIcon name="arrow-back" size={12} />
 					{i18n.t('ADMIN_NEXT.FORGOT.BACK_TO_SIGN_IN')}
 				</a>
 			</div>

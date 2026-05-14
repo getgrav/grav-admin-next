@@ -2,7 +2,8 @@
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import FieldRenderer from '../FieldRenderer.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { GripVertical, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-svelte';
+	import { GripVertical, Plus, Trash2, ChevronDown } from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	interface Props {
 		field: BlueprintField;
@@ -250,7 +251,7 @@
 								onclick={() => toggleCollapse(item.id)}
 							>
 								{#if item.collapsed}
-									<ChevronRight size={14} />
+									<DirectionalIcon name="chevron-forward" size={14} />
 								{:else}
 									<ChevronDown size={14} />
 								{/if}
@@ -326,7 +327,7 @@
 				class="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
 				onclick={collapseAll}
 			>
-				<ChevronRight size={12} /> {i18n.t('ADMIN_NEXT.COLLAPSE_ALL')}
+				<DirectionalIcon name="chevron-forward" size={12} /> {i18n.t('ADMIN_NEXT.COLLAPSE_ALL')}
 			</button>
 		{/if}
 		<button

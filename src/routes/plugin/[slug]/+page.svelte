@@ -28,7 +28,8 @@
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import { sidebarStore } from '$lib/stores/sidebar.svelte';
-	import { ArrowLeft, Loader2, AlertCircle, Save, Download, Upload, Undo2, ChevronDown } from 'lucide-svelte';
+	import { Loader2, AlertCircle, Save, Download, Upload, Undo2, ChevronDown } from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	const slug = $derived(page.params.slug ?? '');
 	const isSidebarPage = $derived(sidebarStore.items.some(item => item.plugin === slug));
@@ -332,7 +333,7 @@
 					class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 					onclick={() => goto(`${base}/`)}
 				>
-					<ArrowLeft size={16} />
+					<DirectionalIcon name="arrow-back" size={16} />
 				</button>
 			{/if}
 			{#if definition}

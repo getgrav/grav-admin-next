@@ -10,7 +10,8 @@
 	import { passwordPolicy } from '$lib/stores/passwordPolicy.svelte';
 	import { evaluatePassword } from '$lib/utils/passwordStrength';
 	import { toast } from 'svelte-sonner';
-	import { ArrowLeft, Loader2, Save, UserPlus } from 'lucide-svelte';
+	import { Loader2, Save, UserPlus } from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	let username = $state('');
 	let email = $state('');
@@ -84,7 +85,7 @@
 							class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 							onclick={() => goto(`${base}/users`)}
 						>
-							<ArrowLeft size={16} />
+							<DirectionalIcon name="arrow-back" size={16} />
 						</button>
 						{#if !scrolled}
 							<div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">

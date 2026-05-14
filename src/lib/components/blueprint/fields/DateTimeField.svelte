@@ -4,7 +4,8 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { DatePicker } from 'bits-ui';
 	import { CalendarDateTime, type DateValue } from '@internationalized/date';
-	import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, X } from 'lucide-svelte';
+	import { Calendar as CalendarIcon, X } from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	interface Props {
 		field: BlueprintField;
@@ -206,7 +207,7 @@
 							<DatePicker.PrevButton
 								class="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
 							>
-								<ChevronLeft size={16} />
+								<DirectionalIcon name="chevron-back" size={16} />
 							</DatePicker.PrevButton>
 							<DatePicker.Heading
 								class="text-sm font-medium text-foreground"
@@ -214,7 +215,7 @@
 							<DatePicker.NextButton
 								class="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
 							>
-								<ChevronRight size={16} />
+								<DirectionalIcon name="chevron-forward" size={16} />
 							</DatePicker.NextButton>
 						</DatePicker.Header>
 

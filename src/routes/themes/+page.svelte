@@ -9,7 +9,8 @@
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import AddThemeModal from '$lib/components/AddThemeModal.svelte';
 	import { toast } from 'svelte-sonner';
-	import { Search, Palette, ExternalLink, ArrowUpCircle, ChevronRight, Loader2, Plus, RefreshCw, BadgeCheck, Check, CornerDownRight } from 'lucide-svelte';
+	import { Search, Palette, ExternalLink, ArrowUpCircle, Loader2, Plus, RefreshCw, BadgeCheck, Check, CornerDownRight } from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText } from '$lib/utils/gpm';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { canWrite } from '$lib/utils/permissions';
@@ -419,7 +420,7 @@
 									onclick={() => openThemeConfig(selectedTheme.slug)}
 								>
 									{i18n.t('ADMIN_NEXT.THEMES.CONFIGURE')}
-									<ChevronRight size={14} />
+									<DirectionalIcon name="chevron-forward" size={14} />
 								</button>
 							</div>
 						</div>

@@ -4,9 +4,10 @@
 	import type { PageSummary } from '$lib/api/endpoints/pages';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import {
-		ChevronRight, ChevronDown, File, Folder, FolderOpen,
+		ChevronDown, File, Folder, FolderOpen,
 		Loader2, Search, X, ChevronsUpDown, Check
 	} from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	interface Props {
 		field: BlueprintField;
@@ -265,7 +266,7 @@
 					{:else if isExpanded}
 						<ChevronDown size={12} />
 					{:else}
-						<ChevronRight size={12} />
+						<DirectionalIcon name="chevron-forward" size={12} />
 					{/if}
 				</span>
 			{:else}

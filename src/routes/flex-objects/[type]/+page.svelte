@@ -22,10 +22,6 @@
 		Search,
 		Plus,
 		Loader2,
-		ChevronRight,
-		ChevronLeft,
-		ChevronsRight,
-		ChevronsLeft,
 		ArrowUpDown,
 		ArrowUp,
 		ArrowDown,
@@ -36,6 +32,7 @@
 		CircleCheck,
 		CircleX,
 	} from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	const type = $derived(page.params.type ?? '');
 
@@ -431,7 +428,7 @@
 							class="h-7 w-7"
 							title="First"
 						>
-							<ChevronsLeft size={14} />
+							<DirectionalIcon name="chevrons-back" size={14} />
 						</Button>
 						<!-- Prev -->
 						<Button
@@ -442,7 +439,7 @@
 							class="h-7 w-7"
 							title={i18n.t('ADMIN_NEXT.FLEX_OBJECTS.PREVIOUS')}
 						>
-							<ChevronLeft size={14} />
+							<DirectionalIcon name="chevron-back" size={14} />
 						</Button>
 
 						<!-- Page 1 -->
@@ -498,7 +495,7 @@
 							class="h-7 w-7"
 							title="Next"
 						>
-							<ChevronRight size={14} />
+							<DirectionalIcon name="chevron-forward" size={14} />
 						</Button>
 						<!-- Last -->
 						<Button
@@ -509,7 +506,7 @@
 							class="h-7 w-7"
 							title="Last"
 						>
-							<ChevronsRight size={14} />
+							<DirectionalIcon name="chevrons-forward" size={14} />
 						</Button>
 					</div>
 				{/if}

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount } from 'svelte';
-	import { X, ChevronLeft, ChevronRight } from 'lucide-svelte';
+	import { X } from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { dismissNotification } from '$lib/api/endpoints/dashboard-widgets';
 	import { renderInlineMarkdown } from '$lib/dashboard/format';
 	import type { Notification } from '$lib/api/endpoints/dashboard';
@@ -90,7 +91,7 @@
 							onclick={prev}
 							title={i18n.t('ADMIN_NEXT.TOP_BANNER.PREVIOUS')}
 						>
-							<ChevronLeft size={14} />
+							<DirectionalIcon name="chevron-back" size={14} />
 						</button>
 						<span class="text-[0.625rem] tabular-nums text-muted-foreground px-1">{activeIdx + 1}/{visible.length}</span>
 						<button
@@ -99,7 +100,7 @@
 							onclick={next}
 							title="Next"
 						>
-							<ChevronRight size={14} />
+							<DirectionalIcon name="chevron-forward" size={14} />
 						</button>
 					</div>
 				{/if}

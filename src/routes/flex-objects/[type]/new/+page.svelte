@@ -14,7 +14,8 @@
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import { toast } from 'svelte-sonner';
-	import { ArrowLeft, Loader2, Save, Plus } from 'lucide-svelte';
+	import { Loader2, Save, Plus } from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	const type = $derived(page.params.type ?? '');
 
@@ -142,7 +143,7 @@
 							class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 							onclick={() => goto(`${base}/flex-objects/${type}`)}
 						>
-							<ArrowLeft size={16} />
+							<DirectionalIcon name="arrow-back" size={16} />
 						</button>
 						{#if !scrolled}
 							<div

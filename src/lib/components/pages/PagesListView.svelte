@@ -10,9 +10,10 @@
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
 	import {
-		ArrowUp, ArrowDown, File, Loader2, Trash2, ChevronLeft, ChevronRight,
+		ArrowUp, ArrowDown, File, Loader2, Trash2,
 		GripVertical, CircleCheck, CircleDashed
 	} from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	interface Props {
 		searchQuery?: string;
@@ -338,10 +339,10 @@
 			<span class="text-xs text-muted-foreground">Page {currentPage}</span>
 			<div class="flex gap-1">
 				<Button variant="outline" size="sm" disabled={currentPage <= 1} onclick={() => { currentPage--; loadPages(); }}>
-					<ChevronLeft size={14} /> Prev
+					<DirectionalIcon name="chevron-back" size={14} /> Prev
 				</Button>
 				<Button variant="outline" size="sm" disabled={pages.length < perPage} onclick={() => { currentPage++; loadPages(); }}>
-					Next <ChevronRight size={14} />
+					Next <DirectionalIcon name="chevron-forward" size={14} />
 				</Button>
 			</div>
 		</div>

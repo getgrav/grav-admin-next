@@ -7,7 +7,8 @@
 	import { login, verify2fa, getSetupStatus } from '$lib/api/auth';
 	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
-	import { Sun, Moon, LogIn, Server, Globe, ChevronDown, Loader2, ShieldCheck, ArrowLeft } from 'lucide-svelte';
+	import { Sun, Moon, LogIn, Server, Globe, ChevronDown, Loader2, ShieldCheck } from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
 	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
 
@@ -320,7 +321,7 @@
 						class="flex w-full items-center justify-center gap-1.5 text-[0.75rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
 						disabled={loading}
 					>
-						<ArrowLeft size={12} />
+						<DirectionalIcon name="arrow-back" size={12} />
 						{i18n.t('ADMIN_NEXT.LOGIN.BACK_TO_SIGN_IN')}
 					</button>
 				</form>

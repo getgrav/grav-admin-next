@@ -9,9 +9,10 @@
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
-		ChevronRight, ChevronDown, FolderOpen, Folder, File, Loader2, Trash2,
+		ChevronDown, FolderOpen, Folder, File, Loader2, Trash2,
 		ArrowUp, ArrowDown, GripVertical, CircleCheck, CircleDashed
 	} from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	type SortField = 'default' | 'order' | 'title' | 'modified' | 'date' | 'slug';
 
@@ -401,7 +402,7 @@
 							{:else if expandedRoutes.has(apiRoute)}
 								<ChevronDown size={14} />
 							{:else}
-								<ChevronRight size={14} />
+								<DirectionalIcon name="chevron-forward" size={14} />
 							{/if}
 						</button>
 					{:else}

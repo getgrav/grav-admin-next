@@ -3,9 +3,10 @@
 	import { mediaManager, type TypeFilter, type SortField } from '$lib/stores/mediaManager.svelte';
 	import {
 		Search, X, LayoutGrid, List, FolderPlus, Upload,
-		ChevronRight, Trash2, ArrowUpDown, SlidersHorizontal,
+		Trash2, ArrowUpDown, SlidersHorizontal,
 		ImageIcon, Video, Music, FileText, FolderOpen
 	} from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	interface Props {
 		onupload: () => void;
@@ -74,7 +75,7 @@
 		</span>
 	</button>
 	{#each breadcrumbs as segment, i}
-		<ChevronRight size={12} class="text-muted-foreground/50" />
+		<DirectionalIcon name="chevron-forward" size={12} class="text-muted-foreground/50" />
 		<button
 			class="rounded px-1.5 py-0.5 text-[0.8125rem] font-medium transition-colors
 				{i === breadcrumbs.length - 1
@@ -86,7 +87,7 @@
 		</button>
 	{/each}
 	{#if mediaManager.isSearching}
-		<ChevronRight size={12} class="text-muted-foreground/50" />
+		<DirectionalIcon name="chevron-forward" size={12} class="text-muted-foreground/50" />
 		<span class="text-[0.8125rem] text-muted-foreground">
 			Search: "{mediaManager.searchQuery}"
 		</span>

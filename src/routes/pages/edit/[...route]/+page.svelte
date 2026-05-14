@@ -17,9 +17,10 @@
 	import LanguageSwitcher from '$lib/components/ui/LanguageSwitcher.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
-		Save, Trash2, ArrowLeft, Code, Copy as CopyIcon,
+		Save, Trash2, Code, Copy as CopyIcon,
 		AlertCircle, ChevronDown, Loader2, Eye, ExternalLink, X, Undo2, Languages, Move
 	} from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import PageNavigator from '$lib/components/pages/PageNavigator.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
@@ -1200,7 +1201,7 @@
 				<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 {scrolled ? 'sm:min-h-6' : 'sm:min-h-8'}">
 					<div class="flex min-w-0 items-center gap-3">
 						<button class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground" onclick={() => goto(`${base}/pages`)}>
-							<ArrowLeft size={16} />
+							<DirectionalIcon name="arrow-back" size={16} />
 						</button>
 						<div class="min-w-0">
 							{#if loading}

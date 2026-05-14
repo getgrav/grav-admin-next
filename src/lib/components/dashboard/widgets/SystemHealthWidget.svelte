@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { Shield, Server, HardDrive, ArrowRight, ArrowUpCircle, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-svelte';
+	import { Shield, Server, HardDrive, ArrowUpCircle, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { getDashboardData } from '$lib/dashboard/context';
 	import { formatBytes } from '$lib/dashboard/format';
 
@@ -56,7 +57,7 @@
 							</div>
 							<div class="mt-1.5 flex items-center gap-1.5 text-[0.75rem] text-muted-foreground">
 								<span class="tabular-nums">v{updates.grav.current}</span>
-								<ArrowRight size={11} class="text-purple-500" />
+								<DirectionalIcon name="arrow-forward" size={11} class="text-purple-500" />
 								<span class="font-semibold tabular-nums text-purple-600 dark:text-purple-400">v{updates.grav.available}</span>
 							</div>
 							{#if canWriteGpm}
