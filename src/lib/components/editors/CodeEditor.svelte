@@ -202,8 +202,10 @@
 	});
 </script>
 
+<!-- dir="ltr" pinned: code never reverses, even in RTL admin language. -->
 <div
 	bind:this={containerEl}
 	class="overflow-hidden rounded-lg border border-input bg-muted/50 shadow-sm focus-within:ring-1 focus-within:ring-ring {className}"
 	style="{minHeight && minHeight !== 'auto' ? `min-height: ${minHeight};` : ''} max-height: {maxHeight}; overflow-y: auto;"
+	dir="ltr"
 ></div>

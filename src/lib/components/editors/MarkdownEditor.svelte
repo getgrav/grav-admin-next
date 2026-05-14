@@ -693,6 +693,7 @@
 	<div
 		bind:this={editorContainer}
 		class="markdown-editor-cm"
+		dir="ltr"
 		ondragover={(e) => {
 			if (e.dataTransfer?.types.includes('application/x-grav-media') || e.dataTransfer?.types.includes('Files')) {
 				e.preventDefault();
