@@ -1291,7 +1291,7 @@
 			<!-- Save button with Save As dropdown -->
 			{#if canEditPages}
 			<div class="relative flex">
-				<Button size="sm" class="px-2 lg:px-3 {(hasChanges || canCreateTranslation) ? '' : 'opacity-50 pointer-events-none'} {saveAsLanguages.length > 0 ? 'rounded-r-none' : ''}" title={saving ? i18n.t('ADMIN_NEXT.SAVING') : canCreateTranslation ? i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVE_AS_LANGUAGE', { language: contentLang.getLanguageName(contentLang.activeLang) }) : i18n.t('ADMIN_NEXT.SAVE')} onclick={triggerSave} disabled={saving || loading}>
+				<Button size="sm" class="px-2 lg:px-3 {(hasChanges || canCreateTranslation) ? '' : 'opacity-50 pointer-events-none'} {saveAsLanguages.length > 0 ? 'rounded-e-none' : ''}" title={saving ? i18n.t('ADMIN_NEXT.SAVING') : canCreateTranslation ? i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVE_AS_LANGUAGE', { language: contentLang.getLanguageName(contentLang.activeLang) }) : i18n.t('ADMIN_NEXT.SAVE')} onclick={triggerSave} disabled={saving || loading}>
 					{#if saving}
 						<Loader2 size={14} class="animate-spin" />
 						<span class="hidden lg:inline">{i18n.t('ADMIN_NEXT.SAVING')}</span>
@@ -1305,7 +1305,7 @@
 				</Button>
 				{#if saveAsLanguages.length > 0}
 					<button
-						class="inline-flex h-8 items-center rounded-r-md border-s border-primary-foreground/20 bg-primary px-1.5 text-primary-foreground transition-colors hover:bg-primary/90"
+						class="inline-flex h-8 items-center rounded-e-md border-s border-primary-foreground/20 bg-primary px-1.5 text-primary-foreground transition-colors hover:bg-primary/90"
 						onclick={() => saveAsOpen = !saveAsOpen}
 						disabled={saving || loading}
 					>
@@ -1315,7 +1315,7 @@
 						<!-- svelte-ignore a11y_click_events_have_key_events -->
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<div class="fixed inset-0 z-40" onclick={() => saveAsOpen = false}></div>
-						<div class="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-md border border-border bg-popover py-1 shadow-md">
+						<div class="absolute end-0 top-full z-50 mt-1 min-w-[180px] rounded-md border border-border bg-popover py-1 shadow-md">
 							{#each saveAsLanguages as lang}
 								<button
 									class="flex w-full items-center gap-2 px-3 py-1.5 text-start text-[0.8125rem] text-popover-foreground transition-colors hover:bg-accent/50"

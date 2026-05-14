@@ -369,7 +369,7 @@
 							<Button
 								variant={action.primary ? 'default' : 'outline'}
 								size="sm"
-								class="rounded-r-none"
+								class="rounded-e-none"
 								onclick={() => action.primary ? handleSave() : (action.upload ? handleImportClick() : executeAction(action))}
 								disabled={actionExecuting === action.id}
 							>
@@ -386,7 +386,7 @@
 								{action.label}
 							</Button>
 							<button
-								class="inline-flex h-8 items-center rounded-r-md border border-l-0 px-1.5 transition-colors
+								class="inline-flex h-8 items-center rounded-e-md border border-s-0 px-1.5 transition-colors
 									{action.primary
 										? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
 										: 'border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground'}"
@@ -398,7 +398,7 @@
 								<!-- svelte-ignore a11y_click_events_have_key_events -->
 								<!-- svelte-ignore a11y_no_static_element_interactions -->
 								<div class="fixed inset-0 z-40" onclick={() => openDropdown = null}></div>
-								<div class="absolute right-0 top-full z-50 mt-1 min-w-[220px] rounded-md border border-border bg-popover py-1 shadow-md">
+								<div class="absolute end-0 top-full z-50 mt-1 min-w-[220px] rounded-md border border-border bg-popover py-1 shadow-md">
 									{#each action.children as child (child.id)}
 										<button
 											class="flex w-full items-center gap-2 px-3 py-1.5 text-start text-[0.8125rem] text-popover-foreground transition-colors hover:bg-accent/50"
