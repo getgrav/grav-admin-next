@@ -188,7 +188,7 @@
 			return current;
 		},
 		applyChange: handleBlueprintChange,
-		formName: 'Flex Object',
+		formName: i18n.t('ADMIN_NEXT.TOASTS.FORM_LABEL.FLEX_OBJECT'),
 	});
 
 	$effect(() => {

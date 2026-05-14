@@ -1,4 +1,5 @@
 import { prefs } from '$lib/stores/preferences.svelte';
+import { i18n } from '$lib/stores/i18n.svelte';
 import { toast } from 'svelte-sonner';
 
 export interface UndoEntry {
@@ -41,7 +42,8 @@ export interface AutoSaveManager {
 }
 
 export function createAutoSaveManager(options: AutoSaveManagerOptions): AutoSaveManager {
-	const { save, getValue, applyChange, formName = 'Form', canSave } = options;
+	const { save, getValue, applyChange, canSave } = options;
+	const formName = options.formName ?? i18n.t('ADMIN_NEXT.TOASTS.FORM_LABEL.FORM');
 
 	let undoStack = $state<UndoEntry[]>([]);
 	let saving = $state(false);
@@ -64,7 +66,7 @@ export function createAutoSaveManager(options: AutoSaveManagerOptions): AutoSave
 				e.savedToServer ? e : { ...e, savedToServer: true }
 			);
 		} catch {
-			toast.error(`Failed to save ${formName}`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.SAVE_FORM_FAILED', { form: formName }));
 		} finally {
 			saving = false;
 		}

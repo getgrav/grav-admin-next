@@ -304,7 +304,7 @@
 			return current;
 		},
 		applyChange: handleBlueprintChange,
-		formName: 'User',
+		formName: i18n.t('ADMIN_NEXT.TOASTS.FORM_LABEL.USER'),
 	});
 
 	$effect(() => {

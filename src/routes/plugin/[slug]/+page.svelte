@@ -304,7 +304,7 @@
 			return current;
 		},
 		applyChange: handleBlueprintChange,
-		formName: 'Plugin Page',
+		formName: i18n.t('ADMIN_NEXT.TOASTS.FORM_LABEL.PLUGIN_PAGE'),
 	});
 
 	$effect(() => {

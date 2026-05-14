@@ -322,7 +322,7 @@
 			return current;
 		},
 		applyChange: handleBlueprintChange,
-		formName: 'Theme',
+		formName: i18n.t('ADMIN_NEXT.TOASTS.FORM_LABEL.THEME'),
 	});
 
 	$effect(() => {

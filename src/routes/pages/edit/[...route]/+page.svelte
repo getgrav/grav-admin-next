@@ -635,7 +635,7 @@
 			if (path === 'expertFrontmatter') { expertFrontmatter = value as string; return; }
 			handleBlueprintChange(path, value);
 		},
-		formName: 'Page',
+		formName: i18n.t('ADMIN_NEXT.TOASTS.FORM_LABEL.PAGE'),
 		// Block saves while viewing a translation fallback — otherwise the
 		// PATCH would clobber the source-language file. Manual Save routes
 		// to handleSaveAsTranslation instead (see Save button onclick).

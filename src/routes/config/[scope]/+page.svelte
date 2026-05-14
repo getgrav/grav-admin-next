@@ -206,7 +206,7 @@
 			return current;
 		},
 		applyChange: handleBlueprintChange,
-		formName: 'Configuration',
+		formName: i18n.t('ADMIN_NEXT.TOASTS.FORM_LABEL.CONFIGURATION'),
 	});
 
 	// Load sections once, reload config when scope changes
@@ -240,7 +240,7 @@
 			<div class="space-y-3 px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
 				<div class="flex items-center justify-between gap-4 {scrolled ? 'min-h-6' : 'min-h-8'}">
 					<div>
-						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">{scrolled ? `Configuration: ${scopeTitle(scope)}` : 'Configuration'}</h1>
+						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">{scrolled ? i18n.t('ADMIN_NEXT.CONFIG.TITLE_SCROLLED', { scope: scopeTitle(scope) }) : i18n.t('ADMIN_NEXT.CONFIG.TITLE')}</h1>
 						{#if !scrolled}
 							<p class="mt-0.5 text-xs text-muted-foreground">{scopeTitle(scope)}</p>
 						{/if}
