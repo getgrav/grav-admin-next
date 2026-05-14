@@ -10,6 +10,11 @@
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { prefs } from '$lib/stores/preferences.svelte';
+	import { branding } from '$lib/stores/branding.svelte';
+	import { getPreferences } from '$lib/api/endpoints/preferences';
+	import { migrateLegacyPreferences } from '$lib/stores/_legacyMigration';
+	import { hasPendingSync } from '$lib/stores/_serverSync';
 	import { generateFavicon } from '$lib/utils/favicon';
 	import AppShell from '$lib/components/AppShell.svelte';
 	import GlobalDialogs from '$lib/components/ui/GlobalDialogs.svelte';
@@ -50,6 +55,62 @@
 		if (auth.isAuthenticated && !contentLang.loaded) {
 			contentLang.load();
 		}
+	});
+
+	// Preferences lifecycle. Three things in one effect:
+	//   1. Initial fetch (seed stores + run one-time legacy migration)
+	//   2. Periodic poll every 30s while the tab is visible — picks up
+	//      changes made on another browser/device without a hard refresh.
+	//   3. Immediate refetch on tab focus.
+	// The poll doubles as a session keep-alive: every fetch runs through
+	// `ensureFreshToken`, so an idle SPA still refreshes its JWT.
+	// `hasPendingSync()` guards against clobbering the user's in-flight
+	// edits (e.g. mid-slider-drag) with a stale server snapshot.
+	$effect(() => {
+		if (!auth.isAuthenticated) return;
+
+		let migrated = false;
+		let lastFetchAt = 0;
+
+		async function refresh() {
+			if (hasPendingSync()) return;
+			const now = Date.now();
+			if (now - lastFetchAt < 5_000) return;
+			lastFetchAt = now;
+			try {
+				const payload = await getPreferences();
+				prefs.init(payload);
+				theme.init(payload);
+				branding.init(payload);
+				if (!migrated) {
+					migrated = true;
+					const migratedPayload = await migrateLegacyPreferences(payload);
+					if (migratedPayload) {
+						prefs.init(migratedPayload);
+						theme.init(migratedPayload);
+						branding.init(migratedPayload);
+					}
+				}
+			} catch (err) {
+				console.error('[preferences] fetch failed:', err);
+			}
+		}
+
+		void refresh();
+
+		const pollTimer = setInterval(() => {
+			if (document.visibilityState === 'visible') void refresh();
+		}, 30_000);
+
+		const onVisibilityChange = () => {
+			if (document.visibilityState === 'visible') void refresh();
+		};
+		document.addEventListener('visibilitychange', onVisibilityChange);
+
+		return () => {
+			clearInterval(pollTimer);
+			document.removeEventListener('visibilitychange', onVisibilityChange);
+		};
 	});
 
 	// Pre-register custom field types from all enabled plugins at startup

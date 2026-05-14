@@ -1,7 +1,13 @@
-import { scopedKey } from '$lib/utils/scopedStorage';
+import { queueUserPatch } from './_serverSync';
+import { loadBootCache, saveBootCache } from './_bootCache';
+import type { PreferencesResponse, ColorMode as ServerColorMode } from '$lib/api/endpoints/preferences';
 
-const THEME_STORAGE_KEY = scopedKey('grav_admin_theme');
-
+/**
+ * Visible color mode applied to the DOM. The server allows '' (empty) which
+ * means "follow the OS preference"; the store resolves that to 'light' or
+ * 'dark' for rendering but keeps the user's intent ('' / 'light' / 'dark')
+ * available for the settings page.
+ */
 type ColorMode = 'light' | 'dark';
 
 export interface AccentColor {
@@ -10,7 +16,6 @@ export interface AccentColor {
 	saturation: number;
 }
 
-/** Preset accent colors. Hue + saturation pairs for HSL. */
 export const ACCENT_PRESETS: AccentColor[] = [
 	{ label: 'Grav',    hue: 271, saturation: 91 },
 	{ label: 'Blue',    hue: 221, saturation: 83 },
@@ -27,102 +32,127 @@ export const ACCENT_PRESETS: AccentColor[] = [
 const DEFAULT_HUE = 271;
 const DEFAULT_SAT = 91;
 
-interface StoredTheme {
-	colorMode: ColorMode;
-	accentHue: number;
-	accentSaturation: number;
+function osPrefersDark(): boolean {
+	if (typeof window === 'undefined' || !window.matchMedia) return false;
+	return window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
-function loadStored(): StoredTheme {
-	try {
-		const raw = localStorage.getItem(THEME_STORAGE_KEY);
-		if (raw) {
-			const parsed = JSON.parse(raw);
-			return {
-				colorMode: parsed.colorMode ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
-				accentHue: parsed.accentHue ?? DEFAULT_HUE,
-				accentSaturation: parsed.accentSaturation ?? DEFAULT_SAT,
-			};
-		}
-	} catch { /* use defaults */ }
-
-	const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-	return { colorMode: prefersDark ? 'dark' : 'light', accentHue: DEFAULT_HUE, accentSaturation: DEFAULT_SAT };
+function resolveColorMode(intent: ServerColorMode): ColorMode {
+	if (intent === 'light' || intent === 'dark') return intent;
+	return osPrefersDark() ? 'dark' : 'light';
 }
 
 function createThemeStore() {
-	const stored = loadStored();
-
-	let colorMode = $state<ColorMode>(stored.colorMode);
-	let accentHue = $state(stored.accentHue);
-	let accentSaturation = $state(stored.accentSaturation);
+	const cache = loadBootCache();
+	// User intent: '' = follow OS, 'light' or 'dark' explicit. Seeded from
+	// the boot cache so the first paint uses the user's last-known accent
+	// and color mode rather than the built-in Grav purple.
+	let intent = $state<ServerColorMode>(cache?.colorMode ?? '');
+	let colorMode = $state<ColorMode>(resolveColorMode(intent));
+	let accentHue = $state<number>(cache?.accentHue ?? DEFAULT_HUE);
+	let accentSaturation = $state<number>(cache?.accentSaturation ?? DEFAULT_SAT);
 
 	const isDark = $derived(colorMode === 'dark');
 
-	function persist() {
-		localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ colorMode, accentHue, accentSaturation }));
+	function applyColorMode(): void {
+		if (typeof document === 'undefined') return;
+		const html = document.documentElement;
+		if (colorMode === 'dark') html.classList.add('dark');
+		else html.classList.remove('dark');
 	}
 
-	function applyColorMode() {
+	function applyAccent(): void {
+		if (typeof document === 'undefined') return;
 		const html = document.documentElement;
-		if (colorMode === 'dark') {
-			html.classList.add('dark');
-		} else {
-			html.classList.remove('dark');
-		}
-	}
-
-	function applyAccent() {
-		const html = document.documentElement;
-		const h = accentHue;
-		const s = accentSaturation;
 		const dark = html.classList.contains('dark');
-		// Dark mode L=65 ≈ Tailwind-500 (e.g. purple-500 #A855F7)
-		// Light mode L=40 ≈ Tailwind-700 — kept darker for contrast on white
+		// Light mode L=40 keeps brand visible on white; dark L=65 matches Tailwind-500.
 		const lightness = dark ? 65 : 40;
-		html.style.setProperty('--primary', `hsl(${h} ${s}% ${lightness}%)`);
-		html.style.setProperty('--ring', `hsl(${h} ${s}% ${dark ? 60 : 50}%)`);
+		html.style.setProperty('--primary', `hsl(${accentHue} ${accentSaturation}% ${lightness}%)`);
+		html.style.setProperty('--ring', `hsl(${accentHue} ${accentSaturation}% ${dark ? 60 : 50}%)`);
 	}
 
-	function applyAll() {
+	function applyAll(): void {
 		applyColorMode();
 		applyAccent();
 	}
 
-	// Apply on init
 	applyAll();
+
+	// Re-resolve OS-driven color mode if the user is in '' (system) mode.
+	if (typeof window !== 'undefined' && window.matchMedia) {
+		try {
+			window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+				if (intent !== '') return;
+				colorMode = osPrefersDark() ? 'dark' : 'light';
+				applyAll();
+			});
+		} catch {
+			/* older browsers — non-fatal */
+		}
+	}
+
+	function init(payload: PreferencesResponse): void {
+		intent = payload.effective.colorMode;
+		accentHue = payload.effective.accentHue;
+		accentSaturation = payload.effective.accentSaturation;
+		colorMode = resolveColorMode(intent);
+		applyAll();
+		saveBootCache(payload);
+	}
 
 	return {
 		get colorMode() { return colorMode; },
+		get colorModeIntent() { return intent; },
 		get isDark() { return isDark; },
 		get accentHue() { return accentHue; },
 		get accentSaturation() { return accentSaturation; },
 
-		toggleColorMode() {
-			colorMode = colorMode === 'dark' ? 'light' : 'dark';
+		toggleColorMode(): void {
+			const next: ColorMode = colorMode === 'dark' ? 'light' : 'dark';
+			intent = next;
+			colorMode = next;
 			applyAll();
-			persist();
+			queueUserPatch('colorMode', next);
 		},
 
-		setColorMode(mode: ColorMode) {
-			colorMode = mode;
+		setColorMode(mode: ColorMode | ''): void {
+			intent = mode;
+			colorMode = resolveColorMode(mode);
 			applyAll();
-			persist();
+			queueUserPatch('colorMode', mode);
 		},
 
-		setAccent(hue: number, saturation: number) {
+		setAccent(hue: number, saturation: number): void {
 			accentHue = hue;
 			accentSaturation = saturation;
 			applyAccent();
-			persist();
+			queueUserPatch('accentHue', hue);
+			queueUserPatch('accentSaturation', saturation);
 		},
 
-		/** Kept for backwards compat */
-		setAccentHue(hue: number) {
+		setAccentHue(hue: number): void {
 			accentHue = hue;
 			applyAccent();
-			persist();
-		}
+			queueUserPatch('accentHue', hue);
+		},
+
+		resetColorModeToSiteDefault(siteIntent: ServerColorMode | undefined): void {
+			const next = siteIntent ?? '';
+			intent = next;
+			colorMode = resolveColorMode(next);
+			applyAll();
+			queueUserPatch('colorMode', null);
+		},
+
+		resetAccentToSiteDefault(siteHue: number | undefined, siteSat: number | undefined): void {
+			accentHue = siteHue ?? DEFAULT_HUE;
+			accentSaturation = siteSat ?? DEFAULT_SAT;
+			applyAccent();
+			queueUserPatch('accentHue', null);
+			queueUserPatch('accentSaturation', null);
+		},
+
+		init,
 	};
 }
 

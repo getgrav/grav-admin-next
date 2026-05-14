@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { prefs } from '$lib/stores/preferences.svelte';
+	import { branding } from '$lib/stores/branding.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
 
 	interface Props {
@@ -11,17 +11,34 @@
 
 	let { size = 'sidebar', showLabel = false }: Props = $props();
 
-	const logo = $derived(prefs.logo);
 	const isDark = $derived(theme.isDark);
 	const isSmall = $derived(size === 'sidebar');
 	const iconSize = $derived(isSmall ? 'h-7 w-7' : 'h-14 w-14');
 	const iconRound = $derived(isSmall ? 'rounded-md' : 'rounded-xl');
 	const textSize = $derived(isSmall ? 'text-xs' : 'text-xl');
-	const labelText = $derived(logo.mode === 'text' && logo.text ? logo.text : 'Grav');
+	const labelText = $derived(branding.mode === 'text' && branding.text ? branding.text : 'Grav');
 	const firstLetter = $derived(labelText.charAt(0).toUpperCase());
+
+	function serverUrl(): string {
+		if (typeof window === 'undefined') return '';
+		const cfg = (window as unknown as { __GRAV_CONFIG__?: { serverUrl?: string } }).__GRAV_CONFIG__;
+		return cfg?.serverUrl ?? '';
+	}
+
+	function logoSrc(path: string): string {
+		if (!path) return '';
+		if (path.startsWith('http://') || path.startsWith('https://')) return path;
+		return serverUrl() + path;
+	}
+
+	// When mode is 'custom' but a variant's URL is empty, fall back to the
+	// other variant; if both are empty, fall through to the text/letter chip.
+	const customLightUrl = $derived(logoSrc(branding.urlLight));
+	const customDarkUrl = $derived(logoSrc(branding.urlDark));
+	const customSrc = $derived(isDark ? (customDarkUrl || customLightUrl) : (customLightUrl || customDarkUrl));
 </script>
 
-{#if logo.mode === 'default'}
+{#if branding.mode === 'default'}
 	<!-- Grav SVG logo -->
 	<div class="flex items-center gap-2.5">
 		{#if isDark}
@@ -38,7 +55,7 @@
 			</svg>
 		{/if}
 	</div>
-{:else if logo.mode === 'text'}
+{:else if branding.mode === 'text'}
 	<!-- Text-based logo with first letter icon -->
 	<div class="flex items-center gap-2.5">
 		<div class="flex {iconSize} shrink-0 items-center justify-center {iconRound} bg-primary text-primary-foreground shadow-sm">
@@ -48,15 +65,13 @@
 			<span class="text-sm font-semibold tracking-tight text-foreground">{labelText}</span>
 		{/if}
 	</div>
-{:else if logo.mode === 'custom'}
+{:else if branding.mode === 'custom'}
 	<!-- Custom uploaded logo -->
 	<div class="flex items-center gap-2.5">
-		{#if isDark && logo.customDark}
-			<img src={logo.customDark} alt="Logo" class="{isSmall ? 'h-7' : 'h-12'} w-auto" />
-		{:else if logo.customLight}
-			<img src={logo.customLight} alt="Logo" class="{isSmall ? 'h-7' : 'h-12'} w-auto" />
+		{#if customSrc}
+			<img src={customSrc} alt="Logo" class="{isSmall ? 'h-7' : 'h-12'} w-auto" />
 		{:else}
-			<!-- Fallback to text if no custom image -->
+			<!-- Fallback to first-letter chip if no custom image uploaded -->
 			<div class="flex {iconSize} shrink-0 items-center justify-center {iconRound} bg-primary text-primary-foreground shadow-sm">
 				<span class="{textSize} font-bold">{firstLetter}</span>
 			</div>
