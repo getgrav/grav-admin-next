@@ -76,7 +76,7 @@
 	async function copyToClipboard(text: string, label: string) {
 		try {
 			await navigator.clipboard.writeText(text);
-			toast.success(`${label} copied`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.COPIED', { label }));
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.FAILED_TO_COPY'));
 		}

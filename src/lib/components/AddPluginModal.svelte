@@ -97,14 +97,14 @@
 			// One toast per installed package (dependencies first, then the main one)
 			for (const depSlug of result.dependencies ?? []) {
 				const name = allPlugins.find((p) => p.slug === depSlug)?.name ?? depSlug;
-				toast.success(`Plugin '${name}' installed (dependency)`);
+				toast.success(i18n.t('ADMIN_NEXT.TOASTS.DEPENDENCY_INSTALLED', { slug: name }));
 			}
 			const mainName = allPlugins.find((p) => p.slug === slug)?.name ?? slug;
-			toast.success(`Plugin '${mainName}' installed`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.PLUGIN_INSTALLED', { name: mainName }));
 			oninstalled();
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
-			toast.error(`Failed to install '${slug}': ${detail}`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.INSTALL_FAILED', { slug, detail }));
 		} finally {
 			installingSlug = null;
 		}

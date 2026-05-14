@@ -975,7 +975,7 @@
 				&& !explicitFiles.includes(targetLang);
 			if (isAdoptCase) {
 				await adoptPageLanguage(route, targetLang);
-				toast.success(`Saved as ${contentLang.getLanguageName(targetLang)}`);
+				toast.success(i18n.t('ADMIN_NEXT.TOASTS.SAVED_AS_LANGUAGE', { language: contentLang.getLanguageName(targetLang) }));
 				autoSave.reset();
 				headerChanges = {};
 				await loadPage(targetLang);
@@ -1004,7 +1004,7 @@
 				content,
 				header,
 			});
-			toast.success(`${contentLang.getLanguageName(targetLang)} translation created`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.TRANSLATION_CREATED', { language: contentLang.getLanguageName(targetLang) }));
 			autoSave.reset();
 			headerChanges = {};
 			await loadPage(targetLang);
@@ -1039,7 +1039,7 @@
 		saving = true;
 		try {
 			await syncTranslation(route, sourceLang, targetLang);
-			toast.success(`${targetName} reset from ${sourceName}`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.TRANSLATION_RESET', { target: targetName, source: sourceName }));
 			autoSave.reset();
 			headerChanges = {};
 			await loadPage(targetLang);
@@ -1134,7 +1134,7 @@
 			goto(`${base}/pages/edit${newPage.route}`);
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err);
-			toast.error(`Copy failed: ${msg}`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.COPY_FAILED', { detail: msg }));
 		} finally {
 			copying = false;
 		}

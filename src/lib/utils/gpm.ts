@@ -362,19 +362,37 @@ const FAMILY_PREFIX: Record<FAFamily, string> = {
 	'b': 'fa-brands',
 };
 
+// Icons whose meaning reverses with reading direction (e.g. "next"/"previous"
+// arrows). In RTL we emit a `.flip-rtl` class alongside the FA class so the
+// CSS utility in layout.css applies `transform: scaleX(-1)` to mirror them.
+// Plugins shipping their own icons can opt in by referencing the same class.
+const DIRECTIONAL_ICONS = new Set([
+	'long-arrow-left', 'long-arrow-right',
+	'left-long', 'right-long',
+	'arrow-left', 'arrow-right',
+	'chevron-left', 'chevron-right',
+	'angle-left', 'angle-right',
+	'caret-left', 'caret-right',
+	'arrow-circle-left', 'arrow-circle-right',
+	'circle-arrow-left', 'circle-arrow-right',
+	'chevron-circle-left', 'chevron-circle-right',
+]);
+
 export function faIconClass(icon: string): string {
 	if (!icon) return '';
 	let name = icon.replace(/^fa-/, '');
 
+	const directional = DIRECTIONAL_ICONS.has(name) ? ' flip-rtl' : '';
+
 	// Check the v4 shim first — gives us both new name and correct family
 	const shim = FA_V4_SHIMS[name];
 	if (shim) {
-		return `${FAMILY_PREFIX[shim[1]]} fa-${shim[0]}`;
+		return `${FAMILY_PREFIX[shim[1]]} fa-${shim[0]}${directional}`;
 	}
 
 	// No shim match — determine family from brand set, default to solid
 	const family = FA_BRAND_ICONS.has(name) ? 'fa-brands' : 'fa-solid';
-	return `${family} fa-${name}`;
+	return `${family} fa-${name}${directional}`;
 }
 
 /**

@@ -115,7 +115,7 @@
 			uploadProgress = new Map();
 			const count = result?.successful?.length ?? 0;
 			if (count > 0) {
-				toast.success(`Uploaded ${count} file${count !== 1 ? 's' : ''}`);
+				toast.success(i18n.t('ADMIN_NEXT.TOASTS.FILES_UPLOADED', { n: count }));
 				// XHRUpload bypasses our API client, so emit invalidation manually.
 				const path = mediaManager.currentPath || '/';
 				invalidations.emit([`media:update:${path}`, 'media:list']);
@@ -199,7 +199,7 @@
 		if (!newFolderName.trim()) return;
 		try {
 			await mediaManager.createFolder(newFolderName.trim());
-			toast.success(`Folder "${newFolderName.trim()}" created`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.FOLDER_CREATED', { name: newFolderName.trim() }));
 			newFolderModalOpen = false;
 		} catch (err) {
 			toast.error(`Failed to create folder: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -227,13 +227,13 @@
 			if (bulkDeleting) {
 				const errors = await mediaManager.deleteSelected();
 				if (errors.length > 0) {
-					toast.error(`Failed to delete ${errors.length} file(s)`);
+					toast.error(i18n.t('ADMIN_NEXT.TOASTS.FILES_DELETE_FAILED', { n: errors.length }));
 				} else {
 					toast.success(i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.FILES_DELETED'));
 				}
 			} else if (deleteTarget) {
 				await mediaManager.deleteFile(deleteTarget);
-				toast.success(`Deleted ${deleteTarget.filename}`);
+				toast.success(i18n.t('ADMIN_NEXT.TOASTS.FILE_DELETED', { name: deleteTarget.filename }));
 			}
 		} catch (err) {
 			toast.error(`Delete failed: ${err instanceof Error ? err.message : 'Unknown error'}`);

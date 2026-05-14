@@ -115,7 +115,7 @@
 			object = result.object;
 			etag = result.etag;
 			populateForm(result.object);
-			toast.success('Saved');
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.SAVED'));
 
 			if (afterSave === 'list') {
 				goto(`${base}/flex-objects/${type}`);

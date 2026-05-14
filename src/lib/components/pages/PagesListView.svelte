@@ -188,7 +188,7 @@
 		saving = true;
 		try {
 			await reorganizePages(ops);
-			toast.success(`Reordered "${source.title}"`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.ITEM_REORDERED', { name: source.title }));
 			await loadPages();
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.PAGES.REORDER_FAILED'));

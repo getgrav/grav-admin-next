@@ -376,7 +376,7 @@
 			saving = true;
 			try {
 				await reorganizePages(ops);
-				toast.success(`Moved "${page.title}"`);
+				toast.success(i18n.t('ADMIN_NEXT.TOASTS.ITEM_MOVED', { name: page.title }));
 				// Reload both columns
 				const [srcPages, dstPages] = await Promise.all([
 					loadColumn(sourceCol.parentRoute),
@@ -411,7 +411,7 @@
 		saving = true;
 		try {
 			await reorganizePages(ops);
-			toast.success(`Reordered "${page.title}"`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.ITEM_REORDERED', { name: page.title }));
 			// Update column in place
 			columns = columns.map((c, i) =>
 				i === colIndex ? { ...c, pages: siblings } : c

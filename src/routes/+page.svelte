@@ -214,20 +214,20 @@
 			const okCount = result.updated.length;
 			const bad = result.failed.length;
 			if (bad === 0) {
-				toast.success(`Updated ${okCount} package${okCount !== 1 ? 's' : ''}`, { id: toastId });
+				toast.success(i18n.t('ADMIN_NEXT.TOASTS.PACKAGES_UPDATED', { n: okCount }), { id: toastId });
 			} else {
 				const reasons = result.failed.map(f => `${f.package}: ${f.error}`).join('\n');
 				toast.error(
-					okCount > 0
-						? `Updated ${okCount}, failed ${bad}.\n${reasons}`
-						: `${bad} update${bad !== 1 ? 's' : ''} failed.\n${reasons}`,
+					(okCount > 0
+						? i18n.t('ADMIN_NEXT.TOASTS.PACKAGES_UPDATED', { n: okCount }) + ' · '
+						: '') + `${reasons}`,
 					{ id: toastId },
 				);
 			}
 			await loadDashboard({ silent: true });
 			reloadIfAdminUpdated([...result.updated, ...result.cascaded_dependencies]);
 		} catch (err: unknown) {
-			toast.error(`Update failed: ${err instanceof Error ? err.message : String(err)}`, { id: toastId });
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.UPDATE_FAILED', { detail: err instanceof Error ? err.message : String(err) }), { id: toastId });
 		} finally {
 			updatingAll = false;
 		}
@@ -245,7 +245,7 @@
 		const toastId = toast.loading(`Upgrading Grav to v${target}…`);
 		try {
 			const result = await upgradeGrav();
-			toast.success(`Grav upgraded to v${result.new_version}`, { id: toastId });
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.GRAV_UPGRADED', { version: result.new_version }), { id: toastId });
 			await loadDashboard({ silent: true });
 		} catch (err: unknown) {
 			toast.error(`Grav upgrade failed: ${err instanceof Error ? err.message : String(err)}`, { id: toastId });
@@ -259,7 +259,7 @@
 		const toastId = toast.loading(i18n.t('ADMIN_NEXT.APP.CREATING_BACKUP'));
 		try {
 			const result = await createBackup();
-			toast.success(`Backup created (${formatBytes(result.size)})`, { id: toastId });
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.BACKUP_CREATED', { size: formatBytes(result.size) }), { id: toastId });
 			await loadDashboard({ silent: true });
 		} catch (err: unknown) {
 			toast.error(`Backup failed: ${err instanceof Error ? err.message : String(err)}`, { id: toastId });

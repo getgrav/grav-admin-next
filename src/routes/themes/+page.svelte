@@ -141,7 +141,7 @@
 		checkingUpdates = true;
 		try {
 			const result = await checkUpdates(true);
-			toast.success(`GPM refreshed — ${result.total} update${result.total !== 1 ? 's' : ''} available`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.GPM_REFRESHED', { n: result.total }));
 			await loadThemes();
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.THEMES.FAILED_TO_CHECK_FOR_UPDATES'));
@@ -162,14 +162,14 @@
 		try {
 			const result = await updatePackage(theme.slug);
 			for (const depSlug of result.dependencies ?? []) {
-				toast.success(`Plugin '${depSlug}' installed (dependency)`);
+				toast.success(i18n.t('ADMIN_NEXT.TOASTS.DEPENDENCY_INSTALLED', { slug: depSlug }));
 			}
-			toast.success(`${theme.name} updated`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.PACKAGE_UPDATED', { name: theme.name }));
 			await loadThemes();
 			reloadIfAdminUpdated([theme.slug, ...(result.dependencies ?? [])]);
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
-			toast.error(`Failed to update ${theme.name}: ${detail}`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.PACKAGE_UPDATE_FAILED', { name: theme.name, detail }));
 		} finally {
 			updatingSlug = null;
 		}
@@ -188,22 +188,22 @@
 			const okCount = result.updated.length;
 			const bad = result.failed.length;
 			if (bad === 0) {
-				toast.success(`Updated ${okCount} package${okCount !== 1 ? 's' : ''}`);
+				toast.success(i18n.t('ADMIN_NEXT.TOASTS.PACKAGES_UPDATED', { n: okCount }));
 			} else {
 				const reasons = result.failed
 					.map((f) => `${f.package}: ${f.error}`)
 					.join('\n');
 				toast.error(
-					okCount > 0
-						? `Updated ${okCount}, failed ${bad}.\n${reasons}`
-						: `${bad} update${bad !== 1 ? 's' : ''} failed.\n${reasons}`,
+					(okCount > 0
+						? i18n.t('ADMIN_NEXT.TOASTS.PACKAGES_UPDATED', { n: okCount }) + ' · '
+						: '') + `${reasons}`,
 				);
 			}
 			await loadThemes();
 			reloadIfAdminUpdated([...result.updated, ...result.cascaded_dependencies]);
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
-			toast.error(`Update failed: ${detail}`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.UPDATE_FAILED', { detail }));
 		} finally {
 			updatingAll = false;
 		}

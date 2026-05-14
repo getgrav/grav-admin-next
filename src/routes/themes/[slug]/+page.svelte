@@ -204,7 +204,7 @@
 			// persisted (e.g. FileField unlinking files the user removed).
 			await formCommit.emit();
 
-			toast.success(`${theme?.name ?? slug} configuration saved`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.CONFIG_SAVED', { name: theme?.name ?? slug }));
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {
 				toast.error(i18n.t('ADMIN_NEXT.THEMES.CONFIGURATION_WAS_MODIFIED_ELSEWHERE'));
@@ -222,9 +222,9 @@
 		try {
 			await setActiveTheme(slug);
 			theme = { ...theme, enabled: true };
-			toast.success(`${theme.name} is now the active theme`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.THEME_ACTIVATED', { name: theme.name }));
 		} catch {
-			toast.error(`Failed to activate ${theme?.name ?? slug}`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.THEME_ACTIVATE_FAILED', { name: theme?.name ?? slug }));
 		} finally {
 			activating = false;
 		}
@@ -235,11 +235,11 @@
 	function handleDelete() {
 		if (!theme) return;
 		if (PROTECTED_THEMES.has(theme.slug)) {
-			toast.error(`${theme.name} cannot be removed.`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.THEME_REMOVE_BLOCK', { name: theme.name }));
 			return;
 		}
 		if (theme.enabled) {
-			toast.error(`Cannot remove the active theme. Switch to another theme first.`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.ACTIVE_THEME_REMOVE_BLOCK'));
 			return;
 		}
 		confirmDeleteOpen = true;
@@ -250,10 +250,10 @@
 		deleting = true;
 		try {
 			await removeTheme(slug);
-			toast.success(`${theme?.name ?? slug} removed`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.PACKAGE_REMOVED', { name: theme?.name ?? slug }));
 			goto(`${base}/themes`);
 		} catch {
-			toast.error(`Failed to remove ${theme?.name ?? slug}`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.PACKAGE_REMOVE_FAILED', { name: theme?.name ?? slug }));
 		} finally {
 			deleting = false;
 		}
@@ -271,14 +271,14 @@
 		try {
 			const result = await updatePackage(slug);
 			for (const depSlug of result.dependencies ?? []) {
-				toast.success(`Plugin '${depSlug}' installed (dependency)`);
+				toast.success(i18n.t('ADMIN_NEXT.TOASTS.DEPENDENCY_INSTALLED', { slug: depSlug }));
 			}
-			toast.success(`${theme.name} updated`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.PACKAGE_UPDATED', { name: theme.name }));
 			await loadTheme();
 			reloadIfAdminUpdated([slug, ...(result.dependencies ?? [])]);
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
-			toast.error(`Failed to update ${theme.name}: ${detail}`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.PACKAGE_UPDATE_FAILED', { name: theme.name, detail }));
 		} finally {
 			updating = false;
 		}

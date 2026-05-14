@@ -104,7 +104,7 @@
 		saving = true;
 		try {
 			await savePluginPageData(definition.save_endpoint, formData);
-			toast.success(`${definition.title ?? slug} saved`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.ITEM_SAVED', { name: definition.title ?? slug }));
 			// Reload page so all components (including web components) re-fetch
 			await loadPage();
 		} catch (err: unknown) {

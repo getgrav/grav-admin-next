@@ -91,7 +91,7 @@
 		try {
 			await deleteApiKey(username, revokeTarget.id);
 			await loadKeys();
-			toast.success(`API key "${revokeTarget.name}" revoked`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.API_KEY_REVOKED', { name: revokeTarget.name }));
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.API_KEYS_FIELD.FAILED_TO_REVOKE_API_KEY'));
 		} finally {

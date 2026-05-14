@@ -72,7 +72,7 @@
 		if (!pg) return;
 		try {
 			await deletePage(pg.route, { children: true });
-			toast.success(`Deleted "${pg.title}"`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.ITEM_DELETED', { name: pg.title }));
 			loadStats();
 			// Child list views subscribe to `pages:*` invalidations and refetch
 			// automatically when the X-Invalidates header fires — no need to force

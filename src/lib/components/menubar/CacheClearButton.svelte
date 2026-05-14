@@ -20,7 +20,7 @@
 		clearing = true;
 		try {
 			await api.delete(`/cache?scope=${scope}`);
-			toast.success(`Cache cleared (${scope})`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.CACHE_CLEARED', { scope }));
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.CACHE_CLEAR_BUTTON.FAILED_TO_CLEAR_CACHE'));
 		} finally {

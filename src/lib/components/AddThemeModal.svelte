@@ -90,13 +90,13 @@
 			}
 			// Dependencies are typically plugins — emit one toast each, then the main theme
 			for (const depSlug of result.dependencies ?? []) {
-				toast.success(`Plugin '${depSlug}' installed (dependency)`);
+				toast.success(i18n.t('ADMIN_NEXT.TOASTS.DEPENDENCY_INSTALLED', { slug: depSlug }));
 			}
-			toast.success(`Theme '${allThemes.find((t) => t.slug === slug)?.name ?? slug}' installed`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.THEME_INSTALLED', { name: allThemes.find((t) => t.slug === slug)?.name ?? slug }));
 			oninstalled();
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
-			toast.error(`Failed to install '${slug}': ${detail}`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.INSTALL_FAILED', { slug, detail }));
 		} finally {
 			installingSlug = null;
 		}

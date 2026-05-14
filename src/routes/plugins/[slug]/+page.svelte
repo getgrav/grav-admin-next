@@ -207,7 +207,7 @@
 
 			await formCommit.emit();
 
-			toast.success(`${plugin?.name ?? slug} configuration saved`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.CONFIG_SAVED', { name: plugin?.name ?? slug }));
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {
 				toast.error(i18n.t('ADMIN_NEXT.PLUGINS.CONFIGURATION_WAS_MODIFIED_ELSEWHERE'));
@@ -224,7 +224,7 @@
 	async function toggleEnabled() {
 		if (!plugin) return;
 		if (plugin.enabled && PROTECTED_PLUGINS.has(plugin.slug)) {
-			toast.error(`${plugin.name} cannot be disabled from admin-next — it would lock you out.`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.PLUGIN_LOCKOUT_BLOCK', { name: plugin.name }));
 			return;
 		}
 		toggling = true;
@@ -243,10 +243,16 @@
 				originalJson = JSON.stringify(cfg.data);
 				etag = cfg.etag;
 			}
-			toast.success(`${plugin.name} ${newState ? 'enabled' : 'disabled'}`);
+			toast.success(i18n.t(
+				newState ? 'ADMIN_NEXT.TOASTS.PLUGIN_ENABLED' : 'ADMIN_NEXT.TOASTS.PLUGIN_DISABLED',
+				{ name: plugin.name }
+			));
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
-			toast.error(`Failed to ${newState ? 'enable' : 'disable'} ${plugin.name}: ${detail}`);
+			toast.error(i18n.t(
+				newState ? 'ADMIN_NEXT.TOASTS.PLUGIN_ENABLE_FAILED' : 'ADMIN_NEXT.TOASTS.PLUGIN_DISABLE_FAILED',
+				{ name: plugin.name, detail }
+			));
 		} finally {
 			toggling = false;
 		}
@@ -260,7 +266,7 @@
 	function handleDelete() {
 		if (!plugin) return;
 		if (PROTECTED_DELETE.has(plugin.slug)) {
-			toast.error(`${plugin.name} cannot be removed — it is required by admin-next.`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.PLUGIN_REQUIRED_BLOCK', { name: plugin.name }));
 			return;
 		}
 		confirmDeleteOpen = true;
@@ -271,10 +277,10 @@
 		deleting = true;
 		try {
 			await removePlugin(slug);
-			toast.success(`${plugin?.name ?? slug} removed`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.PACKAGE_REMOVED', { name: plugin?.name ?? slug }));
 			goto(`${base}/plugins`);
 		} catch {
-			toast.error(`Failed to remove ${plugin?.name ?? slug}`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.PACKAGE_REMOVE_FAILED', { name: plugin?.name ?? slug }));
 		} finally {
 			deleting = false;
 		}
@@ -292,14 +298,14 @@
 		try {
 			const result = await updatePackage(slug);
 			for (const depSlug of result.dependencies ?? []) {
-				toast.success(`Plugin '${depSlug}' installed (dependency)`);
+				toast.success(i18n.t('ADMIN_NEXT.TOASTS.DEPENDENCY_INSTALLED', { slug: depSlug }));
 			}
-			toast.success(`${plugin.name} updated`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.PACKAGE_UPDATED', { name: plugin.name }));
 			await loadPlugin();
 			reloadIfAdminUpdated([slug, ...(result.dependencies ?? [])]);
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
-			toast.error(`Failed to update ${plugin.name}: ${detail}`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.PACKAGE_UPDATE_FAILED', { name: plugin.name, detail }));
 		} finally {
 			updating = false;
 		}

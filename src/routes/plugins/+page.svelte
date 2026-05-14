@@ -124,7 +124,7 @@
 	async function toggleEnabled(plugin: PluginInfo, e: Event) {
 		e.stopPropagation();
 		if (plugin.enabled && PROTECTED_PLUGINS.has(plugin.slug)) {
-			toast.error(`${plugin.name} cannot be disabled from admin-next — it would lock you out.`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.PLUGIN_LOCKOUT_BLOCK', { name: plugin.name }));
 			return;
 		}
 		togglingSlug = plugin.slug;
@@ -133,10 +133,16 @@
 			await setPluginEnabled(plugin.slug, newState);
 			plugin.enabled = newState;
 			plugins = [...plugins]; // trigger reactivity
-			toast.success(`${plugin.name} ${newState ? 'enabled' : 'disabled'}`);
+			toast.success(i18n.t(
+				newState ? 'ADMIN_NEXT.TOASTS.PLUGIN_ENABLED' : 'ADMIN_NEXT.TOASTS.PLUGIN_DISABLED',
+				{ name: plugin.name }
+			));
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
-			toast.error(`Failed to ${newState ? 'enable' : 'disable'} ${plugin.name}: ${detail}`);
+			toast.error(i18n.t(
+				newState ? 'ADMIN_NEXT.TOASTS.PLUGIN_ENABLE_FAILED' : 'ADMIN_NEXT.TOASTS.PLUGIN_DISABLE_FAILED',
+				{ name: plugin.name, detail }
+			));
 		} finally {
 			togglingSlug = null;
 		}
@@ -164,7 +170,7 @@
 		checkingUpdates = true;
 		try {
 			const result = await checkUpdates(true);
-			toast.success(`GPM refreshed — ${result.total} update${result.total !== 1 ? 's' : ''} available`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.GPM_REFRESHED', { n: result.total }));
 			await loadPlugins();
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.PLUGINS.FAILED_TO_CHECK_FOR_UPDATES'));
@@ -185,14 +191,14 @@
 		try {
 			const result = await updatePackage(plugin.slug);
 			for (const depSlug of result.dependencies ?? []) {
-				toast.success(`Plugin '${depSlug}' installed (dependency)`);
+				toast.success(i18n.t('ADMIN_NEXT.TOASTS.DEPENDENCY_INSTALLED', { slug: depSlug }));
 			}
-			toast.success(`${plugin.name} updated`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.PACKAGE_UPDATED', { name: plugin.name }));
 			await loadPlugins();
 			reloadIfAdminUpdated([plugin.slug, ...(result.dependencies ?? [])]);
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
-			toast.error(`Failed to update ${plugin.name}: ${detail}`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.PACKAGE_UPDATE_FAILED', { name: plugin.name, detail }));
 		} finally {
 			updatingSlug = null;
 		}
@@ -211,22 +217,22 @@
 			const okCount = result.updated.length;
 			const bad = result.failed.length;
 			if (bad === 0) {
-				toast.success(`Updated ${okCount} package${okCount !== 1 ? 's' : ''}`);
+				toast.success(i18n.t('ADMIN_NEXT.TOASTS.PACKAGES_UPDATED', { n: okCount }));
 			} else {
 				const reasons = result.failed
 					.map((f) => `${f.package}: ${f.error}`)
 					.join('\n');
 				toast.error(
-					okCount > 0
-						? `Updated ${okCount}, failed ${bad}.\n${reasons}`
-						: `${bad} update${bad !== 1 ? 's' : ''} failed.\n${reasons}`,
+					(okCount > 0
+						? i18n.t('ADMIN_NEXT.TOASTS.PACKAGES_UPDATED', { n: okCount }) + ' · '
+						: '') + `${reasons}`,
 				);
 			}
 			await loadPlugins();
 			reloadIfAdminUpdated([...result.updated, ...result.cascaded_dependencies]);
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
-			toast.error(`Update failed: ${detail}`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.UPDATE_FAILED', { detail }));
 		} finally {
 			updatingAll = false;
 		}

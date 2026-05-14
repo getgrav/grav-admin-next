@@ -273,7 +273,7 @@
 
 		try {
 			await reorganizePages(ops);
-			toast.success(`Moved "${page.title}"`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.ITEM_MOVED', { name: page.title }));
 			// Refresh affected parents
 			delete childrenCache[sourceParentRoute];
 			delete childrenCache[targetParentRoute];

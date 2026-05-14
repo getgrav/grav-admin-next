@@ -227,7 +227,7 @@
 			}
 
 			await formCommit.emit();
-			toast.success(`User '${username}' saved`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.USER_SAVED', { username }));
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {
 				toast.error(i18n.t('ADMIN_NEXT.USERS.USER_WAS_MODIFIED_ELSEWHERE_PLEASE'));
@@ -253,10 +253,10 @@
 		deleting = true;
 		try {
 			await deleteUser(username);
-			toast.success(`User '${username}' deleted`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.USER_DELETED', { username }));
 			goto(`${base}/users`);
 		} catch {
-			toast.error(`Failed to delete user '${username}'`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.USER_DELETE_FAILED', { username }));
 		} finally {
 			deleting = false;
 		}

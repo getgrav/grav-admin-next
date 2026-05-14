@@ -93,6 +93,12 @@ The plugin's `bin/build.sh` invokes `npm run build` here with the correct `ADMIN
 | `npm run lint` | Prettier + ESLint |
 | `npm run format` | Prettier write |
 
+## Right-to-left languages
+
+Admin-next supports RTL admin languages (Arabic, Hebrew, Persian, Urdu — anything `LanguageCodes::isRtl()` flags). The boot path sets `<html dir="rtl">` from the user's `adminLanguage` preference and exposes `window.__GRAV_I18N.dir` for plugin web components to read.
+
+See [`docs/RTL.md`](docs/RTL.md) for the conventions: when to reach for Tailwind's logical utilities (`ms-*` / `me-*` / `border-s` / `text-start`), when the `rtl:` variant is the right tool, the directional-icon wrapper, and the "code stays LTR" rule.
+
 ## Contributing
 
 Issues and pull requests are welcome. For bugs that are clearly about the PHP wrapper or static asset delivery, open them on [`grav-plugin-admin2`](https://github.com/getgrav/grav-plugin-admin2/issues); for API shape or data questions, open them on [`grav-plugin-api`](https://github.com/getgrav/grav-plugin-api/issues); for everything UI, open them here.

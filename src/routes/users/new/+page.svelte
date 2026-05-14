@@ -43,7 +43,7 @@
 				state: accountState,
 				access: Object.keys(access).length > 0 ? access : undefined,
 			});
-			toast.success(`User '${username}' created`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.USER_CREATED', { username }));
 			goto(`${base}/users/${username}`);
 		} catch (err: unknown) {
 			const message = err && typeof err === 'object' && 'message' in err

@@ -178,9 +178,9 @@
 			await deletePageMedia(route, item.filename);
 			mediaItems = mediaItems.filter(m => m.filename !== item.filename);
 			onMediaChange?.(mediaItems);
-			toast.success(`Deleted ${item.filename}`);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.FILE_DELETED', { name: item.filename }));
 		} catch {
-			toast.error(`Failed to delete ${item.filename}`);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.FILE_DELETE_FAILED', { name: item.filename }));
 		}
 	}
 

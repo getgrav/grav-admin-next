@@ -86,7 +86,7 @@
 
 	async function handleDisable(forced = false) {
 		if (!forced && !/^\d{6}$/.test(disableCode.trim())) {
-			toast.error('Enter the 6-digit code from your authenticator');
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.TOTP_CODE_REQUIRED'));
 			return;
 		}
 		busy = true;
