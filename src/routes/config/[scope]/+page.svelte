@@ -288,7 +288,7 @@
 							<Search size={14} class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
 							<input
 								type="text"
-								class="h-8 w-full rounded-md border border-input bg-transparent pl-9 pr-8 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+								class="h-8 w-full rounded-md border border-input bg-transparent ps-9 pe-8 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 								placeholder={i18n.t('ADMIN_NEXT.CONFIG.FILTER_FIELDS')}
 								bind:value={filter}
 							/>

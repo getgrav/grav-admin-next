@@ -201,21 +201,21 @@
 				<div class="max-h-72 overflow-y-auto p-1">
 					{#if rootLoading}
 						<div class="flex items-center justify-center py-6 text-sm text-muted-foreground">
-							<Loader2 size={16} class="mr-2 animate-spin" />
+							<Loader2 size={16} class="me-2 animate-spin" />
 							{i18n.t('ADMIN_NEXT.PAGES.LOADING')}
 						</div>
 					{:else}
 						{#if showRoot}
 							<button
 								type="button"
-								class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors
+								class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
 									{selectedRoute === '/' ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'}"
 								onclick={() => selectPage('/')}
 							>
 								<File size={14} class="shrink-0 text-muted-foreground" />
 								<span class="truncate">{i18n.t('ADMIN_NEXT.FIELDS.PAGES.ROOT')}</span>
 								{#if selectedRoute === '/'}
-									<Check size={14} class="ml-auto shrink-0 text-primary" />
+									<Check size={14} class="ms-auto shrink-0 text-primary" />
 								{/if}
 							</button>
 						{/if}
@@ -247,7 +247,7 @@
 	<div style="padding-left: {depth * 16}px">
 		<button
 			type="button"
-			class="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-sm transition-colors
+			class="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
 				{isSelected ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'}"
 			onclick={() => selectPage(page.route)}
 		>
@@ -292,7 +292,7 @@
 			</span>
 
 			{#if isSelected}
-				<Check size={14} class="ml-auto shrink-0 text-primary" />
+				<Check size={14} class="ms-auto shrink-0 text-primary" />
 			{/if}
 		</button>
 	</div>

@@ -260,7 +260,7 @@
 										style="background: linear-gradient(to right, hsl(0 {theme.accentSaturation}% 55%), hsl(60 {theme.accentSaturation}% 55%), hsl(120 {theme.accentSaturation}% 55%), hsl(180 {theme.accentSaturation}% 55%), hsl(240 {theme.accentSaturation}% 55%), hsl(300 {theme.accentSaturation}% 55%), hsl(360 {theme.accentSaturation}% 55%))"
 										oninput={(e) => theme.setAccent(Number((e.target as HTMLInputElement).value), theme.accentSaturation)}
 									/>
-									<span class="w-10 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{theme.accentHue}°</span>
+									<span class="w-10 shrink-0 text-end text-xs tabular-nums text-muted-foreground">{theme.accentHue}°</span>
 								</div>
 								<div class="flex items-center gap-3">
 									<label for="sat-slider" class="w-20 shrink-0 text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SATURATION')}</label>
@@ -272,7 +272,7 @@
 										style="background: linear-gradient(to right, hsl({theme.accentHue} 0% 55%), hsl({theme.accentHue} 100% 55%))"
 										oninput={(e) => theme.setAccent(theme.accentHue, Number((e.target as HTMLInputElement).value))}
 									/>
-									<span class="w-10 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{theme.accentSaturation}%</span>
+									<span class="w-10 shrink-0 text-end text-xs tabular-nums text-muted-foreground">{theme.accentSaturation}%</span>
 								</div>
 							</div>
 						{/if}
@@ -624,7 +624,7 @@
 														style="background: linear-gradient(to right, hsl(0 {siteSat()}% 55%), hsl(60 {siteSat()}% 55%), hsl(120 {siteSat()}% 55%), hsl(180 {siteSat()}% 55%), hsl(240 {siteSat()}% 55%), hsl(300 {siteSat()}% 55%), hsl(360 {siteSat()}% 55%))"
 														oninput={(e) => setSiteAccent(Number((e.target as HTMLInputElement).value), siteSat())}
 													/>
-													<span class="w-10 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{siteHue()}°</span>
+													<span class="w-10 shrink-0 text-end text-xs tabular-nums text-muted-foreground">{siteHue()}°</span>
 												</div>
 												<div class="flex items-center gap-3">
 													<label for="site-sat-slider" class="w-20 shrink-0 text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SATURATION')}</label>
@@ -634,7 +634,7 @@
 														style="background: linear-gradient(to right, hsl({siteHue()} 0% 55%), hsl({siteHue()} 100% 55%))"
 														oninput={(e) => setSiteAccent(siteHue(), Number((e.target as HTMLInputElement).value))}
 													/>
-													<span class="w-10 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{siteSat()}%</span>
+													<span class="w-10 shrink-0 text-end text-xs tabular-nums text-muted-foreground">{siteSat()}%</span>
 												</div>
 											</div>
 										{/if}

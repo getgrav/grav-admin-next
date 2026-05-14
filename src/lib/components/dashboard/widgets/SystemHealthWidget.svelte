@@ -137,7 +137,7 @@
 			{#if systemInfo}
 				<div class="flex items-center justify-between">
 					<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.SERVER')}</dt>
-					<dd class="max-w-[140px] truncate text-right font-medium text-foreground" title={systemInfo.server_software}>{systemInfo.server_software}</dd>
+					<dd class="max-w-[140px] truncate text-end font-medium text-foreground" title={systemInfo.server_software}>{systemInfo.server_software}</dd>
 				</div>
 			{/if}
 			{#if reports}

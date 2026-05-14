@@ -100,7 +100,7 @@
 		<Search size={14} class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
 		<input
 			type="text"
-			class="h-8 w-full rounded-md border border-input bg-muted/50 pl-9 pr-8 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+			class="h-8 w-full rounded-md border border-input bg-muted/50 ps-9 pe-8 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 			placeholder={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.SEARCH_MEDIA')}
 			value={searchInput}
 			oninput={(e) => handleSearchInput(e.currentTarget.value)}

@@ -152,7 +152,7 @@
 	<!-- Side tabs: vertical nav on left, content on right (large screens) -->
 	<div class="flex flex-col lg:flex-row lg:gap-0">
 		<!-- Vertical tab list (horizontal on small, sticky on large) -->
-		<div class="shrink-0 border-b border-border lg:w-52 lg:self-start lg:sticky lg:border-b-0 lg:border-r" style="top: var(--sticky-header-height, 0px)">
+		<div class="shrink-0 border-b border-border lg:w-52 lg:self-start lg:sticky lg:border-b-0 lg:border-e" style="top: var(--sticky-header-height, 0px)">
 			<nav
 				class="flex gap-1 overflow-x-auto p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:flex-col lg:overflow-x-visible lg:p-2"
 				use:dragScroll
@@ -161,7 +161,7 @@
 					{@const hasMatch = !tabHasMatch || tabHasMatch.has(tab.name)}
 					{#if !filter || hasMatch}
 						<button
-							class="shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-left text-sm font-medium transition-colors
+							class="shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-start text-sm font-medium transition-colors
 								{i === activeIndex
 									? 'bg-primary/10 text-primary'
 									: 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'}"
@@ -175,7 +175,7 @@
 		</div>
 
 		<!-- Active tab content -->
-		<div class="min-w-0 flex-1 py-4 lg:p-4 lg:pl-6">
+		<div class="min-w-0 flex-1 py-4 lg:p-4 lg:ps-6">
 			{#if noResults}
 				<div class="py-12 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.TABS.NO_FIELDS_MATCH_YOUR_FILTER')}</div>
 			{:else}

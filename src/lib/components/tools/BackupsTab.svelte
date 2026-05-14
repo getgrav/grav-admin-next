@@ -122,7 +122,7 @@
 						class="absolute inset-0 rounded-md"
 						style="background: linear-gradient(to right, #22c55e 0%, #22c55e 40%, #eab308 65%, #ef4444 100%); clip-path: inset(0 {100 - Math.max(usagePercent, 2)}% 0 0); transition: clip-path 0.5s ease;"
 					></div>
-					<div class="absolute inset-0 flex items-center justify-end pr-3">
+					<div class="absolute inset-0 flex items-center justify-end pe-3">
 						<span class="text-xs font-semibold text-foreground">{usageLabel()}</span>
 					</div>
 				</div>
@@ -173,12 +173,12 @@
 		{:else}
 			<table class="w-full text-sm">
 				<thead>
-					<tr class="border-b border-border text-left text-xs font-medium text-muted-foreground">
+					<tr class="border-b border-border text-start text-xs font-medium text-muted-foreground">
 						<th class="px-4 py-3 w-8">#</th>
 						<th class="px-4 py-3">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.BACKUP_DATE')}</th>
 						<th class="px-4 py-3">Name</th>
-						<th class="px-4 py-3 text-right">Size</th>
-						<th class="px-4 py-3 text-right">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.ACTION')}</th>
+						<th class="px-4 py-3 text-end">Size</th>
+						<th class="px-4 py-3 text-end">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.ACTION')}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -187,8 +187,8 @@
 							<td class="px-4 py-3 text-muted-foreground">{i + 1}</td>
 							<td class="px-4 py-3 text-foreground">{formatDate(backup.date)}</td>
 							<td class="px-4 py-3 text-muted-foreground">{backup.title || 'Default Site Backup'}</td>
-							<td class="px-4 py-3 text-right text-muted-foreground">{formatSize(backup.size)}</td>
-							<td class="px-4 py-3 text-right">
+							<td class="px-4 py-3 text-end text-muted-foreground">{formatSize(backup.size)}</td>
+							<td class="px-4 py-3 text-end">
 								<div class="flex items-center justify-end gap-1">
 									<a
 										href={getBackupDownloadUrl(backup.filename)}

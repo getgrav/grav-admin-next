@@ -101,11 +101,11 @@
 			{:else}
 				<table class="w-full text-sm">
 					<thead>
-						<tr class="border-b border-border text-left text-xs font-medium text-muted-foreground">
+						<tr class="border-b border-border text-start text-xs font-medium text-muted-foreground">
 							<th class="px-4 py-3">{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.JOB_ID')}</th>
 							<th class="px-4 py-3">Run</th>
 							<th class="px-4 py-3">{i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')}</th>
-							<th class="px-4 py-3 text-right">State</th>
+							<th class="px-4 py-3 text-end">State</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -126,7 +126,7 @@
 										</span>
 									{/if}
 								</td>
-								<td class="px-4 py-3 text-right">
+								<td class="px-4 py-3 text-end">
 									{#if job.enabled}
 										<span class="inline-block rounded-l-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">{i18n.t('ADMIN_NEXT.ENABLED')}</span><span class="inline-block rounded-r-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.DISABLED')}</span>
 									{:else}

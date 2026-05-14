@@ -231,9 +231,9 @@
 		<div class="w-6 text-center" title={i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')}>
 			<span class="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">·</span>
 		</div>
-		<div class="hidden w-20 text-right sm:block">{@render sortHeader('Modified', 'modified', 'w-20', 'right')}</div>
+		<div class="hidden w-20 text-end sm:block">{@render sortHeader('Modified', 'modified', 'w-20', 'right')}</div>
 	{:else}
-		<div class="w-32 text-right">
+		<div class="w-32 text-end">
 			<span class="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_PARENT')}</span>
 		</div>
 	{/if}
@@ -278,7 +278,7 @@
 			{/if}
 			<div class="flex min-w-0 flex-1 items-center gap-2">
 				<File size={14} class="shrink-0 {page.visible ? 'text-primary/70' : 'text-muted-foreground'}" />
-				<button class="min-w-0 flex-1 text-left" onclick={() => onEdit(pageApiRoute(page))}>
+				<button class="min-w-0 flex-1 text-start" onclick={() => onEdit(pageApiRoute(page))}>
 					<div class="flex min-w-0 items-center gap-1.5">
 						<span class="min-w-0 truncate text-sm font-medium group-hover:text-primary
 							{isUntranslated ? 'text-muted-foreground italic' : 'text-foreground'}">{page.menu}</span>
@@ -306,7 +306,7 @@
 						<CircleDashed size={14} class="text-muted-foreground" aria-label="Draft" />
 					{/if}
 				</div>
-				<div class="hidden w-20 text-right text-[0.6875rem] text-muted-foreground sm:block">
+				<div class="hidden w-20 text-end text-[0.6875rem] text-muted-foreground sm:block">
 					{formatDate(page.modified)}
 				</div>
 				{#if onDelete}
@@ -319,7 +319,7 @@
 				</button>
 				{/if}
 			{:else}
-				<div class="w-32 text-right text-[0.6875rem] text-muted-foreground">
+				<div class="w-32 text-end text-[0.6875rem] text-muted-foreground">
 					{getParentRoute(page)}
 				</div>
 			{/if}

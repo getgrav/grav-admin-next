@@ -111,7 +111,7 @@
 						</Button>
 						<Button
 							size="sm"
-							class="rounded-l-none border-l border-primary-foreground/20 px-2"
+							class="rounded-l-none border-s border-primary-foreground/20 px-2"
 							aria-label={i18n.t('ADMIN_NEXT.PAGES.ADD_MENU')}
 							onclick={() => addOpen = !addOpen}
 						>
@@ -124,7 +124,7 @@
 							<div class="absolute right-0 z-50 mt-9 min-w-[200px] overflow-hidden rounded-md border border-border bg-popover py-1 shadow-md">
 								<button
 									type="button"
-									class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-popover-foreground transition-colors hover:bg-accent/50"
+									class="flex w-full items-center gap-2 px-3 py-1.5 text-start text-sm text-popover-foreground transition-colors hover:bg-accent/50"
 									onclick={() => startAdd('page')}
 								>
 									<FilePlus size={14} class="shrink-0 text-muted-foreground" />
@@ -132,7 +132,7 @@
 								</button>
 								<button
 									type="button"
-									class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-popover-foreground transition-colors hover:bg-accent/50"
+									class="flex w-full items-center gap-2 px-3 py-1.5 text-start text-sm text-popover-foreground transition-colors hover:bg-accent/50"
 									onclick={() => startAdd('folder')}
 								>
 									<FolderPlus size={14} class="shrink-0 text-muted-foreground" />
@@ -140,7 +140,7 @@
 								</button>
 								<button
 									type="button"
-									class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-popover-foreground transition-colors hover:bg-accent/50"
+									class="flex w-full items-center gap-2 px-3 py-1.5 text-start text-sm text-popover-foreground transition-colors hover:bg-accent/50"
 									onclick={() => startAdd('module')}
 								>
 									<LayoutGrid size={14} class="shrink-0 text-muted-foreground" />
@@ -159,7 +159,7 @@
 			<Search size={14} class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground" />
 			<input
 				type="text"
-				class="flex h-9 w-full rounded-md border border-input bg-transparent pl-9 pr-8 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+				class="flex h-9 w-full rounded-md border border-input bg-transparent ps-9 pe-8 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 				placeholder={i18n.t('ADMIN_NEXT.PAGES.SEARCH_PLACEHOLDER')}
 				bind:value={searchQuery}
 			/>

@@ -155,7 +155,7 @@
 					{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.A_SECRET_IS_ALREADY_GENERATED_BUT_NOT')}
 					<button
 						type="button"
-						class="ml-1 font-medium text-foreground underline-offset-2 hover:underline"
+						class="ms-1 font-medium text-foreground underline-offset-2 hover:underline"
 						onclick={handleGenerate}
 						disabled={busy}
 					>

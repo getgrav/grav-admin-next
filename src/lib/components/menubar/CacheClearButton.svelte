@@ -66,7 +66,7 @@
 		<div class="absolute right-0 top-full z-50 mt-1.5 min-w-44 rounded-lg border border-border bg-popover p-1 shadow-lg">
 			{#each scopes as scope}
 				<button
-					class="flex w-full items-center rounded-md px-3 py-1.5 text-left text-sm text-popover-foreground transition-colors hover:bg-accent"
+					class="flex w-full items-center rounded-md px-3 py-1.5 text-start text-sm text-popover-foreground transition-colors hover:bg-accent"
 					onclick={() => clearCache(scope.value)}
 				>
 					{scope.label}

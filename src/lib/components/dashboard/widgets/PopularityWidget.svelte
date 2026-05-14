@@ -27,17 +27,17 @@
 		</div>
 		{#if popularity}
 			<div class="flex items-center gap-4">
-				<div class="text-right">
+				<div class="text-end">
 					<div class="text-lg font-semibold tabular-nums text-foreground">{formatNumber(popularity.summary.today)}</div>
 					<div class="text-[0.6875rem] text-muted-foreground">Today</div>
 				</div>
 				<div class="h-8 w-px bg-border"></div>
-				<div class="text-right">
+				<div class="text-end">
 					<div class="text-lg font-semibold tabular-nums text-foreground">{formatNumber(popularity.summary.week)}</div>
 					<div class="text-[0.6875rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.POPULARITY_WIDGET.THIS_WEEK')}</div>
 				</div>
 				<div class="h-8 w-px bg-border"></div>
-				<div class="text-right">
+				<div class="text-end">
 					<div class="text-lg font-semibold tabular-nums text-foreground">{formatNumber(popularity.summary.month)}</div>
 					<div class="text-[0.6875rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.POPULARITY_WIDGET.THIS_MONTH')}</div>
 				</div>

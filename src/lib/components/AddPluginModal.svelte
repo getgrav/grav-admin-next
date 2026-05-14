@@ -150,16 +150,16 @@
 					{#if selectedPlugin}
 						{#if needsPurchase(selectedPlugin)}
 							<Button size="sm" variant="destructive" onclick={() => openPurchase(selectedPlugin)}>
-								<ShoppingCart size={14} class="mr-1.5" />
+								<ShoppingCart size={14} class="me-1.5" />
 								Buy
 							</Button>
 						{:else}
 							<Button size="sm" onclick={() => handleInstall(selectedPlugin.slug)} disabled={installingSlug === selectedPlugin.slug}>
 								{#if installingSlug === selectedPlugin.slug}
-									<Loader2 size={14} class="mr-1.5 animate-spin" />
+									<Loader2 size={14} class="me-1.5 animate-spin" />
 									{i18n.t('ADMIN_NEXT.INSTALLING')}
 								{:else}
-									<Download size={14} class="mr-1.5" />
+									<Download size={14} class="me-1.5" />
 									{i18n.t('ADMIN_NEXT.INSTALL')}
 								{/if}
 							</Button>
@@ -186,7 +186,7 @@
 						<Search size={14} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
 						<input
 							type="text"
-							class="h-8 w-full rounded-md border border-input bg-muted/50 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+							class="h-8 w-full rounded-md border border-input bg-muted/50 ps-9 pe-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 							placeholder={i18n.t('ADMIN_NEXT.ADD_PLUGIN_MODAL.FILTER_PLUGINS')}
 							bind:value={search}
 						/>
@@ -196,12 +196,12 @@
 				<!-- Main content: list + detail -->
 				<div class="flex flex-1 overflow-hidden">
 					<!-- Plugin list (left column) -->
-					<div class="w-full overflow-y-auto border-r border-border lg:w-[360px] xl:w-[400px]">
+					<div class="w-full overflow-y-auto border-e border-border lg:w-[360px] xl:w-[400px]">
 						{#each available as plugin (plugin.slug)}
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<!-- svelte-ignore a11y_click_events_have_key_events -->
 							<div
-								class="flex w-full items-center gap-3 border-b border-border px-4 py-3 text-left transition-colors
+								class="flex w-full items-center gap-3 border-b border-border px-4 py-3 text-start transition-colors
 									{selectedSlug === plugin.slug ? 'bg-accent' : 'hover:bg-muted/50'}"
 								onclick={() => (selectedSlug = plugin.slug)}
 							>

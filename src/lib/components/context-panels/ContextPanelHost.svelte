@@ -176,7 +176,7 @@
 
 	<!-- Panel -->
 	<div
-		class="cp-panel fixed right-0 top-0 z-40 flex h-full flex-col border-l border-border bg-background shadow-2xl {closing ? 'cp-closing' : 'cp-opening'}"
+		class="cp-panel fixed end-0 top-0 z-40 flex h-full flex-col border-s border-border bg-background shadow-2xl {closing ? 'cp-closing' : 'cp-opening'}"
 		style="width: {panelWidth}px; max-width: 100vw; transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);"
 	>
 		<div bind:this={panelContainer} class="flex-1 overflow-hidden"></div>
@@ -212,5 +212,22 @@
 	@keyframes cp-slide-out {
 		0% { transform: translateX(0); }
 		100% { transform: translateX(100%); }
+	}
+	/* In RTL the panel is pinned to the left edge (inline-end), so the
+	   offscreen position is -100% instead of +100%. `rtl:` variants don't
+	   reach into @keyframes so we duplicate the rule for the RTL case. */
+	[dir="rtl"] .cp-opening {
+		animation-name: cp-slide-in-rtl;
+	}
+	[dir="rtl"] .cp-closing {
+		animation-name: cp-slide-out-rtl;
+	}
+	@keyframes cp-slide-in-rtl {
+		0% { transform: translateX(-100%); }
+		100% { transform: translateX(0); }
+	}
+	@keyframes cp-slide-out-rtl {
+		0% { transform: translateX(0); }
+		100% { transform: translateX(-100%); }
 	}
 </style>

@@ -110,7 +110,7 @@
 	}
 </script>
 
-<div class="flex h-full flex-col border-l border-border bg-card">
+<div class="flex h-full flex-col border-s border-border bg-card">
 	<!-- Header -->
 	<div class="flex items-center justify-between border-b border-border px-4 py-2">
 		<div class="flex items-center gap-1">
@@ -212,14 +212,14 @@
 		<!-- Copy actions -->
 		<div class="mt-5 space-y-2">
 			<button
-				class="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-left text-[0.75rem] transition-colors hover:bg-accent/50"
+				class="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-start text-[0.75rem] transition-colors hover:bg-accent/50"
 				onclick={() => copyToClipboard(getMediaStreamPath(), 'Media path')}
 			>
 				<Copy size={13} class="shrink-0 text-muted-foreground" />
 				<span class="min-w-0 flex-1 truncate font-mono text-muted-foreground">{getMediaStreamPath()}</span>
 			</button>
 			<button
-				class="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-left text-[0.75rem] transition-colors hover:bg-accent/50"
+				class="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-start text-[0.75rem] transition-colors hover:bg-accent/50"
 				onclick={() => copyToClipboard(getMarkdownSnippet(), 'Markdown')}
 			>
 				<Copy size={13} class="shrink-0 text-muted-foreground" />

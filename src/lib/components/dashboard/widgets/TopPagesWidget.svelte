@@ -22,7 +22,7 @@
 				<div class="group">
 					<div class="flex items-center justify-between text-[0.75rem]">
 						<span class="min-w-0 flex-1 truncate font-medium text-foreground">{page.route}</span>
-						<span class="ml-2 shrink-0 tabular-nums text-muted-foreground">{page.views}</span>
+						<span class="ms-2 shrink-0 tabular-nums text-muted-foreground">{page.views}</span>
 					</div>
 					<div class="mt-1 h-1 overflow-hidden rounded-full bg-secondary">
 						<div class="h-full rounded-full bg-primary/60"

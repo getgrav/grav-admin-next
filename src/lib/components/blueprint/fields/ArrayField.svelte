@@ -212,7 +212,7 @@
 				{#if constrained}
 					<div class="relative flex min-w-0 flex-1 items-center">
 						<select
-							class="flex h-9 w-full appearance-none rounded-lg border border-input bg-muted/50 pl-3 pr-8 py-1.5 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+							class="flex h-9 w-full appearance-none rounded-lg border border-input bg-muted/50 ps-3 pe-8 py-1.5 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 							value={entry.value}
 							onchange={(e) => updateValue(entry.id, (e.target as HTMLSelectElement).value)}
 						>
@@ -221,7 +221,7 @@
 								<option value={opt.value} selected={entry.value === opt.value}>{translateLabel(opt.label)}</option>
 							{/each}
 						</select>
-						<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5">
+						<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pe-2.5">
 							<ChevronsUpDown size={14} class="text-muted-foreground" />
 						</div>
 					</div>

@@ -387,9 +387,9 @@
 								title={i18n.t('ADMIN_NEXT.DELETE')}
 							>
 								{#if deleting}
-									<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
+									<Loader2 size={14} class="sm:me-1.5 animate-spin" />
 								{:else}
-									<Trash2 size={14} class="sm:mr-1.5" />
+									<Trash2 size={14} class="sm:me-1.5" />
 								{/if}
 								<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.DELETE')}</span>
 							</Button>
@@ -403,9 +403,9 @@
 								title="Save"
 							>
 								{#if saving}
-									<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
+									<Loader2 size={14} class="sm:me-1.5 animate-spin" />
 								{:else}
-									<Save size={14} class="sm:mr-1.5" />
+									<Save size={14} class="sm:me-1.5" />
 								{/if}
 								<span class="hidden sm:inline">Save</span>
 							</Button>

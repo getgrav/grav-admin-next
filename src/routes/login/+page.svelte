@@ -183,7 +183,7 @@
 					>
 						<Server size={13} />
 						{i18n.t('ADMIN_NEXT.LOGIN.SERVER_CONFIGURATION')}
-						<ChevronDown size={13} class="ml-auto transition-transform {showServerConfig ? 'rotate-180' : ''}" />
+						<ChevronDown size={13} class="ms-auto transition-transform {showServerConfig ? 'rotate-180' : ''}" />
 					</button>
 
 					{#if showServerConfig}
@@ -252,7 +252,7 @@
 						{#if passwordInvalid}
 							<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.LOGIN.PASSWORD_IS_REQUIRED')}</p>
 						{/if}
-						<div class="pt-0.5 text-right">
+						<div class="pt-0.5 text-end">
 							<a
 								href="{base}/forgot"
 								class="text-[0.75rem] font-medium text-muted-foreground transition-colors hover:text-foreground"

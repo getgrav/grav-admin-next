@@ -136,17 +136,17 @@
 		</div>
 
 		<!-- Type -->
-		<div class="hidden w-20 text-right text-[0.6875rem] text-muted-foreground sm:block">
+		<div class="hidden w-20 text-end text-[0.6875rem] text-muted-foreground sm:block">
 			{getMimeLabel(props.item.type)}
 		</div>
 
 		<!-- Size -->
-		<div class="w-16 text-right text-[0.6875rem] text-muted-foreground">
+		<div class="w-16 text-end text-[0.6875rem] text-muted-foreground">
 			{formatSize(props.item.size)}
 		</div>
 
 		<!-- Date -->
-		<div class="hidden w-24 text-right text-[0.6875rem] text-muted-foreground md:block">
+		<div class="hidden w-24 text-end text-[0.6875rem] text-muted-foreground md:block">
 			{formatDate(props.item.modified)}
 		</div>
 	</div>

@@ -23,7 +23,7 @@
 >
 	<div
 		class="absolute top-0.5 bottom-0.5 rounded-md bg-primary shadow-sm transition-all duration-200 ease-out"
-		style="left: calc({activeIndex} * (100% / {count}) + 2px); width: calc(100% / {count} - 4px);"
+		style="inset-inline-start: calc({activeIndex} * (100% / {count}) + 2px); width: calc(100% / {count} - 4px);"
 	></div>
 
 	{#each options as opt, i (i)}

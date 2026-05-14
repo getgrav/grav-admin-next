@@ -260,17 +260,17 @@
 							disabled={deleting}
 						>
 							{#if deleting}
-								<Loader2 size={14} class="mr-1.5 animate-spin" />
+								<Loader2 size={14} class="me-1.5 animate-spin" />
 							{:else}
-								<Trash2 size={14} class="mr-1.5" />
+								<Trash2 size={14} class="me-1.5" />
 							{/if}
 							{i18n.t('ADMIN_NEXT.DELETE')}
 						</Button>
 						<Button size="sm" onclick={handleSave} disabled={!hasChanges || saving}>
 							{#if saving}
-								<Loader2 size={14} class="mr-1.5 animate-spin" />
+								<Loader2 size={14} class="me-1.5 animate-spin" />
 							{:else}
-								<Save size={14} class="mr-1.5" />
+								<Save size={14} class="me-1.5" />
 							{/if}
 							Save
 						</Button>

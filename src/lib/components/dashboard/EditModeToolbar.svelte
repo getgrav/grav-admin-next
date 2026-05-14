@@ -66,13 +66,13 @@
 				<div id="preset-menu" class="absolute right-0 top-full z-50 mt-1 w-72 rounded-md border border-border bg-popover p-1 shadow-lg">
 					<div class="px-2 py-1.5 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">{i18n.t('ADMIN_NEXT.EDIT_MODE_TOOLBAR.LAYOUT_PRESETS')}</div>
 					{#each PRESETS as preset}
-						<button type="button" class="block w-full rounded-sm px-2 py-1.5 text-left transition-colors hover:bg-accent" onclick={() => selectPreset(preset)}>
+						<button type="button" class="block w-full rounded-sm px-2 py-1.5 text-start transition-colors hover:bg-accent" onclick={() => selectPreset(preset)}>
 							<div class="text-[0.8125rem] font-medium text-foreground">{preset.label}</div>
 							<div class="text-[0.6875rem] text-muted-foreground">{preset.description}</div>
 						</button>
 					{/each}
 					<div class="my-1 h-px bg-border"></div>
-					<button type="button" class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[0.8125rem] text-foreground transition-colors hover:bg-accent" onclick={selectReset}>
+					<button type="button" class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-start text-[0.8125rem] text-foreground transition-colors hover:bg-accent" onclick={selectReset}>
 						<RotateCcw size={12} />
 						{i18n.t('ADMIN_NEXT.DASHBOARD.RESET_LAYOUT')}
 					</button>

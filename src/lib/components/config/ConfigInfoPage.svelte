@@ -235,7 +235,7 @@
 				<div class="border-b border-border px-5 py-3">
 					<h3 class="text-sm font-semibold text-foreground">
 						{i18n.t('ADMIN_NEXT.CONFIG_INFO_PAGE.PHP_EXTENSIONS')}
-						<span class="ml-1 text-xs font-normal text-muted-foreground">({visibleExtensions.length}{isFiltering ? ` / ${info.php_extensions.length}` : ''})</span>
+						<span class="ms-1 text-xs font-normal text-muted-foreground">({visibleExtensions.length}{isFiltering ? ` / ${info.php_extensions.length}` : ''})</span>
 					</h3>
 				</div>
 				<div class="max-h-64 overflow-y-auto px-5 py-3">
@@ -254,7 +254,7 @@
 				<div class="border-b border-border px-5 py-3">
 					<h3 class="text-sm font-semibold text-foreground">
 						{i18n.t('ADMIN_NEXT.NAV.PLUGINS')}
-						<span class="ml-1 text-xs font-normal text-muted-foreground">({visiblePlugins.length}{isFiltering ? ` / ${info.plugins.length}` : ''})</span>
+						<span class="ms-1 text-xs font-normal text-muted-foreground">({visiblePlugins.length}{isFiltering ? ` / ${info.plugins.length}` : ''})</span>
 					</h3>
 				</div>
 				<div class="max-h-72 overflow-y-auto divide-y divide-border">
@@ -277,7 +277,7 @@
 				<div class="border-b border-border px-5 py-3">
 					<h3 class="text-sm font-semibold text-foreground">
 						{i18n.t('ADMIN_NEXT.NAV.THEMES')}
-						<span class="ml-1 text-xs font-normal text-muted-foreground">({visibleThemes.length}{isFiltering ? ` / ${info.themes.length}` : ''})</span>
+						<span class="ms-1 text-xs font-normal text-muted-foreground">({visibleThemes.length}{isFiltering ? ` / ${info.themes.length}` : ''})</span>
 					</h3>
 				</div>
 				<div class="max-h-72 overflow-y-auto divide-y divide-border">
@@ -314,7 +314,7 @@
 					{@const isExpanded = isFiltering ? true : expandedSections.has(section)}
 					<div class="rounded-lg border border-border bg-card">
 						<button
-							class="flex w-full items-center gap-2 px-5 py-3 text-left transition-colors hover:bg-accent/50"
+							class="flex w-full items-center gap-2 px-5 py-3 text-start transition-colors hover:bg-accent/50"
 							onclick={() => isFiltering || toggleSection(section)}
 							disabled={isFiltering}
 						>
@@ -331,7 +331,7 @@
 								{#each rows as [key, value] (key)}
 									<div class="flex items-start justify-between gap-4 px-5 py-2.5">
 										<dt class="shrink-0 font-mono text-xs text-muted-foreground">{@html highlight(key)}</dt>
-										<dd class="min-w-0 break-all text-right font-mono text-xs font-medium text-foreground">{@html highlight(value)}</dd>
+										<dd class="min-w-0 break-all text-end font-mono text-xs font-medium text-foreground">{@html highlight(value)}</dd>
 									</div>
 								{/each}
 							</dl>

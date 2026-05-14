@@ -103,7 +103,7 @@
 			{#each configEnv.environments as env}
 				<button
 					type="button"
-					class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[0.8125rem] transition-colors
+					class="flex w-full items-center gap-2 px-3 py-1.5 text-start text-[0.8125rem] transition-colors
 						{env.name === configEnv.target
 							? 'bg-accent text-accent-foreground font-medium'
 							: 'text-popover-foreground hover:bg-accent/50'}"
@@ -125,7 +125,7 @@
 				{#if !showCreateInput}
 					<button
 						type="button"
-						class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[0.8125rem] text-popover-foreground transition-colors hover:bg-accent/50"
+						class="flex w-full items-center gap-2 px-3 py-1.5 text-start text-[0.8125rem] text-popover-foreground transition-colors hover:bg-accent/50"
 						onclick={showCreate}
 					>
 						<Plus size={13} />

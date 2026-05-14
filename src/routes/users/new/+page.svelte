@@ -100,9 +100,9 @@
 						disabled={!canSave || saving}
 					>
 						{#if saving}
-							<Loader2 size={14} class="mr-1.5 animate-spin" />
+							<Loader2 size={14} class="me-1.5 animate-spin" />
 						{:else}
-							<Save size={14} class="mr-1.5" />
+							<Save size={14} class="me-1.5" />
 						{/if}
 						{i18n.t('ADMIN_NEXT.USERS.NEW.CREATE')}
 					</Button>

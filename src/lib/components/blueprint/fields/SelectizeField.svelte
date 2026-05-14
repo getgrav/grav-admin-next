@@ -231,7 +231,7 @@
 					{#each suggestions as suggestion, i (suggestion)}
 						<button
 							type="button"
-							class="flex w-full rounded-md px-3 py-1.5 text-left text-sm transition-colors
+							class="flex w-full rounded-md px-3 py-1.5 text-start text-sm transition-colors
 								{i === highlightedIndex
 									? 'bg-accent text-accent-foreground'
 									: 'text-foreground hover:bg-accent'}"

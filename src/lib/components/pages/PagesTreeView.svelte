@@ -343,7 +343,7 @@
 		<div class="w-6 text-center" title={i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')}>
 			<span class="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">·</span>
 		</div>
-		<div class="hidden w-20 text-right sm:block">{@render sortHeader('Modified', 'modified', 'right')}</div>
+		<div class="hidden w-20 text-end sm:block">{@render sortHeader('Modified', 'modified', 'right')}</div>
 	{/if}
 </div>
 
@@ -418,7 +418,7 @@
 						<File size={14} class="shrink-0 {page.visible ? 'text-primary/70' : 'text-muted-foreground'}" />
 					{/if}
 
-					<button class="min-w-0 flex-1 text-left pl-1" onclick={() => onEdit(pageApiRoute(page))}>
+					<button class="min-w-0 flex-1 text-start ps-1" onclick={() => onEdit(pageApiRoute(page))}>
 						<div class="flex min-w-0 items-center gap-1.5">
 							<span class="min-w-0 truncate text-sm font-medium group-hover:text-primary
 								{isUntranslated ? 'text-muted-foreground italic' : 'text-foreground'}">{page.menu}</span>
@@ -448,7 +448,7 @@
 						{/if}
 					</div>
 
-					<div class="hidden w-20 text-right text-[0.6875rem] text-muted-foreground sm:block">
+					<div class="hidden w-20 text-end text-[0.6875rem] text-muted-foreground sm:block">
 						{formatDate(page.modified)}
 					</div>
 

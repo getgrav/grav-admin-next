@@ -407,9 +407,9 @@
 						title={i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: theme.available_version })}
 					>
 						{#if updating}
-							<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
+							<Loader2 size={14} class="sm:me-1.5 animate-spin" />
 						{:else}
-							<ArrowUpCircle size={14} class="sm:mr-1.5" />
+							<ArrowUpCircle size={14} class="sm:me-1.5" />
 						{/if}
 						<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: theme.available_version })}</span>
 					</Button>
@@ -425,9 +425,9 @@
 					title={i18n.t('ADMIN_NEXT.REMOVE')}
 				>
 					{#if deleting}
-						<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
+						<Loader2 size={14} class="sm:me-1.5 animate-spin" />
 					{:else}
-						<Trash2 size={14} class="sm:mr-1.5" />
+						<Trash2 size={14} class="sm:me-1.5" />
 					{/if}
 					<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.REMOVE')}</span>
 				</Button>
@@ -443,9 +443,9 @@
 						title={i18n.t('ADMIN_NEXT.ACTIVATE')}
 					>
 						{#if activating}
-							<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
+							<Loader2 size={14} class="sm:me-1.5 animate-spin" />
 						{:else}
-							<Power size={14} class="sm:mr-1.5" />
+							<Power size={14} class="sm:me-1.5" />
 						{/if}
 						<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.ACTIVATE')}</span>
 					</Button>
@@ -465,9 +465,9 @@
 					title="Save"
 				>
 					{#if saving}
-						<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
+						<Loader2 size={14} class="sm:me-1.5 animate-spin" />
 					{:else}
-						<Save size={14} class="sm:mr-1.5" />
+						<Save size={14} class="sm:me-1.5" />
 					{/if}
 					<span class="hidden sm:inline">Save</span>
 				</Button>
@@ -515,7 +515,7 @@
 								<Palette size={48} />
 							</div>
 						{/if}
-						<div class="min-w-0 flex-1 text-center sm:text-left">
+						<div class="min-w-0 flex-1 text-center sm:text-start">
 							{#if theme.description}
 								{#if theme.description_html}
 									<div class="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">

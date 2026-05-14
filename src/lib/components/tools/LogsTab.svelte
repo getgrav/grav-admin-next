@@ -158,7 +158,7 @@
 			<Search size={14} class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
 			<input
 				type="text"
-				class="h-9 rounded-md border border-input bg-background pl-8 pr-8 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+				class="h-9 rounded-md border border-input bg-background ps-8 pe-8 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 				style="width: 220px;"
 				placeholder={i18n.t('ADMIN_NEXT.TOOLS.LOGS.SEARCH_MESSAGES')}
 				value={searchInput}
@@ -236,7 +236,7 @@
 			Live
 		</button>
 
-		<span class="ml-auto text-xs text-muted-foreground">
+		<span class="ms-auto text-xs text-muted-foreground">
 			{total.toLocaleString()} entries{search ? ` matching "${search}"` : ''}
 		</span>
 	</div>
@@ -253,7 +253,7 @@
 			<div class="overflow-x-auto">
 				<table class="w-full text-sm">
 					<thead>
-						<tr class="border-b border-border text-left text-xs font-medium text-muted-foreground">
+						<tr class="border-b border-border text-start text-xs font-medium text-muted-foreground">
 							<th class="whitespace-nowrap px-4 py-3">Date</th>
 							<th class="px-4 py-3">Level</th>
 							<th class="px-4 py-3">{i18n.t('ADMIN_NEXT.TOOLS.LOGS.MESSAGE')}</th>

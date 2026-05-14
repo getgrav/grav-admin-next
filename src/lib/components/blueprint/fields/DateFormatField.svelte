@@ -116,7 +116,7 @@
 	{/if}
 	<div class="relative">
 		<select
-			class="flex h-10 w-full appearance-none rounded-lg border border-input bg-muted/50 pl-3 pr-8 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+			class="flex h-10 w-full appearance-none rounded-lg border border-input bg-muted/50 ps-3 pe-8 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 			value={value ?? field.default ?? ''}
 			onchange={(e) => onchange((e.target as HTMLSelectElement).value)}
 			disabled={field.disabled}
@@ -126,7 +126,7 @@
 				<option value={opt.format} selected={String(value) === opt.format}>{opt.display}</option>
 			{/each}
 		</select>
-		<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5">
+		<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pe-2.5">
 			<ChevronsUpDown size={14} class="text-muted-foreground" />
 		</div>
 	</div>

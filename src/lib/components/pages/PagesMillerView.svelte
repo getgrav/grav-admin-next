@@ -467,10 +467,10 @@
 		</button>
 	{/each}
 
-	<div class="ml-auto flex items-center gap-1.5 text-muted-foreground">
+	<div class="ms-auto flex items-center gap-1.5 text-muted-foreground">
 		<ArrowUpDown size={11} />
 		<select
-			class="h-6 rounded border-0 bg-transparent pr-6 text-[0.6875rem] font-medium focus:outline-none focus:ring-0"
+			class="h-6 rounded border-0 bg-transparent pe-6 text-[0.6875rem] font-medium focus:outline-none focus:ring-0"
 			value={`${sortField}:${sortOrder}`}
 			onchange={handleSortChange}
 		>
@@ -490,7 +490,7 @@
 	<!-- Scrollable columns area -->
 	<div class="flex flex-1 overflow-x-auto">
 		{#each columns as col, colIndex (colIndex)}
-			<div class="flex w-56 shrink-0 flex-col overflow-y-auto border-r border-border {colIndex < columns.length - 1 ? 'bg-muted/30' : ''}">
+			<div class="flex w-56 shrink-0 flex-col overflow-y-auto border-e border-border {colIndex < columns.length - 1 ? 'bg-muted/30' : ''}">
 				{#if col.loading}
 					<div class="flex flex-1 items-center justify-center">
 						<Loader2 size={16} class="animate-spin text-muted-foreground" />
@@ -517,7 +517,7 @@
 						<div class="mx-2 h-0.5 rounded bg-primary"></div>
 					{/if}
 					<div
-							class="flex w-full items-center gap-1 border-b border-border/40 px-2 py-2 text-left transition-all
+							class="flex w-full items-center gap-1 border-b border-border/40 px-2 py-2 text-start transition-all
 								{isDragged ? 'opacity-30' : ''}
 								{isActive
 									? 'bg-primary text-primary-foreground'
@@ -536,7 +536,7 @@
 								</span>
 							{/if}
 							<button
-								class="flex min-w-0 flex-1 items-center gap-2 text-left"
+								class="flex min-w-0 flex-1 items-center gap-2 text-start"
 								onmousedown={(e) => { if (e.detail > 1) e.preventDefault(); }}
 								onclick={() => selectPage(colIndex, page)}
 								ondblclick={() => { window.getSelection()?.removeAllRanges(); onEdit(pageApiRoute(page)); }}
@@ -586,7 +586,7 @@
 	<!-- Preview panel (lg+ only — below lg, single-tap on a leaf or
 	     re-tap on the already-selected folder opens edit instead) -->
 	{#if lastSelected}
-		<div class="hidden w-80 shrink-0 overflow-y-auto border-l border-border bg-card lg:block">
+		<div class="hidden w-80 shrink-0 overflow-y-auto border-s border-border bg-card lg:block">
 			{#if previewLoading}
 				<div class="flex h-full items-center justify-center">
 					<Loader2 size={16} class="animate-spin text-muted-foreground" />

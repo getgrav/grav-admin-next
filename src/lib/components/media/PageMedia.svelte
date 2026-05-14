@@ -300,7 +300,7 @@
 		<h3 class="text-sm font-semibold text-foreground">
 			{i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.PAGE_MEDIA')}
 			{#if mediaItems.length > 0}
-				<span class="ml-1 font-normal text-muted-foreground">({mediaItems.length})</span>
+				<span class="ms-1 font-normal text-muted-foreground">({mediaItems.length})</span>
 			{/if}
 		</h3>
 		<button

@@ -303,7 +303,7 @@
 				<Search size={14} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
 				<input
 					type="text"
-					class="h-8 w-full rounded-md border border-input bg-muted/50 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+					class="h-8 w-full rounded-md border border-input bg-muted/50 ps-9 pe-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 					placeholder={i18n.t('ADMIN_NEXT.PLUGINS.SEARCH_PLUGINS')}
 					bind:value={search}
 				/>
@@ -321,11 +321,11 @@
 		<!-- Main content: list + detail panel -->
 		<div class="flex flex-1 overflow-hidden">
 			<!-- Plugin list -->
-			<div class="w-full overflow-y-auto border-r border-border lg:w-[400px] xl:w-[440px]">
+			<div class="w-full overflow-y-auto border-e border-border lg:w-[400px] xl:w-[440px]">
 				{#each filtered as plugin (plugin.slug)}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<!-- svelte-ignore a11y_click_events_have_key_events -->					<div
-						class="flex w-full items-center gap-3 border-b border-border px-4 py-3 text-left transition-colors
+						class="flex w-full items-center gap-3 border-b border-border px-4 py-3 text-start transition-colors
 							{selectedSlug === plugin.slug ? 'bg-accent' : 'hover:bg-muted/50'}"
 						onclick={() => selectPlugin(plugin.slug)}
 						ondblclick={() => openPluginConfig(plugin.slug)}
@@ -434,9 +434,9 @@
 										disabled={updatingSlug === selectedPlugin.slug || updatingAll}
 									>
 										{#if updatingSlug === selectedPlugin.slug}
-											<Loader2 size={14} class="mr-1.5 animate-spin" />
+											<Loader2 size={14} class="me-1.5 animate-spin" />
 										{:else}
-											<ArrowUpCircle size={14} class="mr-1.5" />
+											<ArrowUpCircle size={14} class="me-1.5" />
 										{/if}
 										{i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: selectedPlugin.available_version })}
 									</Button>

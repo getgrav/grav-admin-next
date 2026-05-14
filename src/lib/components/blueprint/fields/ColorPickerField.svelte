@@ -127,7 +127,7 @@
 			style="background:{swatchHex}"
 			aria-hidden="true"
 		></span>
-		<span class="flex-1 text-left font-mono text-foreground">{swatchHex.toUpperCase()}</span>
+		<span class="flex-1 text-start font-mono text-foreground">{swatchHex.toUpperCase()}</span>
 	</button>
 
 	{#if open}

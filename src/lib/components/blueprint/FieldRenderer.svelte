@@ -346,7 +346,7 @@
 				step={field.step ?? 1}
 				oninput={(e) => onchange(Number((e.target as HTMLInputElement).value))}
 			/>
-			<span class="w-10 text-right font-mono text-sm font-medium text-foreground">{value ?? field.default ?? 50}</span>
+			<span class="w-10 text-end font-mono text-sm font-medium text-foreground">{value ?? field.default ?? 50}</span>
 			{#if field.append}
 				<span class="text-sm text-muted-foreground">{translateLabel(field.append)}</span>
 			{/if}
@@ -467,7 +467,7 @@
 			<span class="text-sm font-semibold text-foreground">{translateLabel(field.label)}</span>
 		</label>
 		{#if field.help}
-			<p class="mt-0.5 ml-7 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
+			<p class="mt-0.5 ms-7 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
 		{/if}
 	</div>
 

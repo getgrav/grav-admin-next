@@ -152,7 +152,7 @@
 		<!-- Summary bar -->
 		<button
 			type="button"
-			class="flex w-full items-center gap-2 px-3 py-2.5 text-left"
+			class="flex w-full items-center gap-2 px-3 py-2.5 text-start"
 			onclick={toggleAdvanced}
 		>
 			<Clock size={14} class="shrink-0 text-muted-foreground" />

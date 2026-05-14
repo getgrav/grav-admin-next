@@ -37,7 +37,7 @@
 					{#each hidden as w}
 						<button
 							type="button"
-							class="flex w-full items-center justify-between gap-3 rounded-md border border-transparent px-3 py-2 text-left transition-colors hover:border-border hover:bg-accent"
+							class="flex w-full items-center justify-between gap-3 rounded-md border border-transparent px-3 py-2 text-start transition-colors hover:border-border hover:bg-accent"
 							onclick={() => { onAdd(w.id); open = false; }}
 						>
 							<div class="min-w-0">

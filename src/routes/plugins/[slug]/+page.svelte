@@ -443,9 +443,9 @@
 						title={i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: plugin.available_version })}
 					>
 						{#if updating}
-							<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
+							<Loader2 size={14} class="sm:me-1.5 animate-spin" />
 						{:else}
-							<ArrowUpCircle size={14} class="sm:mr-1.5" />
+							<ArrowUpCircle size={14} class="sm:me-1.5" />
 						{/if}
 						<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: plugin.available_version })}</span>
 					</Button>
@@ -461,9 +461,9 @@
 					title={i18n.t('ADMIN_NEXT.REMOVE')}
 				>
 					{#if deleting}
-						<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
+						<Loader2 size={14} class="sm:me-1.5 animate-spin" />
 					{:else}
-						<Trash2 size={14} class="sm:mr-1.5" />
+						<Trash2 size={14} class="sm:me-1.5" />
 					{/if}
 					<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.REMOVE')}</span>
 				</Button>
@@ -478,11 +478,11 @@
 					title={plugin.enabled ? 'Disable' : 'Enable'}
 				>
 					{#if toggling}
-						<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
+						<Loader2 size={14} class="sm:me-1.5 animate-spin" />
 					{:else if plugin.enabled}
-						<PowerOff size={14} class="sm:mr-1.5" />
+						<PowerOff size={14} class="sm:me-1.5" />
 					{:else}
-						<Power size={14} class="sm:mr-1.5" />
+						<Power size={14} class="sm:me-1.5" />
 					{/if}
 					<span class="hidden sm:inline">{plugin.enabled ? 'Disable' : 'Enable'}</span>
 				</Button>
@@ -496,9 +496,9 @@
 					title="Save"
 				>
 					{#if saving}
-						<Loader2 size={14} class="sm:mr-1.5 animate-spin" />
+						<Loader2 size={14} class="sm:me-1.5 animate-spin" />
 					{:else}
-						<Save size={14} class="sm:mr-1.5" />
+						<Save size={14} class="sm:me-1.5" />
 					{/if}
 					<span class="hidden sm:inline">Save</span>
 				</Button>
@@ -534,7 +534,7 @@
 								<Puzzle size={24} />
 							{/if}
 						</div>
-						<div class="min-w-0 flex-1 text-center sm:text-left">
+						<div class="min-w-0 flex-1 text-center sm:text-start">
 							{#if plugin.description}
 								{#if plugin.description_html}
 									<div class="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">
@@ -591,7 +591,7 @@
 						</p>
 						<Button variant="outline" size="sm" class="mt-3" onclick={toggleEnabled} disabled={toggling}>
 							{#if toggling}
-								<Loader2 size={14} class="mr-1.5 animate-spin" />
+								<Loader2 size={14} class="me-1.5 animate-spin" />
 							{/if}
 							{i18n.t('ADMIN_NEXT.PLUGINS.ENABLE_PLUGIN')}
 						</Button>

@@ -271,7 +271,7 @@
 			/>
 			<input
 				type="text"
-				class="h-8 w-full rounded-md border border-input bg-muted/50 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+				class="h-8 w-full rounded-md border border-input bg-muted/50 ps-9 pe-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 				placeholder={i18n.t('ADMIN_NEXT.FLEX_OBJECTS.SEARCH')}
 				bind:value={search}
 				oninput={handleSearchInput}
@@ -299,7 +299,7 @@
 					<tr class="border-b border-border">
 						{#each columns as col}
 							<th
-								class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
+								class="px-4 py-2 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground"
 								style={col.width ? `width: ${col.width}%` : ''}
 							>
 								<button
@@ -320,7 +320,7 @@
 								</button>
 							</th>
 						{/each}
-						<th class="w-20 px-4 py-2 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">
+						<th class="w-20 px-4 py-2 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground">
 							{i18n.t('ADMIN_NEXT.FLEX_OBJECTS.ACTIONS')}
 						</th>
 					</tr>
@@ -377,7 +377,7 @@
 									{/if}
 								</td>
 							{/each}
-							<td class="px-4 py-2.5 text-right">
+							<td class="px-4 py-2.5 text-end">
 								<div class="flex items-center justify-end gap-1">
 									<button
 										type="button"

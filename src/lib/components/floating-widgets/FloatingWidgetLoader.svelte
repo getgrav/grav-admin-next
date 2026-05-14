@@ -180,7 +180,7 @@
 		{#if openWidgets[widget.id]}
 			<div
 				class="fw-panel fixed z-[60] flex flex-col overflow-hidden rounded-xl border border-border bg-popover shadow-2xl {closingWidgets[widget.id] ? 'fw-closing' : 'fw-opening'}"
-				style="width: {panelWidth}px; height: {panelHeight}px; bottom: {fabBottom + FAB_SIZE + 8}px; right: {FAB_MARGIN}px;"
+				style="width: {panelWidth}px; height: {panelHeight}px; bottom: {fabBottom + FAB_SIZE + 8}px; inset-inline-end: {FAB_MARGIN}px;"
 			>
 				{#if widget.useStandardHeader !== false}
 					<!-- Standard header — gradient + icon + title + close button -->
@@ -219,7 +219,7 @@
 			{@const dialBottom = FAB_MARGIN + (FAB_SIZE + FAB_GAP) * (i + 1)}
 			<button
 				class="fw-fab fw-dial-item fixed z-50 flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg transition-all hover:scale-105 active:scale-95 {speedDialOpen ? 'fw-dial-open' : 'fw-dial-closed'}"
-				style="bottom: {dialBottom}px; right: {FAB_MARGIN}px; background: {widget.gradient ?? DEFAULT_GRADIENT}; --dial-delay: {i * 30}ms;"
+				style="bottom: {dialBottom}px; inset-inline-end: {FAB_MARGIN}px; background: {widget.gradient ?? DEFAULT_GRADIENT}; --dial-delay: {i * 30}ms;"
 				title={widget.label}
 				onclick={() => { speedDialOpen = false; toggleWidget(widget.id, widget.plugin); }}
 				tabindex={speedDialOpen ? 0 : -1}
@@ -232,7 +232,7 @@
 		<!-- Speed dial launcher -->
 		<button
 			class="fw-fab fixed z-50 flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
-			style="bottom: {FAB_MARGIN}px; right: {FAB_MARGIN}px; background: {DEFAULT_GRADIENT};"
+			style="bottom: {FAB_MARGIN}px; inset-inline-end: {FAB_MARGIN}px; background: {DEFAULT_GRADIENT};"
 			title={speedDialOpen ? 'Close' : 'Plugin widgets'}
 			onclick={() => speedDialOpen = !speedDialOpen}
 			aria-expanded={speedDialOpen}
@@ -250,7 +250,7 @@
 			{@const fabBottom = FAB_MARGIN + i * (FAB_SIZE + FAB_GAP)}
 			<button
 				class="fw-fab fixed z-50 flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
-				style="bottom: {fabBottom}px; right: {FAB_MARGIN}px; background: {widget.gradient ?? DEFAULT_GRADIENT};"
+				style="bottom: {fabBottom}px; inset-inline-end: {FAB_MARGIN}px; background: {widget.gradient ?? DEFAULT_GRADIENT};"
 				title={widget.label}
 				onclick={() => toggleWidget(widget.id, widget.plugin)}
 			>

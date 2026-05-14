@@ -74,7 +74,7 @@
 			{#if showHint && policy && policy.rules.length > 0}
 				<button
 					type="button"
-					class="ml-auto inline-flex items-center gap-1 text-[0.6875rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
+					class="ms-auto inline-flex items-center gap-1 text-[0.6875rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
 					onclick={() => (modalOpen = true)}
 					tabindex="-1"
 					aria-label={i18n.t('ADMIN_NEXT.PASSWORD_FIELD.PASSWORD_REQUIREMENTS')}
@@ -100,7 +100,7 @@
 				if (onchange) onchange(next);
 				else value = next;
 			}}
-			class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 pr-9 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50
+			class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 pe-9 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50
 				{invalid ? 'border-red-500 ring-1 ring-red-500/30' : 'border-input'}"
 		/>
 		<button

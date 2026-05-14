@@ -130,7 +130,7 @@
 			{#if checking}
 				<div class="flex items-center justify-center px-6 py-10 text-muted-foreground">
 					<Loader2 size={16} class="animate-spin" />
-					<span class="ml-2 text-[0.8125rem]">{i18n.t('ADMIN_NEXT.SETUP.CHECKING_SERVER')}</span>
+					<span class="ms-2 text-[0.8125rem]">{i18n.t('ADMIN_NEXT.SETUP.CHECKING_SERVER')}</span>
 				</div>
 			{:else}
 				<!-- Server config (collapsible) -->
@@ -142,7 +142,7 @@
 					>
 						<Server size={13} />
 						{i18n.t('ADMIN_NEXT.SETUP.SERVER_CONFIGURATION')}
-						<ChevronDown size={13} class="ml-auto transition-transform {showServerConfig ? 'rotate-180' : ''}" />
+						<ChevronDown size={13} class="ms-auto transition-transform {showServerConfig ? 'rotate-180' : ''}" />
 					</button>
 
 					{#if showServerConfig}

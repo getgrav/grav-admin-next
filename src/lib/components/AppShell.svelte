@@ -147,10 +147,16 @@
 		<button class="fixed inset-0 z-30 bg-black/50 lg:hidden" onclick={() => mobileOpen = false} aria-label={i18n.t('ADMIN_NEXT.APP_SHELL.CLOSE_MENU')}></button>
 	{/if}
 
-	<!-- Sidebar -->
-	<aside class="fixed z-40 flex h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200 lg:relative lg:z-auto
+	<!-- Sidebar. In RTL the border lives on the inline-end (left visually) and
+		the mobile offscreen slide flips to the right edge. `border-e` is the
+		inline-end border (right in LTR, left in RTL).
+		The mobile slide-off is scoped to `max-lg:` because the `rtl:` variant
+		uses a `[dir="rtl"]` attribute selector that outranks a bare `lg:` media
+		query — without `max-lg:` the rule still wins at desktop and pushes the
+		sidebar off-screen there too. -->
+	<aside class="fixed z-40 flex h-full flex-col border-e border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200 lg:relative lg:z-auto
 		{collapsed ? 'w-[52px]' : 'w-56'}
-		{mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}">
+		{mobileOpen ? 'translate-x-0' : 'max-lg:-translate-x-full max-lg:rtl:translate-x-full lg:translate-x-0'}">
 
 		<div class="flex h-12 items-center border-b border-sidebar-border px-3">
 			<BrandLogo size="sidebar" showLabel={!collapsed} />
@@ -171,7 +177,7 @@
 							{#if !collapsed}
 								<span>{i18n.t(item.labelKey)}</span>
 								{#if item.badgeKey && navBadges.counts[item.badgeKey] != null}
-									<span class="ml-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">{navBadges.counts[item.badgeKey]}</span>
+									<span class="ms-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">{navBadges.counts[item.badgeKey]}</span>
 								{/if}
 							{/if}
 						</a>
@@ -192,7 +198,7 @@
 								{#if !collapsed}
 									<span>{item.label}</span>
 									{#if item.badge != null}
-										<span class="ml-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">{item.badge}</span>
+										<span class="ms-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">{item.badge}</span>
 									{/if}
 								{/if}
 							</a>
@@ -266,7 +272,7 @@
 				</div>
 			{/if}
 			<button
-				class="ml-auto hidden h-7 w-7 shrink-0 items-center justify-center rounded-md p-1.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground lg:flex {collapsed ? 'mx-auto' : ''}"
+				class="ms-auto hidden h-7 w-7 shrink-0 items-center justify-center rounded-md p-1.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground lg:flex {collapsed ? 'mx-auto' : ''}"
 				onclick={() => collapsed = !collapsed}
 				aria-label={collapsed ? i18n.t('ADMIN_NEXT.EXPAND_SIDEBAR') : i18n.t('ADMIN_NEXT.COLLAPSE_SIDEBAR')}>
 				{#if collapsed}
@@ -301,7 +307,7 @@
 				 by the page edit route while the doc is connected. -->
 			{#if pageEditorBar.presence}
 				{@const p = pageEditorBar.presence}
-				<div class="flex items-center gap-2 border-l border-border pl-3">
+				<div class="flex items-center gap-2 border-s border-border ps-3">
 					<PresenceAvatars peers={p.peers} clientId={p.clientId} />
 					<SyncStatusBadge
 						status={p.status}

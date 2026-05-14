@@ -208,7 +208,7 @@
 <svelte:head><link rel="icon" href={generateFavicon(theme.accentHue, theme.accentSaturation, theme.isDark)} /></svelte:head>
 
 <Toaster
-	position="bottom-right"
+	position={i18n.dir === 'rtl' ? 'bottom-left' : 'bottom-right'}
 	closeButton
 	visibleToasts={5}
 	toastOptions={{

@@ -215,7 +215,7 @@
 						{#each filteredMedia as item, i (item.filename)}
 							<button
 								type="button"
-								class="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left transition-colors
+								class="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-start transition-colors
 									{item.filename === currentValue
 										? 'bg-primary/10 text-primary'
 										: i === highlightedIndex

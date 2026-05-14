@@ -1304,7 +1304,7 @@
 				</Button>
 				{#if saveAsLanguages.length > 0}
 					<button
-						class="inline-flex h-8 items-center rounded-r-md border-l border-primary-foreground/20 bg-primary px-1.5 text-primary-foreground transition-colors hover:bg-primary/90"
+						class="inline-flex h-8 items-center rounded-r-md border-s border-primary-foreground/20 bg-primary px-1.5 text-primary-foreground transition-colors hover:bg-primary/90"
 						onclick={() => saveAsOpen = !saveAsOpen}
 						disabled={saving || loading}
 					>
@@ -1317,7 +1317,7 @@
 						<div class="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-md border border-border bg-popover py-1 shadow-md">
 							{#each saveAsLanguages as lang}
 								<button
-									class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[0.8125rem] text-popover-foreground transition-colors hover:bg-accent/50"
+									class="flex w-full items-center gap-2 px-3 py-1.5 text-start text-[0.8125rem] text-popover-foreground transition-colors hover:bg-accent/50"
 									onclick={() => handleSaveAsTranslation(lang)}
 								>
 									<Languages size={14} class="text-muted-foreground" />
@@ -1350,7 +1350,7 @@
 			<Languages size={16} class="shrink-0" />
 			<span>{@html i18n.tHtml('ADMIN_NEXT.PAGES.EDIT.FALLBACK_NOTICE', { active: contentLang.getLanguageName(contentLang.activeLang), effective: contentLang.getLanguageName(effectiveLang) })}</span>
 			{#if pageData?.untranslated_languages?.includes(contentLang.activeLang)}
-				<button class="shrink-0 ml-auto text-xs font-medium underline" onclick={() => handleSaveAsTranslation(contentLang.activeLang)}>
+				<button class="shrink-0 ms-auto text-xs font-medium underline" onclick={() => handleSaveAsTranslation(contentLang.activeLang)}>
 					{i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVE_AS_LANGUAGE', { language: contentLang.getLanguageName(contentLang.activeLang) })}
 				</button>
 			{/if}
@@ -1636,7 +1636,7 @@
 							{#if pageData.translated_languages}
 								{#each Object.keys(pageData.translated_languages) as lang}
 									<button
-										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[0.8125rem] transition-colors
+										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-[0.8125rem] transition-colors
 											{lang === contentLang.activeLang ? 'bg-accent font-medium text-accent-foreground' : 'text-foreground hover:bg-accent/50'}"
 										onclick={() => handleLanguageSwitch(lang)}
 									>
@@ -1645,7 +1645,7 @@
 										>{lang}</span>
 										{contentLang.getLanguageName(lang)}
 										{#if lang === contentLang.activeLang}
-											<span class="ml-auto text-[0.625rem] text-muted-foreground">current</span>
+											<span class="ms-auto text-[0.625rem] text-muted-foreground">current</span>
 										{/if}
 									</button>
 								{/each}
@@ -1655,7 +1655,7 @@
 								<p class="px-2 text-[0.6875rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.NOT_TRANSLATED')}</p>
 								{#each pageData.untranslated_languages as lang}
 									<button
-										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[0.8125rem] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-[0.8125rem] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 										onclick={() => handleSaveAsTranslation(lang)}
 									>
 										<span class="inline-flex h-5 w-6 items-center justify-center rounded bg-muted/50 text-[0.625rem] font-bold uppercase text-muted-foreground/50"
@@ -1669,7 +1669,7 @@
 								<p class="px-2 text-[0.6875rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.RESET_CONTENT_FROM')}</p>
 								{#each Object.keys(pageData.translated_languages).filter(l => l !== contentLang.activeLang) as lang}
 									<button
-										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[0.8125rem] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-[0.8125rem] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 										onclick={() => handleSyncFrom(lang)}
 									>
 										<span class="inline-flex h-5 w-6 items-center justify-center rounded bg-amber-500/15 text-[0.625rem] font-bold uppercase text-amber-600 dark:text-amber-400"

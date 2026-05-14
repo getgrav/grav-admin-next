@@ -131,25 +131,25 @@
 			<div class="overflow-x-auto">
 				<table class="w-full text-sm">
 					<thead>
-						<tr class="border-b border-border text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-							<th class="pb-2 pr-4">Name</th>
-							<th class="pb-2 pr-4">{i18n.t('ADMIN_NEXT.API_KEYS_FIELD.KEY_PREFIX')}</th>
-							<th class="pb-2 pr-4">{i18n.t('ADMIN_NEXT.API_KEYS_FIELD.CREATED')}</th>
-							<th class="pb-2 pr-4">{i18n.t('ADMIN_NEXT.API_KEYS_FIELD.EXPIRES')}</th>
-							<th class="pb-2 pr-4">{i18n.t('ADMIN_NEXT.API_KEYS_FIELD.LAST_USED')}</th>
+						<tr class="border-b border-border text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
+							<th class="pb-2 pe-4">Name</th>
+							<th class="pb-2 pe-4">{i18n.t('ADMIN_NEXT.API_KEYS_FIELD.KEY_PREFIX')}</th>
+							<th class="pb-2 pe-4">{i18n.t('ADMIN_NEXT.API_KEYS_FIELD.CREATED')}</th>
+							<th class="pb-2 pe-4">{i18n.t('ADMIN_NEXT.API_KEYS_FIELD.EXPIRES')}</th>
+							<th class="pb-2 pe-4">{i18n.t('ADMIN_NEXT.API_KEYS_FIELD.LAST_USED')}</th>
 							<th class="pb-2 w-16"></th>
 						</tr>
 					</thead>
 					<tbody>
 						{#each keys as key (key.id)}
 							<tr class="border-b border-border/50 last:border-0">
-								<td class="py-2.5 pr-4 font-medium text-foreground">{key.name}</td>
-								<td class="py-2.5 pr-4">
+								<td class="py-2.5 pe-4 font-medium text-foreground">{key.name}</td>
+								<td class="py-2.5 pe-4">
 									<code class="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">{key.prefix}</code>
 								</td>
-								<td class="py-2.5 pr-4 text-muted-foreground">{formatDate(key.created)}</td>
-								<td class="py-2.5 pr-4 text-muted-foreground">{formatDate(key.expires)}</td>
-								<td class="py-2.5 pr-4 text-muted-foreground">{formatDate(key.last_used)}</td>
+								<td class="py-2.5 pe-4 text-muted-foreground">{formatDate(key.created)}</td>
+								<td class="py-2.5 pe-4 text-muted-foreground">{formatDate(key.expires)}</td>
+								<td class="py-2.5 pe-4 text-muted-foreground">{formatDate(key.last_used)}</td>
 								<td class="py-2.5">
 									<button
 										type="button"
@@ -218,13 +218,13 @@
 					/>
 				</div>
 			</div>
-			<div class="flex h-9 items-center text-xs text-muted-foreground">days <span class="ml-1 italic">{i18n.t('ADMIN_NEXT.API_KEYS_FIELD.BLANK_NEVER')}</span></div>
+			<div class="flex h-9 items-center text-xs text-muted-foreground">days <span class="ms-1 italic">{i18n.t('ADMIN_NEXT.API_KEYS_FIELD.BLANK_NEVER')}</span></div>
 			<Button size="sm" onclick={handleGenerate} disabled={generating || !newKeyName.trim()}>
 				{#if generating}
-					<Loader2 size={14} class="mr-1.5 animate-spin" />
+					<Loader2 size={14} class="me-1.5 animate-spin" />
 					{i18n.t('ADMIN_NEXT.API_KEYS_FIELD.GENERATING')}
 				{:else}
-					<KeyRound size={14} class="mr-1.5" />
+					<KeyRound size={14} class="me-1.5" />
 					{i18n.t('ADMIN_NEXT.API_KEYS_FIELD.GENERATE_KEY')}
 				{/if}
 			</Button>

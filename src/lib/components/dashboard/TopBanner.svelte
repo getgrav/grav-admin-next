@@ -58,7 +58,7 @@
 		onmouseenter={stopRotation}
 		onmouseleave={startRotation}
 	>
-		<div class="relative flex items-center gap-3 px-4 py-3 pr-24">
+		<div class="relative flex items-center gap-3 px-4 py-3 pe-24">
 			{#if current.icon}
 				<span class="shrink-0 text-lg leading-none">{current.icon}</span>
 			{/if}
@@ -83,7 +83,7 @@
 
 			<div class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
 				{#if visible.length > 1}
-					<div class="flex items-center gap-0.5 mr-1">
+					<div class="flex items-center gap-0.5 me-1">
 						<button
 							type="button"
 							class="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"

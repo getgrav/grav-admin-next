@@ -38,7 +38,7 @@
 			{#if !compact}
 				<span class="hidden sm:inline">{contentLang.getLanguageName(contentLang.activeLang)}</span>
 			{/if}
-			<ChevronDown size={12} class="ml-0.5 transition-transform {open ? 'rotate-180' : ''}" />
+			<ChevronDown size={12} class="ms-0.5 transition-transform {open ? 'rotate-180' : ''}" />
 		</button>
 
 		{#if open}
@@ -51,7 +51,7 @@
 				{#each contentLang.languages as lang}
 					{@const isTranslated = !translatedLangs || translatedLangs.includes(lang.code)}
 					<button
-						class="flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[0.8125rem] transition-colors
+						class="flex w-full items-center gap-2.5 px-3 py-1.5 text-start text-[0.8125rem] transition-colors
 							{lang.code === contentLang.activeLang
 								? 'bg-accent text-accent-foreground font-medium'
 								: 'text-popover-foreground hover:bg-accent/50'}"
@@ -66,9 +66,9 @@
 						>{lang.code}</span>
 						<span class={isTranslated ? '' : 'text-muted-foreground/60'}>{lang.native_name || lang.name}</span>
 						{#if !isTranslated}
-							<span class="ml-auto text-[0.625rem] italic text-muted-foreground/50">{i18n.t('ADMIN_NEXT.LANG.NOT_TRANSLATED')}</span>
+							<span class="ms-auto text-[0.625rem] italic text-muted-foreground/50">{i18n.t('ADMIN_NEXT.LANG.NOT_TRANSLATED')}</span>
 						{:else if lang.is_default}
-							<span class="ml-auto text-[0.625rem] text-muted-foreground">default</span>
+							<span class="ms-auto text-[0.625rem] text-muted-foreground">default</span>
 						{/if}
 					</button>
 				{/each}

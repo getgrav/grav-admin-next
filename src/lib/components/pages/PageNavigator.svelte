@@ -100,7 +100,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	class="fixed z-50 select-none"
-	style="bottom: {80 - pos.y}px; right: {80 - pos.x}px;"
+	style="bottom: {80 - pos.y}px; inset-inline-end: {80 - pos.x}px;"
 >
 	<div class="nav-pad relative h-[110px] w-[110px] rounded-full border-2 border-primary/40 bg-card shadow-xl ring-1 ring-primary/10 overflow-hidden">
 

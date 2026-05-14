@@ -31,9 +31,9 @@
 	</div>
 
 	<!-- Type -->
-	<div class="hidden w-20 text-right sm:block">
+	<div class="hidden w-20 text-end sm:block">
 		<button
-			class="ml-auto flex items-center gap-1 text-[0.6875rem] font-medium uppercase tracking-wider transition-colors
+			class="ms-auto flex items-center gap-1 text-[0.6875rem] font-medium uppercase tracking-wider transition-colors
 				{sortField === 'type' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => toggleSort('type')}
 		>
@@ -45,9 +45,9 @@
 	</div>
 
 	<!-- Size -->
-	<div class="w-16 text-right">
+	<div class="w-16 text-end">
 		<button
-			class="ml-auto flex items-center gap-1 text-[0.6875rem] font-medium uppercase tracking-wider transition-colors
+			class="ms-auto flex items-center gap-1 text-[0.6875rem] font-medium uppercase tracking-wider transition-colors
 				{sortField === 'size' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => toggleSort('size')}
 		>
@@ -59,9 +59,9 @@
 	</div>
 
 	<!-- Date -->
-	<div class="hidden w-24 text-right md:block">
+	<div class="hidden w-24 text-end md:block">
 		<button
-			class="ml-auto flex items-center gap-1 text-[0.6875rem] font-medium uppercase tracking-wider transition-colors
+			class="ms-auto flex items-center gap-1 text-[0.6875rem] font-medium uppercase tracking-wider transition-colors
 				{sortField === 'modified' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => toggleSort('modified')}
 		>
