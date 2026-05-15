@@ -19,7 +19,7 @@
 	import AppShell from '$lib/components/AppShell.svelte';
 	import GlobalDialogs from '$lib/components/ui/GlobalDialogs.svelte';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
-	import { Toaster } from 'svelte-sonner';
+	import { Toaster, toast } from 'svelte-sonner';
 
 	let { children } = $props();
 
@@ -154,6 +154,19 @@
 		if (typeof window === 'undefined') return;
 		window.__GRAV_DIALOGS = {
 			confirm: (options) => dialogs.confirm(options),
+		};
+	});
+
+	// Expose the svelte-sonner toast API to plugin web components so they can post
+	// success/error/info notifications through the admin's own toaster instead of
+	// rolling their own. All four levels mirror sonner's signature (text + options).
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+		window.__GRAV_TOAST = {
+			success: (msg, opts) => toast.success(msg, opts),
+			error:   (msg, opts) => toast.error(msg, opts),
+			info:    (msg, opts) => toast.info(msg, opts),
+			warning: (msg, opts) => toast.warning(msg, opts),
 		};
 	});
 

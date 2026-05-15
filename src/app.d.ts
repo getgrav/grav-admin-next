@@ -31,6 +31,12 @@ declare global {
 				variant?: 'destructive' | 'default';
 			}) => Promise<boolean>;
 		};
+		__GRAV_TOAST: {
+			success: (message: string, options?: Record<string, unknown>) => void;
+			error: (message: string, options?: Record<string, unknown>) => void;
+			info: (message: string, options?: Record<string, unknown>) => void;
+			warning: (message: string, options?: Record<string, unknown>) => void;
+		};
 		__GRAV_ADMIN_BASE: string;
 		__GRAV_NAVIGATE: (
 			url: string,
