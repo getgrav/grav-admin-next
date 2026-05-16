@@ -14,8 +14,15 @@
 	let { field, value, onchange }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
+	// Opt-out of the password-strength UI for fields that aren't user passwords —
+	// API keys, tokens, webhook secrets, etc. don't have a meaningful "strength"
+	// and the policy hints just clutter the form. Blueprint authors set
+	// `password_policy: false` to disable the meter + hint while keeping the
+	// type:password masking and eye-reveal toggle from ui/PasswordField.
+	const enforcePolicy = $derived((field as unknown as { password_policy?: boolean }).password_policy !== false);
+
 	$effect(() => {
-		passwordPolicy.load().catch(() => {});
+		if (enforcePolicy) passwordPolicy.load().catch(() => {});
 	});
 
 	const current = $derived((value as string | null | undefined) ?? '');
@@ -43,11 +50,11 @@
 			label=""
 			value={current}
 			onchange={(v) => onchange(v)}
-			policy={passwordPolicy.current}
+			policy={enforcePolicy ? passwordPolicy.current : undefined}
 			autocomplete="new-password"
 			placeholder={field.placeholder}
-			showMeter={true}
-			showHint={true}
+			showMeter={enforcePolicy}
+			showHint={enforcePolicy}
 		/>
 	</div>
 </div>
