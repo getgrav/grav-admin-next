@@ -735,6 +735,14 @@
 			const status = err && typeof err === 'object' && 'status' in err
 				? (err as { status: number }).status : 0;
 			if (status === 403) {
+				// security.twig_content.* gate: the API returns title=TWIG_CONTENT_*.
+				// Show the detail as a toast in addition to the AccessDenied screen so
+				// the editor knows why this page is blocked, not just that it is.
+				const apiErr = err as { error?: { title?: string; detail?: string } };
+				const title = apiErr?.error?.title;
+				if (typeof title === 'string' && title.startsWith('TWIG_CONTENT_')) {
+					toast.error(apiErr.error?.detail ?? title);
+				}
 				accessDenied = true;
 			} else if (status === 404) {
 				error = `Page not found: ${route}`;

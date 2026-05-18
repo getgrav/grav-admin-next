@@ -56,6 +56,17 @@
 		return val !== null && val !== undefined;
 	}
 
+	// When a toggleable field is OFF, the actual page value is null —
+	// but we want the inner field to render its blueprint default so the
+	// user can see what they'd be inheriting (matches classic admin's
+	// "ghosted default" affordance). Bypassed once the toggle flips on,
+	// where the real value (which `toggleField` initialised to the
+	// default) is authoritative again.
+	function displayValue(f: BlueprintField, toggled: boolean): unknown {
+		if (f.toggleable && !toggled) return f.default ?? null;
+		return getValue(f.name);
+	}
+
 	function toggleField(name: string, fieldDef: BlueprintField) {
 		if (isToggleOn(fieldDef)) {
 			// Toggling OFF — send null so JSON.stringify preserves it
@@ -118,7 +129,7 @@
 					<div class="transition-opacity {childField.toggleable && !toggled ? 'pointer-events-none opacity-50' : ''}">
 						<FieldRenderer
 							field={childField}
-							value={getValue(childField.name)}
+							value={displayValue(childField, toggled)}
 							onchange={(val) => onFieldChange(childField.name, val)}
 							oncommit={onFieldCommit ? (val: unknown, old?: unknown) => onFieldCommit(childField.name, val, old) : undefined}
 							{getValue}
@@ -150,7 +161,7 @@
 										{#if filter}
 											{@html highlight(translateLabel(childField.help))}
 										{:else}
-											{translateLabel(childField.help)}
+											{@html translateLabel(childField.help)}
 										{/if}
 									</p>
 								{/if}
@@ -159,7 +170,7 @@
 						<div class="transition-opacity {childField.toggleable && !toggled ? 'pointer-events-none opacity-50' : ''}">
 							<FieldRenderer
 								field={{ ...childField, label: undefined, help: undefined }}
-								value={getValue(childField.name)}
+								value={displayValue(childField, toggled)}
 								onchange={(val) => onFieldChange(childField.name, val)}
 								oncommit={onFieldCommit ? (val: unknown, old?: unknown) => onFieldCommit(childField.name, val, old) : undefined}
 								{getValue}

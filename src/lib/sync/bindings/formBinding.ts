@@ -388,9 +388,17 @@ export function createFormBinding(opts: FormBindingOptions): FormBinding {
 
 function cloneJson<T>(v: T): T {
 	if (v === null || typeof v !== 'object') return v;
-	// structuredClone handles Dates, Maps, Sets, nested — good enough for
-	// blueprint values which are all JSON-serializable anyway.
-	return structuredClone(v);
+	// structuredClone handles Dates, Maps, Sets, nested. It throws
+	// DataCloneError on Svelte $state proxies and other non-cloneable
+	// shapes that can sneak in via `fieldDef.default` on toggleable
+	// fields whose default is an object. JSON round-trip is the
+	// safe fallback: blueprint values are all JSON-serializable, and
+	// the result is a plain object the Y.Map can store cleanly.
+	try {
+		return structuredClone(v);
+	} catch {
+		return JSON.parse(JSON.stringify(v)) as T;
+	}
 }
 
 function equalJson(a: unknown, b: unknown): boolean {

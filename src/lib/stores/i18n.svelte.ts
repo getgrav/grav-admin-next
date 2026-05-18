@@ -40,6 +40,14 @@ function createI18nStore() {
 	let checksum = $state(cached?.checksum ?? '');
 	let loading = $state(false);
 	let loaded = $state(!!cached);
+	// True after the first successful network load of this session. Until then
+	// our state is hydrated from localStorage and may be stale in ways the
+	// {lang, dir, checksum} triple doesn't catch — e.g. a prior build that
+	// persisted partial strings under a checksum that coincidentally still
+	// matches the server (the symptom: admin boots with humanized fallbacks
+	// until the user switches language and back). Force a state replace on
+	// the first load so the upgrade path always re-syncs.
+	let freshlyLoaded = false;
 
 	// Compiled IntlMessageFormat instances, keyed by `${lang}::${icuKey}`.
 	// Cleared whenever language or strings change so stale formatters don't leak.
@@ -257,7 +265,8 @@ function createI18nStore() {
 		try {
 			const data = await getTranslations(targetLang);
 
-			if (data.checksum !== checksum || data.lang !== lang || data.dir !== dir) {
+			const stateMatches = data.checksum === checksum && data.lang === lang && data.dir === dir;
+			if (!freshlyLoaded || !stateMatches) {
 				const langChanged = data.lang !== lang;
 				lang = data.lang;
 				dir = data.dir ?? 'ltr';
@@ -269,6 +278,7 @@ function createI18nStore() {
 				if (langChanged) notifyLocaleChanged();
 			}
 
+			freshlyLoaded = true;
 			loaded = true;
 		} catch {
 			if (!loaded && cached) {
