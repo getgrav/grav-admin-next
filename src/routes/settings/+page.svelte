@@ -28,7 +28,7 @@
 	// hardcoded list. English fallback covers the case where the API call
 	// hasn't returned yet or fails outright.
 	let adminLanguages = $state<AdminLanguageInfo[]>([
-		{ code: 'en', name: 'English', native_name: 'English', rtl: false },
+		{ code: 'en-US', name: 'English (US)', native_name: 'English (US)', rtl: false },
 	]);
 	$effect(() => {
 		getAdminLanguages()
@@ -741,7 +741,7 @@
 									</div>
 									<select
 										class="flex h-9 max-w-48 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-										value={siteDraft.adminLanguage ?? 'en'}
+										value={siteDraft.adminLanguage ?? 'en-US'}
 										onchange={(e) => siteDraft = { ...siteDraft, adminLanguage: (e.target as HTMLSelectElement).value }}
 									>
 										{#each adminLanguages as lang (lang.code)}

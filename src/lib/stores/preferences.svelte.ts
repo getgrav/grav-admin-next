@@ -1,6 +1,7 @@
 import { scopedKey } from '$lib/utils/scopedStorage';
 import { queueUserPatch, onPreferencesUpdated } from './_serverSync';
 import { loadBootCache, saveBootCache } from './_bootCache';
+import { normalizeLang } from '$lib/i18n/normalize';
 import {
 	getPreferences,
 	resetUserPreferences as apiResetUserPreferences,
@@ -115,7 +116,7 @@ const BUILTIN_DEFAULTS: EffectivePreferences = {
 	fontFamily: 'google-sans',
 	fontSize: 'normal',
 	editorMode: 'normal',
-	adminLanguage: 'en',
+	adminLanguage: 'en-US',
 	pagesPerPage: 20,
 	pagesViewMode: 'tree',
 	// Tier A2 (site-only behavioral)
@@ -177,7 +178,7 @@ function createPreferencesStore() {
 		fontFamily = eff.fontFamily;
 		fontSize = eff.fontSize;
 		editorMode = eff.editorMode;
-		adminLanguage = eff.adminLanguage;
+		adminLanguage = normalizeLang(eff.adminLanguage);
 		pagesPerPage = eff.pagesPerPage;
 		pagesViewMode = eff.pagesViewMode;
 		// Tier A2
@@ -271,7 +272,11 @@ function createPreferencesStore() {
 		set editorMode(v: EditorMode) { editorMode = v; patchUser('editorMode', v); },
 
 		get adminLanguage() { return adminLanguage; },
-		set adminLanguage(v: string) { adminLanguage = v; patchUser('adminLanguage', v); },
+		set adminLanguage(v: string) {
+			const canonical = normalizeLang(v);
+			adminLanguage = canonical;
+			patchUser('adminLanguage', canonical);
+		},
 
 		get pagesPerPage() { return pagesPerPage; },
 		set pagesPerPage(v: number) { pagesPerPage = v; patchUser('pagesPerPage', v); },

@@ -45,7 +45,7 @@
 	// never see new keys added to language YAML files.
 	//
 	// Gate on `prefs.loaded` so we pass the user's `adminLanguage` into load().
-	// Without this gate, load() runs with the builtin default ('en') and the
+	// Without this gate, load() runs with the builtin default ('en-US') and the
 	// admin boots in English regardless of what the user picked in preferences.
 	let i18nLoadedThisSession = $state(false);
 	$effect(() => {

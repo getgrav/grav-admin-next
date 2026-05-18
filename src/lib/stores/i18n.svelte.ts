@@ -1,7 +1,7 @@
 import { IntlMessageFormat } from 'intl-messageformat';
 import { marked } from 'marked';
 import { getTranslations } from '$lib/api/endpoints/translations';
-import { getLocalStrings } from '$lib/i18n';
+import { DEFAULT_LANG, getLocalStrings, normalizeLang } from '$lib/i18n';
 import { scopedKey } from '$lib/utils/scopedStorage';
 
 // v2 cache key: shape grew a `dir` field. Old v1 entries (no dir) are ignored.
@@ -32,10 +32,11 @@ function loadCached(): CachedTranslations | null {
 
 function createI18nStore() {
 	const cached = loadCached();
+	const cachedLang = normalizeLang(cached?.lang ?? DEFAULT_LANG);
 
-	let lang = $state(cached?.lang ?? 'en');
+	let lang = $state(cachedLang);
 	let dir = $state<Direction>(cached?.dir ?? 'ltr');
-	let strings = $state<Record<string, string>>({ ...getLocalStrings(cached?.lang ?? 'en'), ...(cached?.strings ?? {}) });
+	let strings = $state<Record<string, string>>({ ...getLocalStrings(cachedLang), ...(cached?.strings ?? {}) });
 	let checksum = $state(cached?.checksum ?? '');
 	let loading = $state(false);
 	let loaded = $state(!!cached);
@@ -250,7 +251,7 @@ function createI18nStore() {
 	 * Load translations from the API. Uses checksum to skip if already current.
 	 */
 	async function load(language?: string) {
-		const targetLang = language ?? lang;
+		const targetLang = normalizeLang(language ?? lang);
 		loading = true;
 
 		try {
@@ -283,7 +284,7 @@ function createI18nStore() {
 	 * Merges with any existing strings without replacing them.
 	 */
 	async function loadPrefix(prefix: string, language?: string) {
-		const targetLang = language ?? lang;
+		const targetLang = normalizeLang(language ?? lang);
 		try {
 			const data = await getTranslations(targetLang, prefix);
 			const langChanged = data.lang !== lang;
@@ -310,8 +311,9 @@ function createI18nStore() {
 	 * Switch to a different language.
 	 */
 	async function setLanguage(language: string) {
-		if (language === lang && loaded) return;
-		await load(language);
+		const canonical = normalizeLang(language);
+		if (canonical === lang && loaded) return;
+		await load(canonical);
 	}
 
 	/**
