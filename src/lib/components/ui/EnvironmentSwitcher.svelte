@@ -2,7 +2,8 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { configEnv } from '$lib/stores/configEnvironment.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
-	import { ChevronDown, Plus, Check } from 'lucide-svelte';
+	import { canWrite } from '$lib/utils/permissions';
+	import { ChevronDown, Plus, Check, Trash2 } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
 	import { onMount, tick } from 'svelte';
 
@@ -11,6 +12,8 @@
 	let showCreateInput = $state(false);
 	let newName = $state('');
 	let createInputEl: HTMLInputElement | undefined = $state();
+	let confirmDelete = $state<string | null>(null);
+	let deleting = $state(false);
 
 	onMount(() => {
 		configEnv.load().catch(() => { /* non-fatal */ });
@@ -57,9 +60,27 @@
 		}
 	}
 
+	async function submitDelete(name: string) {
+		deleting = true;
+		try {
+			await configEnv.deleteEnvironment(name);
+			toast.success(i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.ENV_DELETED', { name }));
+			confirmDelete = null;
+		} catch (e) {
+			const msg = e && typeof e === 'object' && 'message' in e
+				? (e as { message: string }).message
+				: i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.FAILED_TO_DELETE');
+			toast.error(msg);
+		} finally {
+			deleting = false;
+		}
+	}
+
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') {
-			if (showCreateInput) {
+			if (confirmDelete) {
+				confirmDelete = null;
+			} else if (showCreateInput) {
 				showCreateInput = false;
 			} else {
 				open = false;
@@ -67,6 +88,7 @@
 		}
 	}
 
+	const canManage = $derived(canWrite('config'));
 	const badgeLabel = $derived(configEnv.target === '' ? i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.DEFAULT') : configEnv.target);
 	const targetIsMissing = $derived(
 		configEnv.target !== '' &&
@@ -101,26 +123,61 @@
 			</div>
 
 			{#each configEnv.environments as env}
-				<button
-					type="button"
-					class="flex w-full items-center gap-2 px-3 py-1.5 text-start text-[0.8125rem] transition-colors
-						{env.name === configEnv.target
-							? 'bg-accent text-accent-foreground font-medium'
-							: 'text-popover-foreground hover:bg-accent/50'}"
-					onclick={() => select(env.name)}
-				>
-					<span class="flex h-4 w-4 items-center justify-center">
-						{#if env.name === configEnv.target}
-							<Check size={13} />
+				{#if confirmDelete === env.name}
+					<div class="flex w-full items-center gap-2 bg-destructive/10 px-3 py-1.5 text-[0.75rem]">
+						<span class="flex-1 text-destructive">
+							{env.hasOverrides
+								? i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.CONFIRM_DELETE_WITH_OVERRIDES', { name: env.name })
+								: i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.CONFIRM_DELETE', { name: env.name })}
+						</span>
+						<button
+							type="button"
+							class="h-6 rounded px-2 text-[0.6875rem] text-muted-foreground hover:bg-muted disabled:opacity-50"
+							disabled={deleting}
+							onclick={() => confirmDelete = null}
+						>{i18n.t('ADMIN_NEXT.CANCEL')}</button>
+						<button
+							type="button"
+							class="h-6 rounded bg-destructive px-2 text-[0.6875rem] font-medium text-destructive-foreground disabled:opacity-50"
+							disabled={deleting}
+							onclick={() => submitDelete(env.name)}
+						>{deleting ? '…' : i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.DELETE')}</button>
+					</div>
+				{:else}
+					<div class="group flex w-full items-stretch">
+						<button
+							type="button"
+							class="flex flex-1 items-center gap-2 px-3 py-1.5 text-start text-[0.8125rem] transition-colors
+								{env.name === configEnv.target
+									? 'bg-accent text-accent-foreground font-medium'
+									: 'text-popover-foreground hover:bg-accent/50'}"
+							onclick={() => select(env.name)}
+						>
+							<span class="flex h-4 w-4 items-center justify-center">
+								{#if env.name === configEnv.target}
+									<Check size={13} />
+								{/if}
+							</span>
+							<span class="flex-1">{env.label}</span>
+							{#if env.hasOverrides}
+								<span class="text-[0.625rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.HAS_OVERRIDES')}</span>
+							{/if}
+						</button>
+						{#if canManage && env.name !== '' && env.name !== configEnv.detected}
+							<button
+								type="button"
+								class="flex items-center px-2 text-muted-foreground/60 opacity-0 transition hover:text-destructive group-hover:opacity-100"
+								title={i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.DELETE_ENV_TOOLTIP', { name: env.name })}
+								onclick={() => confirmDelete = env.name}
+							>
+								<Trash2 size={13} />
+							</button>
 						{/if}
-					</span>
-					<span class="flex-1">{env.label}</span>
-					{#if env.hasOverrides}
-						<span class="text-[0.625rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.HAS_OVERRIDES')}</span>
-					{/if}
-				</button>
+					</div>
+				{/if}
 			{/each}
 
+			{#if canManage}
 			<div class="mt-1 border-t border-border pt-1">
 				{#if !showCreateInput}
 					<button
@@ -157,6 +214,7 @@
 					</p>
 				{/if}
 			</div>
+			{/if}
 
 			{#if targetIsMissing}
 				<div class="mt-1 border-t border-border px-3 py-1.5 text-[0.6875rem] text-destructive">

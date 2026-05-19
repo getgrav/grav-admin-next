@@ -2,6 +2,7 @@ import { scopedKey } from '$lib/utils/scopedStorage';
 import {
 	getEnvironments,
 	createEnvironment as apiCreateEnv,
+	deleteEnvironment as apiDeleteEnv,
 	type EnvironmentEntry,
 	type EnvironmentList,
 } from '$lib/api/endpoints/environments';
@@ -64,9 +65,27 @@ function createStore() {
 
 	async function createAndSelect(name: string): Promise<EnvironmentEntry> {
 		const entry = await apiCreateEnv(name);
-		await load();
+		// Append optimistically and select immediately so the toast fires
+		// without waiting on a refetch. The POST response sets
+		// X-Invalidates: system:environments, which the switcher's
+		// invalidation subscriber then turns into a background reload.
+		if (!environments.some((e) => e.name === entry.name)) {
+			environments = [...environments, entry];
+		}
 		setTarget(entry.name);
 		return entry;
+	}
+
+	async function deleteEnvironment(name: string): Promise<void> {
+		await apiDeleteEnv(name);
+		// Drop locally so the row disappears immediately; the X-Invalidates
+		// header on the DELETE response will reconcile in the background.
+		environments = environments.filter((e) => e.name !== name);
+		// If the deleted env was the active write target, fall back to base.
+		if (target === name) {
+			target = '';
+			persist();
+		}
 	}
 
 	return {
@@ -81,6 +100,7 @@ function createStore() {
 		load,
 		setTarget,
 		createAndSelect,
+		deleteEnvironment,
 	};
 }
 

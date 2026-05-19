@@ -19,3 +19,7 @@ export async function getEnvironments(): Promise<EnvironmentList> {
 export async function createEnvironment(name: string): Promise<EnvironmentEntry> {
 	return api.post<EnvironmentEntry>('/system/environments', { name });
 }
+
+export async function deleteEnvironment(name: string): Promise<void> {
+	await api.delete<void>(`/system/environments/${encodeURIComponent(name)}`);
+}
