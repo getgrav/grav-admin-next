@@ -277,9 +277,14 @@
 		const unsubUsers = invalidations.subscribe('users:*', () => loadDashboard({ silent: true }));
 		const unsubPlugins = invalidations.subscribe('plugins:*', () => loadDashboard({ silent: true }));
 		const unsubGpm = invalidations.subscribe('gpm:*', () => loadDashboard({ silent: true }));
+		// Config saves elsewhere in the admin (system.yaml, plugin configs, etc.)
+		// can change anything the dashboard reads — cache status, language list
+		// shown by widgets, system-health flags. Refetch silently so the
+		// dashboard doesn't strand stale data behind a hard reload.
+		const unsubConfig = invalidations.subscribe('config:update', () => loadDashboard({ silent: true }));
 		return () => {
 			poller.stop();
-			unsubPages(); unsubUsers(); unsubPlugins(); unsubGpm();
+			unsubPages(); unsubUsers(); unsubPlugins(); unsubGpm(); unsubConfig();
 		};
 	});
 </script>

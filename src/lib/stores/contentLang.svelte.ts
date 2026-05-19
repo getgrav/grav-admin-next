@@ -1,5 +1,6 @@
 import { getSiteLanguages, type LanguageInfo } from '$lib/api/endpoints/languages';
 import { scopedKey } from '$lib/utils/scopedStorage';
+import { invalidations } from './invalidation.svelte';
 
 const STORAGE_KEY = scopedKey('grav_admin_content_lang');
 
@@ -50,6 +51,15 @@ function createContentLangStore() {
 		} finally {
 			loading = false;
 		}
+	}
+
+	// system.yaml owns `languages.supported` and `languages.default_lang` —
+	// when a Save to /config/system lands the API emits config:update:system
+	// and we refetch so the in-memory language list, default, and active lang
+	// catch up without a hard reload. Subscribe once at module init; the bus
+	// is fine with a subscriber that fires before the first load() call.
+	if (typeof window !== 'undefined') {
+		invalidations.subscribe('config:update:system', () => { load(); });
 	}
 
 	function setLanguage(lang: string) {

@@ -1775,7 +1775,7 @@
 											{lang === contentLang.activeLang ? 'bg-accent font-medium text-accent-foreground' : 'text-foreground hover:bg-accent/50'}"
 										onclick={() => handleLanguageSwitch(lang)}
 									>
-										<span class="inline-flex h-5 items-center justify-center rounded px-[2px] text-[0.625rem] font-bold uppercase
+										<span class="inline-flex h-5 shrink-0 items-center justify-center whitespace-nowrap rounded px-[2px] text-[0.625rem] font-bold uppercase
 											{lang === contentLang.activeLang ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}"
 										>{lang}</span>
 										{contentLang.getLanguageName(lang)}
@@ -1793,7 +1793,7 @@
 										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-[0.8125rem] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 										onclick={() => handleSaveAsTranslation(lang)}
 									>
-										<span class="inline-flex h-5 items-center justify-center rounded bg-muted/50 px-[2px] text-[0.625rem] font-bold uppercase text-muted-foreground/50"
+										<span class="inline-flex h-5 shrink-0 items-center justify-center whitespace-nowrap rounded bg-muted/50 px-[2px] text-[0.625rem] font-bold uppercase text-muted-foreground/50"
 										>{lang}</span>
 										<span class="italic">{i18n.t('ADMIN_NEXT.PAGES.EDIT.CREATE_LANGUAGE', { language: contentLang.getLanguageName(lang) })}</span>
 									</button>
@@ -1807,7 +1807,7 @@
 										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-[0.8125rem] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 										onclick={() => handleSyncFrom(lang)}
 									>
-										<span class="inline-flex h-5 items-center justify-center rounded bg-amber-500/15 px-[2px] text-[0.625rem] font-bold uppercase text-amber-600 dark:text-amber-400"
+										<span class="inline-flex h-5 shrink-0 items-center justify-center whitespace-nowrap rounded bg-amber-500/15 px-[2px] text-[0.625rem] font-bold uppercase text-amber-600 dark:text-amber-400"
 										>{lang}</span>
 										{i18n.t('ADMIN_NEXT.PAGES.EDIT.RESET_FROM', { language: contentLang.getLanguageName(lang) })}
 									</button>
