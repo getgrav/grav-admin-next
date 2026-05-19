@@ -170,6 +170,13 @@
 	let originalTitle = '';
 	let originalContent = '';
 	let originalTemplate = '';
+	// Snapshots for blueprint Settings fields that live at the root of the
+	// form data (not under `header.*`). Compared against headerData in
+	// hasChanges and used to build the movePage payload on save.
+	let originalFolder = '';
+	let originalParent = '';
+	let originalOrdering = false;
+	let originalOrder: string | null = null;
 
 	// Cheap deep-equal for blueprint values, which are always plain
 	// JSON-serializable (strings, numbers, booleans, arrays, plain objects).
@@ -574,7 +581,15 @@
 			const parsed = yaml.load(expertFrontmatter) as Record<string, unknown>;
 			if (parsed && typeof parsed === 'object') {
 				title = (parsed.title as string) ?? title;
-				headerData = { header: { ...parsed }, content, folder: pageData?.slug ?? '', name: template };
+				headerData = {
+					header: { ...parsed },
+					content,
+					folder: pageData?.slug ?? '',
+					name: template,
+					route: originalParent,
+					ordering: originalOrdering,
+					order: originalOrder,
+				};
 				// Only stage keys whose Expert-edited value differs from the
 				// original snapshot. Pre-seeding every parsed key (as the old
 				// code did) marked the form dirty on Expert→Normal even when
@@ -596,6 +611,18 @@
 		prefs.editorMode = 'normal';
 	}
 
+	// Blueprint Settings fields (folder, parent, ordering, order) live at the
+	// root of the form data, not under `header.*`, so handleBlueprintChange
+	// can't fold them into headerChanges. Diff them directly against snapshots.
+	let normalMoveDirty = $derived(
+		pageData !== null && prefs.editorMode === 'normal' && (
+			(headerData.folder ?? originalFolder) !== originalFolder ||
+			(headerData.route ?? originalParent) !== originalParent ||
+			(headerData.ordering ?? originalOrdering) !== originalOrdering ||
+			(headerData.order ?? originalOrder) !== originalOrder
+		)
+	);
+
 	let hasChanges = $derived(
 		pageData !== null && (
 			content !== (pageData.content ?? '') ||
@@ -604,7 +631,7 @@
 				? expertFrontmatter !== expertFrontmatterOriginal ||
 				  expertSlug !== pageData.slug ||
 				  expertParent !== deriveParent(pageData.route, pageData.slug)
-				: title !== pageData.title || Object.keys(headerChanges).length > 0)
+				: title !== pageData.title || Object.keys(headerChanges).length > 0 || normalMoveDirty)
 		)
 	);
 
@@ -702,7 +729,19 @@
 			title = data.title;
 			content = data.content ?? '';
 			template = data.template;
-			headerData = { header: { ...data.header ?? {}, title: data.title }, content: data.content ?? '', folder: data.slug, name: data.template };
+			const initialParent = deriveParent(data.route, data.slug);
+			const initialOrdering = data.order !== null && data.order !== '';
+			headerData = {
+				header: { ...data.header ?? {}, title: data.title },
+				content: data.content ?? '',
+				folder: data.slug,
+				name: data.template,
+				// `route` is the Grav blueprint field name for the parent picker
+				// (type: parents). It's the parent's route, not the page's route.
+				route: initialParent,
+				ordering: initialOrdering,
+				order: data.order,
+			};
 			headerYaml = JSON.stringify(data.header ?? {}, null, 2);
 			expertFrontmatter = yaml.dump({ ...(data.header ?? {}), title: data.title }, { lineWidth: -1, noRefs: true }).trimEnd();
 			expertFrontmatterOriginal = expertFrontmatter;
@@ -714,6 +753,10 @@
 			originalTitle = data.title;
 			originalContent = data.content ?? '';
 			originalTemplate = data.template;
+			originalFolder = data.slug;
+			originalParent = initialParent;
+			originalOrdering = initialOrdering;
+			originalOrder = data.order;
 			headerChanges = {};
 
 			// Initialize expert advanced state (strip any leading periods from slug)
@@ -883,7 +926,22 @@
 				expertParent !== deriveParent(pageData.route, pageData.slug)
 			);
 
-			if (Object.keys(body).length === 0 && !expertNeedsMove) {
+			// Normal mode: detect Settings panel changes (folder / parent /
+			// ordering / order). These don't go in the PATCH body — they
+			// require a separate movePage call after content/header is saved.
+			const normalFolder = (headerData.folder as string | undefined) ?? originalFolder;
+			const normalParent = (headerData.route as string | undefined) ?? originalParent;
+			const normalOrdering = !!(headerData.ordering ?? originalOrdering);
+			const rawOrder = headerData.order as string | number | null | undefined;
+			const normalOrder = rawOrder === undefined ? originalOrder : (rawOrder === null || rawOrder === '' ? null : String(rawOrder));
+			const normalNeedsMove = prefs.editorMode === 'normal' && pageData && (
+				normalFolder !== originalFolder ||
+				normalParent !== originalParent ||
+				normalOrdering !== originalOrdering ||
+				normalOrder !== originalOrder
+			);
+
+			if (Object.keys(body).length === 0 && !expertNeedsMove && !normalNeedsMove) {
 				toast.info(i18n.t('ADMIN_NEXT.NO_CHANGES'));
 				return;
 			}
@@ -899,7 +957,17 @@
 				title = updated.title;
 				content = updated.content ?? content;
 				template = updated.template;
-				headerData = { header: { ...updated.header ?? {}, title: updated.title }, content: updated.content ?? '', folder: updated.slug, name: updated.template };
+				const refreshedParent = deriveParent(updated.route, updated.slug);
+				const refreshedOrdering = updated.order !== null && updated.order !== '';
+				headerData = {
+					header: { ...updated.header ?? {}, title: updated.title },
+					content: updated.content ?? '',
+					folder: updated.slug,
+					name: updated.template,
+					route: refreshedParent,
+					ordering: refreshedOrdering,
+					order: updated.order,
+				};
 				headerChanges = {};
 
 				// Reset baselines so subsequent edits diff against the just-saved state
@@ -907,6 +975,10 @@
 				originalTitle = updated.title;
 				originalContent = updated.content ?? '';
 				originalTemplate = updated.template;
+				originalFolder = updated.slug;
+				originalParent = refreshedParent;
+				originalOrdering = refreshedOrdering;
+				originalOrder = updated.order;
 
 				// Reload blueprint if template changed
 				if (body.template) {
@@ -941,6 +1013,60 @@
 				expertParent = deriveParent(moved.route, moved.slug);
 				expertFrontmatterOriginal = expertFrontmatter;
 				headerChanges = {};
+
+				if (moved.route !== route) {
+					toast.success(i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_SAVED_AND_MOVED'));
+					guard.bypass();
+					const newEditRoute = moved.route.startsWith('/') ? moved.route.slice(1) : moved.route;
+					goto(`${base}/pages/edit/${newEditRoute}`, { replaceState: true });
+					saving = false;
+					return;
+				}
+				await loadPage();
+			}
+
+			// Phase 2 (normal mode): Move page if folder / parent / ordering
+			// / order changed. Mirrors the expert-mode branch but reads from
+			// the blueprint Settings panel state in headerData.
+			if (normalNeedsMove && pageData) {
+				const moveBody: { parent: string; slug?: string; order?: number | null } = {
+					parent: normalParent,
+				};
+				if (normalFolder !== originalFolder) moveBody.slug = normalFolder;
+				if (normalOrdering !== originalOrdering || normalOrder !== originalOrder) {
+					if (!normalOrdering) {
+						moveBody.order = null;
+					} else {
+						// Toggling ordering on: prefer the existing stored order;
+						// fall back to position 1 so the folder actually gains
+						// the NN. prefix the user just asked for.
+						const parsed = normalOrder !== null && normalOrder !== '' ? parseInt(normalOrder, 10) : NaN;
+						moveBody.order = Number.isNaN(parsed) ? 1 : parsed;
+					}
+				}
+
+				const moved = await movePage(route, moveBody);
+
+				const movedParent = deriveParent(moved.route, moved.slug);
+				const movedOrdering = moved.order !== null && moved.order !== '';
+				pageData = moved;
+				title = moved.title ?? title;
+				content = moved.content ?? content;
+				template = moved.template ?? template;
+				headerData = {
+					header: { ...moved.header ?? {}, title: moved.title },
+					content: moved.content ?? '',
+					folder: moved.slug,
+					name: moved.template,
+					route: movedParent,
+					ordering: movedOrdering,
+					order: moved.order,
+				};
+				headerChanges = {};
+				originalFolder = moved.slug;
+				originalParent = movedParent;
+				originalOrdering = movedOrdering;
+				originalOrder = moved.order;
 
 				if (moved.route !== route) {
 					toast.success(i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_SAVED_AND_MOVED'));
@@ -1649,7 +1775,7 @@
 											{lang === contentLang.activeLang ? 'bg-accent font-medium text-accent-foreground' : 'text-foreground hover:bg-accent/50'}"
 										onclick={() => handleLanguageSwitch(lang)}
 									>
-										<span class="inline-flex h-5 w-6 items-center justify-center rounded text-[0.625rem] font-bold uppercase
+										<span class="inline-flex h-5 items-center justify-center rounded px-[2px] text-[0.625rem] font-bold uppercase
 											{lang === contentLang.activeLang ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}"
 										>{lang}</span>
 										{contentLang.getLanguageName(lang)}
@@ -1667,7 +1793,7 @@
 										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-[0.8125rem] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 										onclick={() => handleSaveAsTranslation(lang)}
 									>
-										<span class="inline-flex h-5 w-6 items-center justify-center rounded bg-muted/50 text-[0.625rem] font-bold uppercase text-muted-foreground/50"
+										<span class="inline-flex h-5 items-center justify-center rounded bg-muted/50 px-[2px] text-[0.625rem] font-bold uppercase text-muted-foreground/50"
 										>{lang}</span>
 										<span class="italic">{i18n.t('ADMIN_NEXT.PAGES.EDIT.CREATE_LANGUAGE', { language: contentLang.getLanguageName(lang) })}</span>
 									</button>
@@ -1681,7 +1807,7 @@
 										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-[0.8125rem] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 										onclick={() => handleSyncFrom(lang)}
 									>
-										<span class="inline-flex h-5 w-6 items-center justify-center rounded bg-amber-500/15 text-[0.625rem] font-bold uppercase text-amber-600 dark:text-amber-400"
+										<span class="inline-flex h-5 items-center justify-center rounded bg-amber-500/15 px-[2px] text-[0.625rem] font-bold uppercase text-amber-600 dark:text-amber-400"
 										>{lang}</span>
 										{i18n.t('ADMIN_NEXT.PAGES.EDIT.RESET_FROM', { language: contentLang.getLanguageName(lang) })}
 									</button>

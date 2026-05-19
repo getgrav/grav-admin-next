@@ -106,8 +106,7 @@
 	const filteredPages = $derived(
 		searchQuery
 			? pages.filter(p =>
-				p.menu.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				p.route.toLowerCase().includes(searchQuery.toLowerCase()))
 			: pages
 	);
@@ -282,7 +281,7 @@
 				<button class="min-w-0 flex-1 text-start" onclick={() => onEdit(pageApiRoute(page))}>
 					<div class="flex min-w-0 items-center gap-1.5">
 						<span class="min-w-0 truncate text-sm font-medium group-hover:text-primary
-							{isUntranslated ? 'text-muted-foreground italic' : 'text-foreground'}">{page.menu}</span>
+							{isUntranslated ? 'text-muted-foreground italic' : 'text-foreground'}">{page.title}</span>
 						{#if lang && badgeKeys.length > 0}
 							<div class="shrink-0">
 								<TranslationBadges

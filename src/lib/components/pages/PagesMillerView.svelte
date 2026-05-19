@@ -319,7 +319,7 @@
 			.filter(c => c.selectedRoute)
 			.map(c => {
 				const page = c.pages.find(p => p.route === c.selectedRoute);
-				return { route: c.selectedRoute!, title: page?.menu ?? page?.title ?? c.selectedRoute! };
+				return { route: c.selectedRoute!, title: page?.title ?? c.selectedRoute! };
 			})
 	);
 
@@ -550,7 +550,7 @@
 							<div class="min-w-0 flex-1">
 								<div class="flex items-center gap-1.5">
 									<div class="truncate text-[0.8125rem] font-medium
-										{isUntranslated ? (isActive ? 'text-primary-foreground/60 italic' : 'text-muted-foreground italic') : ''}">{page.menu}</div>
+										{isUntranslated ? (isActive ? 'text-primary-foreground/60 italic' : 'text-muted-foreground italic') : ''}">{page.title}</div>
 									{#if !page.published}
 										<span
 											class="inline-flex h-4 shrink-0 items-center rounded px-1 text-[0.5625rem] font-bold uppercase leading-none

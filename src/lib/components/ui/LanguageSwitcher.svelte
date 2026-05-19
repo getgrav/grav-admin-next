@@ -57,7 +57,7 @@
 								: 'text-popover-foreground hover:bg-accent/50'}"
 						onclick={() => select(lang.code)}
 					>
-						<span class="inline-flex h-5 w-6 items-center justify-center rounded text-[0.625rem] font-bold uppercase
+						<span class="inline-flex h-5 items-center justify-center rounded px-[2px] text-[0.625rem] font-bold uppercase
 							{lang.code === contentLang.activeLang
 								? 'bg-primary text-primary-foreground'
 								: isTranslated

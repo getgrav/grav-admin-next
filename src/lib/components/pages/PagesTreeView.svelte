@@ -26,9 +26,38 @@
 
 	let { searchQuery = '', reorderMode = false, lang, onEdit, onDelete }: Props = $props();
 
+	// Persist expanded-node state across remounts (navigating into a page
+	// and back shouldn't collapse the tree the user just opened). Matches
+	// the sessionStorage pattern used by PagesMillerView.
+	const STORAGE_KEY_EXPANDED = 'grav_admin_pages_tree_expanded';
+	function loadExpandedFromStorage(): Set<string> {
+		if (typeof window === 'undefined') return new Set(['/']);
+		try {
+			const raw = sessionStorage.getItem(STORAGE_KEY_EXPANDED);
+			if (raw) {
+				const arr = JSON.parse(raw);
+				if (Array.isArray(arr)) {
+					const set = new Set<string>(arr);
+					set.add('/'); // root is always expanded
+					return set;
+				}
+			}
+		} catch { /* fall through */ }
+		return new Set(['/']);
+	}
+	function saveExpandedToStorage(routes: Set<string>) {
+		if (typeof window === 'undefined') return;
+		const arr = Array.from(routes).filter(r => r !== '/');
+		if (arr.length > 0) {
+			sessionStorage.setItem(STORAGE_KEY_EXPANDED, JSON.stringify(arr));
+		} else {
+			sessionStorage.removeItem(STORAGE_KEY_EXPANDED);
+		}
+	}
+
 	let childrenCache = $state<Record<string, PageSummary[]>>({});
 	let loadingRoutes = $state<Set<string>>(new Set());
-	let expandedRoutes = $state<Set<string>>(new Set(['/']));
+	let expandedRoutes = $state<Set<string>>(loadExpandedFromStorage());
 	let rootPages = $state<PageSummary[]>([]);
 	let rootLoading = $state(true);
 	let searchResults = $state<PageSummary[]>([]);
@@ -87,6 +116,7 @@
 			await loadChildren(route);
 		}
 		expandedRoutes = next;
+		saveExpandedToStorage(next);
 	}
 
 	function formatDate(dateStr: string): string {
@@ -109,7 +139,24 @@
 			prevLang = lang;
 			childrenCache = {};
 		}
-		loadRoot();
+		(async () => {
+			await loadRoot();
+			// Re-hydrate children for nodes that were expanded in a previous
+			// session. Run after loadRoot so the route segments are
+			// validated against current root pages, and skip any that no
+			// longer exist (e.g. page deleted in another tab).
+			const toLoad = Array.from(expandedRoutes).filter(r => r !== '/' && !childrenCache[r]);
+			await Promise.all(toLoad.map(r => loadChildren(r)));
+			// Drop expanded entries whose parent never resolved on the
+			// server — keeps storage from accumulating stale routes.
+			const stale = toLoad.filter(r => !childrenCache[r]);
+			if (stale.length > 0) {
+				const cleaned = new Set(expandedRoutes);
+				for (const r of stale) cleaned.delete(r);
+				expandedRoutes = cleaned;
+				saveExpandedToStorage(cleaned);
+			}
+		})();
 	});
 
 	// Server-side search across the whole site (debounced). When the input is
@@ -184,11 +231,24 @@
 			page.template.toLowerCase().includes(q);
 	}
 
-	/** Get the parent route of a page */
+	/** Get the parent route of a page. Uses raw_route so the home page (whose
+	 *  public route is `/`) resolves to its real parent (root) instead of
+	 *  treating itself as its own parent. */
 	function getParentRoute(page: PageSummary): string {
-		const parts = page.route.split('/').filter(Boolean);
-		if (parts.length <= 1) return '/';
-		return '/' + parts.slice(0, -1).join('/');
+		return parentRouteOf(pageApiRoute(page));
+	}
+
+	/** True if any sibling under this parent has a numeric order prefix.
+	 *  Used to decide whether the destination "expects" ordered children — if
+	 *  so we send a position; otherwise we leave the new page unordered. */
+	function parentHasOrdering(parentRoute: string): boolean {
+		const siblings = getPageChildren(parentRoute);
+		return siblings.some(s => s.order !== null && s.order !== '');
+	}
+
+	/** True if this page itself currently carries a numeric order prefix. */
+	function pageIsOrdered(page: PageSummary): boolean {
+		return page.order !== null && page.order !== '';
 	}
 
 	// --- Drag-and-drop handlers ---
@@ -199,7 +259,7 @@
 		dragParentRoute = getParentRoute(page);
 		if (e.dataTransfer) {
 			e.dataTransfer.effectAllowed = 'move';
-			e.dataTransfer.setData('text/plain', page.route);
+			e.dataTransfer.setData('text/plain', pageApiRoute(page));
 		}
 	}
 
@@ -222,50 +282,82 @@
 		if (!dragPage || saving) return;
 
 		const page = dragPage;
+		const pageRoute = pageApiRoute(page);
 		const sourceParentRoute = dragParentRoute!;
 		const siblings = getPageChildren(targetParentRoute);
+		const targetIsOrdered = parentHasOrdering(targetParentRoute);
+		const sourceIsOrdered = parentHasOrdering(sourceParentRoute);
 
-		// Build the reorder operations
+		// Build the reorder operations. We only emit position values for
+		// pages that already participate in ordering — assigning positions
+		// to unordered pages would force-rename them with NN. prefixes.
 		const ops: ReorganizeOperation[] = [];
 
 		if (sourceParentRoute === targetParentRoute) {
-			// Same parent — reorder siblings
-			const currentIndex = siblings.findIndex(s => s.route === page.route);
+			// Same-parent reorder
+			const currentIndex = siblings.findIndex(s => pageApiRoute(s) === pageRoute);
 			if (currentIndex === -1 || currentIndex === targetIndex) {
 				resetDragState();
 				return;
 			}
 
-			// Build new order
 			const reordered = [...siblings];
 			const [moved] = reordered.splice(currentIndex, 1);
 			reordered.splice(targetIndex, 0, moved);
 
 			reordered.forEach((p, i) => {
-				ops.push({ route: p.route, position: i + 1 });
-			});
-		} else {
-			// Cross-parent move
-			ops.push({
-				route: page.route,
-				parent: targetParentRoute,
-				position: targetIndex + 1,
-			});
-
-			// Re-number remaining siblings in source parent
-			const sourceSiblings = getPageChildren(sourceParentRoute).filter(s => s.route !== page.route);
-			sourceSiblings.forEach((p, i) => {
-				ops.push({ route: p.route, position: i + 1 });
-			});
-
-			// Re-number siblings in target parent (inserting the new page)
-			const targetSiblings = [...siblings];
-			targetSiblings.splice(targetIndex, 0, page);
-			targetSiblings.forEach((p, i) => {
-				if (p.route !== page.route) {
-					ops.push({ route: p.route, position: i + 1 });
+				if (pageIsOrdered(p) || pageApiRoute(p) === pageRoute) {
+					ops.push({ route: pageApiRoute(p), position: i + 1 });
 				}
 			});
+		} else {
+			// Cross-parent move. The moved page gets a position only if the
+			// destination parent already uses ordering (or the page itself
+			// was ordered and we want to keep it ordered).
+			const movedOp: ReorganizeOperation = {
+				route: pageRoute,
+				parent: targetParentRoute,
+			};
+			if (targetIsOrdered || pageIsOrdered(page)) {
+				movedOp.position = targetIndex + 1;
+			}
+			ops.push(movedOp);
+
+			// Renumber source-parent siblings only if the source uses
+			// ordering — otherwise leave unordered pages alone. We must NOT
+			// renumber any sibling that is an ancestor of the destination
+			// parent: doing so renames its folder mid-batch, which
+			// invalidates every later op that targets a path under it
+			// (Phase 3 rename then fails with "No such file or directory").
+			if (sourceIsOrdered) {
+				const sourceSiblings = getPageChildren(sourceParentRoute)
+					.filter(s => {
+						const r = pageApiRoute(s);
+						if (r === pageRoute) return false;
+						// Drop ancestors of the destination parent.
+						if (r === targetParentRoute) return false;
+						if (targetParentRoute.startsWith(r + '/')) return false;
+						return true;
+					});
+				sourceSiblings.forEach((p, i) => {
+					if (pageIsOrdered(p)) {
+						ops.push({ route: pageApiRoute(p), position: i + 1 });
+					}
+				});
+			}
+
+			// Renumber target-parent siblings only if the destination uses
+			// ordering. Skip the moved page (already in ops above).
+			if (targetIsOrdered) {
+				const targetSiblings = [...siblings];
+				targetSiblings.splice(targetIndex, 0, page);
+				targetSiblings.forEach((p, i) => {
+					if (pageApiRoute(p) === pageRoute) return;
+					if (pageIsOrdered(p)) {
+						ops.push({ route: pageApiRoute(p), position: i + 1 });
+					}
+				});
+			}
 		}
 
 		resetDragState();
@@ -289,8 +381,11 @@
 					await loadChildren(targetParentRoute);
 				}
 			}
-		} catch {
-			toast.error(i18n.t('ADMIN_NEXT.PAGES.PAGES_TREE_VIEW.FAILED_TO_REORGANIZE_PAGES'));
+		} catch (err: unknown) {
+			const message = err && typeof err === 'object' && 'message' in err
+				? String((err as { message: string }).message)
+				: '';
+			toast.error(message || i18n.t('ADMIN_NEXT.PAGES.PAGES_TREE_VIEW.FAILED_TO_REORGANIZE_PAGES'));
 		} finally {
 			saving = false;
 		}
@@ -422,7 +517,7 @@
 					<button class="min-w-0 flex-1 text-start ps-1" onclick={() => onEdit(pageApiRoute(page))}>
 						<div class="flex min-w-0 items-center gap-1.5">
 							<span class="min-w-0 truncate text-sm font-medium group-hover:text-primary
-								{isUntranslated ? 'text-muted-foreground italic' : 'text-foreground'}">{page.menu}</span>
+								{isUntranslated ? 'text-muted-foreground italic' : 'text-foreground'}">{page.title}</span>
 							{#if lang && badgeKeys.length > 0}
 								<div class="shrink-0">
 									<TranslationBadges
