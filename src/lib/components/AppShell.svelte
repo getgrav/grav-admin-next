@@ -84,6 +84,55 @@
 		return () => { for (const u of unsubs) u(); };
 	});
 
+	// Keep plugin-contributed boot-time stores and badge counts in sync with
+	// server-side invalidation events. A single API response often emits
+	// several related tags at once (e.g. `plugins:create:foo, plugins:list,
+	// gpm:update`); coalesce per-reload-target so each store reloads at most
+	// once per microtask burst.
+	$effect(() => {
+		if (!auth.isAuthenticated) return;
+
+		const pending = new Set<() => void>();
+		let scheduled = false;
+		const schedule = (fn: () => void) => {
+			pending.add(fn);
+			if (scheduled) return;
+			scheduled = true;
+			queueMicrotask(() => {
+				scheduled = false;
+				const run = Array.from(pending);
+				pending.clear();
+				for (const f of run) f();
+			});
+		};
+
+		const reloadBadges = () => schedule(() => navBadges.load());
+		const reloadSidebar = () => schedule(() => sidebarStore.load());
+		const reloadWidgets = () => schedule(() => floatingWidgetStore.load());
+		const reloadPanels = () => schedule(() => contextPanelStore.load());
+
+		// Plugin/theme install/remove/enable/disable can add or drop sidebar
+		// items, menubar entries, floating widgets, and context panels — and
+		// it always shifts the plugin/theme badge counts.
+		const onPluginOrTheme = () => {
+			reloadSidebar();
+			reloadWidgets();
+			reloadPanels();
+			reloadBadges();
+		};
+
+		const unsubs = [
+			invalidations.subscribe('plugins:*', onPluginOrTheme),
+			invalidations.subscribe('themes:*', onPluginOrTheme),
+			invalidations.subscribe('gpm:*', onPluginOrTheme),
+			// Content changes update only their corresponding badge.
+			invalidations.subscribe('pages:*', reloadBadges),
+			invalidations.subscribe('users:*', reloadBadges),
+			invalidations.subscribe('media:*', reloadBadges),
+		];
+		return () => { for (const u of unsubs) u(); };
+	});
+
 	let collapsed = $state(false);
 	let mobileOpen = $state(false);
 

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { getMenubarItems, executeMenubarAction, type MenubarItem } from '$lib/api/endpoints/menubar';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { toast } from 'svelte-sonner';
 	import { Loader2 } from 'lucide-svelte';
@@ -16,6 +17,19 @@
 		} catch {
 			// Silently fail — menubar is non-critical
 		}
+	}
+
+	// Reload when a plugin is installed/removed/enabled/disabled. A single
+	// API response can emit multiple tags (e.g. `plugins:create:foo,
+	// plugins:list, gpm:update`); coalesce them into one reload per burst.
+	let reloadScheduled = false;
+	function scheduleReload() {
+		if (reloadScheduled) return;
+		reloadScheduled = true;
+		queueMicrotask(() => {
+			reloadScheduled = false;
+			loadItems();
+		});
 	}
 
 	async function handleAction(item: MenubarItem) {
@@ -46,6 +60,15 @@
 
 	$effect(() => {
 		loadItems();
+	});
+
+	$effect(() => {
+		const unsubs = [
+			invalidations.subscribe('plugins:*', scheduleReload),
+			invalidations.subscribe('themes:*', scheduleReload),
+			invalidations.subscribe('gpm:*', scheduleReload),
+		];
+		return () => { for (const u of unsubs) u(); };
 	});
 </script>
 
