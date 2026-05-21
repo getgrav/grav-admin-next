@@ -2,7 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount, getContext, untrack } from 'svelte';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { EditorView, keymap, placeholder as cmPlaceholder, type ViewUpdate } from '@codemirror/view';
+	import { EditorView, keymap, placeholder as cmPlaceholder, drawSelection, type ViewUpdate } from '@codemirror/view';
 	import { EditorState, type Extension } from '@codemirror/state';
 	import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 	import { languages } from '@codemirror/language-data';
@@ -248,6 +248,7 @@
 		const extensions: Extension[] = [
 			// Base
 			...historyExt,
+			drawSelection(),
 			indentOnInput(),
 			bracketMatching(),
 			closeBrackets(),

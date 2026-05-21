@@ -7,6 +7,7 @@
 		lineNumbers,
 		highlightActiveLineGutter,
 		highlightActiveLine,
+		drawSelection,
 	} from '@codemirror/view';
 	import type { Extension } from '@codemirror/state';
 	import { EditorState } from '@codemirror/state';
@@ -78,6 +79,7 @@
 		'.cm-activeLineGutter': { backgroundColor: 'transparent', color: 'hsl(240 10% 3.9%)' },
 		'.cm-activeLine': { backgroundColor: 'hsl(240 4.8% 95.9% / 0.5)' },
 		'.cm-selectionBackground': { backgroundColor: 'hsl(221 83% 53% / 0.15) !important' },
+		'&.cm-focused .cm-selectionBackground': { backgroundColor: 'hsl(221 83% 53% / 0.25) !important' },
 		'.cm-line': { padding: '0 12px' },
 		'.cm-foldPlaceholder': {
 			backgroundColor: 'hsl(240 4.8% 95.9%)',
@@ -104,6 +106,7 @@
 		'.cm-activeLineGutter': { backgroundColor: 'transparent', color: 'hsl(0 0% 98%)' },
 		'.cm-activeLine': { backgroundColor: 'hsl(240 3.7% 15.9% / 0.5)' },
 		'.cm-selectionBackground': { backgroundColor: 'hsl(217 91% 60% / 0.2) !important' },
+		'&.cm-focused .cm-selectionBackground': { backgroundColor: 'hsl(217 91% 60% / 0.3) !important' },
 		'.cm-line': { padding: '0 12px' },
 		'.cm-foldPlaceholder': {
 			backgroundColor: 'hsl(240 3.7% 15.9%)',
@@ -116,6 +119,7 @@
 	function getExtensions(dark: boolean): Extension[] {
 		const extensions: Extension[] = [
 			history(),
+			drawSelection(),
 			indentOnInput(),
 			bracketMatching(),
 			closeBrackets(),
