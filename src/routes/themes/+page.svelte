@@ -9,13 +9,15 @@
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import AddThemeModal from '$lib/components/AddThemeModal.svelte';
 	import { toast } from 'svelte-sonner';
-	import { Search, Palette, ExternalLink, ArrowUpCircle, Loader2, Plus, RefreshCw, BadgeCheck, Check, CornerDownRight } from 'lucide-svelte';
+	import { Search, Palette, ExternalLink, ArrowUpCircle, Loader2, Plus, RefreshCw, BadgeCheck, Check, CornerDownRight, LayoutGrid, Table as TableIcon } from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText } from '$lib/utils/gpm';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { scopedKey } from '$lib/utils/scopedStorage';
+	import { prefs } from '$lib/stores/preferences.svelte';
+	import ThemesTableView from '$lib/components/themes/ThemesTableView.svelte';
 
 	const SELECTED_STORAGE_KEY = 'admin-next:themes:selected-slug';
 
@@ -280,13 +282,51 @@
 			<select
 				class="h-8 rounded-md border border-input bg-muted/50 px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 				bind:value={sortBy}
+				disabled={prefs.themesViewMode === 'table'}
 			>
 				<option value="name">Name</option>
 				<option value="author">{i18n.t('ADMIN_NEXT.AUTHOR')}</option>
 				<option value="enabled">{i18n.t('ADMIN_NEXT.ACTIVE')}</option>
 			</select>
+			<div class="inline-flex rounded-md border border-border shadow-sm">
+				<button
+					class="inline-flex h-8 items-center gap-1.5 px-3 text-[0.75rem] font-medium transition-colors first:rounded-l-md last:rounded-r-md
+						{prefs.themesViewMode === 'cards'
+							? 'bg-accent text-accent-foreground'
+							: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+					onclick={() => prefs.themesViewMode = 'cards'}
+					title={i18n.t('ADMIN_NEXT.USERS_TABLE.CARDS')}
+				>
+					<LayoutGrid size={14} />
+					<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.USERS_TABLE.CARDS')}</span>
+				</button>
+				<button
+					class="inline-flex h-8 items-center gap-1.5 px-3 text-[0.75rem] font-medium transition-colors first:rounded-l-md last:rounded-r-md
+						{prefs.themesViewMode === 'table'
+							? 'bg-accent text-accent-foreground'
+							: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+					onclick={() => prefs.themesViewMode = 'table'}
+					title={i18n.t('ADMIN_NEXT.USERS_TABLE.TABLE')}
+				>
+					<TableIcon size={14} />
+					<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.USERS_TABLE.TABLE')}</span>
+				</button>
+			</div>
 		</div>
 
+		{#if prefs.themesViewMode === 'table'}
+			<div class="flex-1 overflow-y-auto">
+				<ThemesTableView
+					themes={filtered}
+					canEdit={canWriteGpm}
+					{updatingSlug}
+					{updatingAll}
+					{resolveUrl}
+					onConfigure={openThemeConfig}
+					onUpdate={handleUpdateTheme}
+				/>
+			</div>
+		{:else}
 		<!-- Main content: list + detail panel -->
 		<div class="flex flex-1 overflow-hidden">
 			<!-- Theme list -->
@@ -539,6 +579,7 @@
 				{/if}
 			</div>
 		</div>
+		{/if}
 	{/if}
 </div>
 

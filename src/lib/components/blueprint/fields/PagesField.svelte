@@ -28,7 +28,12 @@
 	let filterInputEl = $state<HTMLInputElement | null>(null);
 
 	const showModular = field.show_modular ?? false;
-	const showRoot = field.show_root ?? false;
+	// `parents` is the parent-picker field type — root is always a valid
+	// parent there, so default show_root to true when the blueprint doesn't
+	// say otherwise. Plain `pages` fields (where the chosen value is a
+	// content reference, not a structural parent) keep the existing
+	// false default unless the blueprint opts in.
+	const showRoot = field.show_root ?? (field.type === 'parents');
 	const showSlug = field.show_slug ?? true;
 
 	const selectedRoute = $derived(typeof value === 'string' ? value : '');

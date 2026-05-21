@@ -118,6 +118,18 @@ export async function getUserBlueprint(): Promise<BlueprintSchema> {
 	return api.get<BlueprintSchema>('/blueprints/users');
 }
 
+export async function getGroupBlueprint(): Promise<BlueprintSchema> {
+	return api.get<BlueprintSchema>('/blueprints/groups');
+}
+
+export async function getGroupNewBlueprint(): Promise<BlueprintSchema> {
+	return api.get<BlueprintSchema>('/blueprints/groups/new');
+}
+
+export async function getAccountsConfigBlueprint(): Promise<BlueprintSchema> {
+	return api.get<BlueprintSchema>('/blueprints/config/accounts');
+}
+
 export interface PermissionAction {
 	name: string;
 	label: string;

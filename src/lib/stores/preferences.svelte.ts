@@ -5,6 +5,7 @@ import { normalizeLang } from '$lib/i18n/normalize';
 import {
 	getPreferences,
 	resetUserPreferences as apiResetUserPreferences,
+	type AccountsViewMode,
 	type EffectivePreferences,
 	type FontFamily,
 	type FontSize,
@@ -18,6 +19,7 @@ import {
 } from '$lib/api/endpoints/preferences';
 
 export type {
+	AccountsViewMode,
 	ColorMode,
 	EditorMode,
 	FontFamily,
@@ -119,6 +121,10 @@ const BUILTIN_DEFAULTS: EffectivePreferences = {
 	adminLanguage: 'en-US',
 	pagesPerPage: 20,
 	pagesViewMode: 'tree',
+	usersViewMode: 'cards',
+	groupsViewMode: 'cards',
+	pluginsViewMode: 'cards',
+	themesViewMode: 'cards',
 	// Tier A2 (site-only behavioral)
 	autoSaveEnabled: false,
 	autoSaveToolbarUndo: true,
@@ -138,6 +144,10 @@ function createPreferencesStore() {
 	let adminLanguage = $state<string>(BUILTIN_DEFAULTS.adminLanguage);
 	let pagesPerPage = $state<number>(BUILTIN_DEFAULTS.pagesPerPage);
 	let pagesViewMode = $state<PagesViewMode>(BUILTIN_DEFAULTS.pagesViewMode);
+	let usersViewMode = $state<AccountsViewMode>(BUILTIN_DEFAULTS.usersViewMode);
+	let groupsViewMode = $state<AccountsViewMode>(BUILTIN_DEFAULTS.groupsViewMode);
+	let pluginsViewMode = $state<AccountsViewMode>(BUILTIN_DEFAULTS.pluginsViewMode);
+	let themesViewMode = $state<AccountsViewMode>(BUILTIN_DEFAULTS.themesViewMode);
 
 	// ── Tier A2: site-only behavioral — read-only mirrors of `effective` ──
 	// No setters; admins modify these via the Site Defaults editor.
@@ -181,6 +191,10 @@ function createPreferencesStore() {
 		adminLanguage = normalizeLang(eff.adminLanguage);
 		pagesPerPage = eff.pagesPerPage;
 		pagesViewMode = eff.pagesViewMode;
+		usersViewMode = eff.usersViewMode;
+		groupsViewMode = eff.groupsViewMode;
+		pluginsViewMode = eff.pluginsViewMode;
+		themesViewMode = eff.themesViewMode;
 		// Tier A2
 		autoSaveEnabled = eff.autoSaveEnabled;
 		autoSaveToolbarUndo = eff.autoSaveToolbarUndo;
@@ -244,6 +258,10 @@ function createPreferencesStore() {
 			case 'adminLanguage': adminLanguage = fallback as string; break;
 			case 'pagesPerPage': pagesPerPage = fallback as number; break;
 			case 'pagesViewMode': pagesViewMode = fallback as PagesViewMode; break;
+			case 'usersViewMode': usersViewMode = fallback as AccountsViewMode; break;
+			case 'groupsViewMode': groupsViewMode = fallback as AccountsViewMode; break;
+			case 'pluginsViewMode': pluginsViewMode = fallback as AccountsViewMode; break;
+			case 'themesViewMode': themesViewMode = fallback as AccountsViewMode; break;
 			// colorMode / accentHue / accentSaturation live in the theme store.
 			default: break;
 		}
@@ -283,6 +301,18 @@ function createPreferencesStore() {
 
 		get pagesViewMode() { return pagesViewMode; },
 		set pagesViewMode(v: PagesViewMode) { pagesViewMode = v; patchUser('pagesViewMode', v); },
+
+		get usersViewMode() { return usersViewMode; },
+		set usersViewMode(v: AccountsViewMode) { usersViewMode = v; patchUser('usersViewMode', v); },
+
+		get groupsViewMode() { return groupsViewMode; },
+		set groupsViewMode(v: AccountsViewMode) { groupsViewMode = v; patchUser('groupsViewMode', v); },
+
+		get pluginsViewMode() { return pluginsViewMode; },
+		set pluginsViewMode(v: AccountsViewMode) { pluginsViewMode = v; patchUser('pluginsViewMode', v); },
+
+		get themesViewMode() { return themesViewMode; },
+		set themesViewMode(v: AccountsViewMode) { themesViewMode = v; patchUser('themesViewMode', v); },
 
 		// ── Tier A2: site-only — read-only ─────────────────────────────────
 		get autoSaveEnabled() { return autoSaveEnabled; },

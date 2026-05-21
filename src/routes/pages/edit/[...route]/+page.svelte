@@ -146,6 +146,13 @@
 
 	// Guard against concurrent loadPage() calls — only the latest one applies
 	let loadGeneration = 0;
+	// Tracks the route the editor self-navigated to after a successful
+	// move-with-rename. The post-save `goto()` updates `route`, which would
+	// otherwise trigger the `$effect` below to re-fetch via the API. But
+	// Grav's pages cache can briefly 404/500 on the new path while it
+	// reindexes, and we already have authoritative data from the move
+	// response — so we suppress that next load.
+	let suppressLoadForRoute = $state<string | null>(null);
 
 	// Preview
 	let showFrontendPreview = $state(false);
@@ -401,7 +408,11 @@
 					if (snapJson !== JSON.stringify(headerData)) {
 						headerData = { ...snap };
 					}
-					if (pageData && pageData.content !== newContent) pageData.content = newContent;
+					// Do NOT update pageData.content here. pageData is the on-disk
+					// baseline that hasChanges / handleSave diff against; advancing
+					// it on every collab snapshot (including our own y-prosemirror
+					// edits, which arrive via this path with a non-localOrigin tx)
+					// would make hasChanges permanently false in collab mode.
 
 					if (newTemplate !== template) {
 						template = newTemplate;
@@ -1018,6 +1029,10 @@
 					toast.success(i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_SAVED_AND_MOVED'));
 					guard.bypass();
 					const newEditRoute = moved.route.startsWith('/') ? moved.route.slice(1) : moved.route;
+					// Skip the re-fetch the $effect would otherwise trigger:
+					// pageData was just refreshed from the move response, and
+					// the API may be momentarily stale on the new path.
+					suppressLoadForRoute = moved.route;
 					goto(`${base}/pages/edit/${newEditRoute}`, { replaceState: true });
 					saving = false;
 					return;
@@ -1072,6 +1087,10 @@
 					toast.success(i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_SAVED_AND_MOVED'));
 					guard.bypass();
 					const newEditRoute = moved.route.startsWith('/') ? moved.route.slice(1) : moved.route;
+					// Skip the re-fetch the $effect would otherwise trigger:
+					// pageData was just refreshed from the move response, and
+					// the API may be momentarily stale on the new path.
+					suppressLoadForRoute = moved.route;
 					goto(`${base}/pages/edit/${newEditRoute}`, { replaceState: true });
 					saving = false;
 					return;
@@ -1304,7 +1323,19 @@
 		}
 	}
 
-	$effect(() => { autoSave.reset(); loadPage(); });
+	$effect(() => {
+		autoSave.reset();
+		// One-shot suppression after a self-initiated move-with-rename: the
+		// $effect refires because `route` changed (loadPage reads it
+		// synchronously), but we already populated pageData from the move
+		// response and the API may briefly fail on the new path.
+		if (suppressLoadForRoute !== null && suppressLoadForRoute === route) {
+			suppressLoadForRoute = null;
+			return;
+		}
+		suppressLoadForRoute = null;
+		loadPage();
+	});
 
 	// Refetch when this page is updated elsewhere (with dirty guard). The
 	// dirtyGuard skips our own saves — the server's X-Invalidates fires the

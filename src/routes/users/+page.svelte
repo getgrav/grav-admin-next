@@ -11,9 +11,15 @@
 	import { toast } from 'svelte-sonner';
 	import {
 		Search, User, Plus, Loader2,
-		Mail, Shield, ShieldCheck, ShieldOff, BadgeCheck
+		Mail, Shield, ShieldCheck, ShieldOff, BadgeCheck,
+		LayoutGrid, Table as TableIcon
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
+	import UsersTabNav from '$lib/components/users/UsersTabNav.svelte';
+	import UsersTableView from '$lib/components/users/UsersTableView.svelte';
+	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+	import { deleteUser } from '$lib/api/endpoints/users';
+	import { prefs } from '$lib/stores/preferences.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 
 	const canEditUsers = $derived(canWrite('users'));
@@ -23,6 +29,8 @@
 	let search = $state('');
 	let currentPage = $state(1);
 	let selectedUsername = $state<string | null>(null);
+	let pendingDelete = $state<string | null>(null);
+	let confirmDeleteOpen = $state(false);
 	const perPage = 20;
 
 	const filtered = $derived.by(() => {
@@ -75,6 +83,25 @@
 
 	function openUserEdit(username: string) {
 		goto(`${base}/users/${username}`);
+	}
+
+	function requestDelete(username: string) {
+		pendingDelete = username;
+		confirmDeleteOpen = true;
+	}
+
+	async function confirmDelete() {
+		const username = pendingDelete;
+		confirmDeleteOpen = false;
+		pendingDelete = null;
+		if (!username) return;
+		try {
+			await deleteUser(username);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.USER_DELETED', { username }));
+			loadUsers(currentPage);
+		} catch {
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.USER_DELETE_FAILED', { username }));
+		}
 	}
 
 	function getInitials(user: UserInfo): string {
@@ -158,6 +185,8 @@
 		{/snippet}
 	</StickyHeader>
 
+	<UsersTabNav />
+
 	{#if loading}
 		<div class="flex flex-1 items-center justify-center">
 			<Loader2 size={24} class="animate-spin text-muted-foreground" />
@@ -174,8 +203,57 @@
 					bind:value={search}
 				/>
 			</div>
+			<div class="inline-flex rounded-md border border-border shadow-sm">
+				<button
+					class="inline-flex h-8 items-center gap-1.5 px-3 text-[0.75rem] font-medium transition-colors first:rounded-l-md last:rounded-r-md
+						{prefs.usersViewMode === 'cards'
+							? 'bg-accent text-accent-foreground'
+							: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+					onclick={() => prefs.usersViewMode = 'cards'}
+					title={i18n.t('ADMIN_NEXT.USERS_TABLE.CARDS')}
+				>
+					<LayoutGrid size={14} />
+					<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.USERS_TABLE.CARDS')}</span>
+				</button>
+				<button
+					class="inline-flex h-8 items-center gap-1.5 px-3 text-[0.75rem] font-medium transition-colors first:rounded-l-md last:rounded-r-md
+						{prefs.usersViewMode === 'table'
+							? 'bg-accent text-accent-foreground'
+							: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+					onclick={() => prefs.usersViewMode = 'table'}
+					title={i18n.t('ADMIN_NEXT.USERS_TABLE.TABLE')}
+				>
+					<TableIcon size={14} />
+					<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.USERS_TABLE.TABLE')}</span>
+				</button>
+			</div>
 		</div>
 
+		{#if prefs.usersViewMode === 'table'}
+			<div class="flex-1 overflow-y-auto">
+				<UsersTableView
+					users={filtered}
+					canEdit={canEditUsers}
+					onEdit={openUserEdit}
+					onDelete={canEditUsers ? requestDelete : undefined}
+				/>
+				{#if data.totalPages > 1}
+					<div class="flex items-center justify-between border-t border-border px-4 py-2">
+						<span class="text-xs text-muted-foreground">
+							{i18n.t('ADMIN_NEXT.PAGINATION.PAGE_OF', { current: currentPage, total: data.totalPages })}
+						</span>
+						<div class="flex items-center gap-1">
+							<Button variant="outline" size="icon" disabled={currentPage <= 1} onclick={() => loadUsers(currentPage - 1)} class="h-7 w-7">
+								<DirectionalIcon name="chevron-back" size={14} />
+							</Button>
+							<Button variant="outline" size="icon" disabled={currentPage >= data.totalPages} onclick={() => loadUsers(currentPage + 1)} class="h-7 w-7">
+								<DirectionalIcon name="chevron-forward" size={14} />
+							</Button>
+						</div>
+					</div>
+				{/if}
+			</div>
+		{:else}
 		<!-- Main content: list + detail panel -->
 		<div class="flex flex-1 overflow-hidden">
 			<!-- User list -->
@@ -350,5 +428,16 @@
 				{/if}
 			</div>
 		</div>
+		{/if}
 	{/if}
 </div>
+
+<ConfirmModal
+	open={confirmDeleteOpen}
+	title={i18n.t('ADMIN_NEXT.USERS.DELETE_USER')}
+	message={pendingDelete ? i18n.t('ADMIN_NEXT.USERS.CONFIRM_DELETE_USER', { username: pendingDelete }) : ''}
+	confirmLabel={i18n.t('ADMIN_NEXT.DELETE')}
+	variant="destructive"
+	onconfirm={confirmDelete}
+	oncancel={() => { confirmDeleteOpen = false; pendingDelete = null; }}
+/>

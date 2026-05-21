@@ -7,6 +7,7 @@ export type EditorMode = 'normal' | 'expert';
 export type LogoMode = 'default' | 'text' | 'custom';
 export type LogoVariant = 'light' | 'dark';
 export type PagesViewMode = 'tree' | 'list' | 'miller';
+export type AccountsViewMode = 'cards' | 'table';
 
 export interface MenubarLink {
 	label: string;
@@ -38,6 +39,10 @@ export interface PreferenceValues {
 	adminLanguage: string;
 	pagesPerPage: number;
 	pagesViewMode: PagesViewMode;
+	usersViewMode: AccountsViewMode;
+	groupsViewMode: AccountsViewMode;
+	pluginsViewMode: AccountsViewMode;
+	themesViewMode: AccountsViewMode;
 }
 
 /** Tier A2 — site-only behavioral settings (not per-user). */

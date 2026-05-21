@@ -11,12 +11,14 @@
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import AddPluginModal from '$lib/components/AddPluginModal.svelte';
 	import { toast } from 'svelte-sonner';
-	import { Search, Puzzle, ExternalLink, ArrowUpCircle, Loader2, Plus, RefreshCw, BadgeCheck, CornerDownRight } from 'lucide-svelte';
+	import { Search, Puzzle, ExternalLink, ArrowUpCircle, Loader2, Plus, RefreshCw, BadgeCheck, CornerDownRight, LayoutGrid, Table as TableIcon } from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText } from '$lib/utils/gpm';
 	import { canWrite } from '$lib/utils/permissions';
 	import { scopedKey } from '$lib/utils/scopedStorage';
+	import { prefs } from '$lib/stores/preferences.svelte';
+	import PluginsTableView from '$lib/components/plugins/PluginsTableView.svelte';
 
 	const SELECTED_STORAGE_KEY = 'admin-next:plugins:selected-slug';
 
@@ -318,13 +320,53 @@
 			<select
 				class="h-8 rounded-md border border-input bg-muted/50 px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 				bind:value={sortBy}
+				disabled={prefs.pluginsViewMode === 'table'}
 			>
 				<option value="name">Name</option>
 				<option value="author">{i18n.t('ADMIN_NEXT.AUTHOR')}</option>
 				<option value="enabled">{i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')}</option>
 			</select>
+			<div class="inline-flex rounded-md border border-border shadow-sm">
+				<button
+					class="inline-flex h-8 items-center gap-1.5 px-3 text-[0.75rem] font-medium transition-colors first:rounded-l-md last:rounded-r-md
+						{prefs.pluginsViewMode === 'cards'
+							? 'bg-accent text-accent-foreground'
+							: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+					onclick={() => prefs.pluginsViewMode = 'cards'}
+					title={i18n.t('ADMIN_NEXT.USERS_TABLE.CARDS')}
+				>
+					<LayoutGrid size={14} />
+					<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.USERS_TABLE.CARDS')}</span>
+				</button>
+				<button
+					class="inline-flex h-8 items-center gap-1.5 px-3 text-[0.75rem] font-medium transition-colors first:rounded-l-md last:rounded-r-md
+						{prefs.pluginsViewMode === 'table'
+							? 'bg-accent text-accent-foreground'
+							: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+					onclick={() => prefs.pluginsViewMode = 'table'}
+					title={i18n.t('ADMIN_NEXT.USERS_TABLE.TABLE')}
+				>
+					<TableIcon size={14} />
+					<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.USERS_TABLE.TABLE')}</span>
+				</button>
+			</div>
 		</div>
 
+		{#if prefs.pluginsViewMode === 'table'}
+			<div class="flex-1 overflow-y-auto">
+				<PluginsTableView
+					plugins={filtered}
+					canEdit={canWriteGpm}
+					{togglingSlug}
+					{updatingSlug}
+					{updatingAll}
+					protectedSlugs={PROTECTED_PLUGINS}
+					onConfigure={openPluginConfig}
+					onToggle={toggleEnabled}
+					onUpdate={handleUpdatePlugin}
+				/>
+			</div>
+		{:else}
 		<!-- Main content: list + detail panel -->
 		<div class="flex flex-1 overflow-hidden">
 			<!-- Plugin list -->
@@ -573,6 +615,7 @@
 				{/if}
 			</div>
 		</div>
+		{/if}
 	{/if}
 </div>
 

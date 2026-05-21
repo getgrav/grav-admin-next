@@ -352,6 +352,137 @@
 		dropTarget = { colIndex, index };
 	}
 
+	/**
+	 * Global cursor tracking during a Miller drag.
+	 *
+	 * Per-element (row or column) ondragover handlers fire inconsistently
+	 * across columns when each column is its own overflow-y-auto scroll
+	 * container — notably the root column when it's packed with rows. WebKit
+	 * / Chromium will happily fire dragover on the source column (where the
+	 * drag started) but skip identical handlers on sibling columns.
+	 *
+	 * The window-level dragover event, in contrast, fires continuously during
+	 * any HTML5 drag regardless of cursor position or which element is under
+	 * it. We use it as the single source of truth for dropTarget: look up
+	 * which column rect the cursor is in via data-miller-column, then compute
+	 * the insertion index from cursor Y vs each row's getBoundingClientRect
+	 * midpoint (data-miller-row). preventDefault() inside a column tells the
+	 * browser that drops are allowed there — so column-level ondrop fires.
+	 */
+
+	/**
+	 * Compute the insertion index inside a column from the cursor's Y position.
+	 * Skips rows that are entirely outside the column's visible rect so that
+	 * scrolled-away rows don't poison the result.
+	 */
+	function computeIndexFromCursor(colEl: HTMLElement, clientY: number): number {
+		const colRect = colEl.getBoundingClientRect();
+		const rows = Array.from(colEl.querySelectorAll<HTMLElement>('[data-miller-row]'));
+		let lastVisibleIndex = -1;
+		for (let i = 0; i < rows.length; i++) {
+			const r = rows[i].getBoundingClientRect();
+			if (r.bottom < colRect.top) continue;     // scrolled above
+			if (r.top > colRect.bottom) break;        // scrolled below
+			lastVisibleIndex = i;
+			if (clientY < r.top + r.height / 2) {
+				return i;
+			}
+		}
+		// Below every visible row: snap to "after the last visible row".
+		return lastVisibleIndex >= 0 ? lastVisibleIndex + 1 : rows.length;
+	}
+
+	// Floating indicator geometry — snapped to a row boundary so visually
+	// it looks identical to the tree/list view's between-rows purple line,
+	// but rendered via position: fixed so it always paints in every column
+	// (Chromium throttles inline re-renders in passive columns during a
+	// drag, which is why earlier inline-only attempts failed to show the
+	// indicator in columns left of the drag source).
+	let indicator = $state<{ left: number; top: number; width: number } | null>(null);
+
+	function updateIndicator(colEl: HTMLElement, index: number) {
+		const colRect = colEl.getBoundingClientRect();
+		const rows = Array.from(colEl.querySelectorAll<HTMLElement>('[data-miller-row]'));
+		let top: number;
+		if (index < rows.length) {
+			top = rows[index].getBoundingClientRect().top;
+		} else if (rows.length > 0) {
+			top = rows[rows.length - 1].getBoundingClientRect().bottom;
+		} else {
+			top = colRect.top;
+		}
+		// Keep within the visible column so the line doesn't render outside
+		// the column's clipping rect (e.g. when target row is scrolled away).
+		top = Math.max(colRect.top, Math.min(colRect.bottom, top));
+		indicator = { left: colRect.left + 8, top, width: colRect.width - 16 };
+	}
+
+	function setDropTargetFromEvent(e: DragEvent, colEl: HTMLElement) {
+		e.preventDefault();
+		if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+		const colIndex = Number(colEl.getAttribute('data-miller-column'));
+		const index = computeIndexFromCursor(colEl, e.clientY);
+		dropTarget = { colIndex, index };
+		updateIndicator(colEl, index);
+
+		// Auto-scroll near the column's top/bottom edges so the user can drag
+		// into rows that are currently scrolled out of view.
+		const rect = colEl.getBoundingClientRect();
+		const EDGE = 48;
+		const STEP = 10;
+		if (e.clientY < rect.top + EDGE) {
+			colEl.scrollTop = Math.max(0, colEl.scrollTop - STEP);
+		} else if (e.clientY > rect.bottom - EDGE) {
+			colEl.scrollTop = colEl.scrollTop + STEP;
+		}
+	}
+
+	function handleWindowDragOver(e: DragEvent) {
+		if (!reorderMode || !dragPage) return;
+		const cols = document.querySelectorAll<HTMLElement>('[data-miller-column]');
+		for (const colEl of cols) {
+			const rect = colEl.getBoundingClientRect();
+			if (e.clientX < rect.left || e.clientX > rect.right) continue;
+			if (e.clientY < rect.top || e.clientY > rect.bottom) continue;
+			setDropTargetFromEvent(e, colEl);
+			return;
+		}
+		dropTarget = null;
+		indicator = null;
+	}
+
+	// Per-column fallback: fires when the cursor is directly over the column
+	// container. Redundant with window dragover; either path is sufficient.
+	function millerColumnDragOver(e: DragEvent, colIndex: number) {
+		if (!reorderMode || !dragPage) return;
+		setDropTargetFromEvent(e, e.currentTarget as HTMLElement);
+	}
+
+	// Per-row fallback: fires when the cursor is over a specific row.
+	// Computes via the row's parent column so the same logic applies.
+	function millerRowDragOver(e: DragEvent) {
+		if (!reorderMode || !dragPage) return;
+		const rowEl = e.currentTarget as HTMLElement;
+		const colEl = rowEl.closest<HTMLElement>('[data-miller-column]');
+		if (!colEl) return;
+		setDropTargetFromEvent(e, colEl);
+	}
+
+	function millerColumnDrop(e: DragEvent, colIndex: number) {
+		if (!reorderMode || !dragPage) return;
+		e.preventDefault();
+		const index = dropTarget?.colIndex === colIndex ? dropTarget.index : 0;
+		millerDrop(e, colIndex, index);
+	}
+
+	$effect(() => {
+		// Always attach the window listener; the handler exits early if
+		// reorderMode is off or no drag is in flight. Attaching unconditionally
+		// avoids races where reorderMode flips on after a render cycle.
+		window.addEventListener('dragover', handleWindowDragOver);
+		return () => window.removeEventListener('dragover', handleWindowDragOver);
+	});
+
 	async function millerDrop(e: DragEvent, colIndex: number, targetIndex: number) {
 		e.preventDefault();
 		if (!dragPage || saving || dragColIndex === null) return;
@@ -364,14 +495,28 @@
 		dragPage = null;
 		dragColIndex = null;
 		dropTarget = null;
+		indicator = null;
 
 		if (sourceColIndex !== colIndex) {
-			// Cross-column move: move to different parent
-			const ops: ReorganizeOperation[] = [{
-				route: page.route,
-				parent: col.parentRoute,
-				position: targetIndex + 1,
-			}];
+			// Cross-column move: relocate to a new parent and renumber ALL
+			// target-parent siblings to honor the user's drop position.
+			//
+			// We renumber unconditionally (rather than only when the target
+			// is already ordered). If the target is unordered, sending the
+			// moved page with a position would land it wherever its slug
+			// alphabetizes — not where the indicator showed. Forcing every
+			// target sibling into the visually-implied position is the only
+			// way to make the drop WYSIWYG. The side effect is that target
+			// siblings without NN. prefixes get them; routes are unchanged.
+			const targetSiblings = [...col.pages];
+			targetSiblings.splice(targetIndex, 0, page);
+
+			const ops: ReorganizeOperation[] = targetSiblings.map((p, i) => {
+				const isMoved = p.route === page.route;
+				return isMoved
+					? { route: page.route, parent: col.parentRoute, position: i + 1 }
+					: { route: p.route, position: i + 1 };
+			});
 
 			saving = true;
 			try {
@@ -398,10 +543,19 @@
 		// Same column reorder
 		const siblings = [...col.pages];
 		const currentIndex = siblings.findIndex(s => s.route === page.route);
-		if (currentIndex === -1 || currentIndex === targetIndex) return;
+		// targetIndex is computed from cursor position against the ORIGINAL
+		// (unmodified) sibling list — it's the index of the row the user
+		// wants the dragged page to land BEFORE. After we splice the source
+		// out, every position to the right shifts left by one, so for a
+		// forward move (currentIndex < targetIndex) we re-insert at
+		// targetIndex - 1 to match the user's visual intent. Otherwise the
+		// dragged page ends up one slot below where the indicator showed.
+		if (currentIndex === -1) return;
+		const insertAt = currentIndex < targetIndex ? targetIndex - 1 : targetIndex;
+		if (currentIndex === insertAt) return;
 
 		const [moved] = siblings.splice(currentIndex, 1);
-		siblings.splice(targetIndex, 0, moved);
+		siblings.splice(insertAt, 0, moved);
 
 		const ops: ReorganizeOperation[] = siblings.map((p, i) => ({
 			route: p.route,
@@ -427,6 +581,7 @@
 		dragPage = null;
 		dragColIndex = null;
 		dropTarget = null;
+		indicator = null;
 	}
 
 	// Index of the last column that has a selection (the "active" column)
@@ -491,7 +646,21 @@
 	<!-- Scrollable columns area -->
 	<div class="flex flex-1 overflow-x-auto">
 		{#each columns as col, colIndex (colIndex)}
-			<div class="flex w-56 shrink-0 flex-col overflow-y-auto border-e border-border {colIndex < columns.length - 1 ? 'bg-muted/30' : ''}">
+			{@const colEndIndex = filterColumn(col.pages).length}
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<!--
+				data-miller-column is read by the window-level dragover handler
+				(handleWindowDragOver) to find which column the cursor is in
+				and compute the insertion index. The column doesn't need its
+				own ondragover — window covers all positions reliably — but it
+				does need ondrop because drop events still fire per-element.
+			-->
+			<div
+				data-miller-column={colIndex}
+				class="flex w-56 shrink-0 flex-col overflow-y-auto border-e border-border {colIndex < columns.length - 1 ? 'bg-muted/30' : ''}"
+				ondragover={(e) => millerColumnDragOver(e, colIndex)}
+				ondrop={(e) => millerColumnDrop(e, colIndex)}
+			>
 				{#if col.loading}
 					<div class="flex flex-1 items-center justify-center">
 						<Loader2 size={16} class="animate-spin text-muted-foreground" />
@@ -514,10 +683,8 @@
 						|| translatedKeys.includes(lang)
 						|| (hasImplicitDefault && lang === contentLang.defaultLang)}
 					{@const isUntranslated = lang && hasAnyContent && !hasContentInLang}
-					{#if reorderMode && dropTarget?.colIndex === colIndex && dropTarget?.index === pageIndex && !isDragged}
-						<div class="mx-2 h-0.5 rounded bg-primary"></div>
-					{/if}
 					<div
+							data-miller-row
 							class="flex w-full items-center gap-1 border-b border-border/40 px-2 py-2 text-start transition-all
 								{isDragged ? 'opacity-30' : ''}
 								{isActive
@@ -527,8 +694,7 @@
 										: 'text-foreground hover:bg-accent'}"
 							draggable={reorderMode}
 							ondragstart={(e) => millerDragStart(e, page, colIndex)}
-							ondragover={(e) => millerDragOver(e, colIndex, pageIndex)}
-							ondrop={(e) => millerDrop(e, colIndex, pageIndex)}
+							ondragover={millerRowDragOver}
 							ondragend={millerDragEnd}
 						>
 							{#if reorderMode}
@@ -574,11 +740,16 @@
 						</div>
 					{/each}
 
-					{#if filterColumn(col.pages).length === 0}
+					{#if filterColumn(col.pages).length === 0 && !reorderMode}
 						<div class="flex flex-1 items-center justify-center text-xs text-muted-foreground">
 							{isSearching ? 'No matches' : 'Empty'}
 						</div>
 					{/if}
+
+					<!-- Filler: ensures the column has enough vertical extent
+					     for cursor tracking to detect "cursor is in this
+					     column" even when there are few rows. Transparent. -->
+					<div class="flex-1 min-h-16"></div>
 				{/if}
 			</div>
 		{/each}
@@ -682,3 +853,17 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Drop indicator: same thin purple line as the tree/list views' inline
+     between-row indicators, but rendered via position: fixed and snapped
+     to the target row's top (or last row's bottom for end-of-column).
+     Using fixed positioning sidesteps the Chromium repaint throttling
+     that prevented inline indicators from showing up in columns left of
+     the drag source — a fixed-position element always paints. -->
+{#if reorderMode && dragPage && indicator}
+	<div
+		class="pointer-events-none fixed z-50 h-0.5 rounded bg-primary"
+		style="top: {indicator.top - 1}px; left: {indicator.left}px; width: {indicator.width}px;"
+	></div>
+{/if}
+
