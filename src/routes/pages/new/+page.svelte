@@ -5,7 +5,7 @@
 	import { base } from '$app/paths';
 	import { createPage } from '$lib/api/endpoints/pages';
 	import { getPageTypes, type PageType } from '$lib/api/endpoints/blueprints';
-	import { getChildren, type PageSummary } from '$lib/api/endpoints/pages';
+	import { getChildren, pageApiRoute, type PageSummary } from '$lib/api/endpoints/pages';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
@@ -135,9 +135,15 @@
 	}
 
 	// ── Parent page picker ──────────────────────────────────────────
+	// Compare/select on the page's *structural* route (raw_route) rather than
+	// its public route. When `system.home.alias` is set, the aliased page's
+	// route() returns `/` while its rawRoute() returns the real folder route
+	// (e.g. `/blog`). Selecting on the public route would (a) make the home
+	// page and `<root>` both look selected, and (b) cause creates to land in
+	// /pages root instead of inside the aliased folder.
 	function findPageTitle(pages: PageSummary[], route: string): string | null {
 		for (const p of pages) {
-			if (p.route === route) return p.title;
+			if (pageApiRoute(p) === route) return p.title;
 			const cached = childrenCache[p.route];
 			if (cached) {
 				const found = findPageTitle(cached, route);
@@ -566,9 +572,10 @@
 </div>
 
 {#snippet parentNode(pg: PageSummary, depth: number)}
+	{@const apiRoute = pageApiRoute(pg)}
 	{@const isExpanded = expandedRoutes.has(pg.route)}
 	{@const isLoading = loadingRoutes.has(pg.route)}
-	{@const isSelected = parentRoute === pg.route}
+	{@const isSelected = parentRoute === apiRoute}
 	{@const children = childrenCache[pg.route]}
 	{@const filtered = children ? filterPages(children) : []}
 
@@ -577,7 +584,7 @@
 			type="button"
 			class="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
 				{isSelected ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'}"
-			onclick={() => selectParent(pg.route)}
+			onclick={() => selectParent(apiRoute)}
 		>
 			{#if pg.has_children}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->

@@ -83,16 +83,22 @@ function applyFontSize(value: FontSize): void {
 
 export type MediaViewMode = 'grid' | 'list';
 
+/** Chunk size used by the pages list/columns/tree views for lazy loading. */
+export const PAGES_CHUNK_SIZE_OPTIONS = [50, 100, 250, 500, 1000] as const;
+export type PagesChunkSize = (typeof PAGES_CHUNK_SIZE_OPTIONS)[number];
+
 interface LocalState {
 	mediaViewMode: MediaViewMode;
 	sidebarCollapsed: boolean;
 	pageSidebarCollapsed: boolean;
+	pagesChunkSize: PagesChunkSize;
 }
 
 const LOCAL_DEFAULTS: LocalState = {
 	mediaViewMode: 'grid',
 	sidebarCollapsed: false,
 	pageSidebarCollapsed: false,
+	pagesChunkSize: 100,
 };
 
 function loadLocal(): LocalState {
@@ -161,6 +167,7 @@ function createPreferencesStore() {
 	let mediaViewMode = $state<MediaViewMode>(local.mediaViewMode);
 	let sidebarCollapsed = $state<boolean>(local.sidebarCollapsed);
 	let pageSidebarCollapsed = $state<boolean>(local.pageSidebarCollapsed);
+	let pagesChunkSize = $state<PagesChunkSize>(local.pagesChunkSize);
 
 	// ── Server payload mirrors (read-only via getters) ─────────────────────
 	let siteDefaults = $state<Partial<PreferenceValues>>({});
@@ -176,7 +183,7 @@ function createPreferencesStore() {
 		try {
 			localStorage.setItem(
 				LOCAL_STORAGE_KEY,
-				JSON.stringify({ mediaViewMode, sidebarCollapsed, pageSidebarCollapsed }),
+				JSON.stringify({ mediaViewMode, sidebarCollapsed, pageSidebarCollapsed, pagesChunkSize }),
 			);
 		} catch {
 			/* quota / unavailable — fine */
@@ -330,6 +337,9 @@ function createPreferencesStore() {
 
 		get pageSidebarCollapsed() { return pageSidebarCollapsed; },
 		set pageSidebarCollapsed(v: boolean) { pageSidebarCollapsed = v; persistLocal(); },
+
+		get pagesChunkSize() { return pagesChunkSize; },
+		set pagesChunkSize(v: PagesChunkSize) { pagesChunkSize = v; persistLocal(); },
 
 		// ── Server-payload mirrors / metadata ──────────────────────────────
 		get siteDefaults() { return siteDefaults; },

@@ -7,7 +7,7 @@
 	import { getStats, type DashboardStats } from '$lib/api/endpoints/dashboard';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
-	import { prefs, type PagesViewMode } from '$lib/stores/preferences.svelte';
+	import { prefs, type PagesViewMode, type PagesChunkSize, PAGES_CHUNK_SIZE_OPTIONS } from '$lib/stores/preferences.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
 	import PagesTreeView from '$lib/components/pages/PagesTreeView.svelte';
@@ -50,13 +50,20 @@
 	// Refresh stats when any page mutation happens.
 	onMount(() => invalidations.subscribe('pages:*', () => loadStats()));
 
-	const viewModes: { mode: PagesViewMode; icon: typeof TreePine; label: string }[] = [
-		{ mode: 'tree', icon: TreePine, label: 'Tree' },
-		{ mode: 'list', icon: List, label: 'List' },
-		{ mode: 'miller', icon: Columns3, label: 'Columns' },
-	];
+	// View-mode metadata. Labels are derived from i18n at render time so they
+	// follow the current admin language.
+	const viewModes = $derived<{ mode: PagesViewMode; icon: typeof TreePine; label: string }[]>([
+		{ mode: 'tree', icon: TreePine, label: i18n.t('ADMIN_NEXT.PAGES.VIEW_TREE') },
+		{ mode: 'list', icon: List, label: i18n.t('ADMIN_NEXT.PAGES.VIEW_LIST') },
+		{ mode: 'miller', icon: Columns3, label: i18n.t('ADMIN_NEXT.PAGES.VIEW_COLUMNS') },
+	]);
 
+	// Stash the route the user is about to edit so that on return the list,
+	// tree, or columns view can scroll its selected row back into view. Each
+	// view consumes (and clears) this on mount.
+	const FOCUS_KEY = 'grav_admin_pages_focus';
 	function handleEdit(route: string) {
+		try { sessionStorage.setItem(FOCUS_KEY, route); } catch { /* quota / disabled */ }
 		goto(`${base}/pages/edit${route}`);
 	}
 
@@ -191,12 +198,27 @@
 						? 'border-primary bg-primary/10 text-primary'
 						: 'border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
 				onclick={() => reorderMode = !reorderMode}
-				title={reorderMode ? 'Exit reorder mode' : 'Reorder pages'}
+				title={reorderMode ? i18n.t('ADMIN_NEXT.PAGES.REORDER_EXIT_TITLE') : i18n.t('ADMIN_NEXT.PAGES.REORDER_START_TITLE')}
 			>
 				<ArrowUpDown size={14} />
-				<span class="hidden sm:inline">{reorderMode ? 'Done' : 'Reorder / Move'}</span>
+				<span class="hidden sm:inline">{reorderMode ? i18n.t('ADMIN_NEXT.PAGES.REORDER_DONE') : i18n.t('ADMIN_NEXT.PAGES.REORDER_MOVE')}</span>
 			</button>
 			{/if}
+
+			<!-- Chunk size: how many rows to fetch per request when scrolling
+				 large folders. Shared across tree / list / columns. -->
+			<label class="inline-flex items-center gap-1.5 text-[0.75rem] font-medium text-muted-foreground" title={i18n.t('ADMIN_NEXT.PAGES.CHUNK_SIZE_HELP')}>
+				<span class="hidden md:inline">{i18n.t('ADMIN_NEXT.PAGES.CHUNK_SIZE')}</span>
+				<select
+					class="h-8 rounded-md border border-border bg-transparent ps-2 pe-7 py-0 text-[0.75rem] shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+					value={prefs.pagesChunkSize}
+					onchange={(e) => prefs.pagesChunkSize = Number((e.target as HTMLSelectElement).value) as PagesChunkSize}
+				>
+					{#each PAGES_CHUNK_SIZE_OPTIONS as size}
+						<option value={size}>{size}</option>
+					{/each}
+				</select>
+			</label>
 
 			<!-- View mode toggle -->
 			<div class="inline-flex rounded-md border border-border shadow-sm">
@@ -234,11 +256,11 @@
 		<!-- Footer stats -->
 		{#if stats}
 			<div class="flex items-center gap-4 border-t border-border px-4 py-2 text-[0.6875rem] text-muted-foreground">
-				<span>{stats.total} total</span>
+				<span>{i18n.t('ADMIN_NEXT.PAGES.STATS_TOTAL', { n: stats.total })}</span>
 				<span class="text-border">|</span>
-				<span>{stats.published} published</span>
+				<span>{i18n.t('ADMIN_NEXT.PAGES.STATS_PUBLISHED', { n: stats.published })}</span>
 				<span class="text-border">|</span>
-				<span>{stats.total - stats.published} unpublished</span>
+				<span>{i18n.t('ADMIN_NEXT.PAGES.STATS_UNPUBLISHED', { n: stats.total - stats.published })}</span>
 			</div>
 		{/if}
 	</div>
@@ -248,8 +270,8 @@
 <ConfirmModal
 	open={confirmDeleteOpen}
 	title={i18n.t('ADMIN_NEXT.PAGES.DELETE_PAGE')}
-	message={`Delete "${pendingDeletePage?.title}" at ${pendingDeletePage?.route}?`}
-	confirmLabel="Delete"
+	message={i18n.t('ADMIN_NEXT.CONFIRM_DELETE', { title: pendingDeletePage?.title ?? '', route: pendingDeletePage?.route ?? '' })}
+	confirmLabel={i18n.t('ADMIN_NEXT.DELETE')}
 	variant="destructive"
 	onconfirm={confirmDelete}
 	oncancel={() => { confirmDeleteOpen = false; pendingDeletePage = null; }}

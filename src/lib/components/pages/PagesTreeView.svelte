@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { getChildren, reorganizePages, searchPages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
+	import { reorganizePages, searchPages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
 	import type { PageSummary, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
-	import { onMount } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import TranslationBadges from '$lib/components/ui/TranslationBadges.svelte';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
@@ -13,6 +13,8 @@
 		ArrowUp, ArrowDown, GripVertical, CircleCheck, CircleDashed
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
+	import { prefs } from '$lib/stores/preferences.svelte';
+	import { pagesChunks, streamKey, type StreamConfig } from '$lib/stores/pagesChunks.svelte';
 
 	type SortField = 'default' | 'order' | 'title' | 'modified' | 'date' | 'slug';
 
@@ -55,10 +57,7 @@
 		}
 	}
 
-	let childrenCache = $state<Record<string, PageSummary[]>>({});
-	let loadingRoutes = $state<Set<string>>(new Set());
 	let expandedRoutes = $state<Set<string>>(loadExpandedFromStorage());
-	let rootPages = $state<PageSummary[]>([]);
 	let rootLoading = $state(true);
 	let searchResults = $state<PageSummary[]>([]);
 	let searchLoading = $state(false);
@@ -72,6 +71,81 @@
 	let dropTarget = $state<{ parentRoute: string; index: number } | null>(null);
 	let saving = $state(false);
 
+	// ── Chunked per-folder loading ───────────────────────────────────────────
+
+	const chunkSize = $derived(prefs.pagesChunkSize);
+
+	function streamConfigFor(parentRoute: string): StreamConfig {
+		return {
+			children_of: parentRoute,
+			sort: sortField,
+			order: sortOrder,
+			lang: lang || undefined,
+			translations: lang ? true : undefined,
+		};
+	}
+
+	function streamKeyFor(parentRoute: string): string {
+		return streamKey(streamConfigFor(parentRoute), chunkSize);
+	}
+
+	async function bootstrapFolder(parentRoute: string): Promise<void> {
+		try {
+			await pagesChunks.ensureChunkForIndex(
+				streamKeyFor(parentRoute),
+				streamConfigFor(parentRoute),
+				chunkSize,
+				0,
+			);
+		} catch { /* surfaced upstream */ }
+	}
+
+	function loadedPagesFor(parentRoute: string): PageSummary[] {
+		const key = streamKeyFor(parentRoute);
+		const total = pagesChunks.getTotal(key);
+		if (total === null || total === 0) return [];
+		const out: PageSummary[] = [];
+		for (let i = 0; i < total; i++) {
+			const r = pagesChunks.getRow(key, i);
+			if (r) out.push(r);
+		}
+		return out;
+	}
+
+	function totalChildren(parentRoute: string): number | null {
+		return pagesChunks.getTotal(streamKeyFor(parentRoute));
+	}
+
+	interface ChunkBlock {
+		page: number;
+		startIndex: number;
+		count: number;
+		loaded: boolean;
+		rows: PageSummary[];
+	}
+
+	function chunkBlocksFor(parentRoute: string): ChunkBlock[] {
+		const key = streamKeyFor(parentRoute);
+		const total = pagesChunks.getTotal(key);
+		if (total === null || total === 0) return [];
+		const blocks: ChunkBlock[] = [];
+		const totalPages = Math.ceil(total / chunkSize);
+		for (let page = 1; page <= totalPages; page++) {
+			const startIndex = (page - 1) * chunkSize;
+			const count = Math.min(chunkSize, total - startIndex);
+			const loaded = pagesChunks.isChunkLoaded(key, startIndex);
+			const rows: PageSummary[] = [];
+			if (loaded) {
+				for (let i = 0; i < count; i++) {
+					const r = pagesChunks.getRow(key, startIndex + i);
+					if (r) rows.push(r);
+				}
+			}
+			blocks.push({ page, startIndex, count, loaded, rows });
+		}
+		return blocks;
+	}
+
 	function toggleSort(field: SortField) {
 		if (sortField === field) {
 			sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
@@ -79,32 +153,8 @@
 			sortField = field;
 			sortOrder = field === 'modified' || field === 'date' ? 'desc' : 'asc';
 		}
-		childrenCache = {};
-		loadRoot();
-	}
-
-	async function loadRoot() {
-		rootLoading = true;
-		try {
-			rootPages = await getChildren('/', sortField, sortOrder, lang, !!lang);
-			childrenCache = { '/': rootPages };
-		} catch { /* handled */ }
-		finally { rootLoading = false; }
-	}
-
-	async function loadChildren(parentRoute: string) {
-		if (childrenCache[parentRoute]) return;
-		loadingRoutes = new Set([...loadingRoutes, parentRoute]);
-		try {
-			const children = await getChildren(parentRoute, sortField, sortOrder, lang, !!lang);
-			childrenCache = { ...childrenCache, [parentRoute]: children };
-		} catch {
-			childrenCache = { ...childrenCache, [parentRoute]: [] };
-		} finally {
-			const next = new Set(loadingRoutes);
-			next.delete(parentRoute);
-			loadingRoutes = next;
-		}
+		// New stream key; old streams stay cached.
+		bootstrapFolder('/');
 	}
 
 	async function toggleExpand(route: string) {
@@ -113,7 +163,7 @@
 			next.delete(route);
 		} else {
 			next.add(route);
-			await loadChildren(route);
+			await bootstrapFolder(route);
 		}
 		expandedRoutes = next;
 		saveExpandedToStorage(next);
@@ -135,28 +185,32 @@
 
 	let prevLang = lang;
 	$effect(() => {
+		// Only `lang` should trigger a re-bootstrap. We read `expandedRoutes`
+		// untracked so user expansions / focus-restore additions don't
+		// re-fire this whole pass — those code paths bootstrap their own
+		// folders directly.
 		if (lang !== prevLang) {
 			prevLang = lang;
-			childrenCache = {};
 		}
-		(async () => {
-			await loadRoot();
-			// Re-hydrate children for nodes that were expanded in a previous
-			// session. Run after loadRoot so the route segments are
-			// validated against current root pages, and skip any that no
-			// longer exist (e.g. page deleted in another tab).
-			const toLoad = Array.from(expandedRoutes).filter(r => r !== '/' && !childrenCache[r]);
-			await Promise.all(toLoad.map(r => loadChildren(r)));
-			// Drop expanded entries whose parent never resolved on the
-			// server — keeps storage from accumulating stale routes.
-			const stale = toLoad.filter(r => !childrenCache[r]);
-			if (stale.length > 0) {
-				const cleaned = new Set(expandedRoutes);
-				for (const r of stale) cleaned.delete(r);
-				expandedRoutes = cleaned;
-				saveExpandedToStorage(cleaned);
-			}
-		})();
+		rootLoading = true;
+		untrack(() => {
+			const initialExpanded = Array.from(expandedRoutes).filter(r => r !== '/');
+			(async () => {
+				await bootstrapFolder('/');
+				rootLoading = false;
+				await Promise.all(initialExpanded.map(r => bootstrapFolder(r)));
+				// Drop expanded entries whose folder never resolved (page
+				// deleted in another tab) so storage doesn't accumulate
+				// stale routes.
+				const stale = initialExpanded.filter(r => totalChildren(r) === null);
+				if (stale.length > 0) {
+					const cleaned = new Set(expandedRoutes);
+					for (const r of stale) cleaned.delete(r);
+					expandedRoutes = cleaned;
+					saveExpandedToStorage(cleaned);
+				}
+			})();
+		});
 	});
 
 	// Server-side search across the whole site (debounced). When the input is
@@ -185,43 +239,93 @@
 		}, 250);
 	});
 
-	// Silent targeted refresh — refetches only the affected parent(s) into the
-	// cache without flipping rootLoading, so the tree doesn't re-skeleton on
-	// unrelated mutations or tab-refocus events.
-	async function silentRefresh(parentRoutes: string[]) {
-		await Promise.all(parentRoutes.map(async (parent) => {
-			try {
-				const children = await getChildren(parent, sortField, sortOrder, lang, !!lang);
-				childrenCache = { ...childrenCache, [parent]: children };
-				if (parent === '/') rootPages = children;
-			} catch { /* ignore; poll will retry */ }
-		}));
+	// Silent refresh: the chunk store auto-invalidates on `pages:*`. All we
+	// need to do is re-bootstrap the affected folders so the user doesn't see
+	// empty placeholders briefly.
+	function silentRefresh(parentRoutes: string[]) {
+		for (const p of parentRoutes) bootstrapFolder(p);
 	}
 
 	onMount(() => {
+		// One-shot scroll restore: if the user just came back from editing a
+		// page, expand every ancestor on the way down, load the chunks
+		// containing the target row, then scroll the row to the top of the
+		// scrollable ancestor. Cleared so a subsequent fresh visit lands at
+		// the top.
+		const FOCUS_KEY = 'grav_admin_pages_focus';
+		const focusRoute = sessionStorage.getItem(FOCUS_KEY);
+		if (focusRoute) {
+			sessionStorage.removeItem(FOCUS_KEY);
+			(async () => {
+				try {
+					// Expand every ancestor folder so the row will be rendered.
+					const segments = focusRoute.split('/').filter(Boolean);
+					const ancestors: string[] = [];
+					for (let i = 0; i < segments.length - 1; i++) {
+						ancestors.push('/' + segments.slice(0, i + 1).join('/'));
+					}
+					const nextExpanded = new Set(expandedRoutes);
+					for (const a of ancestors) nextExpanded.add(a);
+					if (nextExpanded.size !== expandedRoutes.size) {
+						expandedRoutes = nextExpanded;
+						saveExpandedToStorage(nextExpanded);
+					}
+					// Bootstrap each ancestor's children, then use the locate
+					// endpoint on the immediate parent so the chunk holding
+					// the focus row is resident. After each await we poll the
+					// chunk store directly because the lang $effect may also
+					// be loading the same folders concurrently — both paths
+					// dedupe through the chunk store.
+					for (const a of ['/', ...ancestors]) await bootstrapFolder(a);
+					const directParent = ancestors[ancestors.length - 1] ?? '/';
+					await pagesChunks.ensureChunkForRoute(
+						streamKeyFor(directParent),
+						streamConfigFor(directParent),
+						chunkSize,
+						focusRoute,
+					);
+					// Render needs an extra frame after the chunk lands —
+					// `tick()` flushes one round, but the chunk-store write
+					// triggers `chunkBlocksFor` to re-derive, which in turn
+					// needs another microtask to materialize the new rows.
+					await tick();
+					await new Promise(res => requestAnimationFrame(() => res(null)));
+					scrollRouteIntoView(focusRoute);
+				} catch { /* row may have been deleted */ }
+			})();
+		}
+
 		const onPages = (e: { id?: string }) => {
 			if (!e.id) {
-				// No id on the event — refresh every parent we're currently showing.
-				silentRefresh(Object.keys(childrenCache));
+				silentRefresh(['/', ...Array.from(expandedRoutes).filter(r => r !== '/')]);
 				return;
 			}
 			const parent = parentRouteOf(e.id);
 			const targets: string[] = [];
-			if (childrenCache[parent]) targets.push(parent);
-			// Root might also need to know about new top-level pages. Always
-			// keep root fresh if it's loaded.
-			if (parent !== '/' && childrenCache['/']) targets.push('/');
-			if (targets.length > 0) silentRefresh(targets);
+			// Re-bootstrap the affected parent and root.
+			targets.push(parent);
+			if (parent !== '/') targets.push('/');
+			silentRefresh(targets);
 		};
-		const onFocus = () => silentRefresh(Object.keys(childrenCache));
+		const onFocus = () => silentRefresh(['/', ...Array.from(expandedRoutes).filter(r => r !== '/')]);
 		const unsubPages = invalidations.subscribe('pages:*', onPages);
 		const unsubFocus = invalidations.subscribe('*:focus', onFocus);
 		return () => { unsubPages(); unsubFocus(); };
 	});
 
-	function getPageChildren(route: string): PageSummary[] {
-		return childrenCache[route] ?? [];
-	}
+	// Reorder mode: every visible folder's full sibling list must be resident
+	// so reorganize ops include every position. Force-load on toggle, and on
+	// any expand while reorder is active.
+	$effect(() => {
+		if (!reorderMode) return;
+		const folders = ['/', ...Array.from(expandedRoutes).filter(r => r !== '/')];
+		const size = chunkSize;
+		untrack(() => {
+			for (const f of folders) {
+				pagesChunks.ensureAllChunks(streamKeyFor(f), streamConfigFor(f), size);
+			}
+		});
+	});
 
 	function matchesSearch(page: PageSummary): boolean {
 		if (!searchQuery) return true;
@@ -239,10 +343,9 @@
 	}
 
 	/** True if any sibling under this parent has a numeric order prefix.
-	 *  Used to decide whether the destination "expects" ordered children — if
-	 *  so we send a position; otherwise we leave the new page unordered. */
+	 *  Used to decide whether the destination "expects" ordered children. */
 	function parentHasOrdering(parentRoute: string): boolean {
-		const siblings = getPageChildren(parentRoute);
+		const siblings = loadedPagesFor(parentRoute);
 		return siblings.some(s => s.order !== null && s.order !== '');
 	}
 
@@ -270,13 +373,6 @@
 		dropTarget = { parentRoute, index };
 	}
 
-	function handleDragLeave() {
-		// Small delay to prevent flicker when moving between adjacent elements
-		setTimeout(() => {
-			// Only clear if no new target was set
-		}, 50);
-	}
-
 	async function handleDrop(e: DragEvent, targetParentRoute: string, targetIndex: number) {
 		e.preventDefault();
 		if (!dragPage || saving) return;
@@ -284,7 +380,15 @@
 		const page = dragPage;
 		const pageRoute = pageApiRoute(page);
 		const sourceParentRoute = dragParentRoute!;
-		const siblings = getPageChildren(targetParentRoute);
+
+		// Reorganize must reflect the FULL sibling list of any folder it
+		// touches. Make sure both source and target are fully resident.
+		await Promise.all([
+			pagesChunks.ensureAllChunks(streamKeyFor(sourceParentRoute), streamConfigFor(sourceParentRoute), chunkSize),
+			pagesChunks.ensureAllChunks(streamKeyFor(targetParentRoute), streamConfigFor(targetParentRoute), chunkSize),
+		]);
+
+		const siblings = loadedPagesFor(targetParentRoute);
 		const targetIsOrdered = parentHasOrdering(targetParentRoute);
 		const sourceIsOrdered = parentHasOrdering(sourceParentRoute);
 
@@ -330,11 +434,10 @@
 			// invalidates every later op that targets a path under it
 			// (Phase 3 rename then fails with "No such file or directory").
 			if (sourceIsOrdered) {
-				const sourceSiblings = getPageChildren(sourceParentRoute)
+				const sourceSiblings = loadedPagesFor(sourceParentRoute)
 					.filter(s => {
 						const r = pageApiRoute(s);
 						if (r === pageRoute) return false;
-						// Drop ancestors of the destination parent.
 						if (r === targetParentRoute) return false;
 						if (targetParentRoute.startsWith(r + '/')) return false;
 						return true;
@@ -366,21 +469,8 @@
 		try {
 			await reorganizePages(ops);
 			toast.success(i18n.t('ADMIN_NEXT.TOASTS.ITEM_MOVED', { name: page.title }));
-			// Refresh affected parents
-			delete childrenCache[sourceParentRoute];
-			delete childrenCache[targetParentRoute];
-			if (sourceParentRoute === '/') {
-				await loadRoot();
-			} else {
-				await loadChildren(sourceParentRoute);
-			}
-			if (targetParentRoute !== sourceParentRoute) {
-				if (targetParentRoute === '/') {
-					await loadRoot();
-				} else {
-					await loadChildren(targetParentRoute);
-				}
-			}
+			// pages:* invalidation drops the chunk store; the bootstrap
+			// effect re-fires for affected folders.
 		} catch (err: unknown) {
 			const message = err && typeof err === 'object' && 'message' in err
 				? String((err as { message: string }).message)
@@ -407,6 +497,93 @@
 
 	function isDragging(page: PageSummary): boolean {
 		return dragPage?.route === page.route;
+	}
+
+	/**
+	 * Per-placeholder IntersectionObserver. The scroll container varies by
+	 * embed (admin shell vs full-page) so we let the observer use the
+	 * implicit nearest scrollable ancestor via root: null and a generous
+	 * rootMargin. Fires the chunk's own load plus its immediate neighbours
+	 * for symmetric "preload as you approach" behaviour.
+	 */
+	function observeChunkPlaceholder(
+		node: HTMLElement,
+		params: { startIndex: number; parentRoute: string },
+	) {
+		let current = params;
+		const observer = new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					if (!entry.isIntersecting) continue;
+					const idx = current.startIndex;
+					const pp = chunkSize;
+					const cfg = streamConfigFor(current.parentRoute);
+					const key = streamKeyFor(current.parentRoute);
+					pagesChunks.ensureChunkForIndex(key, cfg, pp, idx);
+					if (idx >= pp) pagesChunks.ensureChunkForIndex(key, cfg, pp, idx - pp);
+					pagesChunks.ensureChunkForIndex(key, cfg, pp, idx + pp);
+				}
+			},
+			{ rootMargin: '1500px 0px' },
+		);
+		observer.observe(node);
+		return {
+			update(next: { startIndex: number; parentRoute: string }) {
+				current = next;
+			},
+			destroy() { observer.disconnect(); },
+		};
+	}
+
+	const ROW_HEIGHT_PX = 52;
+
+	function scrollRouteIntoView(route: string): void {
+		const row = document.querySelector<HTMLElement>(`[data-page-route="${CSS.escape(route)}"]`);
+		if (!row) return;
+		const scroller = findScrollableAncestor(row);
+		if (!scroller) {
+			row.scrollIntoView({ block: 'start' });
+			return;
+		}
+		const scrollerRect = scroller.getBoundingClientRect();
+		const rowRect = row.getBoundingClientRect();
+		// Anything `position: sticky` pinned to the top of the scroller
+		// (e.g. the page's StickyHeader with the toolbar) overlaps the top
+		// of the visible area. Subtract its height from where we put the
+		// row, otherwise the row ends up underneath the header.
+		const stickyOffset = computeStickyTopOffset(scroller);
+		scroller.scrollTop += rowRect.top - scrollerRect.top - stickyOffset - 8;
+	}
+
+	function findScrollableAncestor(el: HTMLElement): HTMLElement | null {
+		let cur: HTMLElement | null = el.parentElement;
+		while (cur) {
+			const style = getComputedStyle(cur);
+			if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && cur.scrollHeight > cur.clientHeight) {
+				return cur;
+			}
+			cur = cur.parentElement;
+		}
+		return null;
+	}
+
+	/** Total pixel height occupied by any `position: sticky` element pinned
+	 *  to the scroller's top edge. Used to keep restored rows below toolbars. */
+	function computeStickyTopOffset(scroller: HTMLElement): number {
+		const sticky = scroller.querySelectorAll<HTMLElement>('.sticky');
+		if (sticky.length === 0) return 0;
+		const scrollerTop = scroller.getBoundingClientRect().top;
+		let maxBottom = scrollerTop;
+		for (const el of sticky) {
+			if (getComputedStyle(el).position !== 'sticky') continue;
+			const r = el.getBoundingClientRect();
+			// Only count headers that are currently pinned at the scroller's
+			// top — i.e. their visible top edge is at (or within ~2px of)
+			// the scroller's top edge.
+			if (Math.abs(r.top - scrollerTop) > 2) continue;
+			if (r.bottom > maxBottom) maxBottom = r.bottom;
+		}
+		return maxBottom - scrollerTop;
 	}
 </script>
 
@@ -449,12 +626,23 @@
 		{i18n.t('ADMIN_NEXT.PAGES.LOADING')}
 	</div>
 {:else}
+	{#snippet chunkPlaceholder(parentRoute: string, startIndex: number, count: number, depth: number)}
+		<div
+			class="flex items-center border-b border-border/40 text-[0.75rem] text-muted-foreground/60"
+			style="min-height: {count * ROW_HEIGHT_PX}px; padding-left: {16 + depth * 20}px;"
+			use:observeChunkPlaceholder={{ startIndex, parentRoute }}
+		>
+			<Loader2 size={12} class="me-1.5 animate-spin" />
+			{i18n.t('ADMIN_NEXT.PAGES.LOADING_CHUNK', { from: startIndex + 1, to: startIndex + count })}
+		</div>
+	{/snippet}
+
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	{#snippet treeRow(page: PageSummary, depth: number, parentRoute: string, index: number)}
 		{#if matchesSearch(page)}
 			<!-- Use raw_route for identity keys so the home page (public route '/')
-			     doesn't collide with the root-parent marker '/', which would cause
-			     the snippet to recurse into itself. -->
+				 doesn't collide with the root-parent marker '/', which would cause
+				 the snippet to recurse into itself. -->
 			{@const apiRoute = pageApiRoute(page)}
 			{@const explicitFiles = page.explicit_language_files ?? []}
 			{@const translatedKeys = page.translated_languages ? Object.keys(page.translated_languages) : []}
@@ -471,6 +659,7 @@
 				<div class="mx-4 h-0.5 rounded bg-primary transition-all" style="margin-left: {16 + depth * 20}px"></div>
 			{/if}
 			<div
+				data-page-route={apiRoute}
 				class="group relative flex items-center gap-2 border-b border-border/50 px-2 py-2 transition-colors sm:px-4
 					{isDragging(page) ? 'opacity-30' : 'hover:bg-accent/50'}
 					{saving ? 'pointer-events-none' : ''}"
@@ -492,7 +681,7 @@
 							class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
 							onclick={() => toggleExpand(apiRoute)}
 						>
-							{#if loadingRoutes.has(apiRoute)}
+							{#if expandedRoutes.has(apiRoute) && totalChildren(apiRoute) === null}
 								<Loader2 size={13} class="animate-spin" />
 							{:else if expandedRoutes.has(apiRoute)}
 								<ChevronDown size={14} />
@@ -561,10 +750,17 @@
 			</div>
 
 			{#if !searchActive && page.has_children && expandedRoutes.has(apiRoute)}
-				{#each getPageChildren(apiRoute) as child, childIndex (child.route)}
-					{@render treeRow(child, depth + 1, apiRoute, childIndex)}
+				{#each chunkBlocksFor(apiRoute) as block (block.page)}
+					{#if block.loaded}
+						{#each block.rows as child, childOffset (child.route)}
+							{@render treeRow(child, depth + 1, apiRoute, block.startIndex + childOffset)}
+						{/each}
+					{:else}
+						{@render chunkPlaceholder(apiRoute, block.startIndex, block.count, depth + 1)}
+					{/if}
 				{/each}
-				{#if reorderMode && isDropTarget(apiRoute, getPageChildren(apiRoute).length)}
+				{@const totalAtRoute = totalChildren(apiRoute)}
+				{#if reorderMode && totalAtRoute !== null && isDropTarget(apiRoute, totalAtRoute)}
 					<div class="mx-4 h-0.5 rounded bg-primary transition-all" style="margin-left: {16 + (depth + 1) * 20}px"></div>
 				{/if}
 			{/if}
@@ -590,15 +786,23 @@
 			</div>
 		{/if}
 	{:else}
-		{#each rootPages as page, index (page.route)}
-			{@render treeRow(page, 0, '/', index)}
+		{@const rootBlocks = chunkBlocksFor('/')}
+		{@const rootTotal = totalChildren('/')}
+		{#each rootBlocks as block (block.page)}
+			{#if block.loaded}
+				{#each block.rows as page, offset (page.route)}
+					{@render treeRow(page, 0, '/', block.startIndex + offset)}
+				{/each}
+			{:else}
+				{@render chunkPlaceholder('/', block.startIndex, block.count, 0)}
+			{/if}
 		{/each}
 
-		{#if reorderMode && rootPages.length > 0 && isDropTarget('/', rootPages.length)}
+		{#if reorderMode && rootTotal !== null && rootTotal > 0 && isDropTarget('/', rootTotal)}
 			<div class="mx-4 h-0.5 rounded bg-primary"></div>
 		{/if}
 
-		{#if rootPages.length === 0}
+		{#if rootTotal === 0}
 			<div class="py-12 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.NO_PAGES')}</div>
 		{/if}
 	{/if}

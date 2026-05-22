@@ -351,22 +351,6 @@
 					</div>
 				</div>
 
-				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
-					<div class="lg:pt-2.5">
-						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ITEMS_PER_PAGE')}</span>
-						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.NUMBER_OF_PAGES_SHOWN_IN_LIST_VIEW')}</p>
-					</div>
-					<select
-						class="flex h-9 max-w-20 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-						value={prefs.pagesPerPage}
-						onchange={(e) => prefs.pagesPerPage = Number((e.target as HTMLSelectElement).value)}
-					>
-						<option value={10}>10</option>
-						<option value={20}>20</option>
-						<option value={50}>50</option>
-						<option value={100}>100</option>
-					</select>
-				</div>
 			</div>
 		</div>
 
@@ -710,22 +694,6 @@
 									</div>
 								</div>
 
-								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
-									<div class="lg:pt-2.5">
-										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ITEMS_PER_PAGE')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.NUMBER_OF_PAGES_SHOWN_IN_LIST_VIEW')}</p>
-									</div>
-									<select
-										class="flex h-9 max-w-20 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-										value={siteDraft.pagesPerPage ?? 20}
-										onchange={(e) => siteDraft = { ...siteDraft, pagesPerPage: Number((e.target as HTMLSelectElement).value) }}
-									>
-										<option value={10}>10</option>
-										<option value={20}>20</option>
-										<option value={50}>50</option>
-										<option value={100}>100</option>
-									</select>
-								</div>
 							</div>
 
 							<!-- ─── Language default (Tier B) ──────────────────── -->

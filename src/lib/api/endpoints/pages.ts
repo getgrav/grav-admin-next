@@ -98,15 +98,37 @@ export function parentRouteOf(route: string): string {
 }
 
 export async function getChildren(parentRoute: string, sort: string = 'order', order: string = 'asc', lang?: string, translations?: boolean): Promise<PageSummary[]> {
-	const params: Record<string, string> = {
+	const perPage = 200;
+	const baseParams: Record<string, string> = {
 		children_of: parentRoute,
 		sort,
 		order,
-		per_page: '200',
+		per_page: String(perPage),
 	};
-	if (lang) params.lang = lang;
-	if (translations) params.translations = 'true';
-	return api.get<PageSummary[]>('/pages', params);
+	if (lang) baseParams.lang = lang;
+	if (translations) baseParams.translations = 'true';
+
+	type ChildrenBody = {
+		data?: PageSummary[];
+		meta?: { pagination?: { total_pages?: number } };
+	};
+
+	const first = await api.getFullBody<ChildrenBody>('/pages', { ...baseParams, page: '1' });
+	const totalPages = Math.max(1, first.meta?.pagination?.total_pages ?? 1);
+	const all: PageSummary[] = [...(first.data ?? [])];
+
+	if (totalPages > 1) {
+		const rest = await Promise.all(
+			Array.from({ length: totalPages - 1 }, (_, i) =>
+				api
+					.getFullBody<ChildrenBody>('/pages', { ...baseParams, page: String(i + 2) })
+					.then((body) => body.data ?? []),
+			),
+		);
+		for (const batch of rest) all.push(...batch);
+	}
+
+	return all;
 }
 
 export interface CreatePageBody {

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { getChildren, getPage, getPagesList, reorganizePages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
+	import { getPage, getPagesList, reorganizePages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
 	import type { PageSummary, PageDetail, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
-	import { onMount } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import TranslationBadges from '$lib/components/ui/TranslationBadges.svelte';
@@ -14,6 +14,8 @@
 		Folder, File, Loader2, ExternalLink, ArrowUpDown, GripVertical
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
+	import { prefs } from '$lib/stores/preferences.svelte';
+	import { pagesChunks, streamKey, type StreamConfig } from '$lib/stores/pagesChunks.svelte';
 
 	type SortField = 'default' | 'order' | 'title' | 'modified' | 'date';
 
@@ -85,23 +87,79 @@
 	let sortField = $state<SortField>('default');
 	let sortOrder = $state<'asc' | 'desc'>('asc');
 
+	/**
+	 * A column's structure: just the parent route and the user's selection.
+	 * The actual page data lives in the chunk store, keyed by streamKey
+	 * derived from parent + sort + lang + chunk size. Columns persist across
+	 * navigation (we never evict the chunk store), so backing up the
+	 * breadcrumb stays instant.
+	 */
 	interface Column {
 		parentRoute: string;
-		pages: PageSummary[];
 		selectedRoute: string | null;
-		loading: boolean;
 	}
 
 	let columns = $state<Column[]>([]);
 	let previewPage = $state<PageDetail | null>(null);
 	let previewLoading = $state(false);
 
-	async function loadColumn(parentRoute: string): Promise<PageSummary[]> {
+	// Per-column chunk size — captured at column creation so changing the
+	// toolbar dropdown mid-navigation doesn't blow away already-loaded
+	// chunks. Each new column uses the current dropdown value.
+	const chunkSize = $derived(prefs.pagesChunkSize);
+
+	function streamConfigFor(parentRoute: string): StreamConfig {
+		return {
+			children_of: parentRoute,
+			sort: sortField,
+			order: sortOrder,
+			lang: lang || undefined,
+			translations: lang ? true : undefined,
+		};
+	}
+
+	function streamKeyFor(parentRoute: string): string {
+		return streamKey(streamConfigFor(parentRoute), chunkSize);
+	}
+
+	/**
+	 * Bootstrap the chunk stream for a parent route. Returns once the first
+	 * chunk has resolved (or already exists), so the caller can inspect
+	 * `total` to decide whether to drill further.
+	 *
+	 * `ensureChunkForIndex` reads tracked store fields (`s.loading[page]`,
+	 * `s.chunks[page]`) to dedupe, and those same fields are written when
+	 * the fetch settles — calling this directly inside an `$effect` would
+	 * register those fields as deps and re-fire the effect on every chunk
+	 * write. We always invoke this through `untrack(...)` from effects.
+	 */
+	async function bootstrapColumn(parentRoute: string): Promise<void> {
 		try {
-			return await getChildren(parentRoute, sortField, sortOrder, lang);
-		} catch {
-			return [];
+			await pagesChunks.ensureChunkForIndex(
+				streamKeyFor(parentRoute),
+				streamConfigFor(parentRoute),
+				chunkSize,
+				0,
+			);
+		} catch { /* error surfaced by toast at the API client layer */ }
+	}
+
+	/**
+	 * Return all rows currently loaded for a column (in absolute order),
+	 * skipping unloaded chunks. Used by reorder code that needs the full
+	 * sibling list — callers should first call ensureAllChunks to
+	 * guarantee completeness.
+	 */
+	function loadedPagesFor(parentRoute: string): PageSummary[] {
+		const key = streamKeyFor(parentRoute);
+		const total = pagesChunks.getTotal(key);
+		if (total === null || total === 0) return [];
+		const out: PageSummary[] = [];
+		for (let i = 0; i < total; i++) {
+			const r = pagesChunks.getRow(key, i);
+			if (r) out.push(r);
 		}
+		return out;
 	}
 
 	function handleSortChange(e: Event) {
@@ -109,17 +167,11 @@
 		const [field, order] = val.split(':') as [SortField, 'asc' | 'desc'];
 		sortField = field;
 		sortOrder = order;
-		// Reload from root with new sort
-		(async () => {
-			const rootPages = await loadColumn('/');
-			columns = [{
-				parentRoute: '/',
-				pages: rootPages,
-				selectedRoute: null,
-				loading: false,
-			}];
-			previewPage = null;
-		})();
+		// Reset to root column with new sort. The chunk store automatically
+		// uses the new streamKey; old streams stay cached.
+		columns = [{ parentRoute: '/', selectedRoute: null }];
+		previewPage = null;
+		bootstrapColumn('/');
 	}
 
 	async function loadPreview(route: string) {
@@ -154,32 +206,41 @@
 		} catch { return []; }
 	}
 
+	/**
+	 * Restore the breadcrumb path saved in sessionStorage. For each level we
+	 * use the server's `?locate=` parameter to fetch the specific chunk
+	 * containing the selected page — that avoids walking every chunk on a
+	 * 1000-child folder just to find row #800 of the saved path.
+	 */
 	async function restoreColumns(savedPath: string[]) {
-		// Load root first
-		const rootPages = await loadColumn('/');
-		const result: Column[] = [{
-			parentRoute: '/',
-			pages: rootPages,
-			selectedRoute: null,
-			loading: false,
-		}];
+		const result: Column[] = [{ parentRoute: '/', selectedRoute: null }];
 
-		// Walk the saved path, loading each level
+		// Bootstrap root chunk first so we know its total / can find the saved
+		// selection inside it.
+		await bootstrapColumn('/');
+
 		for (const route of savedPath) {
 			const lastCol = result[result.length - 1];
-			const page = lastCol.pages.find(p => p.route === route);
-			if (!page) break; // page no longer exists — stop here
-
-			lastCol.selectedRoute = route;
-
-			if (page.has_children) {
-				const children = await loadColumn(route);
-				result.push({
-					parentRoute: route,
-					pages: children,
-					selectedRoute: null,
-					loading: false,
-				});
+			const parentKey = streamKeyFor(lastCol.parentRoute);
+			// Pull the chunk containing this route — usually returns chunk 1
+			// for small folders, or the relevant deep chunk for large ones.
+			try {
+				const idx = await pagesChunks.ensureChunkForRoute(
+					parentKey,
+					streamConfigFor(lastCol.parentRoute),
+					chunkSize,
+					route,
+				);
+				if (idx === null) break; // page no longer exists
+				const page = pagesChunks.getRow(parentKey, idx);
+				if (!page) break;
+				lastCol.selectedRoute = route;
+				if (page.has_children) {
+					result.push({ parentRoute: route, selectedRoute: null });
+					await bootstrapColumn(route);
+				}
+			} catch {
+				break;
 			}
 		}
 
@@ -188,9 +249,35 @@
 		// Load preview for last selected
 		const lastRoute = savedPath[savedPath.length - 1];
 		if (lastRoute && result.some(c => c.selectedRoute === lastRoute)) {
-			const lastPage = result.flatMap(c => c.pages).find(p => p.route === lastRoute);
-			loadPreview(lastPage ? pageApiRoute(lastPage) : lastRoute);
+			loadPreview(lastRoute);
 		}
+
+		// Scroll every column to its selected row so the user lands on the
+		// restored path instead of at the top of each column. Wait one tick
+		// + a rAF: tick flushes the Svelte microtask queue, the frame gives
+		// the layout engine a chance to size newly-mounted chunks so our
+		// row.getBoundingClientRect() reads the final position.
+		await tick();
+		await new Promise(res => requestAnimationFrame(() => res(null)));
+		scrollSelectedRowsIntoView();
+	}
+
+	/**
+	 * For each column with a selectedRoute, scroll the column so the
+	 * selected row sits at the top of its visible area. Cheap and idempotent
+	 * — call it whenever the layout could leave a selected row off-screen.
+	 */
+	function scrollSelectedRowsIntoView(): void {
+		const cols = document.querySelectorAll<HTMLElement>('[data-miller-column]');
+		cols.forEach((colEl, i) => {
+			const sel = columns[i]?.selectedRoute;
+			if (!sel) return;
+			const row = colEl.querySelector<HTMLElement>(`[data-page-route="${CSS.escape(sel)}"]`);
+			if (!row) return;
+			const colRect = colEl.getBoundingClientRect();
+			const rowRect = row.getBoundingClientRect();
+			colEl.scrollTop += rowRect.top - colRect.top - 4;
+		});
 	}
 
 	// Initialize with root, reload when lang changes
@@ -201,32 +288,25 @@
 			previewPage = null;
 			allPagesCache = null;
 		}
-		const savedPath = getSavedPath();
-		if (savedPath.length > 0) {
-			restoreColumns(savedPath);
-		} else {
-			(async () => {
-				const rootPages = await loadColumn('/');
-				columns = [{
-					parentRoute: '/',
-					pages: rootPages,
-					selectedRoute: null,
-					loading: false,
-				}];
-			})();
-		}
+		const savedPath = untrack(getSavedPath);
+		// All chunk-store calls run untracked: see comment on bootstrapColumn
+		// for why. The effect's reactive deps must be limited to `lang`.
+		untrack(() => {
+			if (savedPath.length > 0) {
+				restoreColumns(savedPath);
+			} else {
+				columns = [{ parentRoute: '/', selectedRoute: null }];
+				bootstrapColumn('/');
+			}
+		});
 	});
 
-	// Silent targeted refresh — refetches only the columns that contain the
-	// affected page, preserving the user's selection trail and downstream
-	// columns. No per-column loading flip, so there's no visible skeleton.
-	async function silentRefreshColumn(parentRoute: string) {
-		try {
-			const pages = await loadColumn(parentRoute);
-			columns = columns.map(col =>
-				col.parentRoute === parentRoute ? { ...col, pages } : col
-			);
-		} catch { /* ignore */ }
+	// Silent targeted refresh: the chunk store already drops every cached
+	// chunk on `pages:*` events. All that's left is to nudge the active
+	// columns' first chunks back into memory so the user doesn't see empty
+	// columns briefly.
+	function silentRefreshColumn(parentRoute: string) {
+		bootstrapColumn(parentRoute);
 	}
 
 	onMount(() => {
@@ -277,20 +357,11 @@
 		updated[colIndex] = { ...updated[colIndex], selectedRoute: page.route };
 
 		if (page.has_children) {
-			// Add new column for children
-			updated.push({
-				parentRoute: page.route,
-				pages: [],
-				selectedRoute: null,
-				loading: true,
-			});
+			updated.push({ parentRoute: page.route, selectedRoute: null });
 			columns = updated;
-
-			// Load children
-			const children = await loadColumn(page.route);
-			columns = columns.map((col, i) =>
-				i === colIndex + 1 ? { ...col, pages: children, loading: false } : col
-			);
+			// Kick off the chunk-store bootstrap for the new column. The
+			// derived rendering picks up the chunks as they arrive.
+			bootstrapColumn(page.route);
 		} else {
 			columns = updated;
 		}
@@ -313,12 +384,30 @@
 		return date.toLocaleDateString();
 	}
 
+	/**
+	 * Look up a page summary in this column's chunk store. Walks the loaded
+	 * chunks; returns null if the row isn't resident yet. Used only for
+	 * display lookups (breadcrumb, selection title) — the chunk store will
+	 * usually have the chunk containing any selected row because selection
+	 * happens from a visible row.
+	 */
+	function findInColumn(parentRoute: string, route: string): PageSummary | null {
+		const key = streamKeyFor(parentRoute);
+		const total = pagesChunks.getTotal(key);
+		if (total === null) return null;
+		for (let i = 0; i < total; i++) {
+			const r = pagesChunks.getRow(key, i);
+			if (r && r.route === route) return r;
+		}
+		return null;
+	}
+
 	// Breadcrumb from column selections
 	const breadcrumb = $derived(
 		columns
 			.filter(c => c.selectedRoute)
 			.map(c => {
-				const page = c.pages.find(p => p.route === c.selectedRoute);
+				const page = findInColumn(c.parentRoute, c.selectedRoute!);
 				return { route: c.selectedRoute!, title: page?.title ?? c.selectedRoute! };
 			})
 	);
@@ -326,9 +415,8 @@
 	// Get the last selected page summary
 	const lastSelected = $derived.by(() => {
 		for (let i = columns.length - 1; i >= 0; i--) {
-			if (columns[i].selectedRoute) {
-				return columns[i].pages.find(p => p.route === columns[i].selectedRoute) ?? null;
-			}
+			const sel = columns[i].selectedRoute;
+			if (sel) return findInColumn(columns[i].parentRoute, sel);
 		}
 		return null;
 	});
@@ -497,6 +585,17 @@
 		dropTarget = null;
 		indicator = null;
 
+		// Reorganize must reflect the FULL sibling list. Ensure both columns
+		// are fully resident before sending positions — otherwise unloaded
+		// chunks would be excluded from the operation list and silently
+		// drop out of order.
+		await Promise.all([
+			pagesChunks.ensureAllChunks(streamKeyFor(sourceCol.parentRoute), streamConfigFor(sourceCol.parentRoute), chunkSize),
+			pagesChunks.ensureAllChunks(streamKeyFor(col.parentRoute), streamConfigFor(col.parentRoute), chunkSize),
+		]);
+
+		const targetPages = loadedPagesFor(col.parentRoute);
+
 		if (sourceColIndex !== colIndex) {
 			// Cross-column move: relocate to a new parent and renumber ALL
 			// target-parent siblings to honor the user's drop position.
@@ -508,7 +607,7 @@
 			// target sibling into the visually-implied position is the only
 			// way to make the drop WYSIWYG. The side effect is that target
 			// siblings without NN. prefixes get them; routes are unchanged.
-			const targetSiblings = [...col.pages];
+			const targetSiblings = [...targetPages];
 			targetSiblings.splice(targetIndex, 0, page);
 
 			const ops: ReorganizeOperation[] = targetSiblings.map((p, i) => {
@@ -522,16 +621,8 @@
 			try {
 				await reorganizePages(ops);
 				toast.success(i18n.t('ADMIN_NEXT.TOASTS.ITEM_MOVED', { name: page.title }));
-				// Reload both columns
-				const [srcPages, dstPages] = await Promise.all([
-					loadColumn(sourceCol.parentRoute),
-					loadColumn(col.parentRoute),
-				]);
-				columns = columns.map((c, i) => {
-					if (i === sourceColIndex) return { ...c, pages: srcPages };
-					if (i === colIndex) return { ...c, pages: dstPages };
-					return c;
-				});
+				// The chunk store auto-invalidates on `pages:*`; the
+				// bootstrap effect re-fires.
 			} catch {
 				toast.error(i18n.t('ADMIN_NEXT.PAGES.MOVE_FAILED'));
 			} finally {
@@ -541,7 +632,7 @@
 		}
 
 		// Same column reorder
-		const siblings = [...col.pages];
+		const siblings = [...targetPages];
 		const currentIndex = siblings.findIndex(s => s.route === page.route);
 		// targetIndex is computed from cursor position against the ORIGINAL
 		// (unmodified) sibling list — it's the index of the row the user
@@ -566,10 +657,6 @@
 		try {
 			await reorganizePages(ops);
 			toast.success(i18n.t('ADMIN_NEXT.TOASTS.ITEM_REORDERED', { name: page.title }));
-			// Update column in place
-			columns = columns.map((c, i) =>
-				i === colIndex ? { ...c, pages: siblings } : c
-			);
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.PAGES.REORDER_FAILED'));
 		} finally {
@@ -591,6 +678,101 @@
 		}
 		return -1;
 	});
+
+	// Reorder mode requires the full sibling list of every visible column —
+	// see millerDrop for why. Force-load on toggle on, AND whenever the user
+	// drills into a new column while reorder stays on.
+	$effect(() => {
+		if (!reorderMode) return;
+		// Capture deps on `columns` and `chunkSize` for re-fire, but call
+		// the store untracked so chunk-load writes don't loop the effect.
+		const snapshot = columns.map(c => c.parentRoute);
+		const size = chunkSize;
+		untrack(() => {
+			for (const parentRoute of snapshot) {
+				pagesChunks.ensureAllChunks(
+					streamKeyFor(parentRoute),
+					streamConfigFor(parentRoute),
+					size,
+				);
+			}
+		});
+	});
+
+	interface ChunkBlock {
+		page: number;
+		startIndex: number;
+		count: number;
+		loaded: boolean;
+		rows: PageSummary[];
+	}
+
+	/**
+	 * Build the chunk-block layout for a column given its parent route. Each
+	 * block either has loaded rows or represents an unloaded chunk that the
+	 * IntersectionObserver placeholder will request when scrolled near.
+	 */
+	function chunkBlocksFor(parentRoute: string): ChunkBlock[] {
+		const key = streamKeyFor(parentRoute);
+		const total = pagesChunks.getTotal(key);
+		if (total === null || total === 0) return [];
+		const blocks: ChunkBlock[] = [];
+		const totalPages = Math.ceil(total / chunkSize);
+		for (let page = 1; page <= totalPages; page++) {
+			const startIndex = (page - 1) * chunkSize;
+			const count = Math.min(chunkSize, total - startIndex);
+			const loaded = pagesChunks.isChunkLoaded(key, startIndex);
+			const rows: PageSummary[] = [];
+			if (loaded) {
+				for (let i = 0; i < count; i++) {
+					const r = pagesChunks.getRow(key, startIndex + i);
+					if (r) rows.push(r);
+				}
+			}
+			blocks.push({ page, startIndex, count, loaded, rows });
+		}
+		return blocks;
+	}
+
+	/**
+	 * Per-column IntersectionObserver action. Scoped to the column's scroll
+	 * container so trigger thresholds are correct even when other columns
+	 * have different scroll positions. Also nudges the chunk above and below
+	 * for symmetric "preload as you approach" behaviour.
+	 */
+	function observeChunkPlaceholder(
+		node: HTMLElement,
+		params: { startIndex: number; parentRoute: string },
+	) {
+		let current = params;
+		const colEl = node.closest<HTMLElement>('[data-miller-column]');
+		const observer = new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					if (!entry.isIntersecting) continue;
+					const idx = current.startIndex;
+					const pp = chunkSize;
+					const cfg = streamConfigFor(current.parentRoute);
+					const key = streamKeyFor(current.parentRoute);
+					pagesChunks.ensureChunkForIndex(key, cfg, pp, idx);
+					if (idx >= pp) pagesChunks.ensureChunkForIndex(key, cfg, pp, idx - pp);
+					pagesChunks.ensureChunkForIndex(key, cfg, pp, idx + pp);
+				}
+			},
+			{ root: colEl, rootMargin: '1500px 0px' },
+		);
+		observer.observe(node);
+		return {
+			update(next: { startIndex: number; parentRoute: string }) {
+				current = next;
+			},
+			destroy() { observer.disconnect(); },
+		};
+	}
+
+	// Rough per-row height for placeholder sizing inside a column. Miller
+	// rows are tighter than list rows because the column is narrower.
+	const COL_ROW_HEIGHT_PX = 44;
 </script>
 
 <!-- Breadcrumb + Sort -->
@@ -645,8 +827,10 @@
 <div class="flex" style="min-height: 500px; max-height: calc(100vh - 220px);">
 	<!-- Scrollable columns area -->
 	<div class="flex flex-1 overflow-x-auto">
-		{#each columns as col, colIndex (colIndex)}
-			{@const colEndIndex = filterColumn(col.pages).length}
+		{#each columns as col, colIndex (col.parentRoute)}
+			{@const colKey = streamKeyFor(col.parentRoute)}
+			{@const colTotal = pagesChunks.getTotal(colKey)}
+			{@const colBlocks = chunkBlocksFor(col.parentRoute)}
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<!--
 				data-miller-column is read by the window-level dragover handler
@@ -661,90 +845,102 @@
 				ondragover={(e) => millerColumnDragOver(e, colIndex)}
 				ondrop={(e) => millerColumnDrop(e, colIndex)}
 			>
-				{#if col.loading}
+				{#if colTotal === null}
 					<div class="flex flex-1 items-center justify-center">
 						<Loader2 size={16} class="animate-spin text-muted-foreground" />
 					</div>
+				{:else if colTotal === 0}
+					<div class="flex flex-1 items-center justify-center text-xs text-muted-foreground">
+						{isSearching ? 'No matches' : 'Empty'}
+					</div>
 				{:else}
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					{#each filterColumn(col.pages) as page, pageIndex (page.route)}
-						{@const isSelected = col.selectedRoute === page.route}
-					{@const isActive = isSelected && colIndex === activeColumnIndex}
-					{@const isPath = isSelected && colIndex !== activeColumnIndex}
-					{@const isDragged = dragPage?.route === page.route}
-					{@const explicitFiles = page.explicit_language_files ?? []}
-					{@const translatedKeys = page.translated_languages ? Object.keys(page.translated_languages) : []}
-					{@const hasImplicitDefault = !!page.has_default_file && !!contentLang.defaultLang}
-					{@const badgeKeys = hasImplicitDefault && !translatedKeys.includes(contentLang.defaultLang)
-						? [contentLang.defaultLang, ...translatedKeys]
-						: translatedKeys}
-					{@const hasAnyContent = translatedKeys.length > 0 || hasImplicitDefault}
-					{@const hasContentInLang = !lang
-						|| translatedKeys.includes(lang)
-						|| (hasImplicitDefault && lang === contentLang.defaultLang)}
-					{@const isUntranslated = lang && hasAnyContent && !hasContentInLang}
-					<div
-							data-miller-row
-							class="flex w-full items-center gap-1 border-b border-border/40 px-2 py-2 text-start transition-all
-								{isDragged ? 'opacity-30' : ''}
-								{isActive
-									? 'bg-primary text-primary-foreground'
-									: isPath
-										? 'bg-accent text-accent-foreground'
-										: 'text-foreground hover:bg-accent'}"
-							draggable={reorderMode}
-							ondragstart={(e) => millerDragStart(e, page, colIndex)}
-							ondragover={millerRowDragOver}
-							ondragend={millerDragEnd}
-						>
-							{#if reorderMode}
-								<span class="flex shrink-0 cursor-grab items-center text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing">
-									<GripVertical size={12} />
-								</span>
-							{/if}
-							<button
-								class="flex min-w-0 flex-1 items-center gap-2 text-start"
-								onmousedown={(e) => { if (e.detail > 1) e.preventDefault(); }}
-								onclick={() => selectPage(colIndex, page)}
-								ondblclick={() => { window.getSelection()?.removeAllRanges(); onEdit(pageApiRoute(page)); }}
-							>
-							{#if page.has_children}
-								<Folder size={14} class="shrink-0 {isActive ? 'text-primary-foreground/80' : (page.visible ? 'text-primary' : 'text-muted-foreground')}" />
-							{:else}
-								<File size={14} class="shrink-0 {isActive ? 'text-primary-foreground/60' : (page.visible ? 'text-primary/70' : 'text-muted-foreground')}" />
-							{/if}
-							<div class="min-w-0 flex-1">
-								<div class="flex items-center gap-1.5">
-									<div class="truncate text-[0.8125rem] font-medium
-										{isUntranslated ? (isActive ? 'text-primary-foreground/60 italic' : 'text-muted-foreground italic') : ''}">{page.title}</div>
-									{#if !page.published}
-										<span
-											class="inline-flex h-4 shrink-0 items-center rounded px-1 text-[0.5625rem] font-bold uppercase leading-none
-												{isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'}"
-											title={i18n.t('ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.DRAFT_UNPUBLISHED')}
-										>Draft</span>
+					{#each colBlocks as block (block.page)}
+						{#if block.loaded}
+							{#each filterColumn(block.rows) as page (page.route)}
+								{@const isSelected = col.selectedRoute === page.route}
+								{@const isActive = isSelected && colIndex === activeColumnIndex}
+								{@const isPath = isSelected && colIndex !== activeColumnIndex}
+								{@const isDragged = dragPage?.route === page.route}
+								{@const explicitFiles = page.explicit_language_files ?? []}
+								{@const translatedKeys = page.translated_languages ? Object.keys(page.translated_languages) : []}
+								{@const hasImplicitDefault = !!page.has_default_file && !!contentLang.defaultLang}
+								{@const badgeKeys = hasImplicitDefault && !translatedKeys.includes(contentLang.defaultLang)
+									? [contentLang.defaultLang, ...translatedKeys]
+									: translatedKeys}
+								{@const hasAnyContent = translatedKeys.length > 0 || hasImplicitDefault}
+								{@const hasContentInLang = !lang
+									|| translatedKeys.includes(lang)
+									|| (hasImplicitDefault && lang === contentLang.defaultLang)}
+								{@const isUntranslated = lang && hasAnyContent && !hasContentInLang}
+								<div
+									data-miller-row
+									data-page-route={page.route}
+									class="flex w-full items-center gap-1 border-b border-border/40 px-2 py-2 text-start transition-all
+										{isDragged ? 'opacity-30' : ''}
+										{isActive
+											? 'bg-primary text-primary-foreground'
+											: isPath
+												? 'bg-accent text-accent-foreground'
+												: 'text-foreground hover:bg-accent'}"
+									draggable={reorderMode}
+									ondragstart={(e) => millerDragStart(e, page, colIndex)}
+									ondragover={millerRowDragOver}
+									ondragend={millerDragEnd}
+								>
+									{#if reorderMode}
+										<span class="flex shrink-0 cursor-grab items-center text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing">
+											<GripVertical size={12} />
+										</span>
 									{/if}
-									{#if lang && badgeKeys.length > 0}
-										<TranslationBadges
-											translated={badgeKeys}
-											currentLang={explicitFiles.includes(lang) ? lang : undefined}
-										/>
-									{/if}
+									<button
+										class="flex min-w-0 flex-1 items-center gap-2 text-start"
+										onmousedown={(e) => { if (e.detail > 1) e.preventDefault(); }}
+										onclick={() => selectPage(colIndex, page)}
+										ondblclick={() => { window.getSelection()?.removeAllRanges(); onEdit(pageApiRoute(page)); }}
+									>
+										{#if page.has_children}
+											<Folder size={14} class="shrink-0 {isActive ? 'text-primary-foreground/80' : (page.visible ? 'text-primary' : 'text-muted-foreground')}" />
+										{:else}
+											<File size={14} class="shrink-0 {isActive ? 'text-primary-foreground/60' : (page.visible ? 'text-primary/70' : 'text-muted-foreground')}" />
+										{/if}
+										<div class="min-w-0 flex-1">
+											<div class="flex items-center gap-1.5">
+												<div class="truncate text-[0.8125rem] font-medium
+													{isUntranslated ? (isActive ? 'text-primary-foreground/60 italic' : 'text-muted-foreground italic') : ''}">{page.title}</div>
+												{#if !page.published}
+													<span
+														class="inline-flex h-4 shrink-0 items-center rounded px-1 text-[0.5625rem] font-bold uppercase leading-none
+															{isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'}"
+														title={i18n.t('ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.DRAFT_UNPUBLISHED')}
+													>Draft</span>
+												{/if}
+												{#if lang && badgeKeys.length > 0}
+													<TranslationBadges
+														translated={badgeKeys}
+														currentLang={explicitFiles.includes(lang) ? lang : undefined}
+													/>
+												{/if}
+											</div>
+											<div class="truncate text-[0.6875rem] {isActive ? 'text-primary-foreground/70' : 'text-muted-foreground'}">{page.route}</div>
+										</div>
+										{#if page.has_children}
+											<DirectionalIcon name="chevron-forward" size={12} class="shrink-0 {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground/50'}" />
+										{/if}
+									</button>
 								</div>
-								<div class="truncate text-[0.6875rem] {isActive ? 'text-primary-foreground/70' : 'text-muted-foreground'}">{page.route}</div>
+							{/each}
+						{:else}
+							<div
+								class="flex items-center justify-center border-b border-border/40 text-[0.6875rem] text-muted-foreground/60"
+								style="min-height: {block.count * COL_ROW_HEIGHT_PX}px;"
+								use:observeChunkPlaceholder={{ startIndex: block.startIndex, parentRoute: col.parentRoute }}
+							>
+								<Loader2 size={12} class="me-1.5 animate-spin" />
+								{i18n.t('ADMIN_NEXT.PAGES.LOADING_CHUNK', { from: block.startIndex + 1, to: block.startIndex + block.count })}
 							</div>
-							{#if page.has_children}
-								<DirectionalIcon name="chevron-forward" size={12} class="shrink-0 {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground/50'}" />
-							{/if}
-							</button>
-						</div>
+						{/if}
 					{/each}
-
-					{#if filterColumn(col.pages).length === 0 && !reorderMode}
-						<div class="flex flex-1 items-center justify-center text-xs text-muted-foreground">
-							{isSearching ? 'No matches' : 'Empty'}
-						</div>
-					{/if}
 
 					<!-- Filler: ensures the column has enough vertical extent
 					     for cursor tracking to detect "cursor is in this
