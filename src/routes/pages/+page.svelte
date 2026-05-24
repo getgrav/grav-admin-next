@@ -2,8 +2,8 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { deletePage } from '$lib/api/endpoints/pages';
-	import type { PageSummary } from '$lib/api/endpoints/pages';
+	import { deletePage, duplicatePage } from '$lib/api/endpoints/pages';
+	import type { PageSummary, PageDetail } from '$lib/api/endpoints/pages';
 	import { getStats, type DashboardStats } from '$lib/api/endpoints/dashboard';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
@@ -86,6 +86,38 @@
 			// a re-render by toggling viewMode.
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.PAGES.DELETE_FAILED'));
+		}
+	}
+
+	// Track in-flight duplications by route so a user mashing the icon on the
+	// same row doesn't fire concurrent copies (each would race on the next
+	// available `-N` slug). Per-page rather than a single global flag so
+	// different rows can still copy in parallel.
+	let copyingRoutes = $state<Set<string>>(new Set());
+
+	/**
+	 * Returns the newly created page on success (or null on failure) so the
+	 * columns view can re-select the duplicated row after the copy lands —
+	 * tree and list don't need the return value and just discard it.
+	 */
+	async function handleCopy(page: PageSummary): Promise<PageDetail | null> {
+		if (copyingRoutes.has(page.route)) return null;
+		const next = new Set(copyingRoutes);
+		next.add(page.route);
+		copyingRoutes = next;
+		try {
+			const newPage = await duplicatePage(page);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.ITEM_COPIED', { name: page.title, target: newPage.title }));
+			loadStats();
+			return newPage;
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.COPY_FAILED', { detail: msg }));
+			return null;
+		} finally {
+			const after = new Set(copyingRoutes);
+			after.delete(page.route);
+			copyingRoutes = after;
 		}
 	}
 </script>
@@ -246,11 +278,11 @@
 		<!-- View content -->
 	<div class="overflow-hidden rounded-lg border border-border bg-card">
 		{#if prefs.pagesViewMode === 'tree'}
-			<PagesTreeView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} />
+			<PagesTreeView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} onCopy={canEditPages ? handleCopy : undefined} {copyingRoutes} />
 		{:else if prefs.pagesViewMode === 'list'}
-			<PagesListView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} />
+			<PagesListView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} onCopy={canEditPages ? handleCopy : undefined} {copyingRoutes} />
 		{:else if prefs.pagesViewMode === 'miller'}
-			<PagesMillerView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} />
+			<PagesMillerView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} onCopy={canEditPages ? handleCopy : undefined} {copyingRoutes} />
 		{/if}
 
 		<!-- Footer stats -->

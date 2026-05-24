@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { setContext } from 'svelte';
-	import { getPage, updatePage, deletePage, movePage, copyPage, getChildren } from '$lib/api/endpoints/pages';
+	import { getPage, updatePage, deletePage, movePage, duplicatePage, getChildren } from '$lib/api/endpoints/pages';
 	import { createTranslation, syncTranslation, adoptPageLanguage } from '$lib/api/endpoints/languages';
 	import { getPageBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { PageDetail } from '$lib/api/endpoints/pages';
@@ -1247,42 +1247,11 @@
 
 	let copying = $state(false);
 
-	/**
-	 * Duplicate the current page, mirroring admin-classic's taskCopy() behavior:
-	 * pick the next free `slug-N` under the same parent, copy the folder, then
-	 * increment the trailing number in the title (or append ` 2`).
-	 */
 	async function handleCopy() {
 		if (!pageData || !canEditPages || copying) return;
 		copying = true;
 		try {
-			const originalRoute = pageData.route;
-			const originalSlug = pageData.slug;
-			const parentRoute = originalRoute === '/' ? '/' : (originalRoute.substring(0, originalRoute.lastIndexOf('/')) || '/');
-
-			// Strip a trailing -N from the current slug to get the base, then start numbering from N+1 (or 2 if none).
-			const slugMatch = originalSlug.match(/^(.*?)(?:-(\d+))?$/);
-			const baseSlug = slugMatch?.[1] || originalSlug;
-			const startN = slugMatch?.[2] ? Number(slugMatch[2]) + 1 : 2;
-
-			const siblings = await getChildren(parentRoute);
-			const existingSlugs = new Set(siblings.map((p) => p.slug));
-			let n = startN;
-			while (existingSlugs.has(`${baseSlug}-${n}`)) n++;
-			const newSlug = `${baseSlug}-${n}`;
-			const destination = parentRoute === '/' ? `/${newSlug}` : `${parentRoute}/${newSlug}`;
-
-			const newPage = await copyPage(originalRoute, destination);
-
-			// Increment trailing number in the title (matches admin-classic).
-			const titleMatch = pageData.title.match(/^(.*?)(\d+)\s*$/);
-			const newTitle = titleMatch ? `${titleMatch[1]}${Number(titleMatch[2]) + 1}` : `${pageData.title} 2`;
-			try {
-				await updatePage(newPage.route, { title: newTitle });
-			} catch {
-				// Non-fatal: folder was copied, title update failed.
-			}
-
+			const newPage = await duplicatePage(pageData);
 			toast.success(i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_COPIED'));
 			goto(`${base}/pages/edit${newPage.route}`);
 		} catch (err) {
@@ -1589,60 +1558,84 @@
 							<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} />
 						</div>
 					{:else if expertTab === 'advanced'}
-						<!-- Advanced tab: filesystem-level properties -->
-						<div class="space-y-6 rounded-lg border border-border bg-card p-6">
-							<div class="space-y-2">
-								<div>
-									<span class="text-sm font-semibold text-foreground">
-										{i18n.t('ADMIN_NEXT.PAGES.EDIT.FOLDER_NAME')} <span class="text-red-500">*</span>
-									</span>
-									<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.THE_FOLDER_NAME_ON_DISK_URL_SLUG')}</p>
+						<!-- Advanced tab: filesystem-level properties.
+							 Layout mirrors Normal mode's blueprint sections
+							 (see SectionField.svelte) so the label/help column
+							 lines up across both modes. -->
+						<div class="rounded-xl border border-border bg-muted/30">
+							<div class="space-y-5 px-6 py-5">
+								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_2fr] lg:items-start lg:gap-x-6">
+									<div class="lg:pt-2.5">
+										<span class="text-sm font-semibold text-foreground">
+											{i18n.t('ADMIN_NEXT.PAGES.EDIT.FOLDER_NAME')} <span class="text-red-500">*</span>
+										</span>
+										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.THE_FOLDER_NAME_ON_DISK_URL_SLUG')}</p>
+									</div>
+									<div>
+										<input
+											type="text"
+											class="flex h-10 w-full rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+											value={expertSlug}
+											oninput={(e) => { expertSlug = (e.target as HTMLInputElement).value.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9_\-]/g, ''); }}
+											onfocusout={() => {
+												if (prefs.autoSaveEnabled && expertSlug && expertSlug !== pageData?.slug) {
+													autoSave.oncommit('expertSlug', expertSlug, pageData?.slug);
+												}
+											}}
+										/>
+									</div>
 								</div>
-								<input
-									type="text"
-									class="flex h-10 w-full rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-									value={expertSlug}
-									oninput={(e) => { expertSlug = (e.target as HTMLInputElement).value.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9_\-]/g, ''); }}
-									onfocusout={() => {
-										if (prefs.autoSaveEnabled && expertSlug && expertSlug !== pageData?.slug) {
-											autoSave.oncommit('expertSlug', expertSlug, pageData?.slug);
-										}
-									}}
-								/>
+
+								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_2fr] lg:items-start lg:gap-x-6">
+									<div class="lg:pt-2.5">
+										<span class="text-sm font-semibold text-foreground">{i18n.t('PLUGIN_ADMIN.PARENT')}</span>
+									</div>
+									<div>
+										<PagesField
+											field={{ name: 'route', type: 'pages', show_root: true, show_slug: true }}
+											value={expertParent}
+											onchange={(v) => {
+												expertParent = v as string;
+												if (prefs.autoSaveEnabled && pageData) {
+													const orig = deriveParent(pageData.route, pageData.slug);
+													if (v !== orig) autoSave.oncommit('expertParent', v, orig);
+												}
+											}}
+										/>
+									</div>
+								</div>
+
+								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_2fr] lg:items-start lg:gap-x-6">
+									<div class="lg:pt-2.5">
+										<span class="text-sm font-semibold text-foreground">
+											{i18n.t('PLUGIN_ADMIN.PAGE_FILE')} <span class="text-red-500">*</span>
+										</span>
+										<p class="mt-0.5 text-xs text-muted-foreground">{@html i18n.t('PLUGIN_ADMIN.PAGE_FILE_HELP')}</p>
+									</div>
+									<div>
+										<SelectField
+											field={{ name: 'name', type: 'select',
+												data_options: '\\Grav\\Plugin\\AdminPlugin::pagesTypes',
+												validate: { required: true } }}
+											value={template}
+											onchange={(v) => {
+												const old = template;
+												template = v as string;
+												// Keep headerData.name in lockstep with `template`.
+												// The room effect re-keys on `template` and re-seeds
+												// from headerData; if these drift, the seed says one
+												// template while the room id says another and the
+												// reconnect/snapshot loop kicks in.
+												headerData = { ...headerData, name: v as string };
+												getPageBlueprint(v as string).then(bp => { blueprint = bp; }).catch(() => { blueprint = null; });
+												if (prefs.autoSaveEnabled && v !== pageData?.template) {
+													autoSave.oncommit('template', v, old);
+												}
+											}}
+										/>
+									</div>
+								</div>
 							</div>
-
-							<PagesField
-								field={{ name: 'route', type: 'pages', label: 'Parent', show_root: true, show_slug: true }}
-								value={expertParent}
-								onchange={(v) => {
-									expertParent = v as string;
-									if (prefs.autoSaveEnabled && pageData) {
-										const orig = deriveParent(pageData.route, pageData.slug);
-										if (v !== orig) autoSave.oncommit('expertParent', v, orig);
-									}
-								}}
-							/>
-
-							<SelectField
-								field={{ name: 'name', type: 'select', label: 'Display Template',
-									data_options: '\\Grav\\Plugin\\AdminPlugin::pagesTypes',
-									validate: { required: true } }}
-								value={template}
-								onchange={(v) => {
-									const old = template;
-									template = v as string;
-									// Keep headerData.name in lockstep with `template`.
-									// The room effect re-keys on `template` and re-seeds
-									// from headerData; if these drift, the seed says one
-									// template while the room id says another and the
-									// reconnect/snapshot loop kicks in.
-									headerData = { ...headerData, name: v as string };
-									getPageBlueprint(v as string).then(bp => { blueprint = bp; }).catch(() => { blueprint = null; });
-									if (prefs.autoSaveEnabled && v !== pageData?.template) {
-										autoSave.oncommit('template', v, old);
-									}
-								}}
-							/>
 						</div>
 					{/if}
 				{:else if blueprint}

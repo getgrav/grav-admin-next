@@ -1,4 +1,4 @@
-import { api } from '../client';
+import { api, ApiRequestError } from '../client';
 
 export interface MediaItem {
 	filename: string;
@@ -111,6 +111,72 @@ export async function renameSiteMedia(from: string, to: string): Promise<MediaIt
  */
 export async function renameFolder(from: string, to: string): Promise<FolderInfo> {
 	return api.post<FolderInfo>('/media/folders/rename', { from, to });
+}
+
+// ── Blueprint files (stream-aware folder browse) ────────────────────────
+
+export interface BlueprintFilesParams {
+	folder: string;
+	scope?: string;
+	accept?: string[];
+	preview_images?: boolean;
+}
+
+export interface BlueprintFilesResponse {
+	items: MediaItem[];
+	folder: string | null;
+	scope: string | null;
+	exists: boolean;
+}
+
+interface BlueprintFilesApiBody {
+	data: MediaItem[];
+	meta: {
+		pagination?: Pagination;
+		folder: string | null;
+		scope: string | null;
+		exists: boolean;
+	};
+}
+
+/**
+ * Sentinel returned when the server rejects an `@self` / `self@` literal
+ * via the 422 PAGE_MEDIA_ONLY response. Callers should fall back to the
+ * existing page-media context instead of treating this as an error.
+ */
+export const BLUEPRINT_FILES_PAGE_MEDIA_ONLY = Symbol('PAGE_MEDIA_ONLY');
+export type BlueprintFilesResult =
+	| BlueprintFilesResponse
+	| typeof BLUEPRINT_FILES_PAGE_MEDIA_ONLY;
+
+/**
+ * Browse files in any Grav stream / `self@:` token, mirroring admin-classic's
+ * `getFilesInFolder` task. The server resolves the `folder` via the same
+ * `BlueprintPathResolver` used by `/blueprint-upload`.
+ */
+export async function getBlueprintFiles(params: BlueprintFilesParams): Promise<BlueprintFilesResult> {
+	const query: Record<string, string> = { folder: params.folder };
+	if (params.scope) query.scope = params.scope;
+	if (params.accept && params.accept.length > 0) query.accept = params.accept.join(',');
+	if (params.preview_images) query.preview_images = '1';
+
+	try {
+		const body = await api.getFullBody<BlueprintFilesApiBody>('/blueprint-files', query);
+		return {
+			items: body.data,
+			folder: body.meta.folder,
+			scope: body.meta.scope,
+			exists: body.meta.exists,
+		};
+	} catch (err) {
+		// The server returns 422 when the folder is `@self` / `self@` — the
+		// client already has page-media via /pages/{route}/media, so callers
+		// fall back instead of seeing this as a hard error.
+		if (err instanceof ApiRequestError && err.status === 422) {
+			return BLUEPRINT_FILES_PAGE_MEDIA_ONLY;
+		}
+		throw err;
+	}
 }
 
 // ── Page media (existing) ───────────────────────────────────────────────

@@ -105,11 +105,19 @@
 	{@const fileInfo = getFileIcon(props.item.type)}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<!--
+		Border width is reserved at all times via `border-2` so hovering and
+		selecting do not change the card's outer box and shift the grid layout.
+		Color is what changes:
+		  - idle:     border-transparent
+		  - hover:    border-border (subtle)
+		  - selected: border-primary (strong)
+	-->
 	<div
-		class="group relative flex cursor-pointer flex-col overflow-hidden rounded-lg border transition-all
+		class="group relative flex cursor-pointer flex-col overflow-hidden rounded-lg border-2 transition-colors
 			{selected
-				? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20'
-				: 'border-border bg-card hover:border-border hover:shadow-sm'}"
+				? 'border-primary bg-primary/5 shadow-sm'
+				: 'border-transparent bg-card hover:border-border hover:shadow-sm'}"
 		onclick={handleClick}
 	>
 		<!-- Thumbnail area -->
@@ -130,10 +138,16 @@
 				</div>
 			{/if}
 
-			<!-- Selection checkbox -->
+			<!--
+				Selection checkbox. Visible on hover (unchecked outline) and
+				when the card is selected (filled with a check mark). The
+				unchecked variant uses a slightly heavier border + drop shadow
+				so it reads as a real checkbox affordance against the photo
+				rather than a vague grey blob.
+			-->
 			<div class="absolute left-1.5 top-1.5 {selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity">
-				<div class="flex h-5 w-5 items-center justify-center rounded border shadow-sm transition-colors
-					{selected ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background/90'}">
+				<div class="flex h-5 w-5 items-center justify-center rounded border-2 shadow-md transition-colors
+					{selected ? 'border-primary bg-primary text-primary-foreground' : 'border-foreground/60 bg-background/85'}">
 					{#if selected}
 						<Check size={12} strokeWidth={3} />
 					{/if}

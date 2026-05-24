@@ -6,6 +6,10 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { ChevronDown, X } from 'lucide-svelte';
+	import {
+		getBlueprintFiles,
+		BLUEPRINT_FILES_PAGE_MEDIA_ONLY,
+	} from '$lib/api/endpoints/media';
 
 	interface Props {
 		field: BlueprintField;
@@ -16,6 +20,9 @@
 	let { field, value, onchange }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 	const mediaCtx = getContext<PageMediaContext | undefined>('pageMediaItems');
+	// Owning scope for `self@:` resolution; set by the page-edit route as
+	// `pages/<route>`. Plugins/themes/users editors set their own values.
+	const getBlueprintScope = getContext<(() => string) | undefined>('blueprintScope');
 
 	let open = $state(false);
 	let search = $state('');
@@ -25,6 +32,56 @@
 	const currentValue = $derived(
 		typeof value === 'string' ? value : ''
 	);
+
+	// Page-media mode (default + `self@` literals) reads from the
+	// pageMediaItems context, fed by /pages/{route}/media. Stream mode
+	// (any other `field.folder` value — `user://media`, `theme://images`,
+	// `@self/sub`, `self@:videos`, a plain relative path, …) fetches from
+	// /blueprint-files. This mirrors admin-classic's
+	// `taskGetFilesInFolder` branch on `folder`.
+	const usesPageMedia = $derived(
+		!field.folder || field.folder === 'self@' || field.folder === '@self' ||
+			field.folder === '@self/' || field.folder === '@self@'
+	);
+
+	let streamItems = $state<MediaItem[] | null>(null);
+	let streamLoading = $state(false);
+	let streamError = $state<string | null>(null);
+
+	$effect(() => {
+		if (usesPageMedia) {
+			streamItems = null;
+			streamLoading = false;
+			streamError = null;
+			return;
+		}
+		const folder = field.folder!;
+		const scope = getBlueprintScope?.() ?? '';
+		const accept = field.accept;
+		let cancelled = false;
+		streamLoading = true;
+		streamError = null;
+		getBlueprintFiles({
+			folder,
+			scope,
+			accept,
+			preview_images: true,
+		}).then((result) => {
+			if (cancelled) return;
+			if (result === BLUEPRINT_FILES_PAGE_MEDIA_ONLY) {
+				streamItems = null;
+			} else {
+				streamItems = result.items;
+			}
+			streamLoading = false;
+		}).catch((err) => {
+			if (cancelled) return;
+			streamItems = [];
+			streamError = err instanceof Error ? err.message : String(err);
+			streamLoading = false;
+		});
+		return () => { cancelled = true; };
+	});
 
 	// Filter media items by field's accept patterns (e.g. ['image/*', '.pdf', '.zip'])
 	function matchesAccept(item: MediaItem): boolean {
@@ -44,12 +101,21 @@
 		});
 	}
 
+	// The source list: page-media context when in page-media mode (or stream
+	// mode is still loading / fell back to page media). Otherwise the
+	// /blueprint-files response.
+	const sourceItems = $derived.by<MediaItem[]>(() => {
+		if (usesPageMedia) return mediaCtx?.items ?? [];
+		return streamItems ?? [];
+	});
+
 	const filteredMedia = $derived.by(() => {
-		const items = mediaCtx?.items ?? [];
-		const accepted = items.filter(matchesAccept);
-		if (!search) return accepted;
+		// Server already applied `accept` in stream mode; in page-media mode
+		// the context isn't filtered, so we apply it client-side here.
+		const items = usesPageMedia ? sourceItems.filter(matchesAccept) : sourceItems;
+		if (!search) return items;
 		const q = search.toLowerCase();
-		return accepted.filter((item) => item.filename.toLowerCase().includes(q));
+		return items.filter((item) => item.filename.toLowerCase().includes(q));
 	});
 
 	function isImage(item: MediaItem): boolean {
@@ -113,16 +179,14 @@
 	// Find the selected media item for thumbnail preview
 	const selectedItem = $derived.by(() => {
 		if (!currentValue) return null;
-		return (mediaCtx?.items ?? []).find((m) => m.filename === currentValue) ?? null;
+		return sourceItems.find((m) => m.filename === currentValue) ?? null;
 	});
 
-	// Auto-clear value when the selected file is deleted from the page's
-	// own media. Only safe when the field is bound to the current page's
-	// media — for custom folders (page://videos, @self/verter, etc.)
-	// mediaCtx doesn't know what exists, so we must not clear.
-	const usesPageMedia = $derived(
-		!field.folder || field.folder === 'self@' || field.folder === '@self' || field.folder === '@self/'
-	);
+	// Auto-clear value when the selected file is gone — applies only in
+	// page-media mode (the page's own media list is authoritative). In
+	// stream mode we trust the value: the file might be uploaded later
+	// to that destination, or live elsewhere on the filesystem that the
+	// browse endpoint can't see (filtered by `accept`, etc.).
 	$effect(() => {
 		if (!usesPageMedia) return;
 		const items = mediaCtx?.items;
@@ -202,9 +266,19 @@
 		<!-- Dropdown -->
 		{#if open}
 			<div class="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
-				{#if filteredMedia.length === 0}
+				{#if streamLoading}
 					<div class="px-3 py-4 text-center text-sm text-muted-foreground">
-						{#if (mediaCtx?.items ?? []).length === 0}
+						{i18n.t('ADMIN_NEXT.COMMON.LOADING') || 'Loading…'}
+					</div>
+				{:else if streamError}
+					<div class="px-3 py-4 text-center text-sm text-destructive">
+						{streamError}
+					</div>
+				{:else if filteredMedia.length === 0}
+					<div class="px-3 py-4 text-center text-sm text-muted-foreground">
+						{#if usesPageMedia && (mediaCtx?.items ?? []).length === 0}
+							{i18n.t('ADMIN_NEXT.FIELDS.FILE_PICKER.NO_MEDIA_UPLOADED')}
+						{:else if !usesPageMedia && sourceItems.length === 0}
 							{i18n.t('ADMIN_NEXT.FIELDS.FILE_PICKER.NO_MEDIA_UPLOADED')}
 						{:else}
 							{i18n.t('ADMIN_NEXT.FIELDS.FILE_PICKER.NO_MATCHING_FILES')}

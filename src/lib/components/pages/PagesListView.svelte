@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { reorganizePages, searchPages, pageApiRoute } from '$lib/api/endpoints/pages';
-	import type { PageSummary, PageListParams, ReorganizeOperation } from '$lib/api/endpoints/pages';
+	import type { PageSummary, PageDetail, PageListParams, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { onMount, tick, untrack } from 'svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import TranslationBadges from '$lib/components/ui/TranslationBadges.svelte';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
-		ArrowUp, ArrowDown, File, Loader2, Trash2,
+		ArrowUp, ArrowDown, File, Loader2, Trash2, Copy,
 		GripVertical, CircleCheck, CircleDashed
 	} from 'lucide-svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
@@ -20,9 +20,11 @@
 		lang?: string;
 		onEdit: (route: string) => void;
 		onDelete?: (page: PageSummary) => void;
+		onCopy?: (page: PageSummary) => Promise<PageDetail | null> | void;
+		copyingRoutes?: Set<string>;
 	}
 
-	let { searchQuery = '', reorderMode = false, lang, onEdit, onDelete }: Props = $props();
+	let { searchQuery = '', reorderMode = false, lang, onEdit, onDelete, onCopy, copyingRoutes }: Props = $props();
 
 	let sortField = $state<PageListParams['sort']>('order');
 	let sortOrder = $state<'asc' | 'desc'>('asc');
@@ -433,14 +435,40 @@
 			<div class="hidden w-20 text-end text-[0.6875rem] text-muted-foreground sm:block">
 				{formatDate(page.modified)}
 			</div>
-			{#if onDelete}
-			<button
-				class="absolute right-1 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded bg-background/80 text-muted-foreground opacity-0 backdrop-blur transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 sm:right-2"
-				onclick={() => onDelete(page)}
-				title={i18n.t('ADMIN_NEXT.DELETE')}
-			>
-				<Trash2 size={12} />
-			</button>
+			{#if onCopy || onDelete}
+				{@const copying = copyingRoutes?.has(page.route) ?? false}
+				<!-- Hover action cluster. Pinned to the row's end edge; the
+				     stack stays hidden until the row is hovered (or while a
+				     copy is in flight on this exact row so the spinner is
+				     visible). Order: Copy ▸ Delete, so destructive sits at
+				     the outermost edge as the user's pointer travels right. -->
+				<div
+					class="absolute end-1 top-1/2 inline-flex -translate-y-1/2 items-center gap-1 transition-opacity group-hover:opacity-100 sm:end-2 {copying ? 'opacity-100' : 'opacity-0'}"
+				>
+					{#if onCopy}
+						<button
+							class="inline-flex h-6 w-6 items-center justify-center rounded bg-background/80 text-muted-foreground backdrop-blur transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+							onclick={(e) => { e.stopPropagation(); onCopy(page); }}
+							disabled={copying}
+							title={i18n.t('ADMIN_NEXT.PAGES.EDIT.COPY_PAGE')}
+						>
+							{#if copying}
+								<Loader2 size={12} class="animate-spin" />
+							{:else}
+								<Copy size={12} />
+							{/if}
+						</button>
+					{/if}
+					{#if onDelete}
+						<button
+							class="inline-flex h-6 w-6 items-center justify-center rounded bg-background/80 text-muted-foreground backdrop-blur transition-colors hover:bg-destructive/10 hover:text-destructive"
+							onclick={(e) => { e.stopPropagation(); onDelete(page); }}
+							title={i18n.t('ADMIN_NEXT.DELETE')}
+						>
+							<Trash2 size={12} />
+						</button>
+					{/if}
+				</div>
 			{/if}
 		{:else}
 			<div class="w-32 text-end text-[0.6875rem] text-muted-foreground">

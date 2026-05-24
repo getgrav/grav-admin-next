@@ -11,7 +11,7 @@
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
-		Folder, File, Loader2, ExternalLink, ArrowUpDown, GripVertical
+		Folder, File, Loader2, ExternalLink, ArrowUpDown, GripVertical, Copy, Trash2
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
@@ -24,9 +24,17 @@
 		reorderMode?: boolean;
 		lang?: string;
 		onEdit: (route: string) => void;
+		onDelete?: (page: PageSummary) => void;
+		/**
+		 * Resolves to the duplicated page when the copy succeeds, or `null`
+		 * on failure. The columns view uses the return value to re-select
+		 * the new row once it lands; list/tree just ignore it.
+		 */
+		onCopy?: (page: PageSummary) => Promise<PageDetail | null>;
+		copyingRoutes?: Set<string>;
 	}
 
-	let { searchQuery = '', reorderMode = false, lang, onEdit }: Props = $props();
+	let { searchQuery = '', reorderMode = false, lang, onEdit, onDelete, onCopy, copyingRoutes }: Props = $props();
 
 	// Drag state for Miller columns
 	let dragPage = $state<PageSummary | null>(null);
@@ -310,8 +318,19 @@
 	}
 
 	onMount(() => {
-		const onPages = (e: { id?: string }) => {
+		const onPages = (e: { id?: string; action?: string }) => {
 			allPagesCache = null;
+			// Drop a stale preview when the previewed page was just deleted
+			// or moved out from under us — otherwise the right pane keeps
+			// showing the now-gone page until the user clicks elsewhere.
+			// This matters more now that Delete is reachable from inside the
+			// preview itself; without this the user clicks Trash and the
+			// preview just stays there.
+			if (e.id && previewPage && (e.action === 'delete' || e.action === 'move')) {
+				if (e.id === previewPage.route || e.id === `/${previewPage.route.replace(/^\//, '')}`) {
+					previewPage = null;
+				}
+			}
 			if (!e.id) {
 				for (const col of columns) silentRefreshColumn(col.parentRoute);
 				return;
@@ -371,6 +390,30 @@
 
 		// Persist selection path for reload restoration
 		saveSelectionPath();
+	}
+
+	/**
+	 * Copy the previewed page via the parent's `onCopy`, then move selection
+	 * onto the duplicated row inside the same column. We can't search the
+	 * chunk store yet (the X-Invalidates refresh is in flight), but
+	 * `selectPage` only needs a PageSummary-shaped object and uses its route
+	 * for the highlight — the chunk-driven render lights it up as soon as the
+	 * refreshed page list arrives. Stops at toast/stats if the copy failed.
+	 */
+	async function handlePreviewCopy() {
+		if (!previewPage || !onCopy) return;
+		const source = previewPage;
+		const newPage = await onCopy(source);
+		if (!newPage) return;
+		const parentOfNew = parentRouteOf(pageApiRoute(newPage));
+		const colIndex = columns.findIndex((c) => c.parentRoute === parentOfNew);
+		if (colIndex >= 0) {
+			selectPage(colIndex, newPage);
+		} else {
+			// Source was off-screen (deep tree, parent column scrolled away)
+			// — surface the new page in the preview pane regardless.
+			previewPage = newPage;
+		}
 	}
 
 	function formatDate(dateStr: string): string {
@@ -960,6 +1003,7 @@
 					<Loader2 size={16} class="animate-spin text-muted-foreground" />
 				</div>
 			{:else if previewPage}
+				{@const copyingPreview = copyingRoutes?.has(previewPage.route) ?? false}
 				<div class="p-5">
 					<!-- Title & edit button -->
 					<div class="flex items-start justify-between gap-2">
@@ -973,8 +1017,13 @@
 						</Button>
 					</div>
 
-					<!-- Badges -->
-					<div class="mt-3 flex flex-wrap gap-1.5">
+					<!-- Badges + row-level actions. The preview header is too
+					     narrow to fit Copy/Delete next to the Edit pill on most
+					     screen widths, so the state badges stay flush start and
+					     the action icons sit at the row's end edge — separated
+					     by `ms-auto` rather than a divider to keep the visual
+					     noise low while still distinguishing state from action. -->
+					<div class="mt-3 flex flex-wrap items-center gap-1.5">
 						<Badge variant="outline">{previewPage.template}</Badge>
 						{#if previewPage.published}
 							<Badge variant="success">{i18n.t('ADMIN_NEXT.PAGES.PUBLISHED')}</Badge>
@@ -986,6 +1035,37 @@
 						{/if}
 						{#if previewPage.has_children}
 							<Badge variant="secondary">{i18n.t('ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.HAS_CHILDREN')}</Badge>
+						{/if}
+						{#if onCopy || onDelete}
+							<div class="ms-auto inline-flex items-center gap-1">
+								{#if onCopy}
+									<button
+										type="button"
+										class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+										onclick={handlePreviewCopy}
+										disabled={copyingPreview}
+										title={i18n.t('ADMIN_NEXT.PAGES.EDIT.COPY_PAGE')}
+										aria-label={i18n.t('ADMIN_NEXT.PAGES.EDIT.COPY_PAGE')}
+									>
+										{#if copyingPreview}
+											<Loader2 size={13} class="animate-spin" />
+										{:else}
+											<Copy size={13} />
+										{/if}
+									</button>
+								{/if}
+								{#if onDelete}
+									<button
+										type="button"
+										class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+										onclick={() => onDelete(previewPage!)}
+										title={i18n.t('ADMIN_NEXT.DELETE')}
+										aria-label={i18n.t('ADMIN_NEXT.DELETE')}
+									>
+										<Trash2 size={13} />
+									</button>
+								{/if}
+							</div>
 						{/if}
 					</div>
 

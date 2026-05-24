@@ -252,6 +252,45 @@ export async function copyPage(route: string, destination: string): Promise<Page
 	return api.post<PageDetail>(`/pages/${cleanRoute}/copy`, { route: destination });
 }
 
+/**
+ * High-level "Duplicate this page" — mirrors admin-classic's taskCopy(): walk
+ * the parent's children to pick the next free `{slug}-N`, copy the folder,
+ * then bump the trailing number in the title (or append ` 2`). Used by the
+ * pages list/tree/columns hover actions and by the page editor's Copy button
+ * so all four paths yield the same on-disk + frontmatter result.
+ */
+export async function duplicatePage(page: Pick<PageSummary, 'route' | 'raw_route' | 'slug' | 'title'>): Promise<PageDetail> {
+	const sourceRoute = pageApiRoute(page);
+	const parentRoute = sourceRoute === '/' ? '/' : (sourceRoute.substring(0, sourceRoute.lastIndexOf('/')) || '/');
+
+	// Strip a trailing `-N` so `foo-3` duplicates to `foo-4`, not `foo-3-2`.
+	const slugMatch = page.slug.match(/^(.*?)(?:-(\d+))?$/);
+	const baseSlug = slugMatch?.[1] || page.slug;
+	const startN = slugMatch?.[2] ? Number(slugMatch[2]) + 1 : 2;
+
+	const siblings = await getChildren(parentRoute);
+	const existingSlugs = new Set(siblings.map((p) => p.slug));
+	let n = startN;
+	while (existingSlugs.has(`${baseSlug}-${n}`)) n++;
+	const newSlug = `${baseSlug}-${n}`;
+	const destination = parentRoute === '/' ? `/${newSlug}` : `${parentRoute}/${newSlug}`;
+
+	const newPage = await copyPage(sourceRoute, destination);
+
+	// Increment a trailing number in the title (matches admin-classic). Title
+	// bump is best-effort: a failure here still leaves the duplicated folder
+	// in place, so the user just sees the source title until they edit it.
+	const titleMatch = page.title.match(/^(.*?)(\d+)\s*$/);
+	const newTitle = titleMatch ? `${titleMatch[1]}${Number(titleMatch[2]) + 1}` : `${page.title} 2`;
+	try {
+		await updatePage(newPage.route, { title: newTitle });
+	} catch {
+		/* non-fatal */
+	}
+
+	return newPage;
+}
+
 export interface ReorganizeOperation {
 	route: string;
 	parent?: string;

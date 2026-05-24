@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { reorganizePages, searchPages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
-	import type { PageSummary, ReorganizeOperation } from '$lib/api/endpoints/pages';
+	import type { PageSummary, PageDetail, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount, tick, untrack } from 'svelte';
 	import { Badge } from '$lib/components/ui/badge';
@@ -9,7 +9,7 @@
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
-		ChevronDown, FolderOpen, Folder, File, Loader2, Trash2,
+		ChevronDown, FolderOpen, Folder, File, Loader2, Trash2, Copy,
 		ArrowUp, ArrowDown, GripVertical, CircleCheck, CircleDashed
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
@@ -24,9 +24,11 @@
 		lang?: string;
 		onEdit: (route: string) => void;
 		onDelete?: (page: PageSummary) => void;
+		onCopy?: (page: PageSummary) => Promise<PageDetail | null> | void;
+		copyingRoutes?: Set<string>;
 	}
 
-	let { searchQuery = '', reorderMode = false, lang, onEdit, onDelete }: Props = $props();
+	let { searchQuery = '', reorderMode = false, lang, onEdit, onDelete, onCopy, copyingRoutes }: Props = $props();
 
 	// Persist expanded-node state across remounts (navigating into a page
 	// and back shouldn't collapse the tree the user just opened). Matches
@@ -737,14 +739,40 @@
 						{formatDate(page.modified)}
 					</div>
 
-					{#if onDelete}
-					<button
-						class="absolute right-1 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded bg-background/80 text-muted-foreground opacity-0 backdrop-blur transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 sm:right-2"
-						onclick={() => onDelete(page)}
-						title={i18n.t('ADMIN_NEXT.DELETE')}
-					>
-						<Trash2 size={12} />
-					</button>
+					{#if onCopy || onDelete}
+						{@const copying = copyingRoutes?.has(page.route) ?? false}
+						<!-- Hover action cluster (Copy ▸ Delete). Pinned to the
+						     row's end edge and only painted on row hover, except
+						     while a copy is in flight on this row — then we keep
+						     the spinner visible so the user sees something is
+						     happening even if the cursor wanders off the row. -->
+						<div
+							class="absolute end-1 top-1/2 inline-flex -translate-y-1/2 items-center gap-1 transition-opacity group-hover:opacity-100 sm:end-2 {copying ? 'opacity-100' : 'opacity-0'}"
+						>
+							{#if onCopy}
+								<button
+									class="inline-flex h-6 w-6 items-center justify-center rounded bg-background/80 text-muted-foreground backdrop-blur transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+									onclick={(e) => { e.stopPropagation(); onCopy(page); }}
+									disabled={copying}
+									title={i18n.t('ADMIN_NEXT.PAGES.EDIT.COPY_PAGE')}
+								>
+									{#if copying}
+										<Loader2 size={12} class="animate-spin" />
+									{:else}
+										<Copy size={12} />
+									{/if}
+								</button>
+							{/if}
+							{#if onDelete}
+								<button
+									class="inline-flex h-6 w-6 items-center justify-center rounded bg-background/80 text-muted-foreground backdrop-blur transition-colors hover:bg-destructive/10 hover:text-destructive"
+									onclick={(e) => { e.stopPropagation(); onDelete(page); }}
+									title={i18n.t('ADMIN_NEXT.DELETE')}
+								>
+									<Trash2 size={12} />
+								</button>
+							{/if}
+						</div>
 					{/if}
 				{/if}
 			</div>
