@@ -619,6 +619,9 @@
 			<span class="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">·</span>
 		</div>
 		<div class="hidden w-20 text-end sm:block">{@render sortHeader('Modified', 'modified', 'right')}</div>
+		{#if onCopy || onDelete}
+			<div class="w-14"></div>
+		{/if}
 	{/if}
 </div>
 
@@ -662,7 +665,7 @@
 			{/if}
 			<div
 				data-page-route={apiRoute}
-				class="group relative flex items-center gap-2 border-b border-border/50 px-2 py-2 transition-colors sm:px-4
+				class="group flex items-center gap-2 border-b border-border/50 px-2 py-2 transition-colors sm:px-4
 					{isDragging(page) ? 'opacity-30' : 'hover:bg-accent/50'}
 					{saving ? 'pointer-events-none' : ''}"
 				draggable={reorderMode}
@@ -741,17 +744,10 @@
 
 					{#if onCopy || onDelete}
 						{@const copying = copyingRoutes?.has(page.route) ?? false}
-						<!-- Hover action cluster (Copy ▸ Delete). Pinned to the
-						     row's end edge and only painted on row hover, except
-						     while a copy is in flight on this row — then we keep
-						     the spinner visible so the user sees something is
-						     happening even if the cursor wanders off the row. -->
-						<div
-							class="absolute end-1 top-1/2 inline-flex -translate-y-1/2 items-center gap-1 transition-opacity group-hover:opacity-100 sm:end-2 {copying ? 'opacity-100' : 'opacity-0'}"
-						>
+						<div class="flex w-14 shrink-0 items-center justify-end gap-1">
 							{#if onCopy}
 								<button
-									class="inline-flex h-6 w-6 items-center justify-center rounded bg-background/80 text-muted-foreground backdrop-blur transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+									class="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
 									onclick={(e) => { e.stopPropagation(); onCopy(page); }}
 									disabled={copying}
 									title={i18n.t('ADMIN_NEXT.PAGES.EDIT.COPY_PAGE')}
@@ -765,7 +761,7 @@
 							{/if}
 							{#if onDelete}
 								<button
-									class="inline-flex h-6 w-6 items-center justify-center rounded bg-background/80 text-muted-foreground backdrop-blur transition-colors hover:bg-destructive/10 hover:text-destructive"
+									class="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
 									onclick={(e) => { e.stopPropagation(); onDelete(page); }}
 									title={i18n.t('ADMIN_NEXT.DELETE')}
 								>

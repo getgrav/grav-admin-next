@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { prefs, FONT_OPTIONS, FONT_SIZE_OPTIONS, type FontSize, type MenubarLink, type PagesViewMode } from '$lib/stores/preferences.svelte';
+	import { normalizeLang } from '$lib/i18n';
 	import { theme, ACCENT_PRESETS } from '$lib/stores/theme.svelte';
 	import { branding } from '$lib/stores/branding.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
@@ -90,6 +91,11 @@
 		const nextDefaults = { ...prefs.siteDefaults };
 		const nextSettings = { ...prefs.siteSettings };
 		const merged: SiteDraft = { ...nextDefaults, ...nextSettings };
+		// Coerce admin lang to BCP-47 so a stored `en` (or any short code)
+		// preselects the right option and saves canonically.
+		if (typeof merged.adminLanguage === 'string') {
+			merged.adminLanguage = normalizeLang(merged.adminLanguage);
+		}
 		// Clone the menubar links array so user edits don't mutate the source.
 		merged.menubarLinks = Array.isArray(nextSettings.menubarLinks)
 			? nextSettings.menubarLinks.map(l => ({ ...l }))
