@@ -2,7 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import type { PluginInfo } from '$lib/api/endpoints/gpm';
 	import { faIconClass, isFirstParty } from '$lib/utils/gpm';
-	import { Puzzle, ArrowUpCircle, BadgeCheck, Loader2, CornerDownRight, ArrowUp, ArrowDown, Settings } from 'lucide-svelte';
+	import { Puzzle, ArrowUpCircle, BadgeCheck, Loader2, CornerDownRight, ArrowUp, ArrowDown, Settings, Trash2 } from 'lucide-svelte';
 
 	interface Props {
 		plugins: PluginInfo[];
@@ -10,10 +10,12 @@
 		togglingSlug: string | null;
 		updatingSlug: string | null;
 		updatingAll: boolean;
+		removingSlug: string | null;
 		protectedSlugs: Set<string>;
 		onConfigure: (slug: string) => void;
 		onToggle: (plugin: PluginInfo, e: Event) => void;
 		onUpdate: (plugin: PluginInfo, e: Event) => void;
+		onRemove?: (plugin: PluginInfo, e: Event) => void;
 	}
 
 	let {
@@ -22,10 +24,12 @@
 		togglingSlug,
 		updatingSlug,
 		updatingAll,
+		removingSlug,
 		protectedSlugs,
 		onConfigure,
 		onToggle,
 		onUpdate,
+		onRemove,
 	}: Props = $props();
 
 	type SortKey = 'name' | 'author' | 'version' | 'enabled';
@@ -164,6 +168,21 @@
 							>
 								<Settings size={14} />
 							</button>
+							{#if onRemove && canEdit}
+								<button
+									class="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+									aria-label={i18n.t('ADMIN_NEXT.DELETE')}
+									title={i18n.t('ADMIN_NEXT.DELETE')}
+									onclick={(e) => onRemove(plugin, e)}
+									disabled={removingSlug === plugin.slug}
+								>
+									{#if removingSlug === plugin.slug}
+										<Loader2 size={14} class="animate-spin" />
+									{:else}
+										<Trash2 size={14} />
+									{/if}
+								</button>
+							{/if}
 						</div>
 					</td>
 				</tr>

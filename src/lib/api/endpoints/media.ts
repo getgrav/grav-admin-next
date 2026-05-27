@@ -54,6 +54,16 @@ export interface SiteMediaParams {
 	per_page?: number;
 }
 
+/**
+ * Encode a slash-separated media path for use in a URL path. encodeURIComponent
+ * alone produces `%2F` for the slashes, which Apache rejects with `AllowEncodedSlashes Off`
+ * (its default) before PHP ever sees the request. We encode each segment instead so
+ * folder boundaries stay as literal `/` and the FastRoute pattern (`{path:.+}`) matches.
+ */
+function encodeMediaPath(path: string): string {
+	return path.split('/').map(encodeURIComponent).join('/');
+}
+
 // ── Site media ──────────────────────────────────────────────────────────
 
 /**
@@ -82,7 +92,7 @@ export async function getSiteMedia(params: SiteMediaParams = {}): Promise<SiteMe
  * Delete a site media file (supports paths like "subfolder/file.jpg").
  */
 export async function deleteSiteMedia(filePath: string): Promise<void> {
-	return api.delete(`/media/${encodeURIComponent(filePath)}`);
+	return api.delete(`/media/${encodeMediaPath(filePath)}`);
 }
 
 /**
@@ -96,7 +106,7 @@ export async function createFolder(path: string): Promise<FolderInfo> {
  * Delete an empty folder from site media.
  */
 export async function deleteFolder(path: string): Promise<void> {
-	return api.delete(`/media/folders/${encodeURIComponent(path)}`);
+	return api.delete(`/media/folders/${encodeMediaPath(path)}`);
 }
 
 /**

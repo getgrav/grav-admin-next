@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { prefs, FONT_OPTIONS, FONT_SIZE_OPTIONS, type FontSize, type MenubarLink, type PagesViewMode } from '$lib/stores/preferences.svelte';
+	import { prefs, FONT_OPTIONS, FONT_SIZE_OPTIONS, type FontSize, type MenubarLink, type PagesViewMode, type AccountsViewMode } from '$lib/stores/preferences.svelte';
 	import { normalizeLang } from '$lib/i18n';
 	import { theme, ACCENT_PRESETS } from '$lib/stores/theme.svelte';
 	import { branding } from '$lib/stores/branding.svelte';
@@ -357,6 +357,61 @@
 					</div>
 				</div>
 
+			</div>
+		</div>
+
+		<!-- Other list views — per user (Tier B) -->
+		<div class="rounded-xl border border-border bg-muted/30">
+			<div class="px-6 pt-6 pb-2">
+				<h3 class="text-base font-bold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.OTHER_LIST_VIEWS')}</h3>
+				<p class="mt-1 text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.OTHER_LIST_VIEWS_DESC')}</p>
+			</div>
+			<div class="space-y-5 px-6 py-5">
+				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+					<div class="lg:pt-2.5">
+						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.USERS.TITLE')}</span>
+					</div>
+					<div>
+						<SegmentedToggle
+							value={prefs.usersViewMode}
+							onchange={(v) => prefs.usersViewMode = v as AccountsViewMode}
+							options={[
+								{ value: 'cards', label: i18n.t('ADMIN_NEXT.USERS_TABLE.CARDS') },
+								{ value: 'table', label: i18n.t('ADMIN_NEXT.USERS_TABLE.TABLE') }
+							]}
+						/>
+					</div>
+				</div>
+				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+					<div class="lg:pt-2.5">
+						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.PLUGINS.TITLE')}</span>
+					</div>
+					<div>
+						<SegmentedToggle
+							value={prefs.pluginsViewMode}
+							onchange={(v) => prefs.pluginsViewMode = v as AccountsViewMode}
+							options={[
+								{ value: 'cards', label: i18n.t('ADMIN_NEXT.USERS_TABLE.CARDS') },
+								{ value: 'table', label: i18n.t('ADMIN_NEXT.USERS_TABLE.TABLE') }
+							]}
+						/>
+					</div>
+				</div>
+				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+					<div class="lg:pt-2.5">
+						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.THEMES.TITLE')}</span>
+					</div>
+					<div>
+						<SegmentedToggle
+							value={prefs.themesViewMode}
+							onchange={(v) => prefs.themesViewMode = v as AccountsViewMode}
+							options={[
+								{ value: 'cards', label: i18n.t('ADMIN_NEXT.USERS_TABLE.CARDS') },
+								{ value: 'table', label: i18n.t('ADMIN_NEXT.USERS_TABLE.TABLE') }
+							]}
+						/>
+					</div>
+				</div>
 			</div>
 		</div>
 

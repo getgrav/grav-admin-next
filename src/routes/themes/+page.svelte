@@ -3,13 +3,13 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
-	import { getInstalledThemes, checkUpdates, updatePackage, updateAllPackages, type ThemeInfo } from '$lib/api/endpoints/gpm';
+	import { getInstalledThemes, checkUpdates, updatePackage, updateAllPackages, setActiveTheme, removeTheme, type ThemeInfo } from '$lib/api/endpoints/gpm';
 	import { reloadIfAdminUpdated } from '$lib/utils/gpm';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import AddThemeModal from '$lib/components/AddThemeModal.svelte';
 	import { toast } from 'svelte-sonner';
-	import { Search, Palette, ExternalLink, ArrowUpCircle, Loader2, Plus, RefreshCw, BadgeCheck, Check, CornerDownRight, LayoutGrid, Table as TableIcon } from 'lucide-svelte';
+	import { Search, Palette, ExternalLink, ArrowUpCircle, Loader2, Plus, RefreshCw, BadgeCheck, Check, CornerDownRight, LayoutGrid, Table as TableIcon, Trash2 } from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText } from '$lib/utils/gpm';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -53,6 +53,8 @@
 	let checkingUpdates = $state(false);
 	let updatingSlug = $state<string | null>(null);
 	let updatingAll = $state(false);
+	let activatingSlug = $state<string | null>(null);
+	let removingSlug = $state<string | null>(null);
 
 	// Auto-open install modal when navigating with ?install=slug
 	$effect(() => {
@@ -174,6 +176,56 @@
 			toast.error(i18n.t('ADMIN_NEXT.TOASTS.PACKAGE_UPDATE_FAILED', { name: theme.name, detail }));
 		} finally {
 			updatingSlug = null;
+		}
+	}
+
+	async function handleActivateTheme(theme: ThemeInfo, e: Event) {
+		e.stopPropagation();
+		if (theme.enabled) return;
+		const ok = await dialogs.confirm({
+			title: i18n.t('ADMIN_NEXT.THEMES.ACTIVATE_CONFIRM_TITLE'),
+			message: i18n.t('ADMIN_NEXT.THEMES.ACTIVATE_CONFIRM_MESSAGE', { name: theme.name }),
+			confirmLabel: i18n.t('ADMIN_NEXT.THEMES.ACTIVATE'),
+		});
+		if (!ok) return;
+		activatingSlug = theme.slug;
+		try {
+			await setActiveTheme(theme.slug);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.THEME_ACTIVATED', { name: theme.name }));
+			await loadThemes();
+		} catch (err: unknown) {
+			const detail = err instanceof Error ? err.message : String(err);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.THEME_ACTIVATE_FAILED', { name: theme.name, detail }));
+		} finally {
+			activatingSlug = null;
+		}
+	}
+
+	async function handleRemoveTheme(theme: ThemeInfo, e: Event) {
+		e.stopPropagation();
+		const ok = await dialogs.confirm({
+			title: i18n.t('ADMIN_NEXT.THEMES.REMOVE_CONFIRM_TITLE'),
+			message: theme.enabled
+				? i18n.t('ADMIN_NEXT.THEMES.REMOVE_ACTIVE_CONFIRM_MESSAGE', { name: theme.name })
+				: i18n.t('ADMIN_NEXT.THEMES.REMOVE_CONFIRM_MESSAGE', { name: theme.name }),
+			confirmLabel: i18n.t('ADMIN_NEXT.DELETE'),
+			variant: 'destructive',
+		});
+		if (!ok) return;
+		removingSlug = theme.slug;
+		try {
+			await removeTheme(theme.slug);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.THEME_REMOVED', { name: theme.name }));
+			if (selectedSlug === theme.slug) {
+				selectedSlug = null;
+				writeStoredSlug(null);
+			}
+			await loadThemes();
+		} catch (err: unknown) {
+			const detail = err instanceof Error ? err.message : String(err);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.THEME_REMOVE_FAILED', { name: theme.name, detail }));
+		} finally {
+			removingSlug = null;
 		}
 	}
 
@@ -321,9 +373,13 @@
 					canEdit={canWriteGpm}
 					{updatingSlug}
 					{updatingAll}
+					{activatingSlug}
+					{removingSlug}
 					{resolveUrl}
 					onConfigure={openThemeConfig}
 					onUpdate={handleUpdateTheme}
+					onActivate={handleActivateTheme}
+					onRemove={handleRemoveTheme}
 				/>
 			</div>
 		{:else}
@@ -377,11 +433,41 @@
 							<span class="inline-flex shrink-0" title={i18n.t('ADMIN_NEXT.THEMES.SYMLINKED')}><CornerDownRight size={14} class="text-muted-foreground/60" aria-label={i18n.t('ADMIN_NEXT.THEMES.SYMLINKED')} /></span>
 						{/if}
 
-						<!-- Active badge -->
+						<!-- Active badge / Activate button -->
 						{#if theme.enabled}
 							<span class="shrink-0 rounded-full bg-green-500/15 px-2.5 py-0.5 text-[0.625rem] font-medium text-green-600 dark:text-green-400">
 								<Check size={10} class="me-0.5 inline" /> {i18n.t('ADMIN_NEXT.ACTIVE')}
 							</span>
+						{:else if canWriteGpm}
+							<button
+								type="button"
+								class="shrink-0 rounded-full border border-border bg-muted px-2.5 py-0.5 text-[0.625rem] font-medium text-muted-foreground transition-colors hover:bg-green-500/15 hover:text-green-600 disabled:opacity-50"
+								onclick={(e) => handleActivateTheme(theme, e)}
+								disabled={activatingSlug === theme.slug}
+								title={i18n.t('ADMIN_NEXT.THEMES.ACTIVATE_THEME', { name: theme.name })}
+							>
+								{#if activatingSlug === theme.slug}
+									<Loader2 size={10} class="me-0.5 inline animate-spin" />
+								{/if}
+								{i18n.t('ADMIN_NEXT.THEMES.ACTIVATE')}
+							</button>
+						{/if}
+
+						{#if canWriteGpm}
+							<button
+								type="button"
+								class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+								aria-label={i18n.t('ADMIN_NEXT.DELETE')}
+								title={theme.enabled ? i18n.t('ADMIN_NEXT.THEMES.DELETE_ACTIVE_WARNING') : i18n.t('ADMIN_NEXT.DELETE')}
+								onclick={(e) => handleRemoveTheme(theme, e)}
+								disabled={removingSlug === theme.slug}
+							>
+								{#if removingSlug === theme.slug}
+									<Loader2 size={12} class="animate-spin" />
+								{:else}
+									<Trash2 size={12} />
+								{/if}
+							</button>
 						{/if}
 					</div>
 				{/each}
@@ -439,6 +525,21 @@
 								</div>
 							</div>
 							<div class="flex items-center gap-2">
+								{#if !selectedTheme.enabled && canWriteGpm}
+									<Button
+										variant="outline"
+										size="sm"
+										onclick={(e: Event) => handleActivateTheme(selectedTheme, e)}
+										disabled={activatingSlug === selectedTheme.slug}
+									>
+										{#if activatingSlug === selectedTheme.slug}
+											<Loader2 size={14} class="me-1.5 animate-spin" />
+										{:else}
+											<Check size={14} class="me-1.5" />
+										{/if}
+										{i18n.t('ADMIN_NEXT.THEMES.ACTIVATE')}
+									</Button>
+								{/if}
 								{#if selectedTheme.updatable && canWriteGpm}
 									<Button
 										variant="outline"
@@ -453,6 +554,22 @@
 										{/if}
 										{i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: selectedTheme.available_version })}
 									</Button>
+								{/if}
+								{#if canWriteGpm}
+									<button
+										type="button"
+										class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+										aria-label={i18n.t('ADMIN_NEXT.DELETE')}
+										title={selectedTheme.enabled ? i18n.t('ADMIN_NEXT.THEMES.DELETE_ACTIVE_WARNING') : i18n.t('ADMIN_NEXT.DELETE')}
+										onclick={(e: Event) => handleRemoveTheme(selectedTheme, e)}
+										disabled={removingSlug === selectedTheme.slug}
+									>
+										{#if removingSlug === selectedTheme.slug}
+											<Loader2 size={14} class="animate-spin" />
+										{:else}
+											<Trash2 size={14} />
+										{/if}
+									</button>
 								{/if}
 								<button
 									type="button"

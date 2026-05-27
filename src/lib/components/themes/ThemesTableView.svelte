@@ -2,16 +2,20 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import type { ThemeInfo } from '$lib/api/endpoints/gpm';
 	import { faIconClass, isFirstParty } from '$lib/utils/gpm';
-	import { Palette, ArrowUpCircle, BadgeCheck, Loader2, CornerDownRight, ArrowUp, ArrowDown, Settings, Check } from 'lucide-svelte';
+	import { Palette, ArrowUpCircle, BadgeCheck, Loader2, CornerDownRight, ArrowUp, ArrowDown, Settings, Check, Trash2 } from 'lucide-svelte';
 
 	interface Props {
 		themes: ThemeInfo[];
 		canEdit: boolean;
 		updatingSlug: string | null;
 		updatingAll: boolean;
+		activatingSlug: string | null;
+		removingSlug: string | null;
 		resolveUrl: (url: string | null | undefined) => string | null;
 		onConfigure: (slug: string) => void;
 		onUpdate: (theme: ThemeInfo, e: Event) => void;
+		onActivate?: (theme: ThemeInfo, e: Event) => void;
+		onRemove?: (theme: ThemeInfo, e: Event) => void;
 	}
 
 	let {
@@ -19,9 +23,13 @@
 		canEdit,
 		updatingSlug,
 		updatingAll,
+		activatingSlug,
+		removingSlug,
 		resolveUrl,
 		onConfigure,
 		onUpdate,
+		onActivate,
+		onRemove,
 	}: Props = $props();
 
 	type SortKey = 'name' | 'author' | 'version' | 'enabled';
@@ -124,6 +132,19 @@
 							<span class="inline-flex items-center rounded-full bg-green-500/15 px-2.5 py-0.5 text-[0.625rem] font-medium text-green-600 dark:text-green-400">
 								<Check size={10} class="me-0.5" /> {i18n.t('ADMIN_NEXT.ACTIVE')}
 							</span>
+						{:else if onActivate && canEdit}
+							<button
+								type="button"
+								class="inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-0.5 text-[0.625rem] font-medium text-muted-foreground transition-colors hover:bg-green-500/15 hover:text-green-600 disabled:opacity-50"
+								onclick={(e) => onActivate(theme, e)}
+								disabled={activatingSlug === theme.slug}
+								title={i18n.t('ADMIN_NEXT.THEMES.ACTIVATE_THEME', { name: theme.name })}
+							>
+								{#if activatingSlug === theme.slug}
+									<Loader2 size={10} class="me-0.5 animate-spin" />
+								{/if}
+								{i18n.t('ADMIN_NEXT.THEMES.ACTIVATE')}
+							</button>
 						{:else}
 							<span class="text-xs text-muted-foreground">—</span>
 						{/if}
@@ -153,6 +174,21 @@
 							>
 								<Settings size={14} />
 							</button>
+							{#if onRemove && canEdit}
+								<button
+									class="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+									aria-label={i18n.t('ADMIN_NEXT.DELETE')}
+									title={theme.enabled ? i18n.t('ADMIN_NEXT.THEMES.DELETE_ACTIVE_WARNING') : i18n.t('ADMIN_NEXT.DELETE')}
+									onclick={(e) => onRemove(theme, e)}
+									disabled={removingSlug === theme.slug}
+								>
+									{#if removingSlug === theme.slug}
+										<Loader2 size={14} class="animate-spin" />
+									{:else}
+										<Trash2 size={14} />
+									{/if}
+								</button>
+							{/if}
 						</div>
 					</td>
 				</tr>

@@ -21,10 +21,11 @@
 		onEdit: (route: string) => void;
 		onDelete?: (page: PageSummary) => void;
 		onCopy?: (page: PageSummary) => Promise<PageDetail | null> | void;
+		onTogglePublished?: (page: PageSummary) => void;
 		copyingRoutes?: Set<string>;
 	}
 
-	let { searchQuery = '', reorderMode = false, lang, onEdit, onDelete, onCopy, copyingRoutes }: Props = $props();
+	let { searchQuery = '', reorderMode = false, lang, onEdit, onDelete, onCopy, onTogglePublished, copyingRoutes }: Props = $props();
 
 	let sortField = $state<PageListParams['sort']>('order');
 	let sortOrder = $state<'asc' | 'desc'>('asc');
@@ -425,11 +426,29 @@
 			<div class="hidden w-20 text-center md:block">
 				<Badge variant="outline">{page.template}</Badge>
 			</div>
-			<div class="flex w-6 justify-center" title={page.published ? 'Published' : 'Draft'}>
-				{#if page.published}
-					<CircleCheck size={14} class="text-green-500" aria-label={i18n.t('ADMIN_NEXT.PAGES.PUBLISHED')} />
+			<div class="flex w-6 justify-center">
+				{#if onTogglePublished}
+					<button
+						type="button"
+						class="inline-flex h-6 w-6 items-center justify-center rounded transition-colors hover:bg-accent"
+						onclick={(e) => { e.stopPropagation(); onTogglePublished(page); }}
+						title={page.published ? i18n.t('ADMIN_NEXT.PAGES.UNPUBLISH') : i18n.t('ADMIN_NEXT.PAGES.PUBLISH')}
+						aria-label={page.published ? i18n.t('ADMIN_NEXT.PAGES.UNPUBLISH') : i18n.t('ADMIN_NEXT.PAGES.PUBLISH')}
+					>
+						{#if page.published}
+							<CircleCheck size={14} class="text-green-500" />
+						{:else}
+							<CircleDashed size={14} class="text-muted-foreground" />
+						{/if}
+					</button>
 				{:else}
-					<CircleDashed size={14} class="text-muted-foreground" aria-label="Draft" />
+					<span title={page.published ? 'Published' : 'Draft'}>
+						{#if page.published}
+							<CircleCheck size={14} class="text-green-500" aria-label={i18n.t('ADMIN_NEXT.PAGES.PUBLISHED')} />
+						{:else}
+							<CircleDashed size={14} class="text-muted-foreground" aria-label="Draft" />
+						{/if}
+					</span>
 				{/if}
 			</div>
 			<div class="hidden w-20 text-end text-[0.6875rem] text-muted-foreground sm:block">

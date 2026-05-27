@@ -12,13 +12,13 @@
 	import {
 		Search, User, Plus, Loader2,
 		Mail, Shield, ShieldCheck, ShieldOff, BadgeCheck,
-		LayoutGrid, Table as TableIcon
+		LayoutGrid, Table as TableIcon, Pencil, Trash2
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import UsersTabNav from '$lib/components/users/UsersTabNav.svelte';
 	import UsersTableView from '$lib/components/users/UsersTableView.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
-	import { deleteUser } from '$lib/api/endpoints/users';
+	import { deleteUser, updateUser } from '$lib/api/endpoints/users';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 
@@ -101,6 +101,27 @@
 			loadUsers(currentPage);
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.TOASTS.USER_DELETE_FAILED', { username }));
+		}
+	}
+
+	let togglingUsername = $state<string | null>(null);
+
+	async function handleToggleState(user: UserInfo) {
+		const next = user.state === 'enabled' ? 'disabled' : 'enabled';
+		togglingUsername = user.username;
+		try {
+			await updateUser(user.username, { state: next });
+			toast.success(
+				next === 'enabled'
+					? i18n.t('ADMIN_NEXT.TOASTS.USER_ENABLED', { username: user.username })
+					: i18n.t('ADMIN_NEXT.TOASTS.USER_DISABLED', { username: user.username })
+			);
+			loadUsers(currentPage);
+		} catch (err) {
+			const detail = err instanceof Error ? err.message : String(err);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.USER_STATE_FAILED', { username: user.username, detail }));
+		} finally {
+			togglingUsername = null;
 		}
 	}
 
@@ -234,8 +255,10 @@
 				<UsersTableView
 					users={filtered}
 					canEdit={canEditUsers}
+					{togglingUsername}
 					onEdit={openUserEdit}
 					onDelete={canEditUsers ? requestDelete : undefined}
+					onToggleState={canEditUsers ? handleToggleState : undefined}
 				/>
 				{#if data.totalPages > 1}
 					<div class="flex items-center justify-between border-t border-border px-4 py-2">
@@ -288,13 +311,53 @@
 								<p class="truncate text-xs text-muted-foreground">{user.email ?? user.username}</p>
 							</div>
 
-							<!-- State badge -->
-							<span class="shrink-0 rounded-full px-2.5 py-0.5 text-[0.625rem] font-medium
-								{user.state === 'enabled'
-									? 'bg-green-500/15 text-green-600 dark:text-green-400'
-									: 'bg-red-500/15 text-red-600 dark:text-red-400'}">
-								{user.state === 'enabled' ? 'Enabled' : 'Disabled'}
-							</span>
+							<!-- State toggle -->
+							{#if canEditUsers}
+								<button
+									type="button"
+									class="shrink-0 rounded-full px-2.5 py-0.5 text-[0.625rem] font-medium transition-colors
+										{user.state === 'enabled'
+											? 'bg-green-500/15 text-green-600 hover:bg-green-500/25 dark:text-green-400'
+											: 'bg-red-500/15 text-red-600 hover:bg-red-500/25 dark:text-red-400'}"
+									onclick={(e) => { e.stopPropagation(); handleToggleState(user); }}
+									disabled={togglingUsername === user.username}
+									title={user.state === 'enabled' ? i18n.t('ADMIN_NEXT.USERS_TABLE.DISABLED') : i18n.t('ADMIN_NEXT.USERS_TABLE.ENABLED')}
+								>
+									{#if togglingUsername === user.username}
+										<Loader2 size={10} class="inline animate-spin" />
+									{:else}
+										{user.state === 'enabled' ? i18n.t('ADMIN_NEXT.USERS_TABLE.ENABLED') : i18n.t('ADMIN_NEXT.USERS_TABLE.DISABLED')}
+									{/if}
+								</button>
+							{:else}
+								<span class="shrink-0 rounded-full px-2.5 py-0.5 text-[0.625rem] font-medium
+									{user.state === 'enabled'
+										? 'bg-green-500/15 text-green-600 dark:text-green-400'
+										: 'bg-red-500/15 text-red-600 dark:text-red-400'}">
+									{user.state === 'enabled' ? i18n.t('ADMIN_NEXT.USERS_TABLE.ENABLED') : i18n.t('ADMIN_NEXT.USERS_TABLE.DISABLED')}
+								</span>
+							{/if}
+
+							{#if canEditUsers}
+								<button
+									type="button"
+									class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+									onclick={(e) => { e.stopPropagation(); openUserEdit(user.username); }}
+									aria-label={i18n.t('ADMIN_NEXT.USERS_TABLE.EDIT')}
+									title={i18n.t('ADMIN_NEXT.USERS_TABLE.EDIT')}
+								>
+									<Pencil size={12} />
+								</button>
+								<button
+									type="button"
+									class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+									onclick={(e) => { e.stopPropagation(); requestDelete(user.username); }}
+									aria-label={i18n.t('ADMIN_NEXT.USERS_TABLE.DELETE')}
+									title={i18n.t('ADMIN_NEXT.USERS_TABLE.DELETE')}
+								>
+									<Trash2 size={12} />
+								</button>
+							{/if}
 						</div>
 					{/each}
 
@@ -359,14 +422,45 @@
 								</div>
 								<p class="mt-0.5 text-sm text-muted-foreground">@{selectedUser.username}</p>
 							</div>
-							<button
-								type="button"
-								class="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-								onclick={() => openUserEdit(selectedUser.username)}
-							>
-								Edit
-								<DirectionalIcon name="chevron-forward" size={14} />
-							</button>
+							<div class="flex items-center gap-2">
+								{#if canEditUsers}
+									<button
+										type="button"
+										class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium transition-colors disabled:opacity-50
+											{selectedUser.state === 'enabled'
+												? 'text-green-600 hover:bg-green-500/10 dark:text-green-400'
+												: 'text-red-600 hover:bg-red-500/10 dark:text-red-400'}"
+										onclick={() => handleToggleState(selectedUser)}
+										disabled={togglingUsername === selectedUser.username}
+									>
+										{#if togglingUsername === selectedUser.username}
+											<Loader2 size={13} class="animate-spin" />
+										{:else if selectedUser.state === 'enabled'}
+											<ShieldCheck size={13} />
+										{:else}
+											<ShieldOff size={13} />
+										{/if}
+										{selectedUser.state === 'enabled' ? i18n.t('ADMIN_NEXT.USERS_TABLE.ENABLED') : i18n.t('ADMIN_NEXT.USERS_TABLE.DISABLED')}
+									</button>
+									<button
+										type="button"
+										class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+										onclick={() => requestDelete(selectedUser.username)}
+										aria-label={i18n.t('ADMIN_NEXT.USERS_TABLE.DELETE')}
+										title={i18n.t('ADMIN_NEXT.USERS_TABLE.DELETE')}
+									>
+										<Trash2 size={14} />
+									</button>
+								{/if}
+								<button
+									type="button"
+									class="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+									onclick={() => openUserEdit(selectedUser.username)}
+								>
+									Edit
+									<DirectionalIcon name="chevron-forward" size={14} />
+								</button>
+							</div>
 						</div>
 
 						<!-- Metadata grid -->

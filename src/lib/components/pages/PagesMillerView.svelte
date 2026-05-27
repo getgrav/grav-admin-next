@@ -11,7 +11,8 @@
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
-		Folder, File, Loader2, ExternalLink, ArrowUpDown, GripVertical, Copy, Trash2
+		Folder, File, Loader2, ExternalLink, ArrowUpDown, GripVertical, Copy, Trash2,
+		CircleCheck, CircleDashed
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
@@ -31,10 +32,11 @@
 		 * the new row once it lands; list/tree just ignore it.
 		 */
 		onCopy?: (page: PageSummary) => Promise<PageDetail | null>;
+		onTogglePublished?: (page: PageSummary) => void;
 		copyingRoutes?: Set<string>;
 	}
 
-	let { searchQuery = '', reorderMode = false, lang, onEdit, onDelete, onCopy, copyingRoutes }: Props = $props();
+	let { searchQuery = '', reorderMode = false, lang, onEdit, onDelete, onCopy, onTogglePublished, copyingRoutes }: Props = $props();
 
 	// Drag state for Miller columns
 	let dragPage = $state<PageSummary | null>(null);
@@ -1036,8 +1038,23 @@
 						{#if previewPage.has_children}
 							<Badge variant="secondary">{i18n.t('ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.HAS_CHILDREN')}</Badge>
 						{/if}
-						{#if onCopy || onDelete}
+						{#if onCopy || onDelete || onTogglePublished}
 							<div class="ms-auto inline-flex items-center gap-1">
+								{#if onTogglePublished}
+									<button
+										type="button"
+										class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+										onclick={() => onTogglePublished(previewPage as unknown as PageSummary)}
+										title={previewPage.published ? i18n.t('ADMIN_NEXT.PAGES.UNPUBLISH') : i18n.t('ADMIN_NEXT.PAGES.PUBLISH')}
+										aria-label={previewPage.published ? i18n.t('ADMIN_NEXT.PAGES.UNPUBLISH') : i18n.t('ADMIN_NEXT.PAGES.PUBLISH')}
+									>
+										{#if previewPage.published}
+											<CircleCheck size={13} class="text-green-500" />
+										{:else}
+											<CircleDashed size={13} />
+										{/if}
+									</button>
+								{/if}
 								{#if onCopy}
 									<button
 										type="button"

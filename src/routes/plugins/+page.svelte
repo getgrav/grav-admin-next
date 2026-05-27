@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
-	import { getInstalledPlugins, setPluginEnabled, checkUpdates, updatePackage, updateAllPackages, type PluginInfo } from '$lib/api/endpoints/gpm';
+	import { getInstalledPlugins, setPluginEnabled, checkUpdates, updatePackage, updateAllPackages, removePlugin, type PluginInfo } from '$lib/api/endpoints/gpm';
 	import { reloadIfAdminUpdated } from '$lib/utils/gpm';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
@@ -11,7 +11,7 @@
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import AddPluginModal from '$lib/components/AddPluginModal.svelte';
 	import { toast } from 'svelte-sonner';
-	import { Search, Puzzle, ExternalLink, ArrowUpCircle, Loader2, Plus, RefreshCw, BadgeCheck, CornerDownRight, LayoutGrid, Table as TableIcon } from 'lucide-svelte';
+	import { Search, Puzzle, ExternalLink, ArrowUpCircle, Loader2, Plus, RefreshCw, BadgeCheck, CornerDownRight, LayoutGrid, Table as TableIcon, Trash2 } from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText } from '$lib/utils/gpm';
@@ -66,6 +66,7 @@
 	let checkingUpdates = $state(false);
 	let updatingSlug = $state<string | null>(null);
 	let updatingAll = $state(false);
+	let removingSlug = $state<string | null>(null);
 
 	const updatableCount = $derived(plugins.filter((p) => p.updatable).length);
 
@@ -203,6 +204,32 @@
 			toast.error(i18n.t('ADMIN_NEXT.TOASTS.PACKAGE_UPDATE_FAILED', { name: plugin.name, detail }));
 		} finally {
 			updatingSlug = null;
+		}
+	}
+
+	async function handleRemovePlugin(plugin: PluginInfo, e: Event) {
+		e.stopPropagation();
+		const ok = await dialogs.confirm({
+			title: i18n.t('ADMIN_NEXT.PLUGINS.REMOVE_CONFIRM_TITLE'),
+			message: i18n.t('ADMIN_NEXT.PLUGINS.REMOVE_CONFIRM_MESSAGE', { name: plugin.name }),
+			confirmLabel: i18n.t('ADMIN_NEXT.DELETE'),
+			variant: 'destructive',
+		});
+		if (!ok) return;
+		removingSlug = plugin.slug;
+		try {
+			await removePlugin(plugin.slug);
+			toast.success(i18n.t('ADMIN_NEXT.TOASTS.PLUGIN_REMOVED', { name: plugin.name }));
+			if (selectedSlug === plugin.slug) {
+				selectedSlug = null;
+				writeStoredSlug(null);
+			}
+			await loadPlugins();
+		} catch (err: unknown) {
+			const detail = err instanceof Error ? err.message : String(err);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.PLUGIN_REMOVE_FAILED', { name: plugin.name, detail }));
+		} finally {
+			removingSlug = null;
 		}
 	}
 
@@ -360,10 +387,12 @@
 					{togglingSlug}
 					{updatingSlug}
 					{updatingAll}
+					{removingSlug}
 					protectedSlugs={PROTECTED_PLUGINS}
 					onConfigure={openPluginConfig}
 					onToggle={toggleEnabled}
 					onUpdate={handleUpdatePlugin}
+					onRemove={handleRemovePlugin}
 				/>
 			</div>
 		{:else}
@@ -426,6 +455,23 @@
 								{plugin.enabled ? 'Enabled' : 'Disabled'}
 							{/if}
 						</button>
+
+						{#if canWriteGpm}
+							<button
+								type="button"
+								class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+								aria-label={i18n.t('ADMIN_NEXT.DELETE')}
+								title={i18n.t('ADMIN_NEXT.DELETE')}
+								onclick={(e) => handleRemovePlugin(plugin, e)}
+								disabled={removingSlug === plugin.slug}
+							>
+								{#if removingSlug === plugin.slug}
+									<Loader2 size={12} class="animate-spin" />
+								{:else}
+									<Trash2 size={12} />
+								{/if}
+							</button>
+						{/if}
 					</div>
 				{/each}
 
@@ -489,6 +535,22 @@
 										{/if}
 										{i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: selectedPlugin.available_version })}
 									</Button>
+								{/if}
+								{#if canWriteGpm}
+									<button
+										type="button"
+										class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+										aria-label={i18n.t('ADMIN_NEXT.DELETE')}
+										title={i18n.t('ADMIN_NEXT.DELETE')}
+										onclick={(e: Event) => handleRemovePlugin(selectedPlugin, e)}
+										disabled={removingSlug === selectedPlugin.slug}
+									>
+										{#if removingSlug === selectedPlugin.slug}
+											<Loader2 size={14} class="animate-spin" />
+										{:else}
+											<Trash2 size={14} />
+										{/if}
+									</button>
 								{/if}
 								<button
 									type="button"

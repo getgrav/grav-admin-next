@@ -2,16 +2,18 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import type { UserInfo } from '$lib/api/endpoints/users';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
-	import { Pencil, Trash2, ShieldCheck, ArrowUp, ArrowDown } from 'lucide-svelte';
+	import { Pencil, Trash2, ShieldCheck, ArrowUp, ArrowDown, Loader2 } from 'lucide-svelte';
 
 	interface Props {
 		users: UserInfo[];
 		canEdit: boolean;
+		togglingUsername?: string | null;
 		onEdit: (username: string) => void;
 		onDelete?: (username: string) => void;
+		onToggleState?: (user: UserInfo) => void;
 	}
 
-	let { users, canEdit, onEdit, onDelete }: Props = $props();
+	let { users, canEdit, togglingUsername, onEdit, onDelete, onToggleState }: Props = $props();
 
 	type SortKey = 'username' | 'email' | 'fullname' | 'state';
 	let sortKey = $state<SortKey>('username');
@@ -102,12 +104,30 @@
 					<td class="px-4 py-2 text-muted-foreground">{user.email ?? '—'}</td>
 					<td class="px-4 py-2">{user.fullname ?? '—'}</td>
 					<td class="px-4 py-2">
-						<span class="inline-flex items-center rounded-full px-2 py-0.5 text-[0.625rem] font-medium
-							{user.state === 'enabled'
-								? 'bg-green-500/15 text-green-600 dark:text-green-400'
-								: 'bg-red-500/15 text-red-600 dark:text-red-400'}">
-							{user.state === 'enabled' ? i18n.t('ADMIN_NEXT.USERS_TABLE.ENABLED') : i18n.t('ADMIN_NEXT.USERS_TABLE.DISABLED')}
-						</span>
+						{#if onToggleState && canEdit}
+							<button
+								type="button"
+								class="rounded-full px-2.5 py-0.5 text-[0.625rem] font-medium transition-colors
+									{user.state === 'enabled'
+										? 'bg-green-500/15 text-green-600 hover:bg-green-500/25 dark:text-green-400'
+										: 'bg-red-500/15 text-red-600 hover:bg-red-500/25 dark:text-red-400'}"
+								onclick={() => onToggleState(user)}
+								disabled={togglingUsername === user.username}
+							>
+								{#if togglingUsername === user.username}
+									<Loader2 size={10} class="inline animate-spin" />
+								{:else}
+									{user.state === 'enabled' ? i18n.t('ADMIN_NEXT.USERS_TABLE.ENABLED') : i18n.t('ADMIN_NEXT.USERS_TABLE.DISABLED')}
+								{/if}
+							</button>
+						{:else}
+							<span class="inline-flex items-center rounded-full px-2 py-0.5 text-[0.625rem] font-medium
+								{user.state === 'enabled'
+									? 'bg-green-500/15 text-green-600 dark:text-green-400'
+									: 'bg-red-500/15 text-red-600 dark:text-red-400'}">
+								{user.state === 'enabled' ? i18n.t('ADMIN_NEXT.USERS_TABLE.ENABLED') : i18n.t('ADMIN_NEXT.USERS_TABLE.DISABLED')}
+							</span>
+						{/if}
 					</td>
 					<td class="px-4 py-2 text-end">
 						<div class="inline-flex items-center gap-1">

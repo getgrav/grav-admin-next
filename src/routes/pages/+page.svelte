@@ -2,7 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { deletePage, duplicatePage } from '$lib/api/endpoints/pages';
+	import { deletePage, duplicatePage, updatePage } from '$lib/api/endpoints/pages';
 	import type { PageSummary, PageDetail } from '$lib/api/endpoints/pages';
 	import { getStats, type DashboardStats } from '$lib/api/endpoints/dashboard';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
@@ -70,6 +70,25 @@
 	function handleDelete(page: PageSummary) {
 		pendingDeletePage = page;
 		confirmDeleteOpen = true;
+	}
+
+	// Flip the published flag with a single PATCH. No confirm modal — the
+	// action is reversible (just click again) and a confirm step would make
+	// it slower than admin classic's old draft/publish UX.
+	async function handleTogglePublished(page: PageSummary) {
+		const next = !page.published;
+		try {
+			await updatePage(page.route, { published: next });
+			toast.success(
+				next
+					? i18n.t('ADMIN_NEXT.TOASTS.PAGE_PUBLISHED', { name: page.title })
+					: i18n.t('ADMIN_NEXT.TOASTS.PAGE_UNPUBLISHED', { name: page.title })
+			);
+			loadStats();
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err);
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.PAGE_PUBLISH_FAILED', { detail: msg }));
+		}
 	}
 
 	async function confirmDelete() {
@@ -278,11 +297,11 @@
 		<!-- View content -->
 	<div class="overflow-hidden rounded-lg border border-border bg-card">
 		{#if prefs.pagesViewMode === 'tree'}
-			<PagesTreeView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} onCopy={canEditPages ? handleCopy : undefined} {copyingRoutes} />
+			<PagesTreeView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} onCopy={canEditPages ? handleCopy : undefined} onTogglePublished={canEditPages ? handleTogglePublished : undefined} {copyingRoutes} />
 		{:else if prefs.pagesViewMode === 'list'}
-			<PagesListView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} onCopy={canEditPages ? handleCopy : undefined} {copyingRoutes} />
+			<PagesListView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} onCopy={canEditPages ? handleCopy : undefined} onTogglePublished={canEditPages ? handleTogglePublished : undefined} {copyingRoutes} />
 		{:else if prefs.pagesViewMode === 'miller'}
-			<PagesMillerView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} onCopy={canEditPages ? handleCopy : undefined} {copyingRoutes} />
+			<PagesMillerView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} onCopy={canEditPages ? handleCopy : undefined} onTogglePublished={canEditPages ? handleTogglePublished : undefined} {copyingRoutes} />
 		{/if}
 
 		<!-- Footer stats -->
