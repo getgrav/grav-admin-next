@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import type { MediaItem } from '$lib/api/endpoints/media';
+	import { encodeMediaFileUrl, type MediaItem } from '$lib/api/endpoints/media';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { mediaManager } from '$lib/stores/mediaManager.svelte';
 	import { toast } from 'svelte-sonner';
@@ -22,8 +22,9 @@
 	let renameValue = $state('');
 
 	function resolveUrl(url: string): string {
-		if (url.startsWith('http')) return url;
-		return url.startsWith('/') ? `${auth.serverUrl}${url}` : `${auth.serverUrl}/${url}`;
+		const safe = encodeMediaFileUrl(url);
+		if (safe.startsWith('http')) return safe;
+		return safe.startsWith('/') ? `${auth.serverUrl}${safe}` : `${auth.serverUrl}/${safe}`;
 	}
 
 	function resolveApiUrl(url: string): string {

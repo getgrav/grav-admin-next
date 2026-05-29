@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { MediaItem, FolderInfo } from '$lib/api/endpoints/media';
+	import { encodeMediaFileUrl, type MediaItem, type FolderInfo } from '$lib/api/endpoints/media';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { mediaManager } from '$lib/stores/mediaManager.svelte';
 	import {
@@ -23,8 +23,9 @@
 	let props: Props = $props();
 
 	function resolveUrl(url: string): string {
-		if (url.startsWith('http')) return url;
-		return url.startsWith('/') ? `${auth.serverUrl}${url}` : `${auth.serverUrl}/${url}`;
+		const safe = encodeMediaFileUrl(url);
+		if (safe.startsWith('http')) return safe;
+		return safe.startsWith('/') ? `${auth.serverUrl}${safe}` : `${auth.serverUrl}/${safe}`;
 	}
 
 	function resolveApiUrl(url: string): string {

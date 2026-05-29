@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
-	import type { MediaItem } from '$lib/api/endpoints/media';
+	import { encodeMediaFileUrl, type MediaItem } from '$lib/api/endpoints/media';
 	import type { PageMediaContext } from '$lib/components/media/types';
 	import { getContext, onMount } from 'svelte';
 	import { Uppy } from '@uppy/core';
@@ -244,7 +244,7 @@
 			const url = item.thumbnail_url;
 			return url.startsWith('http') ? url : `${auth.serverUrl}${url}`;
 		}
-		const url = item.url;
+		const url = encodeMediaFileUrl(item.url);
 		if (url.startsWith('http')) return url;
 		return url.startsWith('/') ? url : `${auth.serverUrl}/${url}`;
 	}

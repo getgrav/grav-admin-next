@@ -64,6 +64,18 @@ function encodeMediaPath(path: string): string {
 	return path.split('/').map(encodeURIComponent).join('/');
 }
 
+/**
+ * Percent-encode `#` and `?` in a media file URL so filenames like `image#1.png`
+ * or `image?1.png` survive being dropped into an <img src> or <a href>. A trailing
+ * `?<timestamp>` (Grav's enable_media_timestamp output) is preserved verbatim.
+ */
+export function encodeMediaFileUrl(url: string): string {
+	const tsMatch = url.match(/\?\d+$/);
+	const suffix = tsMatch ? tsMatch[0] : '';
+	const path = suffix ? url.slice(0, -suffix.length) : url;
+	return path.replace(/#/g, '%23').replace(/\?/g, '%3F') + suffix;
+}
+
 // ── Site media ──────────────────────────────────────────────────────────
 
 /**

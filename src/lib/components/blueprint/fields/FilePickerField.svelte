@@ -8,6 +8,7 @@
 	import { ChevronDown, X } from 'lucide-svelte';
 	import {
 		getBlueprintFiles,
+		encodeMediaFileUrl,
 		BLUEPRINT_FILES_PAGE_MEDIA_ONLY,
 	} from '$lib/api/endpoints/media';
 
@@ -123,8 +124,9 @@
 	}
 
 	function resolveUrl(url: string): string {
-		if (url.startsWith('http')) return url;
-		return url.startsWith('/') ? url : `${auth.serverUrl}/${url}`;
+		const safe = encodeMediaFileUrl(url);
+		if (safe.startsWith('http')) return safe;
+		return safe.startsWith('/') ? safe : `${auth.serverUrl}/${safe}`;
 	}
 
 	function getThumbnailUrl(item: MediaItem): string {

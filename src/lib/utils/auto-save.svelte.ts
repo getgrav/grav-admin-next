@@ -39,6 +39,14 @@ export interface AutoSaveManager {
 	undo: () => void;
 	forceSave: () => Promise<void>;
 	reset: () => void;
+	/**
+	 * Flag every undo entry as `savedToServer: true` without firing a save.
+	 * Used when a peer's save lands via the sync `page-saved` broadcast —
+	 * the local entries are now part of disk state via Yjs, so they don't
+	 * count toward the unsaved-leave guard anymore. Distinct from reset(),
+	 * which wipes the stack entirely and loses undo history.
+	 */
+	markAllSaved: () => void;
 }
 
 export function createAutoSaveManager(options: AutoSaveManagerOptions): AutoSaveManager {
@@ -158,6 +166,11 @@ export function createAutoSaveManager(options: AutoSaveManagerOptions): AutoSave
 		lastSavedAt = null;
 	}
 
+	function markAllSaved() {
+		undoStack = undoStack.map(e => e.savedToServer ? e : { ...e, savedToServer: true });
+		lastSavedAt = Date.now();
+	}
+
 	return {
 		get undoStack() { return undoStack; },
 		get canUndo() { return canUndo; },
@@ -167,6 +180,7 @@ export function createAutoSaveManager(options: AutoSaveManagerOptions): AutoSave
 		undo,
 		forceSave,
 		reset,
+		markAllSaved,
 	};
 }
 

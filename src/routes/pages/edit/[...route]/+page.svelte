@@ -49,6 +49,7 @@
 	import { createFormBinding, type FormBinding } from '$lib/sync/bindings/formBinding';
 	import { createEditorBinding, type EditorCollab } from '$lib/sync/bindings/editorBinding';
 	import { tryInitRoom } from '$lib/sync/initRoom';
+	import { subscribePageSaved, type PageSavedSubscriber } from '$lib/sync/pageSavedSubscriber';
 	import type { Peer, SyncProvider, SyncStatus } from '$lib/sync/SyncProvider';
 	import * as Y from 'yjs';
 	import { api as apiClient } from '$lib/api/client';
@@ -103,6 +104,7 @@
 			// Update Svelte state
 			content = updatedContent;
 			headerData = { ...headerData, content: updatedContent };
+			hasLocalEdits = true;
 
 			// Directly update editor-pro web component (TipTap).
 			// Use replaceContent() so the update goes through TipTap's setContent
@@ -168,6 +170,17 @@
 	let expertFrontmatter = $state('');
 	let expertFrontmatterOriginal = $state('');
 
+	// True once the user has made a local edit since the last baseline reset
+	// (initial load, own save, or a peer's `page-saved` broadcast). This is
+	// what the unsaved-leave guard and dirty indicator read — separate from
+	// the net-diff `hasChanges` further down which the save handler uses to
+	// decide whether to actually PATCH. In collab mode the two diverge:
+	// peer-originated edits propagate into `content` / `headerData` via
+	// Yjs without being our edits, so they must NOT trip the guard or the
+	// dirty pip. Reset by `resetBaselinesFromPage()` after any save lands
+	// (mine or a peer's).
+	let hasLocalEdits = $state(false);
+
 	// Source-of-truth snapshots taken once at page load. Used by
 	// handleBlueprintChange to decide whether an incoming field value is a
 	// real edit or a no-op echo (custom web components and ArrayField
@@ -231,7 +244,7 @@
 	});
 	let syncReady = $state(false);
 	// Set when the collab handshake terminally fails (e.g. user lacks
-	// api.collab.read so init/pull return 403). Stops `collabPending` from
+	// api.pages.read so init/pull return 403). Stops `collabPending` from
 	// blocking the editor mount forever — we fall through to solo mode.
 	let syncFailed = $state(false);
 	/**
@@ -498,7 +511,7 @@
 				syncBinding = binding;
 				syncReady = true;
 			} catch {
-				// Connect/seed failed (commonly 403 from missing api.collab.*).
+				// Connect/seed failed (commonly 403 from missing api.pages.*).
 				// Unblock collabPending so the editor mounts in solo mode.
 				if (!cancelled) syncFailed = true;
 			}
@@ -519,6 +532,32 @@
 		};
 	});
 
+	// Subscribe to `sync:page-saved:<roomId>` broadcasts so a peer's save
+	// advances our baseline (otherwise hasChanges stays true for the second
+	// user even after the first user has saved their edits — see
+	// getgrav/grav-plugin-admin2#25). Independent of the main sync effect:
+	// the broadcast channel uses its own polling cadence and survives even
+	// when the CRDT provider handshake fails.
+	$effect(() => {
+		if (!prefs.collabEnabled) return;
+		if (loading || pageData === null) return;
+		const currentRoute = route;
+		if (!currentRoute) return;
+		const currentLang = contentLang.enabled ? contentLang.activeLang : null;
+		const currentTemplate = template || 'default';
+		const baseId = `${currentRoute.replace(/^\//, '')}@${currentTemplate}`;
+		const roomId = currentLang ? `${baseId}@${currentLang}` : baseId;
+
+		const sub: PageSavedSubscriber = subscribePageSaved({
+			roomId,
+			onSaved: (event) => {
+				void onPeerPageSaved(event);
+			},
+		});
+
+		return () => sub.dispose();
+	});
+
 	// Expert-mode content editor writes directly to the `content` state
 	// (bypassing handleBlueprintChange). Keep this $effect so those edits
 	// still propagate through Yjs. Normal-mode field edits go through
@@ -526,6 +565,9 @@
 	$effect(() => {
 		if (!syncReady || !syncBinding || applyingRemote) return;
 		syncBinding.pushLocal('content', content);
+		// Local-origin content change — typing, paste, AI insertion, etc.
+		// applyingRemote already guards against echo from peer edits.
+		hasLocalEdits = true;
 	});
 
 	function deriveParent(route: string, slug: string): string {
@@ -647,10 +689,14 @@
 	);
 
 	const guard = createUnsavedGuard(() => {
+		// In collab mode hasChanges is a net diff vs the last GET — it can
+		// be true purely because of a peer's edits even when I haven't typed
+		// anything. The leave guard should only fire on MY unsaved work, so
+		// we use hasLocalEdits here.
 		if (prefs.autoSaveEnabled) {
-			return hasChanges || autoSave.saving || autoSave.undoStack.some(e => !e.savedToServer);
+			return hasLocalEdits || autoSave.saving || autoSave.undoStack.some(e => !e.savedToServer);
 		}
-		return hasChanges;
+		return hasLocalEdits;
 	});
 
 	const autoSave = createAutoSaveManager({
@@ -769,6 +815,7 @@
 			originalOrdering = initialOrdering;
 			originalOrder = data.order;
 			headerChanges = {};
+			hasLocalEdits = false;
 
 			// Initialize expert advanced state (strip any leading periods from slug)
 			expertSlug = data.slug.replace(/^\.+/, '');
@@ -818,6 +865,13 @@
 		//   - headerChanges / headerData mutations below would clobber the
 		//     snapshot-derived headerData we're trying to install
 		if (applyingRemote) return;
+
+		// Any non-remote field commit is a local edit — flip the dirty flag
+		// so the leave guard fires. (Mount-time echoes still slip through
+		// here, but the diff-against-original logic below filters them out
+		// of headerChanges, and hasChanges-derived save handling stays the
+		// gate on whether we actually PATCH anything.)
+		hasLocalEdits = true;
 
 		// Collab: every blueprint field change is pushed into the Y.Map so
 		// peers receive it. The FormBinding no-ops when the value hasn't
@@ -881,6 +935,65 @@
 		}
 		current[parts[parts.length - 1]] = value;
 		headerData = newData;
+	}
+
+	/**
+	 * Triggered when a peer's save lands (received via the sync:page-saved
+	 * broadcast channel). Re-fetches the page so our baseline catches up
+	 * to disk, and only then re-evaluates dirty: if our current Yjs view
+	 * matches the now-saved server state we drop hasLocalEdits, otherwise
+	 * we leave it set so the user knows they still have post-peer-save work.
+	 */
+	async function onPeerPageSaved(event: { savedBy: { username: string; fullname: string } | null }): Promise<void> {
+		if (!pageData) return;
+		try {
+			const activeLang = contentLang.enabled ? contentLang.activeLang : undefined;
+			const refreshed = await getPage(route, { render: false, translations: true, lang: activeLang });
+			refreshed.translated_languages = refreshed.translated_languages ?? pageData.translated_languages;
+			refreshed.untranslated_languages = refreshed.untranslated_languages ?? pageData.untranslated_languages;
+
+			pageData = refreshed;
+			originalHeader = JSON.parse(JSON.stringify(refreshed.header ?? {})) as Record<string, unknown>;
+			originalTitle = refreshed.title;
+			originalContent = refreshed.content ?? '';
+			originalTemplate = refreshed.template;
+			originalFolder = refreshed.slug;
+			originalParent = deriveParent(refreshed.route, refreshed.slug);
+			originalOrdering = refreshed.order !== null && refreshed.order !== '';
+			originalOrder = refreshed.order;
+
+			// If the user's current view already matches the saved state
+			// (the typical case — peer saved exactly what we both have in
+			// Yjs), drop the dirty flag. If the user has typed something
+			// since the peer's PATCH was sent, leave it set — those edits
+			// genuinely aren't on disk yet.
+			const currentMatches =
+				content === (refreshed.content ?? '') &&
+				title === refreshed.title &&
+				template === refreshed.template;
+			if (currentMatches) {
+				headerChanges = {};
+				hasLocalEdits = false;
+				// Local undo entries are now part of disk state via Yjs —
+				// flag them saved so the leave guard's undoStack check
+				// stops tripping. (reset() would drop undo history.)
+				autoSave.markAllSaved();
+			}
+
+			if (prefs.editorMode === 'expert' && currentMatches) {
+				expertFrontmatterOriginal = expertFrontmatter;
+			}
+
+			const savedByName = event.savedBy?.fullname || event.savedBy?.username || '';
+			if (savedByName) {
+				toast.info(i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVED_BY_PEER', { user: savedByName }));
+			} else {
+				toast.info(i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVED_BY_PEER_ANON'));
+			}
+		} catch {
+			// Re-fetch failed (transient network blip, page just deleted, etc).
+			// Leave baselines alone — the next save broadcast will retry.
+		}
 	}
 
 	async function handleSave() {
@@ -980,6 +1093,7 @@
 					order: updated.order,
 				};
 				headerChanges = {};
+				hasLocalEdits = false;
 
 				// Reset baselines so subsequent edits diff against the just-saved state
 				originalHeader = JSON.parse(JSON.stringify(updated.header ?? {})) as Record<string, unknown>;
@@ -1024,6 +1138,7 @@
 				expertParent = deriveParent(moved.route, moved.slug);
 				expertFrontmatterOriginal = expertFrontmatter;
 				headerChanges = {};
+				hasLocalEdits = false;
 
 				if (moved.route !== route) {
 					toast.success(i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_SAVED_AND_MOVED'));
@@ -1078,6 +1193,7 @@
 					order: moved.order,
 				};
 				headerChanges = {};
+				hasLocalEdits = false;
 				originalFolder = moved.slug;
 				originalParent = movedParent;
 				originalOrdering = movedOrdering;
@@ -1131,6 +1247,7 @@
 				toast.success(i18n.t('ADMIN_NEXT.TOASTS.SAVED_AS_LANGUAGE', { language: contentLang.getLanguageName(targetLang) }));
 				autoSave.reset();
 				headerChanges = {};
+				hasLocalEdits = false;
 				await loadPage(targetLang);
 				contentLang.setLanguage(targetLang);
 				return;
@@ -1160,6 +1277,7 @@
 			toast.success(i18n.t('ADMIN_NEXT.TOASTS.TRANSLATION_CREATED', { language: contentLang.getLanguageName(targetLang) }));
 			autoSave.reset();
 			headerChanges = {};
+			hasLocalEdits = false;
 			await loadPage(targetLang);
 			contentLang.setLanguage(targetLang);
 		} catch (err: unknown) {
@@ -1195,6 +1313,7 @@
 			toast.success(i18n.t('ADMIN_NEXT.TOASTS.TRANSLATION_RESET', { target: targetName, source: sourceName }));
 			autoSave.reset();
 			headerChanges = {};
+			hasLocalEdits = false;
 			await loadPage(targetLang);
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'message' in err) {
@@ -1224,6 +1343,7 @@
 		contentLang.setLanguage(lang);
 		autoSave.reset();
 		headerChanges = {};
+		hasLocalEdits = false;
 		loadPage(lang);
 	}
 
@@ -1356,7 +1476,7 @@
 
 					<div class="flex shrink-0 flex-wrap items-center gap-2">
 			<UnsavedIndicator
-				hasChanges={hasChanges}
+				hasChanges={hasLocalEdits}
 				saving={autoSave.saving}
 				lastSavedAt={autoSave.lastSavedAt}
 				autoSaveEnabled={prefs.autoSaveEnabled}
@@ -1518,7 +1638,7 @@
 							</div>
 							<CodeEditor
 								value={expertFrontmatter}
-								onchange={(v) => { expertFrontmatter = v; }}
+								onchange={(v) => { expertFrontmatter = v; hasLocalEdits = true; }}
 								language="yaml"
 								minHeight="150px"
 								maxHeight="500px"
@@ -1544,7 +1664,7 @@
 							{:else}
 								<MarkdownEditor
 									value={content}
-									onchange={(v) => { content = v; }}
+									onchange={(v) => { content = v; if (!applyingRemote) hasLocalEdits = true; }}
 									placeholder={i18n.t('ADMIN_NEXT.PAGES.EDIT.WRITE_YOUR_MARKDOWN_CONTENT_HERE')}
 									minHeight="400px"
 									class="border-0 shadow-none"
@@ -1576,7 +1696,7 @@
 											type="text"
 											class="flex h-10 w-full rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 											value={expertSlug}
-											oninput={(e) => { expertSlug = (e.target as HTMLInputElement).value.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9_\-]/g, ''); }}
+											oninput={(e) => { expertSlug = (e.target as HTMLInputElement).value.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9_\-]/g, ''); hasLocalEdits = true; }}
 											onfocusout={() => {
 												if (prefs.autoSaveEnabled && expertSlug && expertSlug !== pageData?.slug) {
 													autoSave.oncommit('expertSlug', expertSlug, pageData?.slug);
@@ -1596,6 +1716,7 @@
 											value={expertParent}
 											onchange={(v) => {
 												expertParent = v as string;
+												hasLocalEdits = true;
 												if (prefs.autoSaveEnabled && pageData) {
 													const orig = deriveParent(pageData.route, pageData.slug);
 													if (v !== orig) autoSave.oncommit('expertParent', v, orig);
@@ -1676,7 +1797,7 @@
 					{:else}
 						<MarkdownEditor
 							value={content}
-							onchange={(v) => { content = v; }}
+							onchange={(v) => { content = v; if (!applyingRemote) hasLocalEdits = true; }}
 							placeholder={i18n.t('ADMIN_NEXT.PAGES.EDIT.WRITE_YOUR_MARKDOWN_CONTENT_HERE')}
 							minHeight="400px"
 							readonly={!!editorLock}

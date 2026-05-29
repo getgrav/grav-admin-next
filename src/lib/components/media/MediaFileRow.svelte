@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { MediaItem, FolderInfo } from '$lib/api/endpoints/media';
+	import { encodeMediaFileUrl, type MediaItem, type FolderInfo } from '$lib/api/endpoints/media';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { mediaManager } from '$lib/stores/mediaManager.svelte';
 	import {
@@ -31,7 +31,7 @@
 	function getThumbnailUrl(item: MediaItem): string {
 		if (item.thumbnail_url) return resolveApiUrl(item.thumbnail_url);
 		if (item.type.startsWith('image/')) {
-			const url = item.url;
+			const url = encodeMediaFileUrl(item.url);
 			return url.startsWith('http') ? url : `${auth.serverUrl}${url.startsWith('/') ? '' : '/'}${url}`;
 		}
 		return '';

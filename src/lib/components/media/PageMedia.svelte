@@ -7,7 +7,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
-	import { getPageMedia, deletePageMedia, type MediaItem } from '$lib/api/endpoints/media';
+	import { getPageMedia, deletePageMedia, encodeMediaFileUrl, type MediaItem } from '$lib/api/endpoints/media';
 	import { toast } from 'svelte-sonner';
 	import { Upload, X, ImagePlus, GripVertical } from 'lucide-svelte';
 
@@ -255,8 +255,9 @@
 	}
 
 	function resolveUrl(url: string): string {
-		if (url.startsWith('http')) return url;
-		return url.startsWith('/') ? url : `${auth.serverUrl}/${url}`;
+		const safe = encodeMediaFileUrl(url);
+		if (safe.startsWith('http')) return safe;
+		return safe.startsWith('/') ? safe : `${auth.serverUrl}/${safe}`;
 	}
 
 	function resolveApiUrl(url: string): string {
