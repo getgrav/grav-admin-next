@@ -41,8 +41,8 @@
 
 	function isSuperAdmin(user: UserInfo): boolean {
 		const access = user.access as Record<string, unknown>;
-		const admin = access?.admin as Record<string, unknown> | undefined;
-		return admin?.super === true;
+		const api = access?.api as Record<string, unknown> | undefined;
+		return api?.super === true;
 	}
 </script>
 
