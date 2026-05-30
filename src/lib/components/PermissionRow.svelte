@@ -13,11 +13,13 @@
 		/** Whether admin.super is explicitly allowed in `value` — passed so
 		 *  every row reads the same canonical signal. */
 		superAdmin: boolean;
+		/** Whether api.super is explicitly allowed — implies every api.* row. */
+		apiSuper: boolean;
 		/** Toggle setter — bubbles back up to the parent field. */
 		onToggle: (name: string, newVal: 'allowed' | 'denied' | 'unset') => void;
 	}
 
-	let { action, depth, value, superAdmin, onToggle }: Props = $props();
+	let { action, depth, value, superAdmin, apiSuper, onToggle }: Props = $props();
 
 	const val = $derived.by((): 'allowed' | 'denied' | 'unset' => {
 		const parts = action.name.split('.');
@@ -34,10 +36,16 @@
 		return 'unset';
 	});
 
+	// A super flag implies every permission in its own scope, so we badge those
+	// rows with a crown: admin.super covers admin.*/site.*, api.super covers
+	// api.*. The super toggle itself is never crowned.
 	const implicit = $derived(
-		superAdmin
-		&& action.name !== 'admin.super'
-		&& (action.name.startsWith('admin.') || action.name.startsWith('site.'))
+		(superAdmin
+			&& action.name !== 'admin.super'
+			&& (action.name.startsWith('admin.') || action.name.startsWith('site.')))
+		|| (apiSuper
+			&& action.name !== 'api.super'
+			&& action.name.startsWith('api.'))
 	);
 </script>
 
@@ -94,6 +102,7 @@
 			depth={depth + 1}
 			{value}
 			{superAdmin}
+			{apiSuper}
 			{onToggle}
 		/>
 	{/each}

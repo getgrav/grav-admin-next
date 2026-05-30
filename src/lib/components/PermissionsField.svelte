@@ -16,12 +16,27 @@
 	let loading = $state(true);
 	let expandedSections = $state<Set<string>>(new Set());
 
+	// admin2 authority is the `api.*` tree; the `admin.*` permissions are
+	// admin-classic (legacy). Order the core groups site → api → admin, keep
+	// plugin sections between api and the legacy admin block at the bottom.
+	function sectionRank(name: string): number {
+		if (name === 'site') return 0;
+		if (name === 'api') return 1;
+		if (name === 'admin') return 3;
+		return 2;
+	}
+
 	async function loadPermissions() {
 		loading = true;
 		try {
-			sections = await getPermissionsBlueprint();
+			const loaded = await getPermissionsBlueprint();
+			// Stable sort keeps the original order within each rank group.
+			sections = [...loaded].sort((a, b) => sectionRank(a.name) - sectionRank(b.name));
 			for (const s of sections) {
-				expandedSections.add(s.name);
+				// Collapse the deprecated admin-classic section by default.
+				if (s.name !== 'admin') {
+					expandedSections.add(s.name);
+				}
 			}
 			expandedSections = new Set(expandedSections);
 		} catch {
@@ -48,8 +63,10 @@
 		return current;
 	}
 
-	/** Whether admin.super is explicitly allowed in the access tree. */
+	/** Whether admin.super is explicitly allowed — implies all admin/site perms. */
 	const superAdmin = $derived(getPathValue(value, 'admin.super') === true);
+	/** Whether api.super is explicitly allowed — implies all api perms. */
+	const apiSuper = $derived(getPathValue(value, 'api.super') === true);
 
 	function handleToggle(name: string, newVal: 'allowed' | 'denied' | 'unset') {
 		const parts = name.split('.');
@@ -108,7 +125,11 @@
 						size={14}
 						class="shrink-0 text-muted-foreground transition-transform {expandedSections.has(section.name) ? '' : '-rotate-90'}"
 					/>
-					<span class="text-sm font-semibold text-foreground">{section.label}</span>
+					<span class="text-sm font-semibold text-foreground">
+						{section.name === 'admin'
+							? i18n.t('ADMIN_NEXT.PERMISSIONS_FIELD.ADMIN_LEGACY')
+							: section.label}
+					</span>
 				</div>
 
 				{#if expandedSections.has(section.name) && section.children}
@@ -118,6 +139,7 @@
 							depth={0}
 							{value}
 							{superAdmin}
+							{apiSuper}
 							onToggle={handleToggle}
 						/>
 					{/each}

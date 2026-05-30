@@ -11,7 +11,7 @@
 	import { toast } from 'svelte-sonner';
 	import {
 		Search, User, Plus, Loader2,
-		Mail, Shield, ShieldCheck, ShieldOff, BadgeCheck,
+		Mail, MailPlus, Shield, ShieldCheck, ShieldOff, BadgeCheck,
 		LayoutGrid, Table as TableIcon, Pencil, Trash2
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
@@ -196,10 +196,16 @@
 						{/if}
 					</div>
 					{#if canEditUsers}
-					<Button size="sm" onclick={() => goto(`${base}/users/new`)}>
-						<Plus size={14} />
-						{i18n.t('ADMIN_NEXT.USERS.ADD_USER')}
-					</Button>
+					<div class="flex items-center gap-2">
+						<Button variant="outline" size="sm" onclick={() => goto(`${base}/users/invite`)}>
+							<MailPlus size={14} class="me-1.5" />
+							{i18n.t('ADMIN_NEXT.INVITATIONS.INVITE')}
+						</Button>
+						<Button size="sm" onclick={() => goto(`${base}/users/new`)}>
+							<Plus size={14} />
+							{i18n.t('ADMIN_NEXT.USERS.ADD_USER')}
+						</Button>
+					</div>
 					{/if}
 				</div>
 			</div>

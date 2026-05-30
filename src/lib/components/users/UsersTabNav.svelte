@@ -12,17 +12,21 @@
 	const isSuper = $derived(auth.isSuperAdmin);
 	const canManage = $derived(canWrite('users') || isSuper);
 
-	type TabId = 'users' | 'groups' | 'config';
+	type TabId = 'users' | 'groups' | 'invitations' | 'config';
 
 	const tabs: { id: TabId; label: string; path: string; gated?: boolean }[] = $derived([
 		{ id: 'users',  label: i18n.t('ADMIN_NEXT.USERS_NAV.USERS'),  path: `${base}/users` },
 		{ id: 'groups', label: i18n.t('ADMIN_NEXT.USERS_NAV.GROUPS'), path: `${base}/users/groups`, gated: !canManage },
+		{ id: 'invitations', label: i18n.t('ADMIN_NEXT.USERS_NAV.INVITATIONS'), path: `${base}/users/invitations`, gated: !canManage },
 		{ id: 'config', label: i18n.t('ADMIN_NEXT.USERS_NAV.CONFIGURATION'), path: `${base}/users/config`, gated: !isSuper },
 	]);
 
 	const active = $derived.by<TabId>(() => {
 		const p = page.url.pathname.replace(base, '');
 		if (p.startsWith('/users/groups')) return 'groups';
+		// Both the pending list (/users/invitations) and the create form
+		// (/users/invite) belong to the Invitations tab.
+		if (p.startsWith('/users/invite')) return 'invitations';
 		if (p.startsWith('/users/config')) return 'config';
 		return 'users';
 	});

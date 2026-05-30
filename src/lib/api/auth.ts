@@ -153,6 +153,44 @@ export async function resetPassword(
 	});
 }
 
+export interface InviteValidation {
+	valid: boolean;
+	expired: boolean;
+	email: string;
+	fullname?: string;
+}
+
+/**
+ * Validate an invite token (public). Returns the locked email + optional
+ * fullname prefill, and whether the token is still valid. Never returns the
+ * pre-set permissions/groups.
+ */
+export async function validateInvite(token: string): Promise<InviteValidation> {
+	const data = await api.get<InviteValidation>(`/auth/invite/${encodeURIComponent(token)}`);
+	return {
+		valid: Boolean(data?.valid),
+		expired: Boolean(data?.expired),
+		email: data?.email ?? '',
+		fullname: data?.fullname ?? '',
+	};
+}
+
+export interface AcceptInviteData {
+	username: string;
+	password: string;
+	fullname?: string;
+	title?: string;
+}
+
+/**
+ * Accept an invite (public): create the account with the admin-preset
+ * permissions and auto-login, mirroring setupFirstUser.
+ */
+export async function acceptInvite(token: string, input: AcceptInviteData): Promise<void> {
+	const data = await api.post<TokenResponse>(`/auth/invite/${encodeURIComponent(token)}`, input);
+	await finalizeLogin(data, input.username);
+}
+
 /**
  * Refresh the current user's profile and resolved permissions from GET /me.
  * Called on app startup and after re-authentication to keep permissions fresh.

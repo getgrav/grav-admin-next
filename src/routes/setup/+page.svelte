@@ -28,7 +28,12 @@
 	let checking = $state(true);
 	let attempted = $state(false);
 
-	const usernameInvalid = $derived(attempted && !/^[a-z0-9_-]{3,64}$/i.test(username));
+	// Mirror the server rules (Grav core User::isValidUsername + 3-64 length):
+	// letters, numbers, periods, hyphens, underscores; no leading dot, no `..`,
+	// and no filesystem-dangerous chars \ / ? * : ; { } or newlines.
+	const usernameInvalid = $derived(
+		attempted && !/^(?!\.)(?!.*\.\.)[^\\/?*:;{}\n]{3,64}$/u.test(username),
+	);
 	const emailInvalid = $derived(attempted && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
 	const passwordResult = $derived(evaluatePassword(password, passwordPolicy.current));
 	const passwordInvalid = $derived(attempted && !passwordResult.allRulesMet);
