@@ -2,7 +2,8 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import type { UserInfo } from '$lib/api/endpoints/users';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
-	import { Pencil, Trash2, ShieldCheck, ArrowUp, ArrowDown, Loader2 } from 'lucide-svelte';
+	import { Pencil, Trash2, Shield, ShieldCheck, ArrowUp, ArrowDown, Loader2 } from 'lucide-svelte';
+	import { flattenAccess, isSuperAdmin, hasBackendAccess } from '$lib/utils/user-access';
 
 	interface Props {
 		users: UserInfo[];
@@ -11,9 +12,14 @@
 		onEdit: (username: string) => void;
 		onDelete?: (username: string) => void;
 		onToggleState?: (user: UserInfo) => void;
+		/** Apply a permission filter when a permission chip is clicked. */
+		onFilterPermission?: (permission: string) => void;
 	}
 
-	let { users, canEdit, togglingUsername, onEdit, onDelete, onToggleState }: Props = $props();
+	let { users, canEdit, togglingUsername, onEdit, onDelete, onToggleState, onFilterPermission }: Props = $props();
+
+	// How many permission chips to show before collapsing into a "+N" count.
+	const MAX_CHIPS = 3;
 
 	type SortKey = 'username' | 'email' | 'fullname' | 'state';
 	let sortKey = $state<SortKey>('username');
@@ -38,12 +44,6 @@
 		});
 		return list;
 	});
-
-	function isSuperAdmin(user: UserInfo): boolean {
-		const access = user.access as Record<string, unknown>;
-		const api = access?.api as Record<string, unknown> | undefined;
-		return api?.super === true;
-	}
 </script>
 
 <div class="overflow-x-auto">
@@ -82,11 +82,13 @@
 						{/if}
 					</button>
 				</th>
+				<th class="px-4 py-2 text-start font-medium">{i18n.t('ADMIN_NEXT.USERS_TABLE.PERMISSIONS')}</th>
 				<th class="w-20 px-4 py-2 text-end font-medium">{i18n.t('ADMIN_NEXT.USERS_TABLE.ACTIONS')}</th>
 			</tr>
 		</thead>
 		<tbody>
 			{#each sorted as user (user.username)}
+				{@const perms = flattenAccess(user.access)}
 				<tr class="border-b border-border transition-colors hover:bg-muted/30">
 					<td class="px-4 py-2">
 						<button class="inline-flex items-center gap-2 text-primary hover:underline" onclick={() => onEdit(user.username)}>
@@ -97,7 +99,13 @@
 							/>
 							<span class="font-medium">{user.username}</span>
 							{#if isSuperAdmin(user)}
-								<ShieldCheck size={12} class="text-amber-500" />
+								<span class="inline-flex" title={i18n.t('ADMIN_NEXT.USERS.SUPER_ADMIN')}>
+									<ShieldCheck size={12} class="text-amber-500" />
+								</span>
+							{:else if hasBackendAccess(user)}
+								<span class="inline-flex" title={i18n.t('ADMIN_NEXT.USERS_FILTER.BACKEND_ACCESS')}>
+									<Shield size={12} class="text-sky-500" />
+								</span>
 							{/if}
 						</button>
 					</td>
@@ -129,6 +137,35 @@
 							</span>
 						{/if}
 					</td>
+					<td class="px-4 py-2">
+						<div class="flex flex-wrap items-center gap-1">
+							{#if isSuperAdmin(user)}
+								<span class="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[0.625rem] font-medium text-amber-600 dark:text-amber-400">
+									<ShieldCheck size={10} />
+									{i18n.t('ADMIN_NEXT.USERS.SUPER_ADMIN')}
+								</span>
+							{:else if perms.length === 0}
+								<span class="text-xs text-muted-foreground">—</span>
+							{:else}
+								{#each perms.slice(0, MAX_CHIPS) as perm}
+									<button
+										type="button"
+										class="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.6875rem] text-foreground transition-colors hover:bg-accent disabled:cursor-default disabled:hover:bg-muted"
+										onclick={() => onFilterPermission?.(perm)}
+										disabled={!onFilterPermission}
+										title={onFilterPermission ? i18n.t('ADMIN_NEXT.USERS_FILTER.FILTER_BY_PERMISSION') : perm}
+									>
+										{perm}
+									</button>
+								{/each}
+								{#if perms.length > MAX_CHIPS}
+									<span class="text-[0.6875rem] text-muted-foreground" title={perms.slice(MAX_CHIPS).join(', ')}>
+										+{perms.length - MAX_CHIPS}
+									</span>
+								{/if}
+							{/if}
+						</div>
+					</td>
 					<td class="px-4 py-2 text-end">
 						<div class="inline-flex items-center gap-1">
 							{#if canEdit}
@@ -155,7 +192,7 @@
 			{/each}
 			{#if sorted.length === 0}
 				<tr>
-					<td colspan="5" class="px-4 py-8 text-center text-sm text-muted-foreground">
+					<td colspan="6" class="px-4 py-8 text-center text-sm text-muted-foreground">
 						{i18n.t('ADMIN_NEXT.USERS_TABLE.NO_USERS')}
 					</td>
 				</tr>

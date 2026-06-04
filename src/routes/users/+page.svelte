@@ -12,53 +12,72 @@
 	import {
 		Search, User, Plus, Loader2,
 		Mail, MailPlus, Shield, ShieldCheck, ShieldOff, BadgeCheck,
-		LayoutGrid, Table as TableIcon, Pencil, Trash2
+		LayoutGrid, Table as TableIcon, Pencil, Trash2, KeyRound, UsersRound
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import UsersTabNav from '$lib/components/users/UsersTabNav.svelte';
 	import UsersTableView from '$lib/components/users/UsersTableView.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+	import TypeaheadFilter from '$lib/components/ui/TypeaheadFilter.svelte';
 	import { deleteUser, updateUser } from '$lib/api/endpoints/users';
+	import { getPermissionsBlueprint } from '$lib/api/endpoints/blueprints';
+	import { getGroups } from '$lib/api/endpoints/groups';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { canWrite } from '$lib/utils/permissions';
+	import {
+		flattenAccess,
+		isSuperAdmin,
+		hasBackendAccess,
+		permissionFilterOptions,
+		type AccessFilterOption,
+	} from '$lib/utils/user-access';
 
 	const canEditUsers = $derived(canWrite('users'));
 
 	let data = $state<UsersPage | null>(null);
 	let loading = $state(true);
 	let search = $state('');
+	let accessFilter = $state<string | null>(null);
+	let groupFilter = $state<string | null>(null);
 	let currentPage = $state(1);
 	let selectedUsername = $state<string | null>(null);
 	let pendingDelete = $state<string | null>(null);
 	let confirmDeleteOpen = $state(false);
 	const perPage = 20;
 
-	const filtered = $derived.by(() => {
-		if (!data) return [];
-		let list = data.users;
-		if (search) {
-			const q = search.toLowerCase();
-			list = list.filter(
-				(u) =>
-					u.username.toLowerCase().includes(q) ||
-					(u.fullname ?? '').toLowerCase().includes(q) ||
-					(u.email ?? '').toLowerCase().includes(q) ||
-					(u.title ?? '').toLowerCase().includes(q),
-			);
-		}
-		return list;
-	});
+	// Filter sources for the type-ahead controls (loaded once).
+	let permissionOptions = $state<AccessFilterOption[]>([]);
+	let groupOptions = $state<AccessFilterOption[]>([]);
+	let filtersLoading = $state(true);
+
+	const hasActiveFilters = $derived(!!search.trim() || !!accessFilter || !!groupFilter);
+
+	// Search + access + group are all resolved server-side, so the list the API
+	// returns is already the filtered set for this page.
+	const filtered = $derived(data?.users ?? []);
 
 	const selectedUser = $derived(
 		selectedUsername ? data?.users.find((u) => u.username === selectedUsername) ?? null : null,
 	);
 
+	function currentFilters() {
+		return {
+			search: search.trim() || undefined,
+			access: accessFilter ?? undefined,
+			group: groupFilter ?? undefined,
+		};
+	}
+
 	async function loadUsers(page = 1) {
 		loading = true;
 		try {
-			data = await getUsers(page, perPage);
+			data = await getUsers(page, perPage, currentFilters());
 			currentPage = data.page;
-			if (!selectedUsername && data.users.length > 0) {
+			// Keep a valid selection: the previously selected user may have been
+			// filtered out of the current page.
+			if (selectedUsername && !data.users.some((u) => u.username === selectedUsername)) {
+				selectedUsername = data.users[0]?.username ?? null;
+			} else if (!selectedUsername && data.users.length > 0) {
 				selectedUsername = data.users[0].username;
 			}
 		} catch {
@@ -66,6 +85,32 @@
 		} finally {
 			loading = false;
 		}
+	}
+
+	async function loadFilterOptions() {
+		filtersLoading = true;
+		try {
+			const [perms, groupsPage] = await Promise.all([
+				getPermissionsBlueprint(),
+				getGroups(1, 200),
+			]);
+			permissionOptions = permissionFilterOptions(perms);
+			groupOptions = groupsPage.groups.map((g) => ({
+				value: g.groupname,
+				label: g.readableName || g.groupname,
+				hint: g.groupname,
+			}));
+		} catch {
+			// Filter controls degrade to empty option lists; the listing still works.
+		} finally {
+			filtersLoading = false;
+		}
+	}
+
+	function clearFilters() {
+		search = '';
+		accessFilter = null;
+		groupFilter = null;
 	}
 
 	// Below the lg breakpoint the detail panel is hidden, so a single tap
@@ -137,12 +182,6 @@
 		return user.username.slice(0, 2).toUpperCase();
 	}
 
-	function isSuperAdmin(user: UserInfo): boolean {
-		const access = user.access as Record<string, unknown>;
-		const api = access?.api as Record<string, unknown> | undefined;
-		return api?.super === true;
-	}
-
 	function formatDate(iso: string | null): string {
 		if (!iso) return '—';
 		return new Date(iso).toLocaleDateString(undefined, {
@@ -152,27 +191,24 @@
 		});
 	}
 
-	function flattenAccess(access: Record<string, unknown>, prefix = ''): string[] {
-		const result: string[] = [];
-		for (const [key, value] of Object.entries(access)) {
-			const path = prefix ? `${prefix}.${key}` : key;
-			if (value === true) {
-				result.push(path);
-			} else if (value && typeof value === 'object') {
-				result.push(...flattenAccess(value as Record<string, unknown>, path));
-			}
-		}
-		return result;
-	}
-
+	// Reload (resetting to page 1) whenever search or a filter changes. Search
+	// text is debounced; filter picks resolve on the next tick. Callers without
+	// api.users.read get an auto-filtered listing (just their own row) from the
+	// API, so the list page renders for everyone.
+	let reloadTimer: ReturnType<typeof setTimeout> | undefined;
 	$effect(() => {
-		// Callers without api.users.read get an auto-filtered listing (just
-		// their own row) from the API, so the list page renders for everyone.
-		loadUsers();
+		// Track the filter inputs so this effect re-runs on any change.
+		void search;
+		void accessFilter;
+		void groupFilter;
+		clearTimeout(reloadTimer);
+		reloadTimer = setTimeout(() => loadUsers(1), 250);
+		return () => clearTimeout(reloadTimer);
 	});
 
 	// Refetch when any user mutation happens elsewhere or on tab refocus.
 	onMount(() => {
+		loadFilterOptions();
 		const unsubUsers = invalidations.subscribe('users:*', () => loadUsers(currentPage));
 		const unsubFocus = invalidations.subscribe('*:focus', () => loadUsers(currentPage));
 		return () => { unsubUsers(); unsubFocus(); };
@@ -214,23 +250,54 @@
 
 	<UsersTabNav />
 
-	{#if loading}
+	{#if loading && !data}
 		<div class="flex flex-1 items-center justify-center">
 			<Loader2 size={24} class="animate-spin text-muted-foreground" />
 		</div>
-	{:else if data}
+	{:else}
 		<!-- Toolbar -->
-		<div class="flex items-center gap-3 border-b border-border px-4 py-2">
-			<div class="relative flex-1">
+		<div class="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2">
+			<div class="relative min-w-[12rem] flex-1">
 				<Search size={14} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
 				<input
 					type="text"
-					class="h-8 w-full rounded-md border border-input bg-muted/50 ps-9 pe-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+					class="h-8 w-full rounded-md border border-input bg-muted/50 ps-9 pe-8 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 					placeholder={i18n.t('ADMIN_NEXT.USERS.SEARCH_USERS')}
 					bind:value={search}
 				/>
+				{#if loading}
+					<Loader2 size={14} class="absolute end-3 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground" />
+				{/if}
 			</div>
-			<div class="inline-flex rounded-md border border-border shadow-sm">
+
+			<!-- Permission / group filters -->
+			<TypeaheadFilter
+				label={i18n.t('ADMIN_NEXT.USERS_FILTER.PERMISSION')}
+				options={permissionOptions}
+				loading={filtersLoading}
+				bind:value={accessFilter}
+			>
+				{#snippet icon()}<KeyRound size={14} />{/snippet}
+			</TypeaheadFilter>
+			<TypeaheadFilter
+				label={i18n.t('ADMIN_NEXT.USERS_FILTER.GROUP')}
+				options={groupOptions}
+				loading={filtersLoading}
+				bind:value={groupFilter}
+			>
+				{#snippet icon()}<UsersRound size={14} />{/snippet}
+			</TypeaheadFilter>
+			{#if hasActiveFilters}
+				<button
+					type="button"
+					class="inline-flex h-8 items-center gap-1 rounded-md px-2 text-[0.75rem] font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+					onclick={clearFilters}
+				>
+					{i18n.t('ADMIN_NEXT.USERS_FILTER.CLEAR_ALL')}
+				</button>
+			{/if}
+
+			<div class="ms-auto inline-flex rounded-md border border-border shadow-sm">
 				<button
 					class="inline-flex h-8 items-center gap-1.5 px-3 text-[0.75rem] font-medium transition-colors first:rounded-l-md last:rounded-r-md
 						{prefs.usersViewMode === 'cards'
@@ -256,7 +323,18 @@
 			</div>
 		</div>
 
-		{#if prefs.usersViewMode === 'table'}
+		{#if !data || (filtered.length === 0 && hasActiveFilters)}
+			<div class="flex flex-1 flex-col items-center justify-center gap-1 px-4 py-12 text-center">
+				<p class="text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.USERS_FILTER.NO_MATCHES_FILTERS')}</p>
+				<button
+					type="button"
+					class="text-xs font-medium text-primary hover:underline"
+					onclick={clearFilters}
+				>
+					{i18n.t('ADMIN_NEXT.USERS_FILTER.CLEAR_ALL')}
+				</button>
+			</div>
+		{:else if prefs.usersViewMode === 'table'}
 			<div class="flex-1 overflow-y-auto">
 				<UsersTableView
 					users={filtered}
@@ -265,6 +343,7 @@
 					onEdit={openUserEdit}
 					onDelete={canEditUsers ? requestDelete : undefined}
 					onToggleState={canEditUsers ? handleToggleState : undefined}
+					onFilterPermission={(perm) => { accessFilter = perm; groupFilter = null; }}
 				/>
 				{#if data.totalPages > 1}
 					<div class="flex items-center justify-between border-t border-border px-4 py-2">
@@ -311,7 +390,13 @@
 										{user.fullname || user.username}
 									</span>
 									{#if isSuperAdmin(user)}
-										<ShieldCheck size={13} class="shrink-0 text-amber-500" />
+										<span class="inline-flex shrink-0" title={i18n.t('ADMIN_NEXT.USERS.SUPER_ADMIN')}>
+											<ShieldCheck size={13} class="text-amber-500" />
+										</span>
+									{:else if hasBackendAccess(user)}
+										<span class="inline-flex shrink-0" title={i18n.t('ADMIN_NEXT.USERS_FILTER.BACKEND_ACCESS')}>
+											<Shield size={13} class="text-sky-500" />
+										</span>
 									{/if}
 								</div>
 								<p class="truncate text-xs text-muted-foreground">{user.email ?? user.username}</p>
@@ -421,8 +506,14 @@
 										{selectedUser.fullname || selectedUser.username}
 									</h2>
 									{#if isSuperAdmin(selectedUser)}
-										<span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+										<span class="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+											<ShieldCheck size={11} />
 											{i18n.t('ADMIN_NEXT.USERS.SUPER_ADMIN')}
+										</span>
+									{:else if hasBackendAccess(selectedUser)}
+										<span class="inline-flex items-center gap-1 rounded-full bg-sky-500/15 px-2 py-0.5 text-xs font-medium text-sky-600 dark:text-sky-400">
+											<Shield size={11} />
+											{i18n.t('ADMIN_NEXT.USERS_FILTER.BACKEND_ACCESS')}
 										</span>
 									{/if}
 								</div>
@@ -506,16 +597,41 @@
 							</div>
 						</div>
 
+						<!-- Groups -->
+						{#if selectedUser.groups?.length}
+							<div class="mt-5">
+								<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.USERS_FILTER.GROUPS')}</dt>
+								<dd class="mt-1.5 flex flex-wrap gap-1.5">
+									{#each selectedUser.groups as group}
+										<button
+											type="button"
+											class="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs transition-colors hover:bg-accent"
+											onclick={() => { groupFilter = group; accessFilter = null; }}
+											title={i18n.t('ADMIN_NEXT.USERS_FILTER.FILTER_BY_GROUP')}
+										>
+											<UsersRound size={10} class="text-muted-foreground" />
+											<span class="text-foreground">{group}</span>
+										</button>
+									{/each}
+								</dd>
+							</div>
+						{/if}
+
 						<!-- Permissions summary -->
 						{#if flattenAccess(selectedUser.access).length}
 							<div class="mt-5">
 								<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.USERS.PERMISSIONS')}</dt>
 								<dd class="mt-1.5 flex flex-wrap gap-1.5">
 									{#each flattenAccess(selectedUser.access) as perm}
-										<span class="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs">
+										<button
+											type="button"
+											class="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs transition-colors hover:bg-accent"
+											onclick={() => { accessFilter = perm; groupFilter = null; }}
+											title={i18n.t('ADMIN_NEXT.USERS_FILTER.FILTER_BY_PERMISSION')}
+										>
 											<Shield size={10} class="text-muted-foreground" />
 											<span class="text-foreground">{perm}</span>
-										</span>
+										</button>
 									{/each}
 								</dd>
 							</div>

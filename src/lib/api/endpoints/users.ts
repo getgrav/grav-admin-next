@@ -8,6 +8,7 @@ export interface UserInfo {
 	title: string | null;
 	state: 'enabled' | 'disabled';
 	access: Record<string, unknown>;
+	groups: string[];
 	avatar_url: string | null;
 	twofa_enabled: boolean;
 	twofa_secret: boolean;
@@ -34,14 +35,31 @@ interface PaginatedUsersBody {
 	meta?: { pagination?: { total?: number; page?: number; per_page?: number; total_pages?: number } };
 }
 
+export interface UserListFilters {
+	/** Free-text search across username/email/fullname/title (server-side). */
+	search?: string;
+	/** Permission key — keeps users effectively granted it (incl. via group/super). */
+	access?: string;
+	/** Group name — keeps users belonging to that group. */
+	group?: string;
+}
+
 /**
  * Get paginated list of users. Uses getFullBody to preserve pagination meta.
+ *
+ * Search and the access/group filters are applied server-side so they span the
+ * whole account set, not just the loaded page.
  */
-export async function getUsers(page = 1, perPage = 20): Promise<UsersPage> {
-	const body = await api.getFullBody<PaginatedUsersBody>('/users', {
+export async function getUsers(page = 1, perPage = 20, filters: UserListFilters = {}): Promise<UsersPage> {
+	const params: Record<string, string> = {
 		page: String(page),
 		per_page: String(perPage),
-	});
+	};
+	if (filters.search) params.search = filters.search;
+	if (filters.access) params.access = filters.access;
+	if (filters.group) params.group = filters.group;
+
+	const body = await api.getFullBody<PaginatedUsersBody>('/users', params);
 
 	const users: UserInfo[] = body.data ?? [];
 	const meta = body.meta?.pagination ?? {};
