@@ -333,7 +333,7 @@
 		{#if field.label || field.help}
 			<div>
 				{#if field.label}
-					<label class="text-sm font-semibold text-foreground">{translateLabel(field.label)}</label>
+					<label class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{translateLabel(field.label)}<FieldOverrideIndicator path={field.name} /></label>
 				{/if}
 				{#if field.help}
 					<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
@@ -469,6 +469,7 @@
 				onchange={(e) => { const v = (e.target as HTMLInputElement).checked; oncommit?.(v); onchange(v); }}
 			/>
 			<span class="text-sm font-semibold text-foreground">{translateLabel(field.label)}</span>
+			<FieldOverrideIndicator path={field.name} />
 		</label>
 		{#if field.help}
 			<p class="mt-0.5 ms-7 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
@@ -481,7 +482,7 @@
 		{#if field.label || field.help}
 			<div>
 				{#if field.label}
-					<span class="block text-sm font-semibold text-foreground">{translateLabel(field.label)}</span>
+					<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{translateLabel(field.label)}<FieldOverrideIndicator path={field.name} /></span>
 				{/if}
 				{#if field.help}
 					<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
@@ -520,7 +521,7 @@
 		{#if field.label || field.help}
 			<div>
 				{#if field.label}
-					<span class="block text-sm font-semibold text-foreground">{translateLabel(field.label)}</span>
+					<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{translateLabel(field.label)}<FieldOverrideIndicator path={field.name} /></span>
 				{/if}
 				{#if field.help}
 					<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
