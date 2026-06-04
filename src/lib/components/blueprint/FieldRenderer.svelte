@@ -34,6 +34,7 @@
 	import WebhookStatusField from './fields/WebhookStatusField.svelte';
 	import WebhookExamplesField from './fields/WebhookExamplesField.svelte';
 	import CustomFieldWrapper from './fields/CustomFieldWrapper.svelte';
+	import FieldOverrideIndicator from './FieldOverrideIndicator.svelte';
 	import PageExistsField from './fields/PageExistsField.svelte';
 	import ColorPickerField from './fields/ColorPickerField.svelte';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
@@ -174,7 +175,10 @@
 	<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_2fr] lg:items-start lg:gap-x-6">
 		<div class="lg:pt-2.5">
 			{#if field.label}
-				<span class="text-sm font-semibold text-foreground">{translateLabel(field.label)}</span>
+				<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">
+					{translateLabel(field.label)}
+					<FieldOverrideIndicator path={field.name} />
+				</span>
 			{/if}
 			{#if field.help}
 				<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>

@@ -316,7 +316,7 @@ class ApiClient {
 			headers?: Record<string, string>;
 			retry?: boolean;
 		} = {}
-	): Promise<{ data: T; headers: Headers }> {
+	): Promise<{ data: T; meta?: unknown; headers: Headers }> {
 		await this.ensureFreshToken(path);
 
 		let url = `${this.baseUrl}${path}`;
@@ -355,8 +355,24 @@ class ApiClient {
 			});
 		}
 
-		const data = await this.handleResponse<T>(response);
-		return { data, headers: response.headers };
+		// Inline body handling (mirrors handleResponse) so callers can read the
+		// envelope's `meta` alongside `data` — e.g. config reads carry
+		// meta.overrides / meta.fallback for the per-field override indicators.
+		if (response.ok) this.parseInvalidates(response);
+		if (response.status === 204) {
+			return { data: undefined as T, headers: response.headers };
+		}
+		const body = await response.json().catch(() => null);
+		if (!response.ok) {
+			const error: ApiError = body ?? {
+				status: response.status,
+				title: response.statusText,
+				detail: `Request failed with status ${response.status}`
+			};
+			throw new ApiRequestError(error, response);
+		}
+		const data = (body?.data !== undefined ? body.data : body) as T;
+		return { data, meta: body?.meta, headers: response.headers };
 	}
 
 	/**

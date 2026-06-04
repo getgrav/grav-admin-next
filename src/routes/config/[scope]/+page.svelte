@@ -5,7 +5,8 @@
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
-	import { getConfig, saveConfig, getConfigSections } from '$lib/api/endpoints/config';
+	import { getConfig, saveConfig, getConfigSections, revertConfig } from '$lib/api/endpoints/config';
+	import type { ConfigOverridesCtx } from '$lib/components/blueprint/FieldOverrideIndicator.svelte';
 	import { getConfigBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
@@ -13,7 +14,7 @@
 	import ConfigInfoPage from '$lib/components/config/ConfigInfoPage.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
-	import { Save, AlertCircle, Loader2, RefreshCw, Search, X, Undo2 } from 'lucide-svelte';
+	import { Save, AlertCircle, Loader2, RefreshCw, Search, X, Undo2, RotateCcw } from 'lucide-svelte';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
@@ -41,6 +42,12 @@
 	let configData = $state<Record<string, unknown>>({});
 	let originalJson = $state('{}');
 	let etag = $state('');
+	// Override map for the active layer: which dotted paths the current file
+	// overrides, and what each reverts to. Drives the per-field revert icons.
+	let overrides = $state<string[]>([]);
+	let fallback = $state<Record<string, unknown>>({});
+	let showResetModal = $state(false);
+	let reverting = $state(false);
 	let loading = $state(true);
 	let saving = $state(false);
 	let error = $state('');
@@ -86,6 +93,8 @@
 			configData = configResult.data;
 			originalJson = JSON.stringify(configResult.data);
 			etag = configResult.etag;
+			overrides = configResult.overrides;
+			fallback = configResult.fallback;
 		} catch (err: unknown) {
 			const status = err && typeof err === 'object' && 'status' in err
 				? (err as { status: number }).status : 0;
@@ -146,6 +155,8 @@
 			configData = result.data;
 			originalJson = JSON.stringify(result.data);
 			etag = result.etag;
+			overrides = result.overrides;
+			fallback = result.fallback;
 			await formCommit.emit();
 			toast.success(i18n.t('ADMIN_NEXT.CONFIG.CONFIGURATION_SAVED_SUCCESSFULLY'));
 		} catch (err: unknown) {
@@ -170,6 +181,84 @@
 		await loadConfig();
 		toast.info(i18n.t('ADMIN_NEXT.CONFIG.CONFIGURATION_RELOADED'));
 	}
+
+	// --- Config override revert (see docs/config-overrides-revert.md) ---
+
+	function setPath(obj: Record<string, unknown>, path: string, value: unknown) {
+		const parts = path.split('.');
+		let cur: Record<string, unknown> = obj;
+		for (let i = 0; i < parts.length - 1; i++) {
+			if (!cur[parts[i]] || typeof cur[parts[i]] !== 'object') cur[parts[i]] = {};
+			cur = cur[parts[i]] as Record<string, unknown>;
+		}
+		cur[parts[parts.length - 1]] = value;
+	}
+
+	function getPath(obj: Record<string, unknown>, path: string): unknown {
+		let cur: unknown = obj;
+		for (const part of path.split('.')) {
+			if (cur === null || cur === undefined || typeof cur !== 'object') return undefined;
+			cur = (cur as Record<string, unknown>)[part];
+		}
+		return cur;
+	}
+
+	function handleRevertError(err: unknown) {
+		const status = err && typeof err === 'object' && 'status' in err ? (err as { status: number }).status : 0;
+		toast.error(
+			status === 409
+				? i18n.t('ADMIN_NEXT.CONFIG.CONFIGURATION_WAS_MODIFIED_ELSEWHERE')
+				: i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.REVERT_FAILED')
+		);
+	}
+
+	async function revertField(path: string) {
+		if (!canSave || reverting) return;
+		reverting = true;
+		try {
+			const result = await revertConfig(scope, { keys: [path] }, etag);
+			// Update only the reverted field, so concurrent edits elsewhere survive.
+			const newVal = getPath(result.data, path);
+			handleBlueprintChange(path, newVal);
+			const orig = JSON.parse(originalJson);
+			setPath(orig, path, newVal);
+			originalJson = JSON.stringify(orig);
+			etag = result.etag;
+			overrides = result.overrides;
+			fallback = result.fallback;
+			toast.success(i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.REVERTED'));
+		} catch (err: unknown) {
+			handleRevertError(err);
+		} finally {
+			reverting = false;
+		}
+	}
+
+	async function resetOverrides() {
+		showResetModal = false;
+		if (!canSave || reverting) return;
+		reverting = true;
+		try {
+			const result = await revertConfig(scope, { reset: true }, etag);
+			configData = result.data;
+			originalJson = JSON.stringify(result.data);
+			etag = result.etag;
+			overrides = result.overrides;
+			fallback = result.fallback;
+			toast.success(i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_DONE'));
+		} catch (err: unknown) {
+			handleRevertError(err);
+		} finally {
+			reverting = false;
+		}
+	}
+
+	setContext('configOverrides', {
+		isOverridden: (path: string) => overrides.includes(path),
+		getFallback: (path: string) => fallback[path],
+		revert: (path: string) => revertField(path),
+		get canRevert() { return canSave; },
+	} satisfies ConfigOverridesCtx);
 
 	function handleKeydown(e: KeyboardEvent) {
 		if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -261,6 +350,18 @@
 								</Button>
 							{/if}
 							<ContextPanelTriggers context="config" route={scope} lang="" />
+							{#if overrides.length > 0 && canSave}
+								<Button
+									variant="outline"
+									size="sm"
+									onclick={() => (showResetModal = true)}
+									disabled={loading || saving || reverting}
+									title={i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_TOOLTIP')}
+								>
+									<RotateCcw size={14} />
+									{i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_BUTTON')}
+								</Button>
+							{/if}
 							<Button variant="outline" size="sm" onclick={handleReload} disabled={loading || saving}>
 								<RefreshCw size={14} />
 								{i18n.t('ADMIN_NEXT.CONFIG.RELOAD')}
@@ -350,4 +451,14 @@
 	cancelLabel="Stay"
 	onconfirm={guard.confirm}
 	oncancel={guard.cancel}
+/>
+
+<ConfirmModal
+	open={showResetModal}
+	title={i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_TITLE')}
+	message={i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_MESSAGE', { scope: scopeTitle(scope) })}
+	confirmLabel={i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_CONFIRM')}
+	cancelLabel={i18n.t('ADMIN_NEXT.CANCEL')}
+	onconfirm={resetOverrides}
+	oncancel={() => (showResetModal = false)}
 />

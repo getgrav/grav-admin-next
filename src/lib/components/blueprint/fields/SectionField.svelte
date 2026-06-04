@@ -2,6 +2,7 @@
 	import { marked } from 'marked';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import FieldRenderer from '../FieldRenderer.svelte';
+	import FieldOverrideIndicator from '../FieldOverrideIndicator.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldMatches, fieldMatchesSelf } from '$lib/utils/field-filter';
 
@@ -145,15 +146,18 @@
 							{/if}
 							<div>
 								{#if childField.label}
-									<span class="text-sm font-semibold {toggled ? 'text-foreground' : 'text-muted-foreground'}">
-										{#if filter}
-											{@html highlight(translateLabel(childField.label))}
-										{:else}
-											{translateLabel(childField.label)}
-										{/if}
-										{#if childField.validate?.required}
-											<span class="text-red-500">*</span>
-										{/if}
+									<span class="inline-flex items-center gap-1.5">
+										<span class="text-sm font-semibold {toggled ? 'text-foreground' : 'text-muted-foreground'}">
+											{#if filter}
+												{@html highlight(translateLabel(childField.label))}
+											{:else}
+												{translateLabel(childField.label)}
+											{/if}
+											{#if childField.validate?.required}
+												<span class="text-red-500">*</span>
+											{/if}
+										</span>
+										<FieldOverrideIndicator path={childField.name} />
 									</span>
 								{/if}
 								{#if childField.help}
