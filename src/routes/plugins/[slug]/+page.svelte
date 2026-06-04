@@ -29,7 +29,8 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { onMount } from 'svelte';
-	import { Undo2 } from 'lucide-svelte';
+	import { Undo2, RotateCcw } from 'lucide-svelte';
+	import { provideConfigOverrides } from '$lib/utils/config-overrides.svelte';
 	import ContextPanelTriggers from '$lib/components/context-panels/ContextPanelTriggers.svelte';
 
 	const REDACTED = '********';
@@ -130,7 +131,7 @@
 			const [pluginResult, blueprintResult, configResult] = await Promise.all([
 				getPlugin(slug),
 				getPluginBlueprint(slug).catch(() => null),
-				getPluginConfig(slug).catch(() => ({ data: {}, etag: '' })),
+				getPluginConfig(slug).catch(() => ({ data: {}, etag: '', overrides: [], fallback: {} })),
 			]);
 
 			plugin = pluginResult;
@@ -138,6 +139,7 @@
 			configData = configResult.data;
 			originalJson = JSON.stringify(configResult.data);
 			etag = configResult.etag;
+			ovr.ingest({ overrides: configResult.overrides, fallback: configResult.fallback });
 
 			// Register custom field web components if the plugin provides them
 			if (pluginResult.custom_fields) {
@@ -179,6 +181,34 @@
 		configData = newData;
 	}
 
+	// Per-field override indicators + revert/reset (scope: plugins/<slug>).
+	function setPath(obj: Record<string, unknown>, path: string, value: unknown) {
+		const parts = path.split('.');
+		let cur: Record<string, unknown> = obj;
+		for (let i = 0; i < parts.length - 1; i++) {
+			if (!cur[parts[i]] || typeof cur[parts[i]] !== 'object') cur[parts[i]] = {};
+			cur = cur[parts[i]] as Record<string, unknown>;
+		}
+		cur[parts[parts.length - 1]] = value;
+	}
+	const ovr = provideConfigOverrides({
+		scope: () => 'plugins/' + slug,
+		canWrite: () => true,
+		etag: () => etag,
+		applyFieldRevert: (path, value, newEtag) => {
+			handleBlueprintChange(path, value);
+			const orig = JSON.parse(originalJson);
+			setPath(orig, path, value);
+			originalJson = JSON.stringify(orig);
+			etag = newEtag;
+		},
+		applyReset: (data, newEtag) => {
+			configData = data;
+			originalJson = JSON.stringify(data);
+			etag = newEtag;
+		},
+	});
+
 	function stripRedacted(obj: unknown): unknown {
 		if (typeof obj === 'string') return obj === REDACTED ? undefined : obj;
 		if (Array.isArray(obj)) return obj.map(stripRedacted);
@@ -204,6 +234,7 @@
 			configData = fresh.data;
 			originalJson = JSON.stringify(fresh.data);
 			etag = fresh.etag;
+			ovr.ingest({ overrides: fresh.overrides, fallback: fresh.fallback });
 
 			await formCommit.emit();
 
@@ -236,12 +267,13 @@
 			if (newState) {
 				const [bp, cfg] = await Promise.all([
 					getPluginBlueprint(slug).catch(() => null),
-					getPluginConfig(slug).catch(() => ({ data: {}, etag: '' })),
+					getPluginConfig(slug).catch(() => ({ data: {}, etag: '', overrides: [], fallback: {} })),
 				]);
 				blueprint = bp;
 				configData = cfg.data;
 				originalJson = JSON.stringify(cfg.data);
 				etag = cfg.etag;
+				ovr.ingest({ overrides: cfg.overrides, fallback: cfg.fallback });
 			}
 			toast.success(i18n.t(
 				newState ? 'ADMIN_NEXT.TOASTS.PLUGIN_ENABLED' : 'ADMIN_NEXT.TOASTS.PLUGIN_DISABLED',
@@ -494,6 +526,21 @@
 					<span class="hidden sm:inline">{plugin.enabled ? 'Disable' : 'Enable'}</span>
 				</Button>
 
+				<!-- Reset overrides -->
+				{#if ovr.overrides.length > 0}
+					<Button
+						variant="outline"
+						size="sm"
+						onclick={() => (ovr.showResetModal = true)}
+						disabled={ovr.reverting}
+						aria-label={i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_BUTTON')}
+						title={i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_TOOLTIP')}
+					>
+						<RotateCcw size={14} class="sm:me-1.5" />
+						<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_BUTTON')}</span>
+					</Button>
+				{/if}
+
 				<!-- Save button -->
 				<Button
 					size="sm"
@@ -640,4 +687,14 @@
 	cancelLabel="Stay"
 	onconfirm={guard.confirm}
 	oncancel={guard.cancel}
+/>
+
+<ConfirmModal
+	open={ovr.showResetModal}
+	title={i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_TITLE')}
+	message={i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_MESSAGE', { scope: plugin?.name ?? slug })}
+	confirmLabel={i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_CONFIRM')}
+	variant="destructive"
+	onconfirm={ovr.reset}
+	oncancel={() => (ovr.showResetModal = false)}
 />

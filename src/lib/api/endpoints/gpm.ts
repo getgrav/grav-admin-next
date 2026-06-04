@@ -1,5 +1,6 @@
 import { api } from '../client';
 import { extractEtag } from '$lib/utils/etag';
+import { readOverrideMeta, type ConfigResponse } from './config';
 
 export interface PackageAuthor {
 	name: string | null;
@@ -71,11 +72,12 @@ export async function getPluginChangelog(slug: string): Promise<string> {
 /**
  * Get plugin configuration data (with ETag for concurrency).
  */
-export async function getPluginConfig(slug: string): Promise<{ data: Record<string, unknown>; etag: string }> {
-	const { data, headers } = await api.requestRaw<Record<string, unknown>>('GET', `/config/plugins/${slug}`);
+export async function getPluginConfig(slug: string): Promise<ConfigResponse> {
+	const { data, meta, headers } = await api.requestRaw<Record<string, unknown>>('GET', `/config/plugins/${slug}`);
 	return {
 		data,
 		etag: extractEtag(headers),
+		...readOverrideMeta(meta),
 	};
 }
 
@@ -252,11 +254,12 @@ export async function getThemeChangelog(slug: string): Promise<string> {
 	return result.content;
 }
 
-export async function getThemeConfig(slug: string): Promise<{ data: Record<string, unknown>; etag: string }> {
-	const { data, headers } = await api.requestRaw<Record<string, unknown>>('GET', `/config/themes/${slug}`);
+export async function getThemeConfig(slug: string): Promise<ConfigResponse> {
+	const { data, meta, headers } = await api.requestRaw<Record<string, unknown>>('GET', `/config/themes/${slug}`);
 	return {
 		data,
 		etag: extractEtag(headers),
+		...readOverrideMeta(meta),
 	};
 }
 

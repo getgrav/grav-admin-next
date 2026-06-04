@@ -15,7 +15,7 @@ interface OverrideMeta {
 	fallback?: Record<string, unknown>;
 }
 
-function readOverrideMeta(meta: unknown): { overrides: string[]; fallback: Record<string, unknown> } {
+export function readOverrideMeta(meta: unknown): { overrides: string[]; fallback: Record<string, unknown> } {
 	const m = (meta ?? {}) as OverrideMeta;
 	return { overrides: m.overrides ?? [], fallback: m.fallback ?? {} };
 }

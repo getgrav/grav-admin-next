@@ -27,7 +27,8 @@
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
-	import { Undo2 } from 'lucide-svelte';
+	import { Undo2, RotateCcw } from 'lucide-svelte';
+	import { provideConfigOverrides } from '$lib/utils/config-overrides.svelte';
 	import ContextPanelTriggers from '$lib/components/context-panels/ContextPanelTriggers.svelte';
 
 	const REDACTED = '********';
@@ -131,7 +132,7 @@
 			const [themeResult, blueprintResult, configResult] = await Promise.all([
 				getTheme(slug),
 				getThemeBlueprint(slug).catch(() => null),
-				getThemeConfig(slug).catch(() => ({ data: {}, etag: '' })),
+				getThemeConfig(slug).catch(() => ({ data: {}, etag: '', overrides: [], fallback: {} })),
 			]);
 
 			theme = themeResult;
@@ -139,6 +140,7 @@
 			configData = configResult.data;
 			originalJson = JSON.stringify(configResult.data);
 			etag = configResult.etag;
+			ovr.ingest({ overrides: configResult.overrides, fallback: configResult.fallback });
 		} catch {
 			// Theme isn't installed locally — if the slug exists in the GPM
 			// repository, hand off to the themes list with the install modal
@@ -175,6 +177,34 @@
 		configData = newData;
 	}
 
+	// Per-field override indicators + revert/reset (scope: themes/<slug>).
+	function setPath(obj: Record<string, unknown>, path: string, value: unknown) {
+		const parts = path.split('.');
+		let cur: Record<string, unknown> = obj;
+		for (let i = 0; i < parts.length - 1; i++) {
+			if (!cur[parts[i]] || typeof cur[parts[i]] !== 'object') cur[parts[i]] = {};
+			cur = cur[parts[i]] as Record<string, unknown>;
+		}
+		cur[parts[parts.length - 1]] = value;
+	}
+	const ovr = provideConfigOverrides({
+		scope: () => 'themes/' + slug,
+		canWrite: () => true,
+		etag: () => etag,
+		applyFieldRevert: (path, value, newEtag) => {
+			handleBlueprintChange(path, value);
+			const orig = JSON.parse(originalJson);
+			setPath(orig, path, value);
+			originalJson = JSON.stringify(orig);
+			etag = newEtag;
+		},
+		applyReset: (data, newEtag) => {
+			configData = data;
+			originalJson = JSON.stringify(data);
+			etag = newEtag;
+		},
+	});
+
 	function stripRedacted(obj: unknown): unknown {
 		if (typeof obj === 'string') return obj === REDACTED ? undefined : obj;
 		if (Array.isArray(obj)) return obj.map(stripRedacted);
@@ -199,6 +229,7 @@
 			configData = fresh.data;
 			originalJson = JSON.stringify(fresh.data);
 			etag = fresh.etag;
+			ovr.ingest({ overrides: fresh.overrides, fallback: fresh.fallback });
 
 			// Flush deferred field-level side effects now that the save is
 			// persisted (e.g. FileField unlinking files the user removed).
@@ -457,6 +488,21 @@
 					</span>
 				{/if}
 
+				<!-- Reset overrides -->
+				{#if ovr.overrides.length > 0}
+					<Button
+						variant="outline"
+						size="sm"
+						onclick={() => (ovr.showResetModal = true)}
+						disabled={ovr.reverting}
+						aria-label={i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_BUTTON')}
+						title={i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_TOOLTIP')}
+					>
+						<RotateCcw size={14} class="sm:me-1.5" />
+						<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_BUTTON')}</span>
+					</Button>
+				{/if}
+
 				<!-- Save button -->
 				<Button
 					size="sm"
@@ -602,6 +648,16 @@
 	cancelLabel="Stay"
 	onconfirm={guard.confirm}
 	oncancel={guard.cancel}
+/>
+
+<ConfirmModal
+	open={ovr.showResetModal}
+	title={i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_TITLE')}
+	message={i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_MESSAGE', { scope: theme?.name ?? slug })}
+	confirmLabel={i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_CONFIRM')}
+	variant="destructive"
+	onconfirm={ovr.reset}
+	oncancel={() => (ovr.showResetModal = false)}
 />
 
 <!-- Screenshot lightbox -->
