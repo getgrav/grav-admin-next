@@ -105,7 +105,7 @@ function emergencyFlush(): void {
 		Accept: 'application/json',
 	};
 	if (auth.accessToken) headers['X-API-Token'] = auth.accessToken;
-	if (auth.environment) headers['X-Grav-Environment'] = auth.environment;
+	headers['X-Grav-Environment'] = auth.gravEnvironment;
 
 	try {
 		void fetch(url, {

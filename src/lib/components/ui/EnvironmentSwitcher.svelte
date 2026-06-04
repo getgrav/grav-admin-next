@@ -2,7 +2,9 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { configEnv } from '$lib/stores/configEnvironment.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { canWrite } from '$lib/utils/permissions';
+	import { hasUnsavedChanges } from '$lib/utils/unsaved-guard.svelte';
 	import { ChevronDown, Plus, Check, Trash2 } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
 	import { onMount, tick } from 'svelte';
@@ -23,19 +25,29 @@
 		return () => unsub();
 	});
 
-	function select(name: string) {
+	async function select(name: string) {
 		open = false;
 		if (name === configEnv.target) return;
-		configEnv.setTarget(name);
-		toast.info(
-			name === ''
-				? i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.SAVING_TO_DEFAULT')
-				: i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.SAVING_TO_ENV', { name }),
-		);
+		// Switching the active environment re-runs the whole admin via a full
+		// reload, which would discard any in-progress edit. Confirm first when
+		// something is dirty (the SvelteKit nav guard can't cover a reload).
+		if (hasUnsavedChanges()) {
+			const ok = await dialogs.confirm({
+				title: i18n.t('ADMIN_NEXT.UNSAVED_CHANGES'),
+				message: i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.SWITCH_DISCARDS_UNSAVED'),
+				confirmLabel: i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.SWITCH_AND_RELOAD'),
+				cancelLabel: i18n.t('ADMIN_NEXT.CANCEL'),
+				variant: 'destructive',
+			});
+			if (!ok) return;
+		}
+		configEnv.setTarget(name); // persists the choice and reloads the admin
 	}
 
 	async function showCreate() {
-		newName = configEnv.detected || '';
+		// Only pre-fill the detected host name when it isn't already an env, so
+		// we don't offer to "create" something that exists. Otherwise start blank.
+		newName = canCreateDetected ? configEnv.detected : '';
 		showCreateInput = true;
 		await tick();
 		createInputEl?.select();
@@ -90,6 +102,12 @@
 
 	const canManage = $derived(canWrite('config'));
 	const badgeLabel = $derived(configEnv.target === '' ? i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.DEFAULT') : configEnv.target);
+	// The detected host env is worth offering to create only when no env folder
+	// for it exists yet; otherwise the create row falls back to a generic label.
+	const canCreateDetected = $derived(
+		configEnv.detected !== '' &&
+		!configEnv.environments.some((e) => e.name === configEnv.detected),
+	);
 	const targetIsMissing = $derived(
 		configEnv.target !== '' &&
 		configEnv.environments.length > 0 &&
@@ -187,7 +205,7 @@
 					>
 						<Plus size={13} />
 						<span>
-							{configEnv.detected
+							{canCreateDetected
 								? i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.CREATE_ENV_NAMED', { name: configEnv.detected })
 								: i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.CREATE_ENVIRONMENT')}
 						</span>

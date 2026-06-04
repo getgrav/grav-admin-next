@@ -67,7 +67,11 @@ function createAuthStore() {
 	const gravConfig = getGravConfig();
 
 	let serverUrl = $state(gravConfig?.serverUrl ?? stored?.serverUrl ?? '');
-	let environment = $state(gravConfig?.environment ?? stored?.environment ?? '');
+	// The session environment is user-selectable (topbar switcher), so a stored
+	// choice must win over the host-detected default. gravConfig.environment
+	// (Uri::environment()) only seeds the very first boot, before any choice is
+	// persisted; '' is a valid explicit choice meaning base/"Default".
+	let environment = $state(stored?.environment ?? gravConfig?.environment ?? '');
 	let apiPrefix = $state(gravConfig?.apiPrefix ?? stored?.apiPrefix ?? '/api/v1');
 	let accessToken = $state(stored?.accessToken ?? '');
 	let refreshToken = $state(stored?.refreshToken ?? '');
@@ -113,6 +117,14 @@ function createAuthStore() {
 
 		get environment() { return environment; },
 		set environment(v: string) { environment = v; persist(); },
+
+		/**
+		 * The value to send as the X-Grav-Environment header. Base ('') maps to
+		 * the reserved `default` sentinel (no user/env/default/ folder → Grav
+		 * resolves base-only), keeping the header non-empty so proxies/FPM can't
+		 * strip it. Use this everywhere the header is set.
+		 */
+		get gravEnvironment() { return environment || 'default'; },
 
 		get apiPrefix() { return apiPrefix; },
 		set apiPrefix(v: string) { apiPrefix = v; persist(); },

@@ -1,4 +1,3 @@
-import { scopedKey } from '$lib/utils/scopedStorage';
 import {
 	getEnvironments,
 	createEnvironment as apiCreateEnv,
@@ -6,37 +5,29 @@ import {
 	type EnvironmentEntry,
 	type EnvironmentList,
 } from '$lib/api/endpoints/environments';
-
-const STORAGE_KEY = scopedKey('grav_admin_config_env');
+import { auth } from '$lib/stores/auth.svelte';
 
 /**
- * The write-target environment for config/plugin/theme saves.
+ * The active session environment for config/plugin/theme/pages — it governs
+ * both what you READ (Grav reinitializes under it, so reads come back base +
+ * overlay) and where config WRITES land. There is one source of truth:
+ * `auth.environment`.
  *
- *   ''        → base user/config (default)
- *   'foo.com' → user/env/foo.com/config (must exist)
+ *   ''        → base user/config ("Default"); the client sends the reserved
+ *               `default` sentinel for both env headers (no env folder → Grav
+ *               resolves base-only reads, and the server maps the sentinel to a
+ *               base write).
+ *   'foo.com' → user/env/foo.com/config (must exist on disk).
  *
- * Persisted per-user via scopedStorage. The client sends the selection as
- * the X-Config-Environment header; the API refuses writes to a non-existent
- * env folder with a 400.
+ * Because the selected environment changes the whole admin (sidebar,
+ * permissions, plugin/page listings, config), switching it re-bootstraps the
+ * app with a full page reload. The selection itself persists via the auth
+ * store, so it survives the reload.
  */
 function createStore() {
-	let target = $state<string>(loadStored());
 	let detected = $state<string>('');
 	let environments = $state<EnvironmentEntry[]>([]);
 	let loading = $state(false);
-
-	function loadStored(): string {
-		try {
-			const raw = localStorage.getItem(STORAGE_KEY);
-			return raw ? (JSON.parse(raw).target ?? '') : '';
-		} catch {
-			return '';
-		}
-	}
-
-	function persist() {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify({ target }));
-	}
 
 	async function load(): Promise<EnvironmentList | null> {
 		if (loading) return null;
@@ -46,11 +37,15 @@ function createStore() {
 			detected = data.detected;
 			environments = data.environments;
 
-			// If the stored selection no longer exists, silently fall back to base
-			// so the user isn't writing to a target they removed.
+			// Reconcile the active selection with what actually exists on disk.
+			// A non-empty target with no matching env folder — a host-detected
+			// default that has no overlay, or an env that was deleted — falls
+			// back to base so the write header stays valid and the badge is
+			// honest. Done silently (no reload); the first requests already went
+			// out and, with no folder, resolve base-only anyway.
+			const target = auth.environment;
 			if (target !== '' && !environments.some((e) => e.name === target)) {
-				target = '';
-				persist();
+				auth.environment = '';
 			}
 			return data;
 		} finally {
@@ -58,17 +53,26 @@ function createStore() {
 		}
 	}
 
+	function reloadApp() {
+		if (typeof window !== 'undefined') {
+			window.location.reload();
+		}
+	}
+
+	/**
+	 * Switch the active session environment. Persists the choice and re-runs the
+	 * admin under it via a full reload. No-ops when already on that target.
+	 */
 	function setTarget(name: string) {
-		target = name;
-		persist();
+		if (name === auth.environment) return;
+		auth.environment = name; // persisted by the auth store
+		reloadApp();
 	}
 
 	async function createAndSelect(name: string): Promise<EnvironmentEntry> {
 		const entry = await apiCreateEnv(name);
-		// Append optimistically and select immediately so the toast fires
-		// without waiting on a refetch. The POST response sets
-		// X-Invalidates: system:environments, which the switcher's
-		// invalidation subscriber then turns into a background reload.
+		// Append optimistically so the list is consistent if the reload is
+		// somehow deferred; setTarget then switches into the new env.
 		if (!environments.some((e) => e.name === entry.name)) {
 			environments = [...environments, entry];
 		}
@@ -78,24 +82,20 @@ function createStore() {
 
 	async function deleteEnvironment(name: string): Promise<void> {
 		await apiDeleteEnv(name);
-		// Drop locally so the row disappears immediately; the X-Invalidates
-		// header on the DELETE response will reconcile in the background.
 		environments = environments.filter((e) => e.name !== name);
-		// If the deleted env was the active write target, fall back to base.
-		if (target === name) {
-			target = '';
-			persist();
+		// If the deleted env was the active one, fall back to base (and reload).
+		if (auth.environment === name) {
+			setTarget('');
 		}
 	}
 
 	return {
-		get target() { return target; },
+		get target() { return auth.environment; },
 		get detected() { return detected; },
 		get environments() { return environments; },
 		get loading() { return loading; },
 		get label() {
-			if (target === '') return 'Default';
-			return target;
+			return auth.environment === '' ? 'Default' : auth.environment;
 		},
 		load,
 		setTarget,

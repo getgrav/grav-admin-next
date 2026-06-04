@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { Cpu, Globe, Image, Shield, Info } from 'lucide-svelte';
+	import { Cpu, Globe, Image, Shield, Info, SlidersHorizontal } from 'lucide-svelte';
 	import { dragScroll } from '$lib/utils/dragScroll';
 
 	interface Props {
@@ -21,6 +21,11 @@
 		info: Info
 	};
 
+	// Custom top-level configs (cookbook "add a custom yaml file" recipe) have
+	// no dedicated icon — give them a generic one so they don't render bare
+	// next to the core tabs.
+	const fallbackIcon = SlidersHorizontal;
+
 	function sectionLabel(scope: string): string {
 		// Try admin translation key first, fall back to capitalized name
 		const key = `PLUGIN_ADMIN.${scope.toUpperCase()}`;
@@ -35,7 +40,7 @@
 
 <div class="flex gap-1 overflow-x-auto border-b border-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" use:dragScroll>
 	{#each sections as scope (scope)}
-		{@const Icon = icons[scope]}
+		{@const Icon = icons[scope] ?? fallbackIcon}
 		<a
 			href="{base}/config/{scope}"
 			class="flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors

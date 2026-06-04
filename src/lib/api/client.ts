@@ -1,6 +1,5 @@
 import { auth, decodeJwtExp } from '$lib/stores/auth.svelte';
 import { authSession, type PendingRequest } from '$lib/stores/auth-session.svelte';
-import { configEnv } from '$lib/stores/configEnvironment.svelte';
 import { invalidations } from '$lib/stores/invalidation.svelte';
 
 export interface ApiError {
@@ -86,15 +85,7 @@ class ApiClient {
 			h['X-API-Token'] = token;
 		}
 
-		const env = auth.environment;
-		if (env) {
-			h['X-Grav-Environment'] = env;
-		}
-
-		const configEnvTarget = configEnv.target;
-		if (configEnvTarget) {
-			h['X-Config-Environment'] = configEnvTarget;
-		}
+		this.applyEnvironmentHeaders(h);
 
 		return h;
 	}
@@ -103,11 +94,27 @@ class ApiClient {
 		const h: Record<string, string> = { Accept: 'application/json' };
 		const token = auth.accessToken;
 		if (token) h['X-API-Token'] = token;
-		const env = auth.environment;
-		if (env) h['X-Grav-Environment'] = env;
-		const configEnvTarget = configEnv.target;
-		if (configEnvTarget) h['X-Config-Environment'] = configEnvTarget;
+		this.applyEnvironmentHeaders(h);
 		return h;
+	}
+
+	/**
+	 * Drive both environment headers from the single session environment
+	 * (`auth.environment`, '' = base/"Default"). Base maps to the reserved
+	 * `default` sentinel so both headers are always non-empty — empty header
+	 * values can be stripped by FPM/proxies, which would silently fall back to
+	 * server-side auto-detection and target the wrong place.
+	 *
+	 *   X-Grav-Environment  → reinitializes Grav for the request, so config (and
+	 *     everything else) reads under the selected env. `default` has no
+	 *     user/env/default/ folder, so Grav resolves base-only.
+	 *   X-Config-Environment → the explicit config write target; the server maps
+	 *     the `default` sentinel back to a base (user/config) write.
+	 */
+	private applyEnvironmentHeaders(h: Record<string, string>): void {
+		const headerEnv = auth.gravEnvironment;
+		h['X-Grav-Environment'] = headerEnv;
+		h['X-Config-Environment'] = headerEnv;
 	}
 
 	/**
