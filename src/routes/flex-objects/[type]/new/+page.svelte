@@ -11,6 +11,7 @@
 	} from '$lib/api/endpoints/flexObjects';
 	import type { BlueprintSchema, BlueprintField } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
+	import { checkRequiredOrToast, scrollToFirstError } from '$lib/utils/blueprint-validation';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import { toast } from 'svelte-sonner';
@@ -26,6 +27,7 @@
 	let error = $state('');
 
 	let configData = $state<Record<string, unknown>>({});
+	let validationErrors = $state<Record<string, string>>({});
 
 	// Read save-redirect from the custom field value
 	const afterSave = $derived((configData._post_entries_save as string) ?? 'edit');
@@ -67,6 +69,10 @@
 	}
 
 	function handleBlueprintChange(path: string, value: unknown) {
+		if (validationErrors[path]) {
+			const { [path]: _cleared, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
 		const parts = path.split('.');
 		const newData = { ...configData };
 		let current: Record<string, unknown> = newData;
@@ -85,6 +91,13 @@
 	}
 
 	async function handleCreate() {
+		// Block the create if any required field is empty (admin2#30).
+		validationErrors = blueprint ? checkRequiredOrToast(blueprint.fields, configData) : {};
+		if (Object.keys(validationErrors).length > 0) {
+			scrollToFirstError();
+			return;
+		}
+
 		saving = true;
 		try {
 			// Strip UI-only fields before sending to API
@@ -196,6 +209,7 @@
 					fields={blueprint.fields}
 					data={configData}
 					onchange={handleBlueprintChange}
+					errors={validationErrors}
 				/>
 			</div>
 		</div>

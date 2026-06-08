@@ -14,6 +14,7 @@
 	} from '$lib/api/endpoints/flexObjects';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
+	import { checkRequiredOrToast, scrollToFirstError } from '$lib/utils/blueprint-validation';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -41,6 +42,7 @@
 	let confirmDeleteOpen = $state(false);
 
 	let configData = $state<Record<string, unknown>>({});
+	let validationErrors = $state<Record<string, string>>({});
 	let originalJson = $state('{}');
 
 	const hasChanges = $derived(JSON.stringify(configData) !== originalJson);
@@ -89,6 +91,10 @@
 	}
 
 	function handleBlueprintChange(path: string, value: unknown) {
+		if (validationErrors[path]) {
+			const { [path]: _cleared, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
 		const parts = path.split('.');
 		const newData = { ...configData };
 		let current: Record<string, unknown> = newData;
@@ -107,6 +113,13 @@
 	}
 
 	async function handleSave() {
+		// Block the save if any required field is empty (admin2#30).
+		validationErrors = blueprint ? checkRequiredOrToast(blueprint.fields, configData) : {};
+		if (Object.keys(validationErrors).length > 0) {
+			scrollToFirstError();
+			return;
+		}
+
 		saving = true;
 		try {
 			// Strip UI-only fields before sending to API
@@ -309,6 +322,7 @@
 					data={configData}
 					onchange={handleBlueprintChange}
 					oncommit={autoSave.oncommit}
+					errors={validationErrors}
 				/>
 			</div>
 		</div>

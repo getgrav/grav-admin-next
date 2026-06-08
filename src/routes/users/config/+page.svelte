@@ -7,6 +7,7 @@
 	import { getConfig, saveConfig } from '$lib/api/endpoints/config';
 	import { getAccountsConfigBlueprint, type BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
+	import { checkRequiredOrToast, scrollToFirstError } from '$lib/utils/blueprint-validation';
 	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
@@ -18,6 +19,7 @@
 
 	let blueprint = $state<BlueprintSchema | null>(null);
 	let configData = $state<Record<string, unknown>>({});
+	let validationErrors = $state<Record<string, string>>({});
 	let originalJson = $state('{}');
 	let etag = $state('');
 	let loading = $state(true);
@@ -50,6 +52,10 @@
 	}
 
 	function handleChange(path: string, value: unknown) {
+		if (validationErrors[path]) {
+			const { [path]: _cleared, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
 		const parts = path.split('.');
 		const next = { ...configData };
 		let cur: Record<string, unknown> = next;
@@ -64,6 +70,13 @@
 	}
 
 	async function handleSave() {
+		// Block the save if any required field is empty (admin2#30).
+		validationErrors = blueprint ? checkRequiredOrToast(blueprint.fields, configData) : {};
+		if (Object.keys(validationErrors).length > 0) {
+			scrollToFirstError();
+			return;
+		}
+
 		saving = true;
 		try {
 			const result = await saveConfig('accounts', configData, etag);
@@ -141,6 +154,7 @@
 						fields={blueprint.fields}
 						data={configData}
 						onchange={handleChange}
+						errors={validationErrors}
 					/>
 				</div>
 			</div>

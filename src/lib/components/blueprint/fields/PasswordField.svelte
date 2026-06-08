@@ -9,9 +9,10 @@
 		field: BlueprintField;
 		value: unknown;
 		onchange: (value: unknown) => void;
+		error?: string;
 	}
 
-	let { field, value, onchange }: Props = $props();
+	let { field, value, onchange, error }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
 	// Opt-out of the password-strength UI for fields that aren't user passwords —
@@ -57,4 +58,7 @@
 			showHint={enforcePolicy}
 		/>
 	</div>
+	{#if error}
+		<p class="text-xs font-medium text-destructive" data-field-error>{error}</p>
+	{/if}
 </div>

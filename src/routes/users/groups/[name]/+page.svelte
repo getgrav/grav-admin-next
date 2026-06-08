@@ -9,6 +9,7 @@
 	import { getGroup, updateGroup, deleteGroup, type GroupInfo } from '$lib/api/endpoints/groups';
 	import { getGroupBlueprint, type BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
+	import { checkRequiredOrToast, scrollToFirstError } from '$lib/utils/blueprint-validation';
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
@@ -33,6 +34,7 @@
 	let accessDenied = $state(false);
 
 	let configData = $state<Record<string, unknown>>({});
+	let validationErrors = $state<Record<string, string>>({});
 	let originalJson = $state('{}');
 	let access = $state<Record<string, unknown>>({});
 	let originalAccessJson = $state('{}');
@@ -90,6 +92,10 @@
 	}
 
 	function handleBlueprintChange(path: string, value: unknown) {
+		if (validationErrors[path]) {
+			const { [path]: _cleared, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
 		const parts = path.split('.');
 		const next = { ...configData };
 		let cur: Record<string, unknown> = next;
@@ -104,6 +110,13 @@
 	}
 
 	async function handleSave() {
+		// Block the save if any required field is empty (admin2#30).
+		validationErrors = filteredBlueprint ? checkRequiredOrToast(filteredBlueprint.fields, configData) : {};
+		if (Object.keys(validationErrors).length > 0) {
+			scrollToFirstError();
+			return;
+		}
+
 		saving = true;
 		try {
 			const body: Record<string, unknown> = { ...configData, access };
@@ -208,6 +221,7 @@
 						fields={filteredBlueprint.fields}
 						data={configData}
 						onchange={handleBlueprintChange}
+						errors={validationErrors}
 					/>
 					<div class="rounded-lg border border-border bg-card p-4">
 						<h2 class="mb-3 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.USERS.PERMISSIONS')}</h2>

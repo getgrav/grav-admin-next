@@ -7,9 +7,10 @@
 		field: BlueprintField;
 		value: unknown;
 		onchange: (value: unknown) => void;
+		error?: string;
 	}
 
-	let { field, value, onchange }: Props = $props();
+	let { field, value, onchange, error }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
 	function parseTags(val: unknown): string[] {
@@ -189,7 +190,7 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div class="relative">
 		<div
-			class="flex min-h-[40px] flex-wrap items-center gap-1.5 rounded-lg border border-input bg-muted/50 px-2.5 py-1.5 shadow-sm transition-colors focus-within:ring-1 focus-within:ring-ring"
+			class="flex min-h-[40px] flex-wrap items-center gap-1.5 rounded-lg border bg-muted/50 px-2.5 py-1.5 shadow-sm transition-colors focus-within:ring-1 focus-within:ring-ring {error ? 'border-destructive ring-1 ring-destructive' : 'border-input'}"
 			onclick={focusInput}
 		>
 			{#each tags as tag, i (tag + i)}
@@ -244,4 +245,7 @@
 			</div>
 		{/if}
 	</div>
+	{#if error}
+		<p class="text-xs font-medium text-destructive" data-field-error>{error}</p>
+	{/if}
 </div>

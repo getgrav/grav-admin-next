@@ -10,6 +10,7 @@
 	import { getConfigBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
+	import { checkRequiredOrToast, scrollToFirstError } from '$lib/utils/blueprint-validation';
 	import ConfigNav from '$lib/components/config/ConfigNav.svelte';
 	import ConfigInfoPage from '$lib/components/config/ConfigInfoPage.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -51,6 +52,7 @@
 	let loading = $state(true);
 	let saving = $state(false);
 	let error = $state('');
+	let validationErrors = $state<Record<string, string>>({});
 
 	let accessDenied = $state(false);
 	let hasChanges = $derived(JSON.stringify(configData) !== originalJson);
@@ -111,6 +113,12 @@
 	}
 
 	function handleBlueprintChange(path: string, value: unknown) {
+		// Clear this field's validation error as soon as the user edits it.
+		if (validationErrors[path]) {
+			const { [path]: _cleared, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
+
 		// Immutably update the nested path in configData
 		const parts = path.split('.');
 		const newData = { ...configData };
@@ -146,6 +154,14 @@
 
 	async function handleSave() {
 		if (!hasChanges || isInfo) return;
+
+		// Block the save if any required field is empty (admin2#30); flag inline.
+		validationErrors = blueprint ? checkRequiredOrToast(blueprint.fields, configData) : {};
+		if (Object.keys(validationErrors).length > 0) {
+			scrollToFirstError();
+			return;
+		}
+
 		saving = true;
 		error = '';
 
@@ -433,6 +449,7 @@
 			data={configData}
 			onchange={handleBlueprintChange}
 			oncommit={autoSave.oncommit}
+			errors={validationErrors}
 			{filter}
 		/>
 	{:else if !error}

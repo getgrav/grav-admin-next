@@ -10,9 +10,10 @@
 		field: BlueprintField;
 		value: unknown;
 		onchange: (value: unknown) => void;
+		error?: string;
 	}
 
-	let { field, value, onchange }: Props = $props();
+	let { field, value, onchange, error }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
 	// Page type context (standard vs modular) — used for pageTypes resolution
@@ -70,7 +71,7 @@
 	{/if}
 	<div class="relative {fieldSizeClass(field.size)}">
 		<select
-			class="flex h-10 w-full appearance-none rounded-lg border border-input bg-muted/50 ps-3 pe-8 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+			class="flex h-10 w-full appearance-none rounded-lg border bg-muted/50 ps-3 pe-8 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring {error ? 'border-destructive ring-1 ring-destructive' : 'border-input'}"
 			value={effectiveValue}
 			onchange={(e) => onchange((e.target as HTMLSelectElement).value)}
 			disabled={field.disabled}
@@ -83,4 +84,7 @@
 			<ChevronsUpDown size={14} class="text-muted-foreground" />
 		</div>
 	</div>
+	{#if error}
+		<p class="text-xs font-medium text-destructive" data-field-error>{error}</p>
+	{/if}
 </div>

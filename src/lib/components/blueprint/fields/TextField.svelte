@@ -8,9 +8,10 @@
 		field: BlueprintField;
 		value: unknown;
 		onchange: (value: unknown) => void;
+		error?: string;
 	}
 
-	let { field, value, onchange }: Props = $props();
+	let { field, value, onchange, error }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
 	const inputType = field.type === 'number' ? 'number' : field.type === 'color' ? 'color' : field.type === 'range' ? 'range' : field.type === 'password' ? 'password' : field.type === 'email' ? 'email' : field.type === 'url' ? 'url' : field.type === 'date' ? 'date' : field.type === 'datetime' ? 'datetime-local' : field.type === 'time' ? 'time' : 'text';
@@ -48,7 +49,8 @@
 				{/if}
 				<input
 					type={inputType}
-					class="flex h-10 min-w-0 flex-1 border border-input bg-muted/50 px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring {fieldSizeClass(field.size)}
+					class="flex h-10 min-w-0 flex-1 border bg-muted/50 px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring {fieldSizeClass(field.size)}
+						{error ? 'border-destructive ring-1 ring-destructive' : 'border-input'}
 						{field.prepend && field.append ? '' : field.prepend ? 'rounded-r-lg' : field.append ? 'rounded-l-lg' : 'rounded-lg'}"
 					value={value ?? field.default ?? ''}
 					placeholder={translateLabel(field.placeholder)}
@@ -68,7 +70,7 @@
 		{:else}
 			<input
 				type={inputType}
-				class="flex h-10 w-full rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring {fieldSizeClass(field.size)}"
+				class="flex h-10 w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring {fieldSizeClass(field.size)} {error ? 'border-destructive ring-1 ring-destructive' : 'border-input'}"
 				value={value ?? field.default ?? ''}
 				placeholder={translateLabel(field.placeholder)}
 				disabled={field.disabled}
@@ -86,6 +88,9 @@
 			{:else}
 				<p class="text-xs text-muted-foreground">{desc}</p>
 			{/if}
+		{/if}
+		{#if error}
+			<p class="text-xs font-medium text-destructive" data-field-error>{error}</p>
 		{/if}
 	</div>
 {:else}

@@ -115,6 +115,11 @@
 	// Use i18n.tMaybe for all label translation
 	const translateLabel = i18n.tMaybe;
 
+	// Inline blueprint-validation error for this field (set by the save gate via
+	// BlueprintForm's `blueprintErrors` context, keyed by field.name).
+	const blueprintErrorsCtx = getContext<(() => Record<string, string>) | undefined>('blueprintErrors');
+	const fieldError = $derived((blueprintErrorsCtx?.() ?? {})[field.name]);
+
 	// Container types that manage their own layout
 	const containerTypes = new Set(['section', 'fieldset', 'tabs', 'tab', 'columns', 'column', 'pagemedia', 'cronstatus', 'webhook-status', 'page-exists']);
 
@@ -375,7 +380,7 @@
 	<div data-translate={field.translate || undefined} data-field-name={field.translate ? field.name : undefined}
 		onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
 		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
-		<PasswordBlueprintField {field} {value} {onchange} />
+		<PasswordBlueprintField {field} {value} {onchange} error={fieldError} />
 	</div>
 
 {:else if inputTypes.has(field.type)}
@@ -383,7 +388,7 @@
 	<div data-translate={field.translate || undefined} data-field-name={field.translate ? field.name : undefined}
 		onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
 		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
-		<TextField {field} {value} {onchange} />
+		<TextField {field} {value} {onchange} error={fieldError} />
 	</div>
 
 {:else if (field.type === 'markdown' || field.type === 'editor') && field.name === 'content' && contentLock}
@@ -427,7 +432,7 @@
 	<div data-translate={field.translate || undefined} data-field-name={field.translate ? field.name : undefined}
 		onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
 		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
-		<TextareaField {field} {value} {onchange} />
+		<TextareaField {field} {value} {onchange} error={fieldError} />
 	</div>
 
 {:else if field.type === 'select' && (field.multiple || field.selectize)}
@@ -445,10 +450,11 @@
 			: { ...field, options: field.options?.map((o) => ({ value: o.label, label: o.label })) }}
 		{value}
 		onchange={committingOnchange}
+		error={fieldError}
 	/>
 
 {:else if field.type === 'select'}
-	<SelectField {field} {value} onchange={committingOnchange} />
+	<SelectField {field} {value} onchange={committingOnchange} error={fieldError} />
 
 {:else if field.type === 'themeselect'}
 	<ThemeSelectField {field} {value} onchange={committingOnchange} />
@@ -568,7 +574,7 @@
 	<TaxonomyField {field} {value} onchange={committingOnchange} />
 
 {:else if field.type === 'selectize'}
-	<SelectizeField {field} {value} onchange={committingOnchange} />
+	<SelectizeField {field} {value} onchange={committingOnchange} error={fieldError} />
 
 {:else if field.type === 'cron'}
 	<CronField {field} {value} onchange={committingOnchange} />

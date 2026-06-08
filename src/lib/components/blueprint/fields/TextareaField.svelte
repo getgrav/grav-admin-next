@@ -15,9 +15,10 @@
 		field: BlueprintField;
 		value: unknown;
 		onchange: (value: unknown) => void;
+		error?: string;
 	}
 
-	let { field, value, onchange }: Props = $props();
+	let { field, value, onchange, error }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
 	const isYaml = !!field.yaml;
@@ -162,7 +163,7 @@
 		{/if}
 	{:else}
 		<textarea
-			class="flex min-h-[80px] w-full rounded-lg border border-input bg-muted/50 px-3 py-2.5 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+			class="flex min-h-[80px] w-full rounded-lg border bg-muted/50 px-3 py-2.5 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring {error ? 'border-destructive ring-1 ring-destructive' : 'border-input'}"
 			rows={field.rows ?? 4}
 			value={textValue}
 			placeholder={translateLabel(field.placeholder)}
@@ -171,5 +172,8 @@
 			oninput={(e) => onchange((e.target as HTMLTextAreaElement).value)}
 			style="resize: vertical;"
 		></textarea>
+	{/if}
+	{#if error}
+		<p class="text-xs font-medium text-destructive" data-field-error>{error}</p>
 	{/if}
 </div>

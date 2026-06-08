@@ -9,6 +9,7 @@
 	import { getUserBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
+	import { checkRequiredOrToast, scrollToFirstError } from '$lib/utils/blueprint-validation';
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
 	import TwoFactorField from '$lib/components/TwoFactorField.svelte';
 	import ApiKeysField from '$lib/components/ApiKeysField.svelte';
@@ -65,6 +66,7 @@
 
 	// Form data from blueprint fields
 	let configData = $state<Record<string, unknown>>({});
+	let validationErrors = $state<Record<string, string>>({});
 	let originalJson = $state('{}');
 
 	// Permissions handled separately
@@ -156,6 +158,10 @@
 	}
 
 	function handleBlueprintChange(path: string, value: unknown) {
+		if (validationErrors[path]) {
+			const { [path]: _cleared, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
 		const parts = path.split('.');
 		const newData = { ...configData };
 		let current: Record<string, unknown> = newData;
@@ -188,6 +194,13 @@
 	}
 
 	async function handleSave() {
+		// Block the save if any required field is empty (admin2#30).
+		validationErrors = filteredBlueprint ? checkRequiredOrToast(filteredBlueprint.fields, configData) : {};
+		if (Object.keys(validationErrors).length > 0) {
+			scrollToFirstError();
+			return;
+		}
+
 		saving = true;
 		try {
 			const cleaned = stripRedacted(configData) as Record<string, unknown>;
@@ -449,6 +462,7 @@
 						data={configData}
 						onchange={handleBlueprintChange}
 						oncommit={autoSave.oncommit}
+						errors={validationErrors}
 					/>
 				{/if}
 

@@ -12,6 +12,7 @@
 	import type { MediaItem } from '$lib/api/endpoints/media';
 	import type { PageMediaContext } from '$lib/components/media/types';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
+	import { checkRequiredOrToast, scrollToFirstError } from '$lib/utils/blueprint-validation';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import LanguageSwitcher from '$lib/components/ui/LanguageSwitcher.svelte';
@@ -142,6 +143,7 @@
 	let blueprint = $state<BlueprintSchema | null>(null);
 	let loading = $state(true);
 	let saving = $state(false);
+	let validationErrors = $state<Record<string, string>>({});
 	let error = $state('');
 	let showRawEditor = $state(false);
 	let showNavigator = $state(false);
@@ -866,6 +868,12 @@
 		//     snapshot-derived headerData we're trying to install
 		if (applyingRemote) return;
 
+		// Clear this field's validation error as soon as the user edits it.
+		if (validationErrors[path]) {
+			const { [path]: _cleared, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
+
 		// Any non-remote field commit is a local edit — flip the dirty flag
 		// so the leave guard fires. (Mount-time echoes still slip through
 		// here, but the diff-against-original logic below filters them out
@@ -998,6 +1006,18 @@
 
 	async function handleSave() {
 		if (!pageData) return;
+
+		// Block the save if any required blueprint field is empty (admin2#30).
+		// Only in Normal mode — Expert mode edits raw YAML directly, where the
+		// blueprint form (and its field paths) isn't in play.
+		if (prefs.editorMode !== 'expert' && blueprint) {
+			validationErrors = checkRequiredOrToast(blueprint.fields, headerData);
+			if (Object.keys(validationErrors).length > 0) {
+				scrollToFirstError();
+				return;
+			}
+		}
+
 		saving = true;
 		error = '';
 
@@ -1773,6 +1793,7 @@
 							data={headerData}
 							onchange={handleBlueprintChange}
 							oncommit={autoSave.oncommit}
+							errors={validationErrors}
 						/>
 					{/key}
 				{:else}

@@ -16,6 +16,7 @@
 	} from '$lib/api/endpoints/pluginPages';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
+	import { checkRequiredOrToast, scrollToFirstError } from '$lib/utils/blueprint-validation';
 	import PluginPageComponent from '$lib/components/plugin-page/PluginPageComponent.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
@@ -37,6 +38,7 @@
 	let definition = $state<PluginPageDefinition | null>(null);
 	let blueprint = $state<BlueprintSchema | null>(null);
 	let formData = $state<Record<string, unknown>>({});
+	let validationErrors = $state<Record<string, string>>({});
 	let originalJson = $state('{}');
 	let loading = $state(true);
 	let saving = $state(false);
@@ -82,6 +84,10 @@
 	}
 
 	function handleBlueprintChange(path: string, value: unknown) {
+		if (validationErrors[path]) {
+			const { [path]: _cleared, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
 		const parts = path.split('.');
 		const newData = { ...formData };
 		let current: Record<string, unknown> = newData;
@@ -101,6 +107,14 @@
 
 	async function handleSave() {
 		if (!definition?.save_endpoint) return;
+
+		// Block the save if any required field is empty (admin2#30).
+		validationErrors = blueprint ? checkRequiredOrToast(blueprint.fields, formData) : {};
+		if (Object.keys(validationErrors).length > 0) {
+			scrollToFirstError();
+			return;
+		}
+
 		saving = true;
 		try {
 			await savePluginPageData(definition.save_endpoint, formData);
@@ -484,6 +498,7 @@
 						data={formData}
 						onchange={handleBlueprintChange}
 						oncommit={autoSave.oncommit}
+						errors={validationErrors}
 					/>
 				{:else if definition.page_type === 'component'}
 					<PluginPageComponent slug={slug} />

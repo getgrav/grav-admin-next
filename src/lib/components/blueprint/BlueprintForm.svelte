@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { setContext } from 'svelte';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import FieldRenderer from './FieldRenderer.svelte';
 
@@ -8,9 +9,15 @@
 		onchange?: (path: string, value: unknown) => void;
 		oncommit?: (path: string, value: unknown, oldValue?: unknown) => void;
 		filter?: string;
+		/** Field-path → error message, surfaced inline by each field. */
+		errors?: Record<string, string>;
 	}
 
-	let { fields, data, onchange, oncommit, filter = '' }: Props = $props();
+	let { fields, data, onchange, oncommit, filter = '', errors = {} }: Props = $props();
+
+	// Expose validation errors to every descendant field (FieldRenderer reads
+	// this by field.name). Passing a getter keeps it reactive across updates.
+	setContext('blueprintErrors', () => errors);
 
 	/**
 	 * Normalize blueprint fields: adopt orphan siblings into bare sections.
