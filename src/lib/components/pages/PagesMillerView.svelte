@@ -361,28 +361,35 @@
 		typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
 
 	async function selectPage(colIndex: number, page: PageSummary) {
-		const wasSelected = columns[colIndex]?.selectedRoute === page.route;
+		// Identify the page by its api route, not its public route. The home
+		// page's public route is `/`, which collides with the root column's
+		// parent marker — using it would push a child column keyed to root
+		// (re-listing the top-level pages instead of the home's modules) and
+		// duplicate the breadcrumb. `pageApiRoute` returns the rawRoute
+		// (e.g. `/home`), keeping every column/selection key unique.
+		const apiRoute = pageApiRoute(page);
+		const wasSelected = columns[colIndex]?.selectedRoute === apiRoute;
 
 		// Without a preview pane, leaf pages have no useful "select" state —
 		// open edit directly. For folders, re-tapping the already-selected
 		// row also opens edit (the column is already drilled in below it).
 		if (!hasPreviewPane()) {
 			if (!page.has_children || wasSelected) {
-				onEdit(pageApiRoute(page));
+				onEdit(apiRoute);
 				return;
 			}
 		}
 
 		// Update selection in current column, trim columns after
 		const updated = columns.slice(0, colIndex + 1);
-		updated[colIndex] = { ...updated[colIndex], selectedRoute: page.route };
+		updated[colIndex] = { ...updated[colIndex], selectedRoute: apiRoute };
 
 		if (page.has_children) {
-			updated.push({ parentRoute: page.route, selectedRoute: null });
+			updated.push({ parentRoute: apiRoute, selectedRoute: null });
 			columns = updated;
 			// Kick off the chunk-store bootstrap for the new column. The
 			// derived rendering picks up the chunks as they arrive.
-			bootstrapColumn(page.route);
+			bootstrapColumn(apiRoute);
 		} else {
 			columns = updated;
 		}
@@ -442,7 +449,10 @@
 		if (total === null) return null;
 		for (let i = 0; i < total; i++) {
 			const r = pagesChunks.getRow(key, i);
-			if (r && r.route === route) return r;
+			// `route` is an api route (see selectPage), so match on the row's
+			// api route too — the home page's public route `/` would never
+			// match its `/home` selection key otherwise.
+			if (r && pageApiRoute(r) === route) return r;
 		}
 		return null;
 	}
@@ -903,7 +913,7 @@
 					{#each colBlocks as block (block.page)}
 						{#if block.loaded}
 							{#each filterColumn(block.rows) as page (page.route)}
-								{@const isSelected = col.selectedRoute === page.route}
+								{@const isSelected = col.selectedRoute === pageApiRoute(page)}
 								{@const isActive = isSelected && colIndex === activeColumnIndex}
 								{@const isPath = isSelected && colIndex !== activeColumnIndex}
 								{@const isDragged = dragPage?.route === page.route}
