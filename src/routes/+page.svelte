@@ -26,6 +26,8 @@
 	import EditModeToolbar from '$lib/components/dashboard/EditModeToolbar.svelte';
 	import WidgetPicker from '$lib/components/dashboard/WidgetPicker.svelte';
 	import TopBanner from '$lib/components/dashboard/TopBanner.svelte';
+	import SecurityHealthBanner from '$lib/components/dashboard/SecurityHealthBanner.svelte';
+	import { checkUserFolderExposure } from '$lib/api/endpoints/security';
 	import { setDashboardData, type DashboardData } from '$lib/dashboard/context';
 	import { formatBytes } from '$lib/dashboard/format';
 	import type { ResolvedWidget, DashboardLayout } from '$lib/dashboard/types';
@@ -44,6 +46,7 @@
 	let widgets = $state<ResolvedWidget[]>([]);
 	let savedWidgetsSnapshot = $state<ResolvedWidget[]>([]);
 	let canEditSite = $state(false);
+	let userFolderExposed = $state(false);
 	let loading = $state(true);
 	let animated = $state(false);
 	let updatingAll = $state(false);
@@ -273,6 +276,10 @@
 	const poller = usePoll(() => loadDashboard({ silent: true }), 60_000, { runImmediately: false });
 	onMount(() => {
 		poller.start();
+		// One-off security health check: probe whether user/data is reachable
+		// over the web. Runs independently of the dashboard payload so a slow
+		// or blocked external fetch never delays the rest of the page.
+		checkUserFolderExposure().then((exposed) => { userFolderExposed = exposed === true; });
 		const unsubPages = invalidations.subscribe('pages:*', () => loadDashboard({ silent: true }));
 		const unsubUsers = invalidations.subscribe('users:*', () => loadDashboard({ silent: true }));
 		const unsubPlugins = invalidations.subscribe('plugins:*', () => loadDashboard({ silent: true }));
@@ -336,6 +343,7 @@
 		</StickyHeader>
 
 		<div class="relative z-0 px-6 pb-6">
+			<SecurityHealthBanner exposed={userFolderExposed} />
 			<TopBanner notifications={topNotifications} />
 			<DashboardGrid
 				{widgets}
