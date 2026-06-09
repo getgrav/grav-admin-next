@@ -140,10 +140,7 @@ function createI18nStore() {
 	function t(key: string | undefined, params?: TranslateParams): string {
 		if (!key) return '';
 
-		// 1. Modern ICU lookup (preferred)
-		const icuKey = ICU_PREFIX + key;
-		const icuVal = strings[icuKey];
-		if (icuVal !== undefined) {
+		const formatIcu = (icuKey: string, icuVal: string): string => {
 			const f = getFormatter(icuKey, icuVal);
 			if (f) {
 				try {
@@ -155,6 +152,20 @@ function createI18nStore() {
 				}
 			}
 			return icuVal;
+		};
+
+		// 1. Modern ICU lookup (preferred)
+		const icuKey = ICU_PREFIX + key;
+		if (strings[icuKey] !== undefined) return formatIcu(icuKey, strings[icuKey]);
+
+		// 1b. Shared-vocabulary alias: admin2 consolidated the PLUGIN_ADMIN.*
+		// namespace into ICU.ADMIN_NEXT.* (so translations.getgrav.org, scoped to
+		// ADMIN_NEXT, translates it into every locale). Blueprint and plugin refs
+		// still use the public PLUGIN_ADMIN.* keys, so resolve them against the
+		// consolidated ADMIN_NEXT copy. Mirrors the api plugin's translateLabel.
+		if (key.startsWith('PLUGIN_ADMIN.')) {
+			const aliasKey = ICU_PREFIX + 'ADMIN_NEXT.' + key.slice('PLUGIN_ADMIN.'.length);
+			if (strings[aliasKey] !== undefined) return formatIcu(aliasKey, strings[aliasKey]);
 		}
 
 		// 2. Legacy flat lookup (case-sensitive, returned raw)
@@ -199,7 +210,12 @@ function createI18nStore() {
 	 */
 	function has(key: string | undefined): boolean {
 		if (!key) return false;
-		return (ICU_PREFIX + key) in strings || key in strings || key.toUpperCase() in strings;
+		if ((ICU_PREFIX + key) in strings || key in strings || key.toUpperCase() in strings) return true;
+		// PLUGIN_ADMIN.* is aliased onto ICU.ADMIN_NEXT.* (see t()).
+		if (key.startsWith('PLUGIN_ADMIN.')) {
+			return (ICU_PREFIX + 'ADMIN_NEXT.' + key.slice('PLUGIN_ADMIN.'.length)) in strings;
+		}
+		return false;
 	}
 
 	/**

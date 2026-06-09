@@ -568,8 +568,12 @@
 		if (!syncReady || !syncBinding || applyingRemote) return;
 		syncBinding.pushLocal('content', content);
 		// Local-origin content change — typing, paste, AI insertion, etc.
-		// applyingRemote already guards against echo from peer edits.
-		hasLocalEdits = true;
+		// applyingRemote already guards against echo from peer edits, but this
+		// effect ALSO runs on its first pass and whenever the collab room
+		// connects, when `content` still equals what we loaded. Only flip the
+		// dirty flag on a genuine change, or every page would show as unsaved
+		// the moment collab goes Live.
+		if (!valuesEqual(content, originalContent)) hasLocalEdits = true;
 	});
 
 	function deriveParent(route: string, slug: string): string {
@@ -875,11 +879,19 @@
 		}
 
 		// Any non-remote field commit is a local edit — flip the dirty flag
-		// so the leave guard fires. (Mount-time echoes still slip through
-		// here, but the diff-against-original logic below filters them out
-		// of headerChanges, and hasChanges-derived save handling stays the
-		// gate on whether we actually PATCH anything.)
-		hasLocalEdits = true;
+		// so the leave guard fires. Mount-time echoes (a field re-emitting the
+		// value it was just given) used to slip through here and mark a
+		// pristine page dirty; suppress the flip when the value still equals
+		// what loaded. For paths whose original we can't cheaply resolve
+		// (route, ordering, template…), keep the eager flip so any genuine
+		// interaction still lights the indicator.
+		const echoOriginal =
+			path === 'content' ? originalContent
+			: path === 'header.title' ? originalTitle
+			: path.startsWith('header.') ? getOriginalHeaderValue(path.slice(7))
+			: undefined;
+		const isMountEcho = echoOriginal !== undefined && valuesEqual(value, echoOriginal);
+		if (!isMountEcho) hasLocalEdits = true;
 
 		// Collab: every blueprint field change is pushed into the Y.Map so
 		// peers receive it. The FormBinding no-ops when the value hasn't

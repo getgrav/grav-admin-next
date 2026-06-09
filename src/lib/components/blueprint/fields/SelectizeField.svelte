@@ -30,13 +30,25 @@
 		field.options?.map((opt) => opt.value) ?? []
 	);
 
+	// Stored tags are option *values* (e.g. group keys like `procras`), but we
+	// display the option *label* (`Procrastinators`) when one exists — matching
+	// classic selectize, which renders the readable name while submitting the
+	// key. Falls back to the raw value for free-form / unknown tags.
+	const optionLabels = $derived(
+		new Map((field.options ?? []).map((opt) => [opt.value, opt.label]))
+	);
+	const labelFor = (val: string): string => translateLabel(optionLabels.get(val) ?? val);
+
 	// Show filtered suggestions when typing, or ALL unselected options on focus
 	const suggestions = $derived.by(() => {
 		if (!showSuggestions) return [];
 		const available = predefinedOptions.filter((opt) => !tags.includes(opt));
 		if (inputValue.length > 0) {
+			const needle = inputValue.toLowerCase();
+			// Match on the visible label as well as the value, since users type
+			// the readable name rather than the underlying key.
 			return available.filter((opt) =>
-				opt.toLowerCase().includes(inputValue.toLowerCase())
+				opt.toLowerCase().includes(needle) || labelFor(opt).toLowerCase().includes(needle)
 			);
 		}
 		return available;
@@ -200,7 +212,7 @@
 							? 'bg-primary text-primary-foreground ring-1 ring-primary'
 							: 'bg-primary/15 text-primary'}"
 				>
-					{tag}
+					{labelFor(tag)}
 					<button
 						type="button"
 						class="inline-flex items-center rounded-sm transition-colors
@@ -238,7 +250,7 @@
 									: 'text-foreground hover:bg-accent'}"
 							onmousedown={(e) => { e.preventDefault(); selectSuggestion(suggestion); }}
 						>
-							{suggestion}
+							{labelFor(suggestion)}
 						</button>
 					{/each}
 				</div>

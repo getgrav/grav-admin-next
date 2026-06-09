@@ -110,6 +110,38 @@
 		};
 	});
 
+	// The account blueprint nests `groups` inside the `security` section, which
+	// we suppress wholesale (its other child, `access`, is rendered by the
+	// dedicated PermissionsField). Extract just the groups field so we can place
+	// it at the top of the Access Levels card, matching classic admin's layout.
+	// Two tweaks make it round-trip correctly through the selectize renderer:
+	//  - `store_keys` so the stored value is the group key (e.g. `procras`), not
+	//    its readable label — group membership is keyed by name.
+	//  - drop the `commalist` validate type so the field emits an array rather
+	//    than a comma-joined string; the API stores it verbatim as `groups: []`.
+	function findGroupsField(fields: BlueprintSchema['fields']): BlueprintSchema['fields'][number] | null {
+		for (const f of fields) {
+			if (f.name === 'groups') return f;
+			if (f.fields) {
+				const found = findGroupsField(f.fields);
+				if (found) return found;
+			}
+		}
+		return null;
+	}
+
+	const groupsField = $derived.by(() => {
+		if (!blueprint) return null;
+		const field = findGroupsField(blueprint.fields);
+		if (!field) return null;
+		const { type: _validateType, ...restValidate } = (field.validate ?? {}) as Record<string, unknown>;
+		return {
+			...field,
+			selectize: { ...(field.selectize as Record<string, unknown> ?? {}), store_keys: true },
+			validate: restValidate,
+		} as BlueprintSchema['fields'][number];
+	});
+
 	function populateForm(u: UserInfo) {
 		// Build config data from user properties for blueprint fields.
 		// twofa_enabled is managed by the dedicated 2FA enroll/disable
@@ -121,8 +153,11 @@
 			fullname: u.fullname ?? '',
 			title: u.title ?? '',
 			state: u.state,
-			language: (u as Record<string, unknown>).language ?? '',
-			content_editor: (u as Record<string, unknown>).content_editor ?? '',
+			language: (u as unknown as Record<string, unknown>).language ?? '',
+			content_editor: (u as unknown as Record<string, unknown>).content_editor ?? '',
+			// Group membership (admin.super governance field). Stored as an array
+			// of group keys — matches classic admin's on-disk `groups: [key]`.
+			groups: u.groups ?? [],
 		};
 		originalJson = JSON.stringify(configData);
 
@@ -221,6 +256,9 @@
 			if (!canManagePermissions) {
 				delete body.access;
 				delete body.state;
+				// `groups` is super-admin-only server-side; sending the
+				// (unchanged) value would 403 a non-super self-edit.
+				delete body.groups;
 			}
 
 			const result = await updateUser(username, body, etag);
@@ -486,6 +524,21 @@
 								}}
 							/>
 						</div>
+					</div>
+				{/if}
+
+				<!-- Groups — admin.super governance field. The API only serves it to
+				     super admins (blueprint `security@: admin.super`), so guard on
+				     canManagePermissions and the field's presence. -->
+				{#if canManagePermissions && groupsField}
+					<div class="rounded-xl border border-border bg-card p-5">
+						<BlueprintForm
+							fields={[groupsField]}
+							data={configData}
+							onchange={handleBlueprintChange}
+							oncommit={autoSave.oncommit}
+							errors={validationErrors}
+						/>
 					</div>
 				{/if}
 
