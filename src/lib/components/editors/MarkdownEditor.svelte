@@ -690,32 +690,14 @@
 			{/if}
 		{/if}
 	</div>
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<!-- Drag-and-drop (media-panel drag-out + file drops) is handled by the
+	     CodeMirror domEventHandlers extension above. CM mounts inside this
+	     container, so drops bubble here too — duplicating them with a second
+	     container-level handler inserted the markdown twice (getgrav/grav#4123). -->
 	<div
 		bind:this={editorContainer}
 		class="markdown-editor-cm"
 		dir="ltr"
-		ondragover={(e) => {
-			if (e.dataTransfer?.types.includes('application/x-grav-media') || e.dataTransfer?.types.includes('Files')) {
-				e.preventDefault();
-				if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
-			}
-		}}
-		ondragenter={(e) => {
-			if (e.dataTransfer?.types.includes('application/x-grav-media') || e.dataTransfer?.types.includes('Files')) {
-				e.preventDefault();
-			}
-		}}
-		ondrop={(e) => {
-			const mdText = e.dataTransfer?.getData('application/x-grav-media')
-				? e.dataTransfer?.getData('text/plain')
-				: null;
-			if (mdText) {
-				e.preventDefault();
-				const pos = view?.posAtCoords({ x: e.clientX, y: e.clientY }) ?? view?.state.doc.length ?? 0;
-				view?.dispatch({ changes: { from: pos, insert: mdText } });
-			}
-		}}
 		style:min-height={minHeight}
 		style:max-height={maxHeight}
 		style:display={showPreview ? 'none' : ''}
