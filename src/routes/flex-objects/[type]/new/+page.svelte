@@ -11,7 +11,7 @@
 	} from '$lib/api/endpoints/flexObjects';
 	import type { BlueprintSchema, BlueprintField } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import { toast } from 'svelte-sonner';
@@ -28,6 +28,9 @@
 
 	let configData = $state<Record<string, unknown>>({});
 	let validationErrors = $state<Record<string, string>>({});
+	// Reactive validity gate: keep Save disabled while any required field is empty
+	// (admin2#34). Independent of the inline error display, which stays touch/submit-gated.
+	let requiredOk = $derived(!blueprint || !hasRequiredErrors(blueprint.fields, configData));
 
 	// Read save-redirect from the custom field value
 	const afterSave = $derived((configData._post_entries_save as string) ?? 'edit');
@@ -69,10 +72,6 @@
 	}
 
 	function handleBlueprintChange(path: string, value: unknown) {
-		if (validationErrors[path]) {
-			const { [path]: _cleared, ...rest } = validationErrors;
-			validationErrors = rest;
-		}
 		const parts = path.split('.');
 		const newData = { ...configData };
 		let current: Record<string, unknown> = newData;
@@ -88,6 +87,16 @@
 		}
 		current[parts[parts.length - 1]] = value;
 		configData = newData;
+
+		// Re-check this field now it's been touched: flag it if a required field was
+		// cleared, clear the flag once it's filled again (admin2#34).
+		const err = blueprint ? validateFieldAt(blueprint.fields, path, newData) : null;
+		if (err) {
+			validationErrors = { ...validationErrors, [path]: err };
+		} else if (validationErrors[path]) {
+			const { [path]: _cleared, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
 	}
 
 	async function handleCreate() {
@@ -170,7 +179,7 @@
 						</h1>
 					</div>
 
-					<Button size="sm" onclick={handleCreate} disabled={saving}>
+					<Button size="sm" onclick={handleCreate} disabled={saving || !requiredOk}>
 						{#if saving}
 							<Loader2 size={14} class="me-1.5 animate-spin" />
 						{:else}

@@ -12,7 +12,7 @@
 	import type { MediaItem } from '$lib/api/endpoints/media';
 	import type { PageMediaContext } from '$lib/components/media/types';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors } from '$lib/utils/blueprint-validation';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import LanguageSwitcher from '$lib/components/ui/LanguageSwitcher.svelte';
@@ -694,6 +694,13 @@
 		)
 	);
 
+	// Reactive validity gate: keep Save disabled while a required header field is empty
+	// (admin2#34). Skipped in Expert mode, which edits raw YAML rather than the
+	// blueprint form — its field paths aren't in play (mirrors handleSave's #30 check).
+	let requiredOk = $derived(
+		prefs.editorMode === 'expert' || !blueprint || !hasRequiredErrors(blueprint.fields, headerData)
+	);
+
 	const guard = createUnsavedGuard(() => {
 		// In collab mode hasChanges is a net diff vs the last GET — it can
 		// be true purely because of a peer's edits even when I haven't typed
@@ -872,12 +879,6 @@
 		//     snapshot-derived headerData we're trying to install
 		if (applyingRemote) return;
 
-		// Clear this field's validation error as soon as the user edits it.
-		if (validationErrors[path]) {
-			const { [path]: _cleared, ...rest } = validationErrors;
-			validationErrors = rest;
-		}
-
 		// Any non-remote field commit is a local edit — flip the dirty flag
 		// so the leave guard fires. Mount-time echoes (a field re-emitting the
 		// value it was just given) used to slip through here and mark a
@@ -955,6 +956,16 @@
 		}
 		current[parts[parts.length - 1]] = value;
 		headerData = newData;
+
+		// Re-check this field now it's been touched: flag it if a required field was
+		// cleared, clear the flag once it's filled again (admin2#34).
+		const err = blueprint ? validateFieldAt(blueprint.fields, path, newData) : null;
+		if (err) {
+			validationErrors = { ...validationErrors, [path]: err };
+		} else if (validationErrors[path]) {
+			const { [path]: _cleared, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
 	}
 
 	/**
@@ -1577,7 +1588,7 @@
 			<!-- Save button with Save As dropdown -->
 			{#if canEditPages}
 			<div class="relative flex">
-				<Button size="sm" class="px-2 lg:px-3 {(hasChanges || canCreateTranslation) ? '' : 'opacity-50 pointer-events-none'} {saveAsLanguages.length > 0 ? 'rounded-e-none' : ''}" title={saving ? i18n.t('ADMIN_NEXT.SAVING') : canCreateTranslation ? i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVE_AS_LANGUAGE', { language: contentLang.getLanguageName(contentLang.activeLang) }) : i18n.t('ADMIN_NEXT.SAVE')} onclick={triggerSave} disabled={saving || loading}>
+				<Button size="sm" class="px-2 lg:px-3 {(hasChanges || canCreateTranslation) ? '' : 'opacity-50 pointer-events-none'} {saveAsLanguages.length > 0 ? 'rounded-e-none' : ''}" title={saving ? i18n.t('ADMIN_NEXT.SAVING') : canCreateTranslation ? i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVE_AS_LANGUAGE', { language: contentLang.getLanguageName(contentLang.activeLang) }) : i18n.t('ADMIN_NEXT.SAVE')} onclick={triggerSave} disabled={saving || loading || !requiredOk}>
 					{#if saving}
 						<Loader2 size={14} class="animate-spin" />
 						<span class="hidden lg:inline">{i18n.t('ADMIN_NEXT.SAVING')}</span>

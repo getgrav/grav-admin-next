@@ -7,7 +7,7 @@
 	import { getConfig, saveConfig } from '$lib/api/endpoints/config';
 	import { getAccountsConfigBlueprint, type BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
 	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
@@ -26,7 +26,10 @@
 	let saving = $state(false);
 	let accessDenied = $state(false);
 
-	const hasChanges = $derived(JSON.stringify(configData) !== originalJson);
+	const hasChanges = $derived(stableJson(configData) !== originalJson);
+	// Reactive validity gate: keep Save disabled while any required field is empty
+	// (admin2#34). Independent of the inline error display, which stays touch/submit-gated.
+	let requiredOk = $derived(!blueprint || !hasRequiredErrors(blueprint.fields, configData));
 
 	async function load() {
 		loading = true;
@@ -36,7 +39,7 @@
 				getAccountsConfigBlueprint().catch(() => null),
 			]);
 			configData = cfg.data ?? {};
-			originalJson = JSON.stringify(configData);
+			originalJson = stableJson(configData);
 			etag = cfg.etag;
 			blueprint = bp;
 		} catch (err: unknown) {
@@ -52,10 +55,6 @@
 	}
 
 	function handleChange(path: string, value: unknown) {
-		if (validationErrors[path]) {
-			const { [path]: _cleared, ...rest } = validationErrors;
-			validationErrors = rest;
-		}
 		const parts = path.split('.');
 		const next = { ...configData };
 		let cur: Record<string, unknown> = next;
@@ -67,6 +66,16 @@
 		}
 		cur[parts[parts.length - 1]] = value;
 		configData = next;
+
+		// Re-check this field now it's been touched: flag it if a required field was
+		// cleared, clear the flag once it's filled again (admin2#34).
+		const err = blueprint ? validateFieldAt(blueprint.fields, path, next) : null;
+		if (err) {
+			validationErrors = { ...validationErrors, [path]: err };
+		} else if (validationErrors[path]) {
+			const { [path]: _cleared, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
 	}
 
 	async function handleSave() {
@@ -81,7 +90,7 @@
 		try {
 			const result = await saveConfig('accounts', configData, etag);
 			configData = result.data ?? configData;
-			originalJson = JSON.stringify(configData);
+			originalJson = stableJson(configData);
 			etag = result.etag;
 			toast.success(i18n.t('ADMIN_NEXT.ACCOUNTS_CONFIG.SAVED'));
 		} catch (err: unknown) {
@@ -128,7 +137,7 @@
 								{i18n.t('ADMIN_NEXT.ACCOUNTS_CONFIG.TITLE')}
 							</h1>
 						</div>
-						<Button size="sm" disabled={!hasChanges || saving} onclick={handleSave}>
+						<Button size="sm" disabled={!hasChanges || saving || !requiredOk} onclick={handleSave}>
 							{#if saving}
 								<Loader2 size={14} class="animate-spin" />
 							{:else}

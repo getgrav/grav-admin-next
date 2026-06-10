@@ -16,7 +16,7 @@
 	} from '$lib/api/endpoints/pluginPages';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
 	import PluginPageComponent from '$lib/components/plugin-page/PluginPageComponent.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
@@ -46,7 +46,10 @@
 	let actionExecuting = $state<string | null>(null);
 	let openDropdown = $state<string | null>(null);
 
-	let hasChanges = $derived(JSON.stringify(formData) !== originalJson);
+	let hasChanges = $derived(stableJson(formData) !== originalJson);
+	// Reactive validity gate: keep Save disabled while any required field is empty
+	// (admin2#34). Independent of the inline error display, which stays touch/submit-gated.
+	let requiredOk = $derived(!blueprint || !hasRequiredErrors(blueprint.fields, formData));
 
 	async function loadPage() {
 		loading = true;
@@ -73,7 +76,7 @@
 				]);
 				blueprint = bp;
 				formData = data;
-				originalJson = JSON.stringify(data);
+				originalJson = stableJson(data);
 			}
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
@@ -84,10 +87,6 @@
 	}
 
 	function handleBlueprintChange(path: string, value: unknown) {
-		if (validationErrors[path]) {
-			const { [path]: _cleared, ...rest } = validationErrors;
-			validationErrors = rest;
-		}
 		const parts = path.split('.');
 		const newData = { ...formData };
 		let current: Record<string, unknown> = newData;
@@ -103,6 +102,16 @@
 		}
 		current[parts[parts.length - 1]] = value;
 		formData = newData;
+
+		// Re-check this field now it's been touched: flag it if a required field was
+		// cleared, clear the flag once it's filled again (admin2#34).
+		const err = blueprint ? validateFieldAt(blueprint.fields, path, newData) : null;
+		if (err) {
+			validationErrors = { ...validationErrors, [path]: err };
+		} else if (validationErrors[path]) {
+			const { [path]: _cleared, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
 	}
 
 	async function handleSave() {
@@ -250,7 +259,7 @@
 					if (definition?.data_endpoint) {
 						const fresh = await getPluginPageData(definition.data_endpoint);
 						formData = fresh;
-						originalJson = JSON.stringify(fresh);
+						originalJson = stableJson(fresh);
 					}
 				} catch (err: unknown) {
 					const detail = err instanceof Error ? err.message : 'Import failed';
@@ -432,7 +441,7 @@
 						<Button
 							size="sm"
 							onclick={() => action.primary ? handleSave() : executeAction(action)}
-							disabled={action.primary ? (!hasChanges || saving) : actionExecuting === action.id}
+							disabled={action.primary ? (!hasChanges || saving || !requiredOk) : actionExecuting === action.id}
 						>
 							{#if (action.primary && saving) || actionExecuting === action.id}
 								<Loader2 size={14} class="me-1.5 animate-spin" />

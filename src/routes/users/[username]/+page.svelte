@@ -9,7 +9,7 @@
 	import { getUserBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
 	import TwoFactorField from '$lib/components/TwoFactorField.svelte';
 	import ApiKeysField from '$lib/components/ApiKeysField.svelte';
@@ -74,7 +74,7 @@
 	let originalAccessJson = $state('{}');
 
 	const hasChanges = $derived(
-		JSON.stringify(configData) !== originalJson ||
+		stableJson(configData) !== originalJson ||
 		(canManagePermissions && JSON.stringify(access) !== originalAccessJson)
 	);
 
@@ -109,6 +109,9 @@
 			fields: filterFields(blueprint.fields),
 		};
 	});
+	// Reactive validity gate: keep Save disabled while any required field is empty
+	// (admin2#34). Independent of the inline error display, which stays touch/submit-gated.
+	let requiredOk = $derived(!filteredBlueprint || !hasRequiredErrors(filteredBlueprint.fields, configData));
 
 	// The account blueprint nests `groups` inside the `security` section, which
 	// we suppress wholesale (its other child, `access`, is rendered by the
@@ -159,7 +162,7 @@
 			// of group keys — matches classic admin's on-disk `groups: [key]`.
 			groups: u.groups ?? [],
 		};
-		originalJson = JSON.stringify(configData);
+		originalJson = stableJson(configData);
 
 		access = structuredClone(u.access);
 		originalAccessJson = JSON.stringify(access);
@@ -193,10 +196,6 @@
 	}
 
 	function handleBlueprintChange(path: string, value: unknown) {
-		if (validationErrors[path]) {
-			const { [path]: _cleared, ...rest } = validationErrors;
-			validationErrors = rest;
-		}
 		const parts = path.split('.');
 		const newData = { ...configData };
 		let current: Record<string, unknown> = newData;
@@ -212,6 +211,16 @@
 		}
 		current[parts[parts.length - 1]] = value;
 		configData = newData;
+
+		// Re-check this field now it's been touched: flag it if a required field was
+		// cleared, clear the flag once it's filled again (admin2#34).
+		const err = filteredBlueprint ? validateFieldAt(filteredBlueprint.fields, path, newData) : null;
+		if (err) {
+			validationErrors = { ...validationErrors, [path]: err };
+		} else if (validationErrors[path]) {
+			const { [path]: _cleared, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
 	}
 
 	function stripRedacted(obj: unknown): unknown {
@@ -450,7 +459,7 @@
 							<Button
 								size="sm"
 								onclick={handleSave}
-								disabled={!hasChanges || saving}
+								disabled={!hasChanges || saving || !requiredOk}
 								aria-label="Save"
 								title="Save"
 							>

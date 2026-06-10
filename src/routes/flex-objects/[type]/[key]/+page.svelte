@@ -14,7 +14,7 @@
 	} from '$lib/api/endpoints/flexObjects';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -45,7 +45,10 @@
 	let validationErrors = $state<Record<string, string>>({});
 	let originalJson = $state('{}');
 
-	const hasChanges = $derived(JSON.stringify(configData) !== originalJson);
+	const hasChanges = $derived(stableJson(configData) !== originalJson);
+	// Reactive validity gate: keep Save disabled while any required field is empty
+	// (admin2#34). Independent of the inline error display, which stays touch/submit-gated.
+	let requiredOk = $derived(!blueprint || !hasRequiredErrors(blueprint.fields, configData));
 
 	// Read save-redirect from the custom field value
 	const afterSave = $derived((configData._post_entries_save as string) ?? 'edit');
@@ -65,7 +68,7 @@
 	function populateForm(obj: FlexObject) {
 		const { key: _key, ...rest } = obj;
 		configData = structuredClone(rest) as Record<string, unknown>;
-		originalJson = JSON.stringify(configData);
+		originalJson = stableJson(configData);
 	}
 
 	async function loadData() {
@@ -91,10 +94,6 @@
 	}
 
 	function handleBlueprintChange(path: string, value: unknown) {
-		if (validationErrors[path]) {
-			const { [path]: _cleared, ...rest } = validationErrors;
-			validationErrors = rest;
-		}
 		const parts = path.split('.');
 		const newData = { ...configData };
 		let current: Record<string, unknown> = newData;
@@ -110,6 +109,16 @@
 		}
 		current[parts[parts.length - 1]] = value;
 		configData = newData;
+
+		// Re-check this field now it's been touched: flag it if a required field was
+		// cleared, clear the flag once it's filled again (admin2#34).
+		const err = blueprint ? validateFieldAt(blueprint.fields, path, newData) : null;
+		if (err) {
+			validationErrors = { ...validationErrors, [path]: err };
+		} else if (validationErrors[path]) {
+			const { [path]: _cleared, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
 	}
 
 	async function handleSave() {
@@ -280,7 +289,7 @@
 							{/if}
 							{i18n.t('ADMIN_NEXT.DELETE')}
 						</Button>
-						<Button size="sm" onclick={handleSave} disabled={!hasChanges || saving}>
+						<Button size="sm" onclick={handleSave} disabled={!hasChanges || saving || !requiredOk}>
 							{#if saving}
 								<Loader2 size={14} class="me-1.5 animate-spin" />
 							{:else}

@@ -8,7 +8,7 @@
 	import { getConfig, saveConfig } from '$lib/api/endpoints/config';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
 	import CopyButton from '$lib/components/ui/CopyButton.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Save, Loader2, AlertTriangle, Info, Shield } from 'lucide-svelte';
@@ -22,7 +22,10 @@
 	let loading = $state(true);
 	let saving = $state(false);
 
-	let hasChanges = $derived(JSON.stringify(configData) !== originalJson);
+	let hasChanges = $derived(stableJson(configData) !== originalJson);
+	// Reactive validity gate: keep Save disabled while any required field is empty
+	// (admin2#34). Independent of the inline error display, which stays touch/submit-gated.
+	let requiredOk = $derived(!blueprint || !hasRequiredErrors(blueprint.fields, configData));
 
 	async function load() {
 		loading = true;
@@ -35,7 +38,7 @@
 			status = statusResult;
 			blueprint = bp;
 			configData = cfg.data;
-			originalJson = JSON.stringify(cfg.data);
+			originalJson = stableJson(cfg.data);
 			etag = cfg.etag;
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.FAILED_TO_LOAD_SCHEDULER_CONFIGURATION'));
@@ -45,10 +48,6 @@
 	}
 
 	function handleBlueprintChange(path: string, value: unknown) {
-		if (validationErrors[path]) {
-			const { [path]: _cleared, ...rest } = validationErrors;
-			validationErrors = rest;
-		}
 		const parts = path.split('.');
 		const newData = { ...configData };
 		let current: Record<string, unknown> = newData;
@@ -61,6 +60,16 @@
 		}
 		current[parts[parts.length - 1]] = value;
 		configData = newData;
+
+		// Re-check this field now it's been touched: flag it if a required field was
+		// cleared, clear the flag once it's filled again (admin2#34).
+		const err = blueprint ? validateFieldAt(blueprint.fields, path, newData) : null;
+		if (err) {
+			validationErrors = { ...validationErrors, [path]: err };
+		} else if (validationErrors[path]) {
+			const { [path]: _cleared, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
 	}
 
 	async function handleSave() {
@@ -75,7 +84,7 @@
 		try {
 			const result = await saveConfig('scheduler', configData, etag);
 			configData = result.data;
-			originalJson = JSON.stringify(result.data);
+			originalJson = stableJson(result.data);
 			etag = result.etag;
 			toast.success(i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.SCHEDULER_CONFIGURATION_SAVED'));
 		} catch {
@@ -133,7 +142,7 @@
 
 		<!-- Save button (always visible, disabled when no changes) -->
 		<div class="flex justify-end">
-			<Button size="sm" onclick={handleSave} disabled={saving || !hasChanges} class={hasChanges ? '' : 'opacity-50'}>
+			<Button size="sm" onclick={handleSave} disabled={saving || !hasChanges || !requiredOk} class={hasChanges ? '' : 'opacity-50'}>
 				{#if saving}
 					<Loader2 size={14} class="animate-spin" />
 					{i18n.t('ADMIN_NEXT.SAVING')}

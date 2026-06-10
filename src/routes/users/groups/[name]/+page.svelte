@@ -9,7 +9,7 @@
 	import { getGroup, updateGroup, deleteGroup, type GroupInfo } from '$lib/api/endpoints/groups';
 	import { getGroupBlueprint, type BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
@@ -40,7 +40,7 @@
 	let originalAccessJson = $state('{}');
 
 	const hasChanges = $derived(
-		JSON.stringify(configData) !== originalJson ||
+		stableJson(configData) !== originalJson ||
 		JSON.stringify(access) !== originalAccessJson
 	);
 
@@ -54,6 +54,9 @@
 		if (!blueprint) return null;
 		return { ...blueprint, fields: filterFields(blueprint.fields) };
 	});
+	// Reactive validity gate: keep Save disabled while any required field is empty
+	// (admin2#34). Independent of the inline error display, which stays touch/submit-gated.
+	let requiredOk = $derived(!filteredBlueprint || !hasRequiredErrors(filteredBlueprint.fields, configData));
 
 	function populateForm(g: GroupInfo) {
 		configData = {
@@ -63,7 +66,7 @@
 			icon: g.icon ?? '',
 			enabled: g.enabled,
 		};
-		originalJson = JSON.stringify(configData);
+		originalJson = stableJson(configData);
 		access = structuredClone(g.access ?? {});
 		originalAccessJson = JSON.stringify(access);
 	}
@@ -92,10 +95,6 @@
 	}
 
 	function handleBlueprintChange(path: string, value: unknown) {
-		if (validationErrors[path]) {
-			const { [path]: _cleared, ...rest } = validationErrors;
-			validationErrors = rest;
-		}
 		const parts = path.split('.');
 		const next = { ...configData };
 		let cur: Record<string, unknown> = next;
@@ -107,6 +106,16 @@
 		}
 		cur[parts[parts.length - 1]] = value;
 		configData = next;
+
+		// Re-check this field now it's been touched: flag it if a required field was
+		// cleared, clear the flag once it's filled again (admin2#34).
+		const err = filteredBlueprint ? validateFieldAt(filteredBlueprint.fields, path, next) : null;
+		if (err) {
+			validationErrors = { ...validationErrors, [path]: err };
+		} else if (validationErrors[path]) {
+			const { [path]: _cleared, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
 	}
 
 	async function handleSave() {
@@ -196,7 +205,7 @@
 								<Trash2 size={14} />
 								{i18n.t('ADMIN_NEXT.DELETE')}
 							</Button>
-							<Button size="sm" disabled={!hasChanges || saving} onclick={handleSave}>
+							<Button size="sm" disabled={!hasChanges || saving || !requiredOk} onclick={handleSave}>
 								{#if saving}
 									<Loader2 size={14} class="animate-spin" />
 								{:else}

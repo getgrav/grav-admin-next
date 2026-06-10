@@ -10,7 +10,7 @@
 	import { getConfigBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
 	import ConfigNav from '$lib/components/config/ConfigNav.svelte';
 	import ConfigInfoPage from '$lib/components/config/ConfigInfoPage.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -55,8 +55,11 @@
 	let validationErrors = $state<Record<string, string>>({});
 
 	let accessDenied = $state(false);
-	let hasChanges = $derived(JSON.stringify(configData) !== originalJson);
+	let hasChanges = $derived(stableJson(configData) !== originalJson);
 	const canSave = $derived(canWrite('config'));
+	// Reactive validity gate: keep Save disabled while any required field is empty
+	// (admin2#34). Independent of the inline error display, which stays touch/submit-gated.
+	let requiredOk = $derived(!blueprint || !hasRequiredErrors(blueprint.fields, configData));
 	let filter = $state('');
 	let headerHeight = $state(0);
 
@@ -93,7 +96,7 @@
 
 			blueprint = blueprintResult;
 			configData = configResult.data;
-			originalJson = JSON.stringify(configResult.data);
+			originalJson = stableJson(configResult.data);
 			etag = configResult.etag;
 			overrides = configResult.overrides;
 			fallback = configResult.fallback;
@@ -113,12 +116,6 @@
 	}
 
 	function handleBlueprintChange(path: string, value: unknown) {
-		// Clear this field's validation error as soon as the user edits it.
-		if (validationErrors[path]) {
-			const { [path]: _cleared, ...rest } = validationErrors;
-			validationErrors = rest;
-		}
-
 		// Immutably update the nested path in configData
 		const parts = path.split('.');
 		const newData = { ...configData };
@@ -134,6 +131,16 @@
 
 		current[parts[parts.length - 1]] = value;
 		configData = newData;
+
+		// Re-check this field now it's been touched: flag it if a required field was
+		// cleared, clear the flag once it's filled again (admin2#34).
+		const err = blueprint ? validateFieldAt(blueprint.fields, path, newData) : null;
+		if (err) {
+			validationErrors = { ...validationErrors, [path]: err };
+		} else if (validationErrors[path]) {
+			const { [path]: _cleared, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
 	}
 
 	/**
@@ -169,7 +176,7 @@
 			const cleanData = stripRedacted(configData);
 			const result = await saveConfig(scope, cleanData, etag);
 			configData = result.data;
-			originalJson = JSON.stringify(result.data);
+			originalJson = stableJson(result.data);
 			etag = result.etag;
 			overrides = result.overrides;
 			fallback = result.fallback;
@@ -238,7 +245,7 @@
 			handleBlueprintChange(path, newVal);
 			const orig = JSON.parse(originalJson);
 			setPath(orig, path, newVal);
-			originalJson = JSON.stringify(orig);
+			originalJson = stableJson(orig);
 			etag = result.etag;
 			overrides = result.overrides;
 			fallback = result.fallback;
@@ -257,7 +264,7 @@
 		try {
 			const result = await revertConfig(scope, { reset: true }, etag);
 			configData = result.data;
-			originalJson = JSON.stringify(result.data);
+			originalJson = stableJson(result.data);
 			etag = result.etag;
 			overrides = result.overrides;
 			fallback = result.fallback;
@@ -382,7 +389,7 @@
 								<RefreshCw size={14} />
 								{i18n.t('ADMIN_NEXT.CONFIG.RELOAD')}
 							</Button>
-							<Button size="sm" onclick={handleSave} disabled={saving || loading || !hasChanges || !canSave}>
+							<Button size="sm" onclick={handleSave} disabled={saving || loading || !hasChanges || !canSave || !requiredOk}>
 								{#if saving}
 									<Loader2 size={14} class="animate-spin" />
 									{i18n.t('ADMIN_NEXT.SAVING')}

@@ -10,7 +10,7 @@
 	import { getPluginBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
@@ -55,7 +55,10 @@
 	let updating = $state(false);
 	let error = $state('');
 
-	let hasChanges = $derived(JSON.stringify(configData) !== originalJson);
+	let hasChanges = $derived(stableJson(configData) !== originalJson);
+	// Reactive validity gate: keep Save disabled while any required field is empty
+	// (admin2#34). Independent of the inline error display, which stays touch/submit-gated.
+	let requiredOk = $derived(!blueprint || !hasRequiredErrors(blueprint.fields, configData));
 
 	// Modal state for README / Changelog
 	let modalOpen = $state(false);
@@ -139,7 +142,7 @@
 			plugin = pluginResult;
 			blueprint = blueprintResult;
 			configData = configResult.data;
-			originalJson = JSON.stringify(configResult.data);
+			originalJson = stableJson(configResult.data);
 			etag = configResult.etag;
 			ovr.ingest({ overrides: configResult.overrides, fallback: configResult.fallback });
 
@@ -166,10 +169,6 @@
 	}
 
 	function handleBlueprintChange(path: string, value: unknown) {
-		if (validationErrors[path]) {
-			const { [path]: _cleared, ...rest } = validationErrors;
-			validationErrors = rest;
-		}
 		const parts = path.split('.');
 		const newData = { ...configData };
 		let current: Record<string, unknown> = newData;
@@ -185,6 +184,16 @@
 		}
 		current[parts[parts.length - 1]] = value;
 		configData = newData;
+
+		// Re-check this field now it's been touched: flag it if a required field was
+		// cleared, clear the flag once it's filled again (admin2#34).
+		const err = blueprint ? validateFieldAt(blueprint.fields, path, newData) : null;
+		if (err) {
+			validationErrors = { ...validationErrors, [path]: err };
+		} else if (validationErrors[path]) {
+			const { [path]: _cleared, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
 	}
 
 	// Per-field override indicators + revert/reset (scope: plugins/<slug>).
@@ -205,12 +214,12 @@
 			handleBlueprintChange(path, value);
 			const orig = JSON.parse(originalJson);
 			setPath(orig, path, value);
-			originalJson = JSON.stringify(orig);
+			originalJson = stableJson(orig);
 			etag = newEtag;
 		},
 		applyReset: (data, newEtag) => {
 			configData = data;
-			originalJson = JSON.stringify(data);
+			originalJson = stableJson(data);
 			etag = newEtag;
 		},
 	});
@@ -245,7 +254,7 @@
 			// Refresh to get new ETag
 			const fresh = await getPluginConfig(slug);
 			configData = fresh.data;
-			originalJson = JSON.stringify(fresh.data);
+			originalJson = stableJson(fresh.data);
 			etag = fresh.etag;
 			ovr.ingest({ overrides: fresh.overrides, fallback: fresh.fallback });
 
@@ -284,7 +293,7 @@
 				]);
 				blueprint = bp;
 				configData = cfg.data;
-				originalJson = JSON.stringify(cfg.data);
+				originalJson = stableJson(cfg.data);
 				etag = cfg.etag;
 				ovr.ingest({ overrides: cfg.overrides, fallback: cfg.fallback });
 			}
@@ -558,7 +567,7 @@
 				<Button
 					size="sm"
 					onclick={handleSave}
-					disabled={!hasChanges || saving}
+					disabled={!hasChanges || saving || !requiredOk}
 					aria-label="Save"
 					title="Save"
 				>

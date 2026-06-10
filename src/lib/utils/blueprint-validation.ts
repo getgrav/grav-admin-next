@@ -41,12 +41,40 @@ export function getByPath(data: Record<string, unknown> | undefined, path: strin
 }
 
 /** A value counts as "empty" for a required check. Numbers and booleans don't. */
-function isEmpty(value: unknown): boolean {
+export function isEmpty(value: unknown): boolean {
 	if (value === null || value === undefined) return true;
 	if (typeof value === 'string') return value.trim() === '';
 	if (Array.isArray(value)) return value.length === 0;
 	if (typeof value === 'object') return Object.keys(value as object).length === 0;
 	return false;
+}
+
+/** Build the inline error message for a single required field, or null if it's filled. */
+function requiredErrorFor(
+	field: BlueprintField,
+	data: Record<string, unknown> | undefined,
+): string | null {
+	const value = getByPath(data, field.name);
+	// A field showing its blueprint default isn't empty — the default is what gets saved.
+	const effective = isEmpty(value) ? field.default : value;
+	if (!isEmpty(effective)) return null;
+	const label = field.label ? i18n.tMaybe(field.label) : '';
+	return label
+		? i18n.t('ADMIN_NEXT.VALIDATION.FIELD_REQUIRED', { label })
+		: i18n.t('ADMIN_NEXT.VALIDATION.REQUIRED_GENERIC');
+}
+
+/** Find a leaf field definition by its dotted data-path, recursing only layout containers. */
+function findFieldByName(fields: BlueprintField[], name: string): BlueprintField | undefined {
+	for (const field of fields) {
+		const isContainer = RECURSE_TYPES.has(field.type);
+		if (!isContainer && field.name === name) return field;
+		if (isContainer && field.fields?.length) {
+			const found = findFieldByName(field.fields, name);
+			if (found) return found;
+		}
+	}
+	return undefined;
 }
 
 /** Collect required leaf fields, recursing through layout containers only. */
@@ -80,17 +108,74 @@ export function validateRequiredFields(
 
 	const errors: Record<string, string> = {};
 	for (const field of required) {
-		const value = getByPath(data, field.name);
-		// A field showing its blueprint default isn't empty — the default is what gets saved.
-		const effective = isEmpty(value) ? field.default : value;
-		if (isEmpty(effective)) {
-			const label = field.label ? i18n.tMaybe(field.label) : '';
-			errors[field.name] = label
-				? i18n.t('ADMIN_NEXT.VALIDATION.FIELD_REQUIRED', { label })
-				: i18n.t('ADMIN_NEXT.VALIDATION.REQUIRED_GENERIC');
-		}
+		const error = requiredErrorFor(field, data);
+		if (error) errors[field.name] = error;
 	}
 	return errors;
+}
+
+/**
+ * Validate a single field by its data-path against the current form data.
+ * Returns an error message (empty required field) or null. Used to re-check a
+ * field the moment it's edited, so clearing a required field flags it inline
+ * and re-enables once filled — without flagging untouched fields on load.
+ */
+export function validateFieldAt(
+	fields: BlueprintField[],
+	path: string,
+	data: Record<string, unknown> | undefined,
+): string | null {
+	const field = findFieldByName(fields, path);
+	if (
+		!field
+		|| field.validate?.required !== true
+		|| SUPPRESSED_NAMES.has(field.name)
+		|| SUPPRESSED_TYPES.has(field.type)
+	) {
+		return null;
+	}
+	return requiredErrorFor(field, data);
+}
+
+/**
+ * True when any required field is currently empty. A cheap reactive gate for
+ * the Save button: keep it disabled while the form can't legally be saved
+ * (getgrav/grav-plugin-admin2#34, #35).
+ */
+export function hasRequiredErrors(
+	fields: BlueprintField[],
+	data: Record<string, unknown> | undefined,
+): boolean {
+	const required: BlueprintField[] = [];
+	collectRequired(fields, required);
+	return required.some((field) => requiredErrorFor(field, data) !== null);
+}
+
+/**
+ * Deep-clone `data` dropping empty leaves and branches (empty string/array/object,
+ * null, undefined). Used for dirty comparison so that typing into a required
+ * field and then clearing it — leaving an empty string where the original had
+ * no key at all — no longer registers as a change (admin2#34). A field cleared
+ * from a real value still differs (the real value survives pruning on one side).
+ */
+export function pruneEmpty(value: unknown): unknown {
+	if (Array.isArray(value)) {
+		return value.map(pruneEmpty).filter((v) => !isEmpty(v));
+	}
+	if (value && typeof value === 'object') {
+		const out: Record<string, unknown> = {};
+		for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+			const pruned = pruneEmpty(val);
+			if (!isEmpty(pruned)) out[key] = pruned;
+		}
+		return out;
+	}
+	return value;
+}
+
+/** Stable JSON of `data` with empty values pruned, for dirty/changed comparisons. */
+export function stableJson(data: unknown): string {
+	return JSON.stringify(pruneEmpty(data));
 }
 
 /**
