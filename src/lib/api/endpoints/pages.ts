@@ -13,6 +13,8 @@ export interface PageSummary {
 	menu: string;
 	template: string;
 	slug: string;
+	/** On-disk folder basename, including any numeric ordering prefix (e.g. `01.consulting`). `slug` is the prefix-stripped name. */
+	folder?: string;
 	language: string | null;
 	header: Record<string, unknown>;
 	taxonomy: Record<string, string[]>;

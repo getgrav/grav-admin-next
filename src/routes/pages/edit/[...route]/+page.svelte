@@ -581,6 +581,49 @@
 		return route.slice(0, route.lastIndexOf('/')) || '/';
 	}
 
+	/**
+	 * Whether a page's folder carries a numeric ordering prefix (e.g. `01.`).
+	 * The API mirrors Grav's `order()`, which returns `false` for an unprefixed
+	 * folder and a prefix string like `"01."` otherwise. A naive
+	 * `order != null && order !== ''` check misreads `false` as "ordered"
+	 * (it's neither null nor empty), which is why the toggle always showed
+	 * Enabled — so test explicitly against the empty shapes.
+	 */
+	function hasNumericPrefix(order: unknown): boolean {
+		return order !== null && order !== undefined && order !== false && order !== '';
+	}
+
+	/**
+	 * Normalize the API's order value — `false`/`null`/`''` (no prefix) or a
+	 * prefix like `"01."`/`1` — to a plain integer, or null when unprefixed.
+	 * Comparing normalized values avoids false "moved" diffs: `String(false)`
+	 * never equals `false`, which would otherwise flag every unprefixed page.
+	 */
+	function normalizeOrder(order: unknown): number | null {
+		if (!hasNumericPrefix(order)) return null;
+		const n = parseInt(String(order), 10);
+		return Number.isNaN(n) ? null : n;
+	}
+
+	/**
+	 * The order to assign when a page gains a numeric prefix: one past the
+	 * highest prefix among its siblings, so a newly-ordered page sorts to the
+	 * end of the folder by default. Falls back to 1 when no sibling is ordered.
+	 */
+	async function nextSiblingOrder(parentRoute: string): Promise<number> {
+		try {
+			const siblings = await getChildren(parentRoute);
+			let max = 0;
+			for (const s of siblings) {
+				const n = parseInt(String(s.order ?? ''), 10);
+				if (!Number.isNaN(n) && n > max) max = n;
+			}
+			return max + 1;
+		} catch {
+			return 1;
+		}
+	}
+
 	// Publish presence + Normal/Expert handles to the global topbar so the
 	// AppShell renders them up there instead of cramming them into this
 	// page's already-busy toolbar. Both slots clear when the route unmounts
@@ -800,7 +843,7 @@
 			content = data.content ?? '';
 			template = data.template;
 			const initialParent = deriveParent(data.route, data.slug);
-			const initialOrdering = data.order !== null && data.order !== '';
+			const initialOrdering = hasNumericPrefix(data.order);
 			headerData = {
 				header: { ...data.header ?? {}, title: data.title },
 				content: data.content ?? '',
@@ -1099,13 +1142,15 @@
 			const normalFolder = (headerData.folder as string | undefined) ?? originalFolder;
 			const normalParent = (headerData.route as string | undefined) ?? originalParent;
 			const normalOrdering = !!(headerData.ordering ?? originalOrdering);
-			const rawOrder = headerData.order as string | number | null | undefined;
-			const normalOrder = rawOrder === undefined ? originalOrder : (rawOrder === null || rawOrder === '' ? null : String(rawOrder));
+			// Compare order as a normalized integer (or null) so the API's
+			// `false`/`"01."` shapes never read as a spurious change.
+			const normalOrder = normalizeOrder(headerData.order === undefined ? originalOrder : headerData.order);
+			const originalOrderNum = normalizeOrder(originalOrder);
 			const normalNeedsMove = prefs.editorMode === 'normal' && pageData && (
 				normalFolder !== originalFolder ||
 				normalParent !== originalParent ||
 				normalOrdering !== originalOrdering ||
-				normalOrder !== originalOrder
+				normalOrder !== originalOrderNum
 			);
 
 			if (Object.keys(body).length === 0 && !expertNeedsMove && !normalNeedsMove) {
@@ -1206,22 +1251,23 @@
 					parent: normalParent,
 				};
 				if (normalFolder !== originalFolder) moveBody.slug = normalFolder;
-				if (normalOrdering !== originalOrdering || normalOrder !== originalOrder) {
+				if (normalOrdering !== originalOrdering || normalOrder !== originalOrderNum) {
 					if (!normalOrdering) {
+						// Toggling ordering off: drop the numeric prefix from the folder.
 						moveBody.order = null;
 					} else {
-						// Toggling ordering on: prefer the existing stored order;
-						// fall back to position 1 so the folder actually gains
-						// the NN. prefix the user just asked for.
-						const parsed = normalOrder !== null && normalOrder !== '' ? parseInt(normalOrder, 10) : NaN;
-						moveBody.order = Number.isNaN(parsed) ? 1 : parsed;
+						// Toggling ordering on: prefer an explicit order the user
+						// set; otherwise place the page last by taking one past the
+						// highest sibling prefix, so it gains an `NN.` prefix that
+						// sorts to the end of the folder.
+						moveBody.order = normalOrder ?? await nextSiblingOrder(normalParent);
 					}
 				}
 
 				const moved = await movePage(route, moveBody);
 
 				const movedParent = deriveParent(moved.route, moved.slug);
-				const movedOrdering = moved.order !== null && moved.order !== '';
+				const movedOrdering = hasNumericPrefix(moved.order);
 				pageData = moved;
 				title = moved.title ?? title;
 				content = moved.content ?? content;
@@ -1907,6 +1953,12 @@
 							<dt class="text-muted-foreground">Slug</dt>
 							<dd class="font-medium text-foreground">{pageData.slug}</dd>
 						</div>
+						{#if pageData.folder}
+							<div class="flex justify-between">
+								<dt class="text-muted-foreground">Folder</dt>
+								<dd class="max-w-[140px] truncate font-mono text-[0.75rem] font-medium text-foreground" title={pageData.folder}>{pageData.folder}</dd>
+							</div>
+						{/if}
 						<div class="flex justify-between">
 							<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_TEMPLATE')}</dt>
 							<dd class="font-medium text-foreground">{pageData.template}</dd>
