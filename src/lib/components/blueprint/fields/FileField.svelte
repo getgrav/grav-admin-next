@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { encodeMediaFileUrl, type MediaItem } from '$lib/api/endpoints/media';
-	import type { PageMediaContext } from '$lib/components/media/types';
+	import type { PageMediaContext, MediaSource } from '$lib/components/media/types';
 	import { getContext, onMount } from 'svelte';
 	import { Uppy } from '@uppy/core';
 	import XHRUpload from '@uppy/xhr-upload';
@@ -34,6 +34,9 @@
 	let { field, value, onchange }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 	const getRoute = getContext<(() => string) | undefined>('pageRoute');
+	// Non-page media source (e.g. a flex object). When present, uploads/deletes
+	// target the object's media endpoint instead of the page-media path.
+	const getMediaSource = getContext<(() => MediaSource) | undefined>('mediaSource');
 	const mediaCtx = getContext<PageMediaContext | undefined>('pageMediaItems');
 	// Owning scope for `self@:` resolution on the blueprint-upload endpoint.
 	// Set by the host route (plugins/<slug>, themes/<slug>, pages/<route>,
@@ -54,6 +57,9 @@
 	// page-media endpoint (which requires a page route).
 	const destination = $derived(field.destination ?? '');
 	const useBlueprintUpload = $derived(destination !== '');
+	// Resolved relative API base for a non-page source (e.g. flex object).
+	const mediaSource = $derived(getMediaSource?.());
+	const mediaApiBase = $derived(mediaSource?.apiBase ?? null);
 
 	let uploading = $state(false);
 	let uploadProgress = $state(0);
@@ -103,6 +109,10 @@
 	}
 
 	function buildPath(filename: string): string {
+		// Object media (flex, etc.) lives in the object's own media folder, so
+		// the file-field value is keyed by the bare filename relative to that
+		// folder — matching Grav's parseFileProperty (`path => filename`).
+		if (mediaApiBase) return filename;
 		const route = getRoute?.() ?? '';
 		const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
 		// Approximate the Grav page path — the server will have the exact path
@@ -112,6 +122,9 @@
 	function getUploadEndpoint(): string {
 		if (useBlueprintUpload) {
 			return `${auth.serverUrl}${auth.apiPrefix}/blueprint-upload`;
+		}
+		if (mediaApiBase) {
+			return `${auth.serverUrl}${auth.apiPrefix}/${mediaApiBase}/media`;
 		}
 		const route = getRoute?.() ?? '';
 		const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
@@ -216,11 +229,24 @@
 			uploadProgress = 0;
 			uppy?.cancelAll();
 
-			// Page-media path: invalidate the page's media + refresh the
-			// shared context so filepickers in the same form see the new
-			// file. Blueprint-upload path writes outside page media, so
-			// neither of those is meaningful here.
+			// Invalidate the owning object's media + refresh the shared context
+			// so filepickers in the same form see the new file. Blueprint-upload
+			// path writes outside object media, so neither is meaningful here.
 			if (useBlueprintUpload) return;
+
+			// Object media source (flex, etc.): emit its invalidation channels
+			// and refresh the shared context from the object's media endpoint.
+			if (mediaApiBase) {
+				// XHRUpload bypasses our API client — emit invalidation manually.
+				invalidations.emit(mediaSource?.invalidationKeys ?? []);
+				if (mediaCtx) {
+					const base = mediaApiBase;
+					import('$lib/api/endpoints/media').then(({ getObjectMedia }) => {
+						getObjectMedia(base).then((items) => mediaCtx.update(items));
+					});
+				}
+				return;
+			}
 
 			const route = getRoute?.() ?? '';
 			const cleanRoute = route.startsWith('/') ? route.slice(1) : route;

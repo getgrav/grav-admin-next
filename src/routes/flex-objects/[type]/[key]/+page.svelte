@@ -24,12 +24,31 @@
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
-	import { onMount } from 'svelte';
+	import { onMount, setContext } from 'svelte';
 	import { Save, Loader2, AlertCircle, Trash2, Undo2 } from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
+	import { getObjectMedia, type MediaItem } from '$lib/api/endpoints/media';
+	import type { MediaSource, PageMediaContext } from '$lib/components/media/types';
 
 	const type = $derived(page.params.type ?? '');
 	const key = $derived(page.params.key ?? '');
+
+	// Point blueprint media/file fields at this object's media endpoint
+	// (/flex-objects/{type}/{key}/media) instead of the page-media path —
+	// without this they default to /pages//media and 405 (flex-objects#216).
+	setContext('mediaSource', (): MediaSource => ({
+		apiBase: type && key ? `flex-objects/${type}/${key}` : null,
+		invalidationKeys: type && key
+			? [`flex-objects:${type}:media:${key}`, `flex-objects:${type}:update:${key}`]
+			: [],
+	}));
+
+	// Shared reactive media list — PageMedia writes it, File/FilePicker fields read it.
+	let objectMediaItems = $state<MediaItem[]>([]);
+	setContext('pageMediaItems', {
+		get items() { return objectMediaItems; },
+		update(items: MediaItem[]) { objectMediaItems = items; },
+	} satisfies PageMediaContext);
 
 	let directory = $state<FlexDirectoryInfo | null>(null);
 	let object = $state<FlexObject | null>(null);
@@ -86,6 +105,16 @@
 			blueprint = blueprintResult;
 			directory = dirs.find((d) => d.type === type) ?? null;
 			populateForm(objectResult.object);
+
+			// Prime the shared media list so file pickers / file fields can
+			// show thumbnails even when the blueprint has no pagemedia field.
+			// Best-effort: directories without per-object media return an error
+			// we can safely ignore.
+			if (type && key) {
+				getObjectMedia(`flex-objects/${type}/${key}`)
+					.then((items) => { objectMediaItems = items; })
+					.catch(() => { /* no per-object media — fine */ });
+			}
 		} catch {
 			error = `Failed to load object '${key}' from '${type}'.`;
 		} finally {

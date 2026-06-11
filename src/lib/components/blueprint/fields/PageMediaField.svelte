@@ -2,14 +2,23 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { getContext } from 'svelte';
 	import PageMedia from '$lib/components/media/PageMedia.svelte';
-	import type { PageMediaContext } from '$lib/components/media/types';
+	import type { PageMediaContext, MediaSource } from '$lib/components/media/types';
 
 	const getRoute = getContext<(() => string) | undefined>('pageRoute');
+	const getMediaSource = getContext<(() => MediaSource) | undefined>('mediaSource');
 	const mediaCtx = getContext<PageMediaContext | undefined>('pageMediaItems');
 	const route = $derived(getRoute?.() ?? '/');
+	const source = $derived(getMediaSource?.());
 </script>
 
-{#if route}
+{#if source}
+	<PageMedia
+		apiBase={source.apiBase}
+		invalidationKeys={source.invalidationKeys}
+		onMediaChange={(items) => mediaCtx?.update(items)}
+		externalItems={mediaCtx?.items}
+	/>
+{:else if route}
 	<PageMedia {route} onMediaChange={(items) => mediaCtx?.update(items)} externalItems={mediaCtx?.items} />
 {:else}
 	<div class="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">

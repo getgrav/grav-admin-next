@@ -7,18 +7,31 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
-	import { getPageMedia, deletePageMedia, encodeMediaFileUrl, type MediaItem } from '$lib/api/endpoints/media';
+	import { getPageMedia, deletePageMedia, getObjectMedia, deleteObjectMedia, encodeMediaFileUrl, type MediaItem } from '$lib/api/endpoints/media';
 	import { toast } from 'svelte-sonner';
 	import { Upload, X, ImagePlus, GripVertical } from 'lucide-svelte';
 
 	interface Props {
-		route: string;
+		route?: string;
+		/**
+		 * Relative API base for a non-page media source (e.g. a flex object:
+		 * `flex-objects/contacts/abc123`). When set, all media operations target
+		 * `${apiBase}/media` instead of the page-route endpoint. `null` means the
+		 * source isn't resolved yet (skip requests).
+		 */
+		apiBase?: string | null;
+		/** Invalidation channels to emit after upload/delete (apiBase mode). */
+		invalidationKeys?: string[];
 		onMediaChange?: (items: MediaItem[]) => void;
 		/** External media items from shared context — when updated externally, syncs into local state */
 		externalItems?: MediaItem[];
 	}
 
-	let { route, onMediaChange, externalItems }: Props = $props();
+	let { route = '/', apiBase, invalidationKeys, onMediaChange, externalItems }: Props = $props();
+
+	// True when this instance addresses a non-page source via apiBase. The
+	// `apiBase` prop being present (even if null) signals flex/object mode.
+	const objectMode = $derived(apiBase !== undefined);
 
 	let mediaItems = $state<MediaItem[]>([]);
 
@@ -49,12 +62,19 @@
 	// endpoint is an unreachable placeholder (the user can't drop files
 	// during that short window anyway because the dropzone hasn't mounted
 	// fully yet).
-	const routeReady = $derived(route !== '' && route !== '/');
+	// Resolved relative API base (no leading slash, no trailing /media). In
+	// object mode it's the supplied apiBase; in page mode it's derived from
+	// the route once the route resolves to a concrete structural path.
+	const resolvedBase = $derived.by(() => {
+		if (objectMode) return apiBase ?? null;
+		if (route === '' || route === '/') return null;
+		return `pages/${route.startsWith('/') ? route.slice(1) : route}`;
+	});
+	const routeReady = $derived(resolvedBase !== null);
 
 	function getUploadEndpoint() {
-		if (!routeReady) return `${auth.serverUrl}${auth.apiPrefix}/pages/__unresolved__/media`;
-		const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
-		return `${auth.serverUrl}${auth.apiPrefix}/pages/${cleanRoute}/media`;
+		if (!resolvedBase) return `${auth.serverUrl}${auth.apiPrefix}/pages/__unresolved__/media`;
+		return `${auth.serverUrl}${auth.apiPrefix}/${resolvedBase}/media`;
 	}
 
 	function getAuthHeaders(): Record<string, string> {
@@ -128,7 +148,7 @@
 			uploading = false;
 			uploadProgress = new Map();
 			// XHRUpload bypasses our API client, so emit invalidation manually.
-			invalidations.emit([`media:update:pages/${route}`, `pages:update:/${route}`]);
+			invalidations.emit(getInvalidationKeys());
 			// Refresh media list after uploads complete
 			loadMedia();
 			// Clear Uppy's file list so the dropzone is ready for new files
@@ -144,15 +164,22 @@
 		});
 	}
 
+	function getInvalidationKeys(): string[] {
+		if (objectMode) return invalidationKeys ?? [];
+		return [`media:update:pages/${route}`, `pages:update:/${route}`];
+	}
+
 	async function loadMedia() {
-		if (!routeReady) {
-			// Host is still resolving the home alias; defer until route is
-			// a concrete structural path. An $effect below re-fires loadMedia
-			// the moment it becomes ready.
+		if (!resolvedBase) {
+			// Source not resolved yet — page host is still resolving the home
+			// alias, or a flex object hasn't been saved. Defer until the base
+			// resolves; the $effect below re-fires loadMedia once it does.
 			return;
 		}
 		try {
-			mediaItems = await getPageMedia(route);
+			mediaItems = objectMode
+				? await getObjectMedia(resolvedBase)
+				: await getPageMedia(route);
 			onMediaChange?.(mediaItems);
 		} catch (err) {
 			console.error('[PageMedia] Failed to load media:', err);
@@ -175,7 +202,12 @@
 
 	async function handleDelete(item: MediaItem) {
 		try {
-			await deletePageMedia(route, item.filename);
+			if (objectMode) {
+				if (!resolvedBase) return;
+				await deleteObjectMedia(resolvedBase, item.filename);
+			} else {
+				await deletePageMedia(route, item.filename);
+			}
 			mediaItems = mediaItems.filter(m => m.filename !== item.filename);
 			onMediaChange?.(mediaItems);
 			toast.success(i18n.t('ADMIN_NEXT.TOASTS.FILE_DELETED', { name: item.filename }));

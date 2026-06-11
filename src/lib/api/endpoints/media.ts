@@ -201,6 +201,25 @@ export async function getBlueprintFiles(params: BlueprintFilesParams): Promise<B
 	}
 }
 
+// ── Generic object media (page, flex-object, …) ─────────────────────────
+
+/**
+ * List media attached to any object addressed by a relative API base path
+ * (no leading slash, no trailing `/media`), e.g. `pages/home` or
+ * `flex-objects/contacts/abc123`. Used by hosts that supply a `MediaSource`
+ * context instead of a bare page route.
+ */
+export async function getObjectMedia(apiBase: string): Promise<MediaItem[]> {
+	return api.get<MediaItem[]>(`/${apiBase}/media`);
+}
+
+/**
+ * Delete a media file from any object addressed by a relative API base path.
+ */
+export async function deleteObjectMedia(apiBase: string, filename: string): Promise<void> {
+	return api.delete(`/${apiBase}/media/${encodeURIComponent(filename)}`);
+}
+
 // ── Page media (existing) ───────────────────────────────────────────────
 
 /**
