@@ -58,6 +58,9 @@ function requiredErrorFor(
 	// A field showing its blueprint default isn't empty — the default is what gets saved.
 	const effective = isEmpty(value) ? field.default : value;
 	if (!isEmpty(effective)) return null;
+	// A blueprint-supplied validate.message wins, matching admin-classic. It may be
+	// a translation key, so run it through tMaybe.
+	if (field.validate?.message) return i18n.tMaybe(field.validate.message);
 	const label = field.label ? i18n.tMaybe(field.label) : '';
 	return label
 		? i18n.t('ADMIN_NEXT.VALIDATION.FIELD_REQUIRED', { label })

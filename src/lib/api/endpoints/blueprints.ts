@@ -36,6 +36,8 @@ export interface BlueprintField {
 		pattern?: string;
 		min?: number;
 		max?: number;
+		/** Custom validation message from the blueprint, shown instead of the generic required text. */
+		message?: string;
 	};
 	fields?: BlueprintField[];
 	yaml?: boolean;
