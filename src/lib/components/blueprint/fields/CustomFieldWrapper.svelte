@@ -40,9 +40,11 @@
 		pluginSlug: string;
 		/** Field type name (used to resolve the script URL and element tag) */
 		fieldType: string;
+		/** Inline blueprint-validation error (e.g. empty required field). */
+		error?: string;
 	}
 
-	let { field, value, onchange, oncommit, pluginSlug, fieldType }: Props = $props();
+	let { field, value, onchange, oncommit, pluginSlug, fieldType, error: fieldError }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
 	let containerEl = $state<HTMLDivElement | null>(null);
@@ -212,4 +214,8 @@
 	{/if}
 
 	<div bind:this={containerEl}></div>
+
+	{#if fieldError}
+		<p class="text-xs font-medium text-destructive" data-field-error>{fieldError}</p>
+	{/if}
 </div>

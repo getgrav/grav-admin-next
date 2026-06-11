@@ -416,6 +416,7 @@
 			{oncommit}
 			pluginSlug={customFieldRegistry.getPluginSlug(preferredEditor) ?? ''}
 			fieldType={preferredEditor}
+			error={fieldError}
 		/>
 	</div>
 
@@ -631,6 +632,7 @@
 			{oncommit}
 			pluginSlug={customFieldRegistry.getPluginSlug(field.type) ?? ''}
 			fieldType={field.type}
+			error={fieldError}
 		/>
 	</div>
 
