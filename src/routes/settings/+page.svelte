@@ -415,6 +415,59 @@
 			</div>
 		</div>
 
+		<!-- Editor — per user (Tier B) -->
+		<div class="rounded-xl border border-border bg-muted/30">
+			<div class="px-6 pt-6 pb-2">
+				<h3 class="text-base font-bold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEADING')}</h3>
+				<p class="mt-1 text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_SECTION_DESC')}</p>
+			</div>
+			<div class="space-y-5 px-6 py-5">
+				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+					<div class="lg:pt-2.5">
+						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR')}</span>
+						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR_DESC')}</p>
+					</div>
+					<div>
+						<SegmentedToggle
+							value={prefs.editorStickyToolbar}
+							onchange={(v) => prefs.editorStickyToolbar = v as boolean}
+							options={[
+								{ value: true, label: i18n.t('ADMIN_NEXT.SETTINGS.ON') },
+								{ value: false, label: i18n.t('ADMIN_NEXT.SETTINGS.OFF') }
+							]}
+						/>
+					</div>
+				</div>
+				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+					<div class="lg:pt-2.5">
+						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT')}</span>
+						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT_DESC')}</p>
+					</div>
+					<div class="space-y-3">
+						<SegmentedToggle
+							value={prefs.editorFixedHeight > 0 ? 'fixed' : 'auto'}
+							onchange={(v) => prefs.editorFixedHeight = v === 'fixed' ? (prefs.editorFixedHeight || 600) : 0}
+							options={[
+								{ value: 'auto', label: i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT_AUTO') },
+								{ value: 'fixed', label: i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT_FIXED') }
+							]}
+						/>
+						{#if prefs.editorFixedHeight > 0}
+							<div class="flex items-center gap-3">
+								<input
+									type="range" min="300" max="1200" step="50"
+									value={prefs.editorFixedHeight}
+									class="h-2 flex-1 cursor-pointer appearance-none rounded-full accent-primary"
+									oninput={(e) => prefs.editorFixedHeight = Number((e.target as HTMLInputElement).value)}
+								/>
+								<span class="w-16 shrink-0 text-end text-xs tabular-nums text-muted-foreground">{prefs.editorFixedHeight}px</span>
+							</div>
+						{/if}
+					</div>
+				</div>
+			</div>
+		</div>
+
 		<!-- Language — per user (Tier B) -->
 		<div class="rounded-xl border border-border bg-muted/30">
 			<div class="px-6 pt-6 pb-2">
@@ -800,6 +853,49 @@
 												{ value: 'expert', label: i18n.t('ADMIN_NEXT.PAGES.MODE_EXPERT') }
 											]}
 										/>
+									</div>
+								</div>
+								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+									<div class="lg:pt-2.5">
+										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR')}</span>
+										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR_DESC')}</p>
+									</div>
+									<div>
+										<SegmentedToggle
+											value={siteDraft.editorStickyToolbar ?? true}
+											onchange={(v) => siteDraft = { ...siteDraft, editorStickyToolbar: v as boolean }}
+											options={[
+												{ value: true, label: i18n.t('ADMIN_NEXT.SETTINGS.ON') },
+												{ value: false, label: i18n.t('ADMIN_NEXT.SETTINGS.OFF') }
+											]}
+										/>
+									</div>
+								</div>
+								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+									<div class="lg:pt-2.5">
+										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT')}</span>
+										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT_DESC')}</p>
+									</div>
+									<div class="space-y-3">
+										<SegmentedToggle
+											value={(siteDraft.editorFixedHeight ?? 0) > 0 ? 'fixed' : 'auto'}
+											onchange={(v) => siteDraft = { ...siteDraft, editorFixedHeight: v === 'fixed' ? (siteDraft.editorFixedHeight || 600) : 0 }}
+											options={[
+												{ value: 'auto', label: i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT_AUTO') },
+												{ value: 'fixed', label: i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT_FIXED') }
+											]}
+										/>
+										{#if (siteDraft.editorFixedHeight ?? 0) > 0}
+											<div class="flex items-center gap-3">
+												<input
+													type="range" min="300" max="1200" step="50"
+													value={siteDraft.editorFixedHeight ?? 600}
+													class="h-2 flex-1 cursor-pointer appearance-none rounded-full accent-primary"
+													oninput={(e) => siteDraft = { ...siteDraft, editorFixedHeight: Number((e.target as HTMLInputElement).value) }}
+												/>
+												<span class="w-16 shrink-0 text-end text-xs tabular-nums text-muted-foreground">{siteDraft.editorFixedHeight ?? 600}px</span>
+											</div>
+										{/if}
 									</div>
 								</div>
 							</div>

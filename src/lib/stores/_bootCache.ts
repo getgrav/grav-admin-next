@@ -31,6 +31,8 @@ export interface BootCache {
 	fontFamily: FontFamily;
 	fontSize: FontSize;
 	editorMode: EditorMode;
+	editorStickyToolbar: boolean;
+	editorFixedHeight: number;
 	branding: SiteBranding;
 	brandingUrls: BrandingUrls;
 }
@@ -45,6 +47,8 @@ export function saveBootCache(payload: PreferencesResponse): void {
 			fontFamily: payload.effective.fontFamily,
 			fontSize: payload.effective.fontSize,
 			editorMode: payload.effective.editorMode,
+			editorStickyToolbar: payload.effective.editorStickyToolbar,
+			editorFixedHeight: payload.effective.editorFixedHeight,
 			branding: payload.branding,
 			brandingUrls: payload.branding_urls,
 		};

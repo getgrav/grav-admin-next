@@ -2,6 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount, getContext, untrack } from 'svelte';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { prefs } from '$lib/stores/preferences.svelte';
 	import { EditorView, keymap, placeholder as cmPlaceholder, drawSelection, type ViewUpdate } from '@codemirror/view';
 	import { EditorState, type Extension } from '@codemirror/state';
 	import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
@@ -64,6 +65,17 @@
 	}: Props = $props();
 
 	let showPreview = $state(false);
+
+	// Editor geometry (admin2#37). An explicit `maxHeight` prop always wins;
+	// otherwise the user's `editorFixedHeight` preference applies (0 = auto-grow).
+	// A fixed height caps the editor and lets CodeMirror's scroller handle
+	// overflow internally, which keeps the toolbar in view on its own. Sticky
+	// only matters in auto-grow mode, where the toolbar would otherwise scroll
+	// off with the page.
+	const effectiveMaxHeight = $derived(
+		maxHeight || (prefs.editorFixedHeight > 0 ? `${prefs.editorFixedHeight}px` : ''),
+	);
+	const stickyToolbar = $derived(prefs.editorStickyToolbar && !effectiveMaxHeight);
 
 	// Resolve image paths for preview: page-relative, media://, image://
 	const getRoute = getContext<(() => string) | undefined>('pageRoute');
@@ -640,9 +652,20 @@
 	];
 </script>
 
-<div class={cn('overflow-hidden rounded-md border border-input', className)}>
-	<!-- Toolbar -->
-	<div class="flex flex-wrap items-center gap-0.5 border-b border-border bg-muted/50 px-1.5 py-1">
+<div class={cn('rounded-md border border-input', stickyToolbar ? '' : 'overflow-hidden', className)}>
+	<!-- Toolbar — sticky in auto-grow mode so it stays in view while the page
+	     scrolls (admin2#37). `--sticky-header-height` is set by the page-edit
+	     route; we offset by it so the toolbar pins just under the app header.
+	     The wrapper drops `overflow-hidden` while sticky because an
+	     overflow:hidden ancestor would otherwise become the sticky scroll
+	     container and pin the toolbar to nothing. -->
+	<div
+		class={cn(
+			'flex flex-wrap items-center gap-0.5 border-b border-border px-1.5 py-1',
+			stickyToolbar ? 'sticky z-10 rounded-t-md bg-muted' : 'bg-muted/50',
+		)}
+		style:top={stickyToolbar ? 'var(--sticky-header-height, 0px)' : undefined}
+	>
 		{#each toolbarGroups as group}
 			{#if group === 'separator'}
 				<Separator orientation="vertical" class="mx-1 !h-5" />
@@ -677,9 +700,9 @@
 	<!-- Both panes stay mounted; visibility toggles via CSS so CodeMirror's
 	     view is never orphaned when Preview is toggled off. -->
 	<div
-		class="prose prose-sm dark:prose-invert max-w-none overflow-y-auto px-4 py-3"
+		class={cn('prose prose-sm dark:prose-invert max-w-none overflow-y-auto px-4 py-3', stickyToolbar && 'rounded-b-md')}
 		style:min-height={minHeight}
-		style:max-height={maxHeight || 'none'}
+		style:max-height={effectiveMaxHeight || 'none'}
 		style:display={showPreview ? '' : 'none'}
 	>
 		{#if showPreview}
@@ -696,10 +719,10 @@
 	     container-level handler inserted the markdown twice (getgrav/grav#4123). -->
 	<div
 		bind:this={editorContainer}
-		class="markdown-editor-cm"
+		class={cn('markdown-editor-cm', stickyToolbar && 'rounded-b-md')}
 		dir="ltr"
-		style:min-height={minHeight}
-		style:max-height={maxHeight}
+		style:min-height={effectiveMaxHeight || minHeight}
+		style:--cm-max-h={effectiveMaxHeight || 'none'}
 		style:display={showPreview ? 'none' : ''}
 	></div>
 </div>
@@ -708,6 +731,10 @@
 	/* Ensure the CodeMirror editor fills its container */
 	.markdown-editor-cm :global(.cm-editor) {
 		height: 100%;
+		/* When a fixed height is set (admin2#37), cap the editor here — the
+		   CodeMirror-recommended spot — so `.cm-scroller` scrolls internally
+		   instead of the whole page growing. `none` = auto-grow. */
+		max-height: var(--cm-max-h, none);
 		background: transparent;
 	}
 	.markdown-editor-cm :global(.cm-editor.cm-focused) {

@@ -1743,7 +1743,11 @@
 							<EditorLockNotice ownerType={editorLock.ownerType} ownerName={editorLock.ownerName} />
 						{/if}
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<div class="overflow-hidden rounded-lg border border-border bg-card"
+						<!-- Drop overflow-hidden when the editor's sticky toolbar is active
+						     (auto-grow height): an overflow-clipping ancestor would otherwise
+						     become the sticky scroll container, so the toolbar would never
+						     pin to the main scroll area (admin2#37). -->
+						<div class="rounded-lg border border-border bg-card {(prefs.editorStickyToolbar && prefs.editorFixedHeight <= 0) ? '' : 'overflow-hidden'}"
 							onfocusout={() => { if (!editorLock && prefs.autoSaveEnabled && content !== (pageData?.content ?? '')) autoSave.oncommit('content', content, pageData?.content ?? ''); }}
 						>
 							{#if collabPending}

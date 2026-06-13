@@ -36,6 +36,8 @@ export interface PreferenceValues {
 	fontFamily: FontFamily;
 	fontSize: FontSize;
 	editorMode: EditorMode;
+	editorStickyToolbar: boolean;
+	editorFixedHeight: number;
 	adminLanguage: string;
 	pagesPerPage: number;
 	pagesViewMode: PagesViewMode;

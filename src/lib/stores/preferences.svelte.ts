@@ -124,6 +124,8 @@ const BUILTIN_DEFAULTS: EffectivePreferences = {
 	fontFamily: 'google-sans',
 	fontSize: 'normal',
 	editorMode: 'normal',
+	editorStickyToolbar: true,
+	editorFixedHeight: 0,
 	adminLanguage: 'en-US',
 	pagesPerPage: 20,
 	pagesViewMode: 'tree',
@@ -147,6 +149,8 @@ function createPreferencesStore() {
 	let fontFamily = $state<FontFamily>(cache?.fontFamily ?? BUILTIN_DEFAULTS.fontFamily);
 	let fontSize = $state<FontSize>(cache?.fontSize ?? BUILTIN_DEFAULTS.fontSize);
 	let editorMode = $state<EditorMode>(cache?.editorMode ?? BUILTIN_DEFAULTS.editorMode);
+	let editorStickyToolbar = $state<boolean>(cache?.editorStickyToolbar ?? BUILTIN_DEFAULTS.editorStickyToolbar);
+	let editorFixedHeight = $state<number>(cache?.editorFixedHeight ?? BUILTIN_DEFAULTS.editorFixedHeight);
 	let adminLanguage = $state<string>(BUILTIN_DEFAULTS.adminLanguage);
 	let pagesPerPage = $state<number>(BUILTIN_DEFAULTS.pagesPerPage);
 	let pagesViewMode = $state<PagesViewMode>(BUILTIN_DEFAULTS.pagesViewMode);
@@ -195,6 +199,8 @@ function createPreferencesStore() {
 		fontFamily = eff.fontFamily;
 		fontSize = eff.fontSize;
 		editorMode = eff.editorMode;
+		editorStickyToolbar = eff.editorStickyToolbar;
+		editorFixedHeight = eff.editorFixedHeight;
 		adminLanguage = normalizeLang(eff.adminLanguage);
 		pagesPerPage = eff.pagesPerPage;
 		pagesViewMode = eff.pagesViewMode;
@@ -262,6 +268,8 @@ function createPreferencesStore() {
 			case 'fontFamily': fontFamily = fallback as FontFamily; applyFont(fontFamily); break;
 			case 'fontSize': fontSize = fallback as FontSize; applyFontSize(fontSize); break;
 			case 'editorMode': editorMode = fallback as EditorMode; break;
+			case 'editorStickyToolbar': editorStickyToolbar = fallback as boolean; break;
+			case 'editorFixedHeight': editorFixedHeight = fallback as number; break;
 			case 'adminLanguage': adminLanguage = fallback as string; break;
 			case 'pagesPerPage': pagesPerPage = fallback as number; break;
 			case 'pagesViewMode': pagesViewMode = fallback as PagesViewMode; break;
@@ -295,6 +303,12 @@ function createPreferencesStore() {
 
 		get editorMode() { return editorMode; },
 		set editorMode(v: EditorMode) { editorMode = v; patchUser('editorMode', v); },
+
+		get editorStickyToolbar() { return editorStickyToolbar; },
+		set editorStickyToolbar(v: boolean) { editorStickyToolbar = v; patchUser('editorStickyToolbar', v); },
+
+		get editorFixedHeight() { return editorFixedHeight; },
+		set editorFixedHeight(v: number) { editorFixedHeight = v; patchUser('editorFixedHeight', v); },
 
 		get adminLanguage() { return adminLanguage; },
 		set adminLanguage(v: string) {
