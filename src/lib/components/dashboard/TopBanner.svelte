@@ -2,12 +2,21 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount } from 'svelte';
 	import { X } from 'lucide-svelte';
+	import * as icons from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { dismissNotification } from '$lib/api/endpoints/dashboard-widgets';
 	import { renderInlineMarkdown } from '$lib/dashboard/format';
 	import type { Notification } from '$lib/api/endpoints/dashboard';
 
 	let { notifications = [] }: { notifications?: Notification[] } = $props();
+
+	// A notification `icon` may be an emoji (legacy / getgrav feed) or a Lucide
+	// icon name ("ShieldCheck", "shield-check") contributed by a plugin. Resolve
+	// the latter to a component; anything else falls back to plain text.
+	function resolveIcon(name: string): typeof icons.Bell | undefined {
+		const pascal = name.replace(/(^|-)([a-z])/g, (_: string, __: string, c: string) => c.toUpperCase());
+		return (icons as Record<string, any>)[pascal];
+	}
 
 	const ROTATE_MS = 8000;
 
@@ -61,7 +70,12 @@
 	>
 		<div class="relative flex items-center gap-3 px-4 py-3 pe-24">
 			{#if current.icon}
-				<span class="shrink-0 text-lg leading-none">{current.icon}</span>
+				{@const IconComp = resolveIcon(current.icon)}
+				{#if IconComp}
+					<IconComp size={18} class="shrink-0 text-purple-500" />
+				{:else}
+					<span class="shrink-0 text-lg leading-none">{current.icon}</span>
+				{/if}
 			{/if}
 			<div class="min-w-0 flex-1 text-[0.8125rem] leading-relaxed text-foreground">
 				{#if current.title}
