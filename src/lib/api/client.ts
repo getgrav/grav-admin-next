@@ -2,11 +2,15 @@ import { auth, decodeJwtExp } from '$lib/stores/auth.svelte';
 import { authSession, type PendingRequest } from '$lib/stores/auth-session.svelte';
 import { invalidations } from '$lib/stores/invalidation.svelte';
 
+import type { ToastHint } from '$lib/utils/toast-hint';
+
 export interface ApiError {
 	status: number;
 	title: string;
 	detail: string;
 	errors?: Record<string, string[]>;
+	/** Optional plugin-supplied toast override (message/duration/dismissible). */
+	toast?: ToastHint;
 }
 
 export class ApiRequestError extends Error {

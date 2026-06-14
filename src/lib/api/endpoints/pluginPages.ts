@@ -42,8 +42,17 @@ export async function getPluginPageData(endpoint: string): Promise<Record<string
 	return api.get<Record<string, unknown>>(endpoint);
 }
 
-export async function savePluginPageData(endpoint: string, data: Record<string, unknown>): Promise<void> {
-	await api.patch(endpoint, data);
+/**
+ * Save a plugin page's form data. Returns the endpoint's response payload so
+ * callers can read an optional `toast` / `message` hint to override the default
+ * success toast (empty object when the endpoint returns no content).
+ */
+export async function savePluginPageData(
+	endpoint: string,
+	data: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+	const result = await api.patch<Record<string, unknown> | undefined>(endpoint, data);
+	return result ?? {};
 }
 
 /**

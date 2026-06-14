@@ -15,6 +15,8 @@
 		type PluginPageAction,
 	} from '$lib/api/endpoints/pluginPages';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
+	import { ApiRequestError } from '$lib/api/client';
+	import { extractToastHint, showToastHint } from '$lib/utils/toast-hint';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
 	import PluginPageComponent from '$lib/components/plugin-page/PluginPageComponent.svelte';
@@ -126,13 +128,21 @@
 
 		saving = true;
 		try {
-			await savePluginPageData(definition.save_endpoint, formData);
-			toast.success(i18n.t('ADMIN_NEXT.TOASTS.ITEM_SAVED', { name: definition.title ?? slug }));
+			const result = await savePluginPageData(definition.save_endpoint, formData);
+			// The endpoint may return a `toast` / `message` hint to override the
+			// default success toast (custom text, longer duration, dismiss-required).
+			showToastHint(extractToastHint(result), {
+				message: i18n.t('ADMIN_NEXT.TOASTS.ITEM_SAVED', { name: definition.title ?? slug }),
+				type: 'success',
+			});
 			// Reload page so all components (including web components) re-fetch
 			await loadPage();
 		} catch (err: unknown) {
+			// An ErrorResponse may carry a `toast` hint (e.g. a longer duration or
+			// dismiss-required error); otherwise fall back to its detail message.
+			const hint = err instanceof ApiRequestError ? err.error.toast : undefined;
 			const detail = err instanceof Error ? err.message : 'Save failed';
-			toast.error(detail);
+			showToastHint(hint, { message: detail, type: 'error' });
 		} finally {
 			saving = false;
 		}
