@@ -53,9 +53,24 @@
 	// (admin2#34). Independent of the inline error display, which stays touch/submit-gated.
 	let requiredOk = $derived(!blueprint || !hasRequiredErrors(blueprint.fields, formData));
 
+	// Component-mode pages have no blueprint form, so `hasChanges` can never reflect
+	// their internal state. Instead the page web component reports its own state via
+	// a `page-state` event, which drives the primary action button (admin2#40).
+	let componentState = $state<{ dirty: boolean; valid: boolean; busy: boolean }>({
+		dirty: false,
+		valid: true,
+		busy: false,
+	});
+	function handleComponentState(s: { dirty?: boolean; valid?: boolean; busy?: boolean }) {
+		componentState = { ...componentState, ...s };
+	}
+
 	async function loadPage() {
 		loading = true;
 		error = '';
+		// Reset component-mode state so a previous page's dirty/validity doesn't
+		// carry over when switching plugins (admin2#40).
+		componentState = { dirty: false, valid: true, busy: false };
 
 		try {
 			const def = await getPluginPageDefinition(slug);
@@ -447,13 +462,18 @@
 							{/if}
 						</div>
 					{:else if action.primary}
-						<!-- Primary action (Save) -->
+						<!-- Primary action (Save). Blueprint pages save the form directly;
+						     component pages fire `page-action` so the web component runs its
+						     own save, gated on the state it reports via `page-state` (admin2#40). -->
+						{@const isComponent = definition?.page_type === 'component'}
 						<Button
 							size="sm"
-							onclick={() => action.primary ? handleSave() : executeAction(action)}
-							disabled={action.primary ? (!hasChanges || saving || !requiredOk) : actionExecuting === action.id}
+							onclick={() => isComponent ? executeAction(action) : handleSave()}
+							disabled={isComponent
+								? (!componentState.dirty || componentState.busy || !componentState.valid)
+								: (!hasChanges || saving || !requiredOk)}
 						>
-							{#if (action.primary && saving) || actionExecuting === action.id}
+							{#if (action.primary && (saving || componentState.busy)) || actionExecuting === action.id}
 								<Loader2 size={14} class="me-1.5 animate-spin" />
 							{:else}
 								{@const Icon = getActionIcon(action)}
@@ -520,7 +540,7 @@
 						errors={validationErrors}
 					/>
 				{:else if definition.page_type === 'component'}
-					<PluginPageComponent slug={slug} />
+					<PluginPageComponent slug={slug} onstate={handleComponentState} />
 				{:else}
 					<div class="rounded-xl border border-dashed border-border p-8 text-center">
 						<p class="text-sm text-muted-foreground">

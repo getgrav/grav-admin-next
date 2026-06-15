@@ -7,9 +7,16 @@
 	interface Props {
 		/** Plugin slug */
 		slug: string;
+		/**
+		 * Called when the mounted web component reports its own dirty / validity /
+		 * busy state via a `page-state` CustomEvent. Lets a component-mode page
+		 * drive its toolbar action buttons (e.g. enable a primary Save) the same
+		 * way a blueprint form drives them. All keys are optional and merged.
+		 */
+		onstate?: (state: { dirty?: boolean; valid?: boolean; busy?: boolean }) => void;
 	}
 
-	let { slug }: Props = $props();
+	let { slug, onstate }: Props = $props();
 
 	let containerEl = $state<HTMLDivElement | null>(null);
 	let loaded = $state(false);
@@ -72,6 +79,11 @@
 		containerEl.innerHTML = '';
 
 		const el = document.createElement(tagName);
+		// Mirror the context-panel / floating-widget wiring: let the web component
+		// report state back to the host so it can drive the toolbar action buttons.
+		el.addEventListener('page-state', ((e: CustomEvent) => {
+			onstate?.(e.detail ?? {});
+		}) as EventListener);
 		containerEl.appendChild(el);
 	}
 
