@@ -106,13 +106,23 @@
 			});
 		};
 
-		const reloadBadges = () => schedule(() => navBadges.load());
+		// Stable task references — `schedule()` coalesces by identity, so the
+		// SAME function object must be passed each time for a burst of related
+		// invalidation tags (e.g. `pages:update` + `pages:list` from one save) to
+		// collapse into a single run instead of one fetch per tag.
+		const doReloadBadges = () => navBadges.load();
+		const doReloadSidebar = () => sidebarStore.load().then(() => sidebarStore.fetchBadges());
+		const doReloadSidebarBadges = () => sidebarStore.fetchBadges();
+		const doReloadWidgets = () => floatingWidgetStore.load();
+		const doReloadPanels = () => contextPanelStore.load();
+
+		const reloadBadges = () => schedule(doReloadBadges);
 		// Re-fetch plugin sidebar items, then their live badge counts.
-		const reloadSidebar = () => schedule(() => sidebarStore.load().then(() => sidebarStore.fetchBadges()));
+		const reloadSidebar = () => schedule(doReloadSidebar);
 		// Re-fetch only the live sidebar badge counts (no item reload).
-		const reloadSidebarBadges = () => schedule(() => sidebarStore.fetchBadges());
-		const reloadWidgets = () => schedule(() => floatingWidgetStore.load());
-		const reloadPanels = () => schedule(() => contextPanelStore.load());
+		const reloadSidebarBadges = () => schedule(doReloadSidebarBadges);
+		const reloadWidgets = () => schedule(doReloadWidgets);
+		const reloadPanels = () => schedule(doReloadPanels);
 
 		// Plugin/theme install/remove/enable/disable can add or drop sidebar
 		// items, menubar entries, floating widgets, and context panels — and
