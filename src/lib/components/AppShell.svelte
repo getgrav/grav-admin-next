@@ -53,7 +53,7 @@
 	// Load plugin sidebar items, floating widgets, and nav badges on authentication
 	$effect(() => {
 		if (auth.isAuthenticated) {
-			sidebarStore.load();
+			sidebarStore.load().then(() => sidebarStore.fetchBadges());
 			floatingWidgetStore.load();
 			contextPanelStore.load();
 			navBadges.load();
@@ -107,7 +107,10 @@
 		};
 
 		const reloadBadges = () => schedule(() => navBadges.load());
-		const reloadSidebar = () => schedule(() => sidebarStore.load());
+		// Re-fetch plugin sidebar items, then their live badge counts.
+		const reloadSidebar = () => schedule(() => sidebarStore.load().then(() => sidebarStore.fetchBadges()));
+		// Re-fetch only the live sidebar badge counts (no item reload).
+		const reloadSidebarBadges = () => schedule(() => sidebarStore.fetchBadges());
 		const reloadWidgets = () => schedule(() => floatingWidgetStore.load());
 		const reloadPanels = () => schedule(() => contextPanelStore.load());
 
@@ -121,16 +124,31 @@
 			reloadBadges();
 		};
 
+		// Live push: a plugin page/widget can update its own sidebar badge
+		// without a round-trip via `grav:sidebar:badge` ({ id, count }).
+		const onSidebarBadge = (e: Event) => {
+			const detail = (e as CustomEvent).detail;
+			if (detail && detail.id != null && detail.count != null) {
+				sidebarStore.setBadge(detail.id, detail.count);
+			}
+		};
+		window.addEventListener('grav:sidebar:badge', onSidebarBadge);
+
 		const unsubs = [
 			invalidations.subscribe('plugins:*', onPluginOrTheme),
 			invalidations.subscribe('themes:*', onPluginOrTheme),
 			invalidations.subscribe('gpm:*', onPluginOrTheme),
-			// Content changes update only their corresponding badge.
-			invalidations.subscribe('pages:*', reloadBadges),
-			invalidations.subscribe('users:*', reloadBadges),
-			invalidations.subscribe('media:*', reloadBadges),
+			// Content/config changes refresh nav badges and any sidebar badge
+			// counts derived from that data.
+			invalidations.subscribe('pages:*', () => { reloadBadges(); reloadSidebarBadges(); }),
+			invalidations.subscribe('users:*', () => { reloadBadges(); reloadSidebarBadges(); }),
+			invalidations.subscribe('media:*', () => { reloadBadges(); reloadSidebarBadges(); }),
+			invalidations.subscribe('config:*', reloadSidebarBadges),
 		];
-		return () => { for (const u of unsubs) u(); };
+		return () => {
+			for (const u of unsubs) u();
+			window.removeEventListener('grav:sidebar:badge', onSidebarBadge);
+		};
 	});
 
 	let collapsed = $state(false);
@@ -246,8 +264,9 @@
 								<i class="fa-solid {item.icon.startsWith('fa-') ? item.icon : 'fa-' + item.icon} w-4 text-center text-[0.8125rem]"></i>
 								{#if !collapsed}
 									<span>{item.label}</span>
-									{#if item.badge != null}
-										<span class="ms-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">{item.badge}</span>
+									{@const badge = sidebarStore.badges[item.id] ?? item.badge}
+									{#if badge != null}
+										<span class="ms-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">{badge}</span>
 									{/if}
 								{/if}
 							</a>
