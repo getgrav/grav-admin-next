@@ -406,6 +406,7 @@
 	</div>
 
 {:else if field.type === 'markdown' && preferredEditor}
+	{@const provider = customFieldRegistry.getProvider(preferredEditor)}
 	<!-- User-preferred editor (e.g., editor-pro) for markdown fields -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div data-translate={field.translate || undefined} data-field-name={field.translate ? field.name : undefined}>
@@ -414,7 +415,8 @@
 			{value}
 			onchange={committingOnchange}
 			{oncommit}
-			pluginSlug={customFieldRegistry.getPluginSlug(preferredEditor) ?? ''}
+			pluginSlug={provider?.slug ?? ''}
+			providerKind={provider?.kind ?? 'plugins'}
 			fieldType={preferredEditor}
 			error={fieldError}
 		/>
@@ -622,7 +624,8 @@
 	<PageExistsField {field} {getValue} {onFieldChange} {onFieldCommit} />
 
 {:else if customFieldRegistry.has(field.type)}
-	<!-- Plugin-provided custom field via web component -->
+	{@const provider = customFieldRegistry.getProvider(field.type)}
+	<!-- Plugin- or theme-provided custom field via web component -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div data-translate={field.translate || undefined} data-field-name={field.translate ? field.name : undefined}>
 		<CustomFieldWrapper
@@ -630,7 +633,8 @@
 			{value}
 			onchange={committingOnchange}
 			{oncommit}
-			pluginSlug={customFieldRegistry.getPluginSlug(field.type) ?? ''}
+			pluginSlug={provider?.slug ?? ''}
+			providerKind={provider?.kind ?? 'plugins'}
 			fieldType={field.type}
 			error={fieldError}
 		/>

@@ -36,15 +36,17 @@
 		value: unknown;
 		onchange: (value: unknown) => void;
 		oncommit?: (value: unknown) => void;
-		/** Plugin slug that provides this custom field */
+		/** Plugin or theme slug that provides this custom field */
 		pluginSlug: string;
+		/** Whether the provider is a plugin or a theme (selects the gpm route) */
+		providerKind?: 'plugins' | 'themes';
 		/** Field type name (used to resolve the script URL and element tag) */
 		fieldType: string;
 		/** Inline blueprint-validation error (e.g. empty required field). */
 		error?: string;
 	}
 
-	let { field, value, onchange, oncommit, pluginSlug, fieldType, error: fieldError }: Props = $props();
+	let { field, value, onchange, oncommit, pluginSlug, providerKind = 'plugins', fieldType, error: fieldError }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
 	let containerEl = $state<HTMLDivElement | null>(null);
@@ -58,7 +60,7 @@
 	const loadingPromises: Record<string, Promise<void> | undefined> = ((window as any).__GRAV_FIELD_LOADING ??= {});
 
 	function getScriptPath(): string {
-		return `/gpm/plugins/${pluginSlug}/field/${fieldType}`;
+		return `/gpm/${providerKind}/${pluginSlug}/field/${fieldType}`;
 	}
 
 	async function loadComponent() {

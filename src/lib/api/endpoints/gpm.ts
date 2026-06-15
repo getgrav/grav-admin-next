@@ -227,6 +227,8 @@ export interface ThemeInfo {
 	icon?: string;
 	thumbnail?: string | null;
 	screenshot?: string | null;
+	/** Custom admin-next field types this theme provides (fieldType → label). */
+	custom_fields?: Record<string, string>;
 }
 
 export async function getInstalledThemes(): Promise<ThemeInfo[]> {

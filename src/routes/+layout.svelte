@@ -136,11 +136,15 @@
 		if (auth.isAuthenticated && !customFieldsLoaded) {
 			customFieldsLoaded = true;
 			import('$lib/api/client').then(({ api }) =>
-				api.get<Record<string, string>>('/custom-fields')
+				// Each value is either a bare slug (legacy API → assume a plugin) or
+				// `{ slug, kind }` so theme-provided fields resolve to the right route.
+				api.get<Record<string, string | { slug: string; kind: 'plugins' | 'themes' }>>('/custom-fields')
 					.then((data) => {
 						if (data && typeof data === 'object') {
-							for (const [fieldType, pluginSlug] of Object.entries(data)) {
-								customFieldRegistry.register(pluginSlug as string, { [fieldType]: fieldType });
+							for (const [fieldType, provider] of Object.entries(data)) {
+								const slug = typeof provider === 'string' ? provider : provider.slug;
+								const kind = typeof provider === 'string' ? 'plugins' : provider.kind;
+								customFieldRegistry.register(slug, { [fieldType]: fieldType }, kind);
 							}
 						}
 					})

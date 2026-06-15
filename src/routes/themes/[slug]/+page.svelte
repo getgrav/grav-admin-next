@@ -9,6 +9,7 @@
 	import { reloadIfAdminUpdated } from '$lib/utils/gpm';
 	import { getThemeBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
+	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
@@ -141,6 +142,9 @@
 			]);
 
 			theme = themeResult;
+			if (themeResult.custom_fields) {
+				customFieldRegistry.register(slug, themeResult.custom_fields, 'themes');
+			}
 			blueprint = blueprintResult;
 			configData = configResult.data;
 			originalJson = stableJson(configResult.data);
