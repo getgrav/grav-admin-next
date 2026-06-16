@@ -143,6 +143,21 @@
 		return field.accept.join(',');
 	}
 
+	// Per-field upload settings forwarded to the server so admin-next honors
+	// the same blueprint attributes admin-classic does (random_name,
+	// avoid_overwriting, accept, filesize). Values are stringified for
+	// multipart form metadata; the server treats absent keys as defaults.
+	function getUploadSettingsMeta(): Record<string, string> {
+		const meta: Record<string, string> = {};
+		if (field.random_name) meta.random_name = '1';
+		if (field.avoid_overwriting) meta.avoid_overwriting = '1';
+		if (field.accept?.length) meta.accept = field.accept.join(',');
+		if (typeof field.filesize === 'number' && field.filesize > 0) {
+			meta.filesize = String(field.filesize);
+		}
+		return meta;
+	}
+
 	// Build the Grav-compatible file field value
 	function buildGravValue(entries: Array<{ key: string; entry: FileEntry }>): Record<string, FileEntry> {
 		const result: Record<string, FileEntry> = {};
@@ -153,30 +168,46 @@
 	}
 
 	function initUppy() {
+		// Cap the client-side size restriction at the field's own filesize
+		// (MB) when smaller than the hard 64 MB ceiling, so the user gets an
+		// immediate rejection rather than a round-trip error.
+		const hardMax = 64 * 1024 * 1024;
+		const fieldMax =
+			typeof field.filesize === 'number' && field.filesize > 0
+				? field.filesize * 1024 * 1024
+				: hardMax;
+
 		uppy = new Uppy({
 			id: `file-field-${field.name}`,
 			autoProceed: true,
 			restrictions: {
-				maxFileSize: 64 * 1024 * 1024,
+				maxFileSize: Math.min(hardMax, fieldMax),
 				allowedFileTypes: field.accept?.length ? field.accept : undefined,
 			},
 		});
 
-		// When using the blueprint-upload endpoint we also need to pass the
-		// destination + scope on every request so the server can resolve
-		// `self@:` relative to the owning plugin/theme/page. XHRUpload supports
-		// `formData: true` + `metaFields` for this — we just stuff the two
-		// values into Uppy meta and whitelist them for upload.
+		// Forward the field's upload settings on every request. When using the
+		// blueprint-upload endpoint we additionally pass destination + scope so
+		// the server can resolve `self@:` relative to the owning plugin/theme/
+		// page. XHRUpload supports `formData: true` + `allowedMetaFields` for
+		// this — we stuff the values into Uppy meta and whitelist them.
+		const settingsMeta = getUploadSettingsMeta();
+		const meta: Record<string, string> = { ...settingsMeta };
 		if (useBlueprintUpload) {
-			uppy.setMeta({ destination, scope: getBlueprintScope?.() ?? '' });
+			meta.destination = destination;
+			meta.scope = getBlueprintScope?.() ?? '';
 		}
+		uppy.setMeta(meta);
 
 		uppy.use(XHRUpload, {
 			endpoint: getUploadEndpoint(),
 			fieldName: 'file',
 			headers: getAuthHeaders,
 			formData: true,
-			allowedMetaFields: useBlueprintUpload ? ['destination', 'scope'] : [],
+			allowedMetaFields: [
+				...Object.keys(settingsMeta),
+				...(useBlueprintUpload ? ['destination', 'scope'] : []),
+			],
 		});
 
 		// Pre-check token so Uppy's XHR uploads don't fail silently on expiry.
@@ -277,7 +308,27 @@
 
 	function addFiles(fileList: File[]) {
 		if (!uppy) return;
-		for (const file of fileList) {
+
+		// Enforce the blueprint `limit` (max number of files) for multiple
+		// fields. Single fields replace their one entry, so no cap is needed.
+		let files = fileList;
+		if (field.multiple && typeof field.limit === 'number' && field.limit > 0) {
+			const remaining = field.limit - fileEntries.length;
+			if (remaining <= 0) {
+				toast.error(
+					i18n.t('ADMIN_NEXT.FIELDS.FILE.LIMIT_REACHED', { limit: field.limit })
+				);
+				return;
+			}
+			if (files.length > remaining) {
+				files = files.slice(0, remaining);
+				toast.error(
+					i18n.t('ADMIN_NEXT.FIELDS.FILE.LIMIT_REACHED', { limit: field.limit })
+				);
+			}
+		}
+
+		for (const file of files) {
 			try {
 				uppy.addFile({ name: file.name, type: file.type, data: file, source: 'local' });
 			} catch (err) {

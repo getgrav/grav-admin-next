@@ -43,6 +43,14 @@ export interface BlueprintField {
 	yaml?: boolean;
 	accept?: string[];
 	destination?: string;
+	/** file field — store uploads under a randomized filename. */
+	random_name?: boolean;
+	/** file field — datetime-prefix a conflicting filename instead of overwriting. */
+	avoid_overwriting?: boolean;
+	/** file field — per-field maximum upload size, in megabytes. */
+	filesize?: number;
+	/** file field — maximum number of files when `multiple` is set. */
+	limit?: number;
 	style?: string;
 	classes?: string;
 	wrapper_classes?: string;
