@@ -26,6 +26,12 @@
 	// Fields that should always render full-width (no label column)
 	const fullWidthTypes = new Set(['cronstatus', 'webhook-status', 'tabs', 'tab', 'section', 'fieldset', 'columns', 'column', 'pagemedia', 'spacer']);
 
+	// Custom field types whose web component renders its own label — render them
+	// full-width so the section doesn't also draw the blueprint label and double
+	// it up (e.g. save-redirect's "After Save..."). FieldRenderer strips the label
+	// before handing these to the web component. Matches selfLabeledTypes there.
+	const selfLabeledTypes = new Set(['save-redirect']);
+
 	// Fields suppressed in admin-next (same list as FieldRenderer)
 	const suppressedNames = new Set(['order_title', 'header.order_by', 'header.order_manual', 'enabled', 'health_status', 'active_triggers', 'webhook_token_generate']);
 
@@ -44,7 +50,7 @@
 	}
 
 	function isVertical(f: BlueprintField): boolean {
-		return f.style === 'vertical' || fullWidthTypes.has(f.type);
+		return f.style === 'vertical' || fullWidthTypes.has(f.type) || selfLabeledTypes.has(f.type);
 	}
 
 	// Toggle state is derived from the field's value — a null/undefined

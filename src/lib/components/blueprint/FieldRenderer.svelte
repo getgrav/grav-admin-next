@@ -123,11 +123,18 @@
 	// Container types that manage their own layout
 	const containerTypes = new Set(['section', 'fieldset', 'tabs', 'tab', 'columns', 'column', 'pagemedia', 'cronstatus', 'webhook-status', 'page-exists']);
 
+	// Custom field types whose web component renders its own label — admin-next
+	// must not also render the blueprint label or it doubles up (e.g. save-redirect's
+	// "After Save..."). Classic admin still uses the blueprint label via the field
+	// template, so this is admin-next-only and the YAML stays untouched.
+	const selfLabeledTypes = new Set(['save-redirect']);
+
 	// Should this field use the 2-column (label left, field right) layout?
 	// Only for non-container leaf fields that have a label and aren't explicitly vertical
 	const useTwoColumn = $derived(
 		!externalLabel &&
 		!containerTypes.has(field.type) &&
+		!selfLabeledTypes.has(field.type) &&
 		field.type !== 'spacer' &&
 		field.type !== 'display' &&
 		field.style !== 'vertical' &&
@@ -182,6 +189,7 @@
 			{#if field.label}
 				<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">
 					{translateLabel(field.label)}
+					{#if field.validate?.required}<span class="text-red-500">*</span>{/if}
 					<FieldOverrideIndicator path={field.name} />
 				</span>
 			{/if}
@@ -338,7 +346,7 @@
 		{#if field.label || field.help}
 			<div>
 				{#if field.label}
-					<label class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{translateLabel(field.label)}<FieldOverrideIndicator path={field.name} /></label>
+					<label class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{translateLabel(field.label)}{#if field.validate?.required}<span class="text-red-500">*</span>{/if}<FieldOverrideIndicator path={field.name} /></label>
 				{/if}
 				{#if field.help}
 					<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
@@ -477,7 +485,7 @@
 				checked={!!value}
 				onchange={(e) => { const v = (e.target as HTMLInputElement).checked; oncommit?.(v); onchange(v); }}
 			/>
-			<span class="text-sm font-semibold text-foreground">{translateLabel(field.label)}</span>
+			<span class="text-sm font-semibold text-foreground">{translateLabel(field.label)}{#if field.validate?.required}<span class="text-red-500">*</span>{/if}</span>
 			<FieldOverrideIndicator path={field.name} />
 		</label>
 		{#if field.help}
@@ -491,7 +499,7 @@
 		{#if field.label || field.help}
 			<div>
 				{#if field.label}
-					<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{translateLabel(field.label)}<FieldOverrideIndicator path={field.name} /></span>
+					<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{translateLabel(field.label)}{#if field.validate?.required}<span class="text-red-500">*</span>{/if}<FieldOverrideIndicator path={field.name} /></span>
 				{/if}
 				{#if field.help}
 					<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
@@ -530,7 +538,7 @@
 		{#if field.label || field.help}
 			<div>
 				{#if field.label}
-					<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{translateLabel(field.label)}<FieldOverrideIndicator path={field.name} /></span>
+					<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{translateLabel(field.label)}{#if field.validate?.required}<span class="text-red-500">*</span>{/if}<FieldOverrideIndicator path={field.name} /></span>
 				{/if}
 				{#if field.help}
 					<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
@@ -629,7 +637,7 @@
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div data-translate={field.translate || undefined} data-field-name={field.translate ? field.name : undefined}>
 		<CustomFieldWrapper
-			{field}
+			field={selfLabeledTypes.has(field.type) ? { ...field, label: undefined, help: undefined } : field}
 			{value}
 			onchange={committingOnchange}
 			{oncommit}

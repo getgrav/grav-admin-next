@@ -19,6 +19,7 @@
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
+	import ObjectInfoButton from '$lib/components/flex-objects/ObjectInfoButton.svelte';
 	import { toast } from 'svelte-sonner';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
@@ -85,7 +86,9 @@
 	});
 
 	function populateForm(obj: FlexObject) {
-		const { key: _key, ...rest } = obj;
+		// Strip the identifier and the read-only __meta block — neither is part
+		// of the editable/saved object data (__meta only feeds the info panel).
+		const { key: _key, __meta: _meta, ...rest } = obj;
 		configData = structuredClone(rest) as Record<string, unknown>;
 		originalJson = stableJson(configData);
 	}
@@ -290,6 +293,9 @@
 								<p class="text-xs text-muted-foreground">{directory?.title ?? type}</p>
 							{/if}
 						</div>
+						{#if object?.__meta}
+							<ObjectInfoButton meta={object.__meta} directoryTitle={directory?.title} align="start" />
+						{/if}
 					</div>
 
 					<div class="flex shrink-0 items-center gap-2">

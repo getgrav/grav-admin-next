@@ -35,7 +35,22 @@ export interface FlexDirectoryInfo {
 
 // --- Object types ---
 
-export type FlexObject = Record<string, unknown> & { key: string };
+/**
+ * Read-only metadata the API returns under the reserved `__meta` key: the
+ * identifier used in code/templates plus where the object lives on disk.
+ * Never sent back on save (stripped in the edit view).
+ */
+export interface FlexObjectMeta {
+	type: string;
+	key: string;
+	storageKey: string;
+	storagePath?: string;
+}
+
+export type FlexObject = Record<string, unknown> & {
+	key: string;
+	__meta?: FlexObjectMeta;
+};
 
 export interface FlexObjectsPage {
 	objects: FlexObject[];
