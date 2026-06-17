@@ -1829,7 +1829,7 @@
 									<div>
 										<SelectField
 											field={{ name: 'name', type: 'select',
-												data_options: '\\Grav\\Plugin\\AdminPlugin::pagesTypes',
+												data_options: '\\Grav\\Common\\Page\\Pages::pageTypes',
 												validate: { required: true } }}
 											value={template}
 											onchange={(v) => {
