@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { getMenubarItems, executeMenubarAction, type MenubarItem } from '$lib/api/endpoints/menubar';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { modals } from '$lib/stores/modals.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { toast } from 'svelte-sonner';
 	import { Loader2 } from 'lucide-svelte';
@@ -36,6 +39,30 @@
 		if (item.confirm) {
 			pendingItem = item;
 			confirmOpen = true;
+			return;
+		}
+		await runItem(item);
+	}
+
+	// Client-side intents (route navigation, modal) take precedence over the
+	// server action. This is what lets a plugin offer e.g. a "New Article"
+	// button that deep-links to /pages/new with a preset parent + template, or
+	// opens its own modal — without a server round-trip.
+	async function runItem(item: MenubarItem) {
+		if (item.route) {
+			goto(`${base}${item.route}`);
+			return;
+		}
+		if (item.modal) {
+			await modals.open({
+				kind: 'component',
+				plugin: item.plugin,
+				component: item.modal.component,
+				title: item.modal.title ?? item.label,
+				props: item.modal.props,
+				size: item.modal.size,
+				useStandardHeader: item.modal.useStandardHeader,
+			});
 			return;
 		}
 		await doAction(item);
@@ -77,7 +104,7 @@
 	title={i18n.t('ADMIN_NEXT.CONFIRM_ACTION')}
 	message={pendingItem?.confirm ?? ''}
 	confirmLabel="Continue"
-	onconfirm={() => { confirmOpen = false; if (pendingItem) doAction(pendingItem); pendingItem = null; }}
+	onconfirm={() => { confirmOpen = false; if (pendingItem) runItem(pendingItem); pendingItem = null; }}
 	oncancel={() => { confirmOpen = false; pendingItem = null; }}
 />
 

@@ -27,11 +27,19 @@
 	})());
 
 	// ── Form state ──────────────────────────────────────────────────
-	let title = $state('');
-	let slug = $state('');
+	// Optional deep-link seeds let a plugin (e.g. a "New Article" menubar
+	// button) preset the parent, template, and title:
+	//   /pages/new?parent=/blog&template=item&title=My%20Post
+	// `?template=` also locks the template picker, so the button creates the
+	// intended page type — the admin-next equivalent of the classic
+	// "custom page creation modal" cookbook recipe.
+	const initialParams = pageStore.url.searchParams;
+	let title = $state(initialParams.get('title') ?? '');
+	let slug = $state(initialParams.get('title') ? slugify(initialParams.get('title') as string) : '');
 	let slugManuallyEdited = $state(false);
-	let parentRoute = $state('/');
-	let template = $state('default');
+	let parentRoute = $state(initialParams.get('parent') || '/');
+	let template = $state(initialParams.get('template') || 'default');
+	const templateLocked = initialParams.has('template');
 	let visible = $state<'auto' | 'yes' | 'no'>('auto');
 	let saving = $state(false);
 
@@ -492,7 +500,7 @@
 							<select
 								id="page-template"
 								bind:value={template}
-								disabled={pageTypesLoading}
+								disabled={pageTypesLoading || templateLocked}
 								class="mt-1 h-10 w-full rounded-lg border border-input bg-muted/50 px-3 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
 							>
 								{#if pageTypesLoading}

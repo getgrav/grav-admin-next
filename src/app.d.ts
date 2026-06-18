@@ -22,6 +22,8 @@ declare global {
 		__GRAV_FIELD_LOADING: Record<string, Promise<void> | undefined>;
 		__GRAV_PANEL_TAG: string;
 		__GRAV_PANEL_LOADING: Record<string, Promise<void> | undefined>;
+		__GRAV_MODAL_TAG: string;
+		__GRAV_MODAL_LOADING: Record<string, Promise<void> | undefined>;
 		__GRAV_DIALOGS: {
 			confirm: (options: {
 				title?: string;
@@ -30,6 +32,42 @@ declare global {
 				cancelLabel?: string;
 				variant?: 'destructive' | 'default';
 			}) => Promise<boolean>;
+			/**
+			 * Open a form modal built from inline field definitions. Resolves the
+			 * entered values keyed by field name, or `null` if cancelled.
+			 */
+			form: (options: {
+				title?: string;
+				description?: string;
+				fields: Array<{
+					name: string;
+					type?: 'text' | 'textarea' | 'select' | 'toggle' | 'number';
+					label?: string;
+					placeholder?: string;
+					help?: string;
+					required?: boolean;
+					value?: string | number | boolean;
+					options?: Array<{ value: string; label: string }>;
+				}>;
+				submitLabel?: string;
+				cancelLabel?: string;
+				size?: 'sm' | 'md' | 'lg' | 'xl';
+			}) => Promise<Record<string, unknown> | null>;
+			/**
+			 * Mount a plugin's own modal web component
+			 * (`grav-{plugin}--modal-{component}`, served from
+			 * `admin-next/modals/{component}.js`). Resolves whatever the component
+			 * reports via its `resolve` event, or `null` on cancel/close.
+			 */
+			open: (options: {
+				kind?: 'component';
+				title?: string;
+				plugin: string;
+				component: string;
+				props?: Record<string, unknown>;
+				size?: 'sm' | 'md' | 'lg' | 'xl';
+				useStandardHeader?: boolean;
+			}) => Promise<unknown>;
 		};
 		__GRAV_TOAST: {
 			success: (message: string, options?: Record<string, unknown>) => void;

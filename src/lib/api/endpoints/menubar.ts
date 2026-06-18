@@ -5,8 +5,22 @@ export interface MenubarItem {
 	plugin: string;
 	label: string;
 	icon: string;
+	/** Server action key — POSTed to /menubar/actions/{plugin}/{action} when clicked. */
 	action: string;
 	confirm?: string;
+	/**
+	 * Client-side intent (overrides the server `action`):
+	 * `route` navigates the SPA (e.g. `/pages/new?parent=/blog&template=item`);
+	 * `modal` opens a plugin modal web component.
+	 */
+	route?: string;
+	modal?: {
+		component: string;
+		title?: string;
+		props?: Record<string, unknown>;
+		size?: 'sm' | 'md' | 'lg' | 'xl';
+		useStandardHeader?: boolean;
+	};
 }
 
 export async function getMenubarItems(): Promise<MenubarItem[]> {

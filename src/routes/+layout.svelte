@@ -18,7 +18,9 @@
 	import { generateFavicon } from '$lib/utils/favicon';
 	import AppShell from '$lib/components/AppShell.svelte';
 	import GlobalDialogs from '$lib/components/ui/GlobalDialogs.svelte';
+	import PluginModal from '$lib/components/ui/PluginModal.svelte';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
+	import { modals } from '$lib/stores/modals.svelte';
 	import { Toaster, toast } from 'svelte-sonner';
 
 	let { children } = $props();
@@ -159,6 +161,12 @@
 		if (typeof window === 'undefined') return;
 		window.__GRAV_DIALOGS = {
 			confirm: (options) => dialogs.confirm(options),
+			// Richer modals: `form` builds a lightweight modal from inline field
+			// definitions (resolves the entered values, or null on cancel);
+			// `open` mounts a plugin's own modal web component
+			// (grav-{plugin}--modal-{component}) and resolves whatever it reports.
+			form: (options) => modals.form(options),
+			open: (options) => modals.open({ ...options, kind: 'component' }),
 		};
 	});
 
@@ -235,6 +243,7 @@
 />
 
 <GlobalDialogs />
+<PluginModal />
 
 {#if isAuthPage}
 	{@render children()}
