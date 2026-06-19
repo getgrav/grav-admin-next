@@ -77,7 +77,7 @@
 					<span class="shrink-0 text-lg leading-none">{current.icon}</span>
 				{/if}
 			{/if}
-			<div class="min-w-0 flex-1 text-[0.8125rem] leading-relaxed text-foreground">
+			<div class="min-w-0 flex-1 text-[0.8125rem] leading-relaxed text-foreground [&_a]:font-medium [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-primary/80">
 				{#if current.title}
 					<span class="font-semibold">{current.title}</span>
 					<span class="mx-1 text-muted-foreground">—</span>

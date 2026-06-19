@@ -41,7 +41,7 @@
 				{:else if promo.title}
 					<div class="mb-2 text-base font-semibold">{promo.title}</div>
 				{/if}
-				<p class="mb-4 text-[0.8125rem] leading-relaxed text-white/90">
+				<p class="mb-4 text-[0.8125rem] leading-relaxed text-white/90 [&_a]:font-medium [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-white">
 					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 					{@html renderInlineMarkdown(promo.message)}
 				</p>
@@ -91,7 +91,7 @@
 		{#if notif.title}
 			<div class="text-[0.75rem] font-semibold text-foreground group-hover:text-primary">{notif.title}</div>
 		{/if}
-		<p class="text-[0.75rem] leading-relaxed text-foreground/80 group-hover:text-primary">
+		<p class="text-[0.75rem] leading-relaxed text-foreground/80 group-hover:text-primary [&_a]:font-medium [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-primary/80">
 			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 			{@html renderInlineMarkdown(notif.message)}
 		</p>
