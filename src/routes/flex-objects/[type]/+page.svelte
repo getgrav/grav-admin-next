@@ -45,7 +45,18 @@
 	let sortField = $state<string | null>(null);
 	let sortOrder = $state<'asc' | 'desc'>('asc');
 
-	const perPageOptions = [15, 25, 50, 100, 200];
+	// Page-size choices, plus the directory's configured default if it isn't
+	// already one of the presets so the select can show it.
+	const perPageOptions = $derived.by(() => {
+		const base = [15, 25, 50, 100, 200];
+		const dirDefault = directory?.list?.options?.per_page;
+		if (dirDefault && !base.includes(dirDefault)) {
+			return [...base, dirDefault].sort((a, b) => a - b);
+		}
+		return base;
+	});
+
+	const DATE_TYPES = new Set(['date', 'datetime', 'datetime-local']);
 
 	// Delete confirmation
 	let deleteOpen = $state(false);
@@ -56,6 +67,7 @@
 	const columns = $derived.by(() => {
 		if (!directory?.list?.fields) return [];
 		const fieldTypes = directory.field_types ?? {};
+		const fieldOptions = directory.field_options ?? {};
 		return Object.entries(directory.list.fields).map(([name, config]) => {
 			const cfg = config ?? {};
 			return {
@@ -65,6 +77,8 @@
 				type: cfg.field?.type ?? fieldTypes[name] ?? 'text',
 				width: cfg.width,
 				link: cfg.link,
+				// value→label map for select/checkbox/radio columns (if static)
+				options: fieldOptions[name],
 			};
 		});
 	});
@@ -99,6 +113,15 @@
 			const dirs = await getDirectories();
 			directory = dirs.find((d) => d.type === type) ?? null;
 			if (directory) {
+				// Honor the directory's configured list defaults as the initial
+				// page size and sort. The user can still change either; an
+				// explicit choice is preserved on subsequent loads.
+				const opts = directory.list?.options;
+				if (opts?.per_page) perPage = opts.per_page;
+				if (opts?.order?.by) {
+					sortField = opts.order.by;
+					sortOrder = opts.order.dir === 'desc' ? 'desc' : 'asc';
+				}
 				await loadObjects(1);
 			} else {
 				loading = false;
@@ -159,6 +182,53 @@
 		if (val === null || val === undefined) return '';
 		if (typeof val === 'boolean') return val ? 'Yes' : 'No';
 		return String(val);
+	}
+
+	/** Parse a stored date value to a Date, handling unix seconds, unix ms, and date strings. */
+	function toDate(val: unknown): Date | null {
+		let ms: number | null = null;
+		if (typeof val === 'number') {
+			ms = val < 1e11 ? val * 1000 : val;
+		} else if (typeof val === 'string') {
+			const trimmed = val.trim();
+			if (trimmed === '') return null;
+			if (/^\d+$/.test(trimmed)) {
+				const n = Number(trimmed);
+				ms = n < 1e11 ? n * 1000 : n;
+			} else {
+				const parsed = Date.parse(trimmed);
+				if (Number.isNaN(parsed)) return null;
+				ms = parsed;
+			}
+		}
+		if (ms === null) return null;
+		const d = new Date(ms);
+		return Number.isNaN(d.getTime()) ? null : d;
+	}
+
+	/** Format a date/datetime list cell. Empty stays empty; unparseable falls back to the raw value. */
+	function formatDateCell(val: unknown, withTime: boolean): string {
+		if (val === null || val === undefined || val === '') return '';
+		const d = toDate(val);
+		if (!d) return String(val);
+		const opts: Intl.DateTimeFormatOptions = {
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit',
+		};
+		if (withTime) {
+			opts.hour = '2-digit';
+			opts.minute = '2-digit';
+			opts.hour12 = false;
+		}
+		return d.toLocaleString(undefined, opts);
+	}
+
+	/** Resolve a select/radio value to its configured option label, falling back to the raw value. */
+	function optionLabel(options: Record<string, string> | undefined, val: unknown): string {
+		if (val === null || val === undefined) return '';
+		const key = String(val);
+		return options?.[key] ?? key;
 	}
 
 	function isUrl(val: unknown): boolean {
@@ -342,6 +412,23 @@
 										>
 											{renderCell(obj, col.name)}
 										</button>
+									{:else if DATE_TYPES.has(col.type)}
+										{formatDateCell(obj[col.name], col.type !== 'date')}
+									{:else if Array.isArray(obj[col.name])}
+										<div class="flex flex-wrap gap-1">
+											{#each (obj[col.name] as string[]).slice(0, 5) as tag}
+												<span class="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+													{optionLabel(col.options, tag)}
+												</span>
+											{/each}
+											{#if (obj[col.name] as string[]).length > 5}
+												<span class="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+													+{(obj[col.name] as string[]).length - 5}
+												</span>
+											{/if}
+										</div>
+									{:else if col.options}
+										{optionLabel(col.options, obj[col.name])}
 									{:else if col.type === 'url' || isUrl(obj[col.name])}
 										{@const url = String(obj[col.name] ?? '')}
 										{#if url}
@@ -356,19 +443,6 @@
 												<span class="truncate max-w-[200px]">{url.replace(/^https?:\/\//, '')}</span>
 											</a>
 										{/if}
-									{:else if Array.isArray(obj[col.name])}
-										<div class="flex flex-wrap gap-1">
-											{#each (obj[col.name] as string[]).slice(0, 5) as tag}
-												<span class="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
-													{tag}
-												</span>
-											{/each}
-											{#if (obj[col.name] as string[]).length > 5}
-												<span class="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-													+{(obj[col.name] as string[]).length - 5}
-												</span>
-											{/if}
-										</div>
 									{:else}
 										{renderCell(obj, col.name)}
 									{/if}

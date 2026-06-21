@@ -6,14 +6,22 @@ import type { BlueprintSchema } from './blueprints';
 // --- Directory config types ---
 
 export interface FlexListFieldConfig {
-	field?: { type: string; label?: string };
+	field?: { type: string; label?: string; format?: string };
 	width?: number;
 	link?: string;
+}
+
+export interface FlexListOptions {
+	/** Initial page size for the list (overridden by an explicit per_page query). */
+	per_page?: number;
+	/** Initial sort applied when the user has not chosen a column. */
+	order?: { by?: string; dir?: 'asc' | 'desc' };
 }
 
 export interface FlexListConfig {
 	title?: string;
 	fields: Record<string, FlexListFieldConfig>;
+	options?: FlexListOptions;
 }
 
 export interface FlexEditConfig {
@@ -30,6 +38,8 @@ export interface FlexDirectoryInfo {
 	search?: { fields?: string[]; options?: Record<string, unknown> };
 	/** Maps list field names to their blueprint form field type (e.g., { website: 'url', published: 'toggle' }) */
 	field_types?: Record<string, string>;
+	/** Maps select/checkbox/radio list fields to their value→label option map, so cells can show labels instead of raw keys. */
+	field_options?: Record<string, Record<string, string>>;
 	export?: Record<string, unknown>;
 }
 
