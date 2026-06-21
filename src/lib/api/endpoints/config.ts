@@ -62,7 +62,7 @@ export async function revertConfig(
 	);
 	return {
 		data,
-		etag: responseHeaders.get('etag')?.replace(/"/g, '') ?? '',
+		etag: extractEtag(responseHeaders),
 		...readOverrideMeta(meta)
 	};
 }
@@ -89,7 +89,7 @@ export async function saveConfig(
 
 	return {
 		data: responseData,
-		etag: responseHeaders.get('etag')?.replace(/"/g, '') ?? '',
+		etag: extractEtag(responseHeaders),
 		...readOverrideMeta(meta)
 	};
 }
