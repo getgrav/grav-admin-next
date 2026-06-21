@@ -46,7 +46,7 @@
 			case 'author':  return (a.author?.name ?? '').localeCompare(b.author?.name ?? '');
 			case 'version': return (a.version ?? '').localeCompare(b.version ?? '', undefined, { numeric: true });
 			case 'enabled': return (b.enabled ? 1 : 0) - (a.enabled ? 1 : 0);
-			default:        return a.name.localeCompare(b.name);
+			default:        return (a.name ?? a.slug).localeCompare(b.name ?? b.slug);
 		}
 	}
 

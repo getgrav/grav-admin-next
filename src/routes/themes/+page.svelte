@@ -89,7 +89,7 @@
 				case 'enabled':
 					return (b.enabled ? 1 : 0) - (a.enabled ? 1 : 0);
 				default:
-					return a.name.localeCompare(b.name);
+					return (a.name ?? a.slug).localeCompare(b.name ?? b.slug);
 			}
 		});
 
