@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import type { PermissionAction } from '$lib/api/endpoints/blueprints';
-	import { Crown, Check, Ban, Minus } from 'lucide-svelte';
+	import type { InheritedAccessMap } from '$lib/utils/user-access';
+	import { Crown, Check, Ban, Minus, Users } from 'lucide-svelte';
 	import Self from './PermissionRow.svelte';
 
 	interface Props {
@@ -15,11 +16,15 @@
 		superAdmin: boolean;
 		/** Whether api.super is explicitly allowed — implies every api.* row. */
 		apiSuper: boolean;
+		/** Read-only overlay of permissions the user inherits from groups. The
+		 *  row ghosts the matching toggle and badges its source; it never alters
+		 *  `value`. Setting a toggle promotes it to a direct permission as usual. */
+		inherited?: InheritedAccessMap;
 		/** Toggle setter — bubbles back up to the parent field. */
 		onToggle: (name: string, newVal: 'allowed' | 'denied' | 'unset') => void;
 	}
 
-	let { action, depth, value, superAdmin, apiSuper, onToggle }: Props = $props();
+	let { action, depth, value, superAdmin, apiSuper, inherited, onToggle }: Props = $props();
 
 	const val = $derived.by((): 'allowed' | 'denied' | 'unset' => {
 		const parts = action.name.split('.');
@@ -47,6 +52,29 @@
 			&& action.name !== 'api.super'
 			&& action.name.startsWith('api.'))
 	);
+
+	// Group-inherited result for this exact permission (read-only overlay).
+	const inheritedHere = $derived(inherited?.[action.name]);
+	// When there's no direct value, the toggle ghosts to preview the group
+	// result. A direct value that *disagrees* with the group is a real override
+	// (amber); a direct value that agrees is just a redundant grant, not flagged.
+	const ghostAllow = $derived(val === 'unset' && inheritedHere?.state === 'allowed');
+	const ghostDeny = $derived(val === 'unset' && inheritedHere?.state === 'denied');
+	const isOverride = $derived(
+		(val === 'allowed' && inheritedHere?.state === 'denied') ||
+		(val === 'denied' && inheritedHere?.state === 'allowed'),
+	);
+
+	const inheritedTooltip = $derived.by((): string => {
+		if (!inheritedHere) return '';
+		const groups = inheritedHere.groups.join(', ');
+		if (isOverride) {
+			return i18n.t('ADMIN_NEXT.PERMISSIONS_FIELD.OVERRIDES_GROUP', { groups });
+		}
+		return inheritedHere.state === 'allowed'
+			? i18n.t('ADMIN_NEXT.PERMISSIONS_FIELD.INHERITED_ALLOWED', { groups })
+			: i18n.t('ADMIN_NEXT.PERMISSIONS_FIELD.INHERITED_DENIED', { groups });
+	});
 </script>
 
 <div
@@ -60,12 +88,21 @@
 		{#if implicit}
 			<Crown size={14} class="text-purple-500" />
 		{/if}
+		{#if inheritedHere}
+			<span title={inheritedTooltip} aria-label={inheritedTooltip} class="inline-flex">
+				<Users size={14} class={isOverride ? 'text-amber-500' : 'text-muted-foreground/70'} />
+			</span>
+		{/if}
 		<div class="flex shrink-0 overflow-hidden rounded-md border border-border text-[0.6875rem] font-medium">
 			<button
 				type="button"
 				class="flex items-center justify-center px-2 py-1.5 transition-colors
-					{val === 'allowed' ? 'bg-green-500 text-white' : 'text-muted-foreground hover:bg-muted'}"
-				title={i18n.t('ADMIN_NEXT.ALLOWED')}
+					{val === 'allowed'
+						? 'bg-green-500 text-white'
+						: ghostAllow
+							? 'bg-green-500/15 text-green-600 ring-1 ring-inset ring-green-500/30 dark:text-green-400'
+							: 'text-muted-foreground hover:bg-muted'}"
+				title={ghostAllow ? inheritedTooltip : i18n.t('ADMIN_NEXT.ALLOWED')}
 				aria-label={i18n.t('ADMIN_NEXT.ALLOWED')}
 				onclick={() => onToggle(action.name, val === 'allowed' ? 'unset' : 'allowed')}
 			>
@@ -74,8 +111,12 @@
 			<button
 				type="button"
 				class="flex items-center justify-center border-x border-border px-2 py-1.5 transition-colors
-					{val === 'denied' ? 'bg-red-400 text-white' : 'text-muted-foreground hover:bg-muted'}"
-				title={i18n.t('ADMIN_NEXT.DENIED')}
+					{val === 'denied'
+						? 'bg-red-400 text-white'
+						: ghostDeny
+							? 'bg-red-400/15 text-red-500 ring-1 ring-inset ring-red-400/30 dark:text-red-400'
+							: 'text-muted-foreground hover:bg-muted'}"
+				title={ghostDeny ? inheritedTooltip : i18n.t('ADMIN_NEXT.DENIED')}
 				aria-label={i18n.t('ADMIN_NEXT.DENIED')}
 				onclick={() => onToggle(action.name, val === 'denied' ? 'unset' : 'denied')}
 			>
@@ -103,6 +144,7 @@
 			{value}
 			{superAdmin}
 			{apiSuper}
+			{inherited}
 			{onToggle}
 		/>
 	{/each}

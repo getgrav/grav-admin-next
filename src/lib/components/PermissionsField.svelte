@@ -1,16 +1,19 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { getPermissionsBlueprint, type PermissionAction } from '$lib/api/endpoints/blueprints';
-	import { Loader2, ChevronDown } from 'lucide-svelte';
+	import type { InheritedAccessMap } from '$lib/utils/user-access';
+	import { Loader2, ChevronDown, Check, Users, Crown } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
 	import PermissionRow from './PermissionRow.svelte';
 
 	interface Props {
 		value: Record<string, unknown>;
+		/** Read-only group-inherited permissions overlaid on the toggles. */
+		inherited?: InheritedAccessMap;
 		onchange: (value: Record<string, unknown>) => void;
 	}
 
-	let { value, onchange }: Props = $props();
+	let { value, inherited, onchange }: Props = $props();
 
 	let sections = $state<PermissionAction[]>([]);
 	let loading = $state(true);
@@ -63,6 +66,9 @@
 		return current;
 	}
 
+	/** Whether any group-inherited permissions are present — gates the legend. */
+	const hasInherited = $derived(!!inherited && Object.keys(inherited).length > 0);
+
 	/** Whether admin.super is explicitly allowed — implies all admin/site perms. */
 	const superAdmin = $derived(getPathValue(value, 'admin.super') === true);
 	/** Whether api.super is explicitly allowed — implies all api perms. */
@@ -112,6 +118,35 @@
 		<Loader2 size={20} class="animate-spin text-muted-foreground" />
 	</div>
 {:else}
+	{#if hasInherited}
+		<div class="mb-3 rounded-lg border border-border bg-muted/20 px-4 py-3">
+			<p class="text-xs text-muted-foreground">
+				{i18n.t('ADMIN_NEXT.PERMISSIONS_FIELD.LEGEND_INTRO')}
+			</p>
+			<div class="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+				<span class="inline-flex items-center gap-1.5">
+					<span class="inline-flex h-5 w-5 items-center justify-center rounded bg-green-500 text-white">
+						<Check size={12} />
+					</span>
+					{i18n.t('ADMIN_NEXT.PERMISSIONS_FIELD.LEGEND_DIRECT')}
+				</span>
+				<span class="inline-flex items-center gap-1.5">
+					<span class="inline-flex h-5 w-5 items-center justify-center rounded bg-green-500/15 text-green-600 ring-1 ring-inset ring-green-500/30 dark:text-green-400">
+						<Check size={12} />
+					</span>
+					{i18n.t('ADMIN_NEXT.PERMISSIONS_FIELD.LEGEND_INHERITED')}
+				</span>
+				<span class="inline-flex items-center gap-1.5">
+					<Users size={14} class="text-amber-500" />
+					{i18n.t('ADMIN_NEXT.PERMISSIONS_FIELD.LEGEND_OVERRIDE')}
+				</span>
+				<span class="inline-flex items-center gap-1.5">
+					<Crown size={14} class="text-purple-500" />
+					{i18n.t('ADMIN_NEXT.PERMISSIONS_FIELD.LEGEND_SUPER')}
+				</span>
+			</div>
+		</div>
+	{/if}
 	<div class="space-y-3">
 		{#each sections as section (section.name)}
 			<div class="overflow-hidden rounded-lg border border-border">
@@ -140,6 +175,7 @@
 							{value}
 							{superAdmin}
 							{apiSuper}
+							{inherited}
 							onToggle={handleToggle}
 						/>
 					{/each}

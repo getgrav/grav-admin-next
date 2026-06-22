@@ -6,10 +6,12 @@
 	import { setContext } from 'svelte';
 	import { provideFormCommit } from '$lib/utils/form-commit.svelte';
 	import { getUser, updateUser, deleteUser, type UserInfo } from '$lib/api/endpoints/users';
+	import { getGroups, type GroupInfo } from '$lib/api/endpoints/groups';
 	import { getUserBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
+	import { resolveInheritedAccess } from '$lib/utils/user-access';
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
 	import TwoFactorField from '$lib/components/TwoFactorField.svelte';
 	import ApiKeysField from '$lib/components/ApiKeysField.svelte';
@@ -72,6 +74,14 @@
 	// Permissions handled separately
 	let access = $state<Record<string, unknown>>({});
 	let originalAccessJson = $state('{}');
+
+	// All groups (for resolving the read-only inheritance overlay). The overlay
+	// reacts to the live `groups` membership field, so editing membership in the
+	// form updates the ghosted toggles immediately.
+	let allGroups = $state<GroupInfo[]>([]);
+	const inheritedAccess = $derived(
+		resolveInheritedAccess(((configData.groups as string[]) ?? []), allGroups),
+	);
 
 	const hasChanges = $derived(
 		stableJson(configData) !== originalJson ||
@@ -173,14 +183,18 @@
 		error = '';
 		accessDenied = false;
 		try {
-			const [userResult, blueprintResult] = await Promise.all([
+			const [userResult, blueprintResult, groupsResult] = await Promise.all([
 				getUser(username),
 				getUserBlueprint().catch(() => null),
+				// Groups feed the read-only permission-inheritance overlay; failure
+				// there shouldn't block editing the user, so swallow it.
+				getGroups(1, 500).catch(() => null),
 			]);
 
 			user = userResult.user;
 			etag = userResult.etag;
 			blueprint = blueprintResult;
+			allGroups = groupsResult?.groups ?? [];
 			populateForm(userResult.user);
 		} catch (err: unknown) {
 			const status = err && typeof err === 'object' && 'status' in err
@@ -558,7 +572,7 @@
 					<div class="rounded-xl border border-border bg-card p-5">
 						<h2 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.USERS.PERMISSIONS')}</h2>
 						<div class="mt-4">
-							<PermissionsField value={access} onchange={handleAccessChange} />
+							<PermissionsField value={access} inherited={inheritedAccess} onchange={handleAccessChange} />
 						</div>
 					</div>
 				{/if}

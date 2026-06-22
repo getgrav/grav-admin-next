@@ -1,10 +1,87 @@
 import type { UserInfo } from '$lib/api/endpoints/users';
 import type { PermissionAction } from '$lib/api/endpoints/blueprints';
+import type { GroupInfo } from '$lib/api/endpoints/groups';
 
 export interface AccessFilterOption {
 	value: string;
 	label: string;
 	hint?: string;
+}
+
+/**
+ * A single permission a user effectively receives from group membership,
+ * resolved the same way Grav's `UserObject::authorize()` does (any group deny
+ * wins, else any group allow). Purely informational: the permissions UI renders
+ * these as a read-only overlay and never persists them onto the user's own
+ * `access` map. See getgrav/grav#4144.
+ */
+export interface InheritedPermission {
+	state: 'allowed' | 'denied';
+	/** Readable names of the group(s) that contribute this permission. */
+	groups: string[];
+}
+
+/** Flat map of permission name (e.g. `api.pages.read`) → inherited result. */
+export type InheritedAccessMap = Record<string, InheritedPermission>;
+
+/**
+ * Flatten a nested access object into dot-notation keys, keeping BOTH explicit
+ * grants and denials. `{ api: { pages: { read: true, delete: false } } }` →
+ * `{ 'api.pages.read': true, 'api.pages.delete': false }`. (flattenAccess above
+ * keeps only the `true` keys; group resolution needs the `false` ones too.)
+ */
+export function flattenAccessBooleans(
+	access: Record<string, unknown> | null | undefined,
+	prefix = '',
+): Record<string, boolean> {
+	const out: Record<string, boolean> = {};
+	if (!access || typeof access !== 'object') return out;
+	for (const [key, value] of Object.entries(access)) {
+		const path = prefix ? `${prefix}.${key}` : key;
+		if (value === true || value === false) {
+			out[path] = value;
+		} else if (value && typeof value === 'object') {
+			Object.assign(out, flattenAccessBooleans(value as Record<string, unknown>, path));
+		}
+	}
+	return out;
+}
+
+/**
+ * Resolve the permissions a user inherits from their group membership into the
+ * read-only overlay the permissions UI renders. Mirrors Grav's
+ * `UserGroupCollection::authorize()`: across the user's groups, an explicit
+ * deny wins; otherwise an explicit allow wins. The contributing group names are
+ * kept for the tooltip/badge. Group permissions the user also sets directly are
+ * still returned here — the row decides whether the direct value overrides.
+ */
+export function resolveInheritedAccess(
+	groupKeys: string[],
+	groups: GroupInfo[],
+): InheritedAccessMap {
+	const byKey = new Map<string, GroupInfo>();
+	for (const g of groups) byKey.set(g.groupname, g);
+
+	const acc: Record<string, { allows: string[]; denies: string[] }> = {};
+	for (const key of groupKeys) {
+		const group = byKey.get(key);
+		if (!group || group.enabled === false) continue;
+		const label = group.readableName || group.groupname;
+		for (const [perm, granted] of Object.entries(flattenAccessBooleans(group.access))) {
+			const entry = (acc[perm] ??= { allows: [], denies: [] });
+			(granted ? entry.allows : entry.denies).push(label);
+		}
+	}
+
+	const result: InheritedAccessMap = {};
+	for (const [perm, { allows, denies }] of Object.entries(acc)) {
+		if (denies.length > 0) {
+			result[perm] = { state: 'denied', groups: denies };
+		} else if (allows.length > 0) {
+			result[perm] = { state: 'allowed', groups: allows };
+		}
+	}
+	return result;
 }
 
 /**
