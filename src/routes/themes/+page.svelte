@@ -230,10 +230,12 @@
 	}
 
 	async function handleUpdateAll() {
+		const updatable = themes.filter((t) => t.updatable);
 		const ok = await dialogs.confirm({
-			title: 'Update all packages?',
-			message: `This will update ${updatableCount} package${updatableCount !== 1 ? 's' : ''} (plugins and themes). Continue?`,
-			confirmLabel: 'Update All',
+			title: i18n.t('ADMIN_NEXT.THEMES.UPDATE_ALL_CONFIRM_TITLE'),
+			message: i18n.t('ADMIN_NEXT.THEMES.UPDATE_ALL_CONFIRM_MESSAGE', { n: updatable.length }),
+			items: updatable.map((t) => `${t.name} → v${t.available_version}`),
+			confirmLabel: i18n.t('ADMIN_NEXT.THEMES.UPDATE_ALL'),
 		});
 		if (!ok) return;
 		updatingAll = true;

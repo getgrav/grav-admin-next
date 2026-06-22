@@ -202,12 +202,16 @@
 	}
 
 	async function handleUpdateAll() {
-		const n = (updates?.plugins?.filter(p => p.updatable).length ?? 0) +
-			(updates?.themes?.filter(t => t.updatable).length ?? 0);
+		const updatable = [
+			...(updates?.plugins?.filter(p => p.updatable) ?? []),
+			...(updates?.themes?.filter(t => t.updatable) ?? []),
+		];
+		const n = updatable.length;
 		const ok = await dialogs.confirm({
-			title: 'Update all packages?',
-			message: `This will update ${n} package${n !== 1 ? 's' : ''}. Continue?`,
-			confirmLabel: 'Update All',
+			title: i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPDATE_ALL_CONFIRM_TITLE'),
+			message: i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPDATE_ALL_CONFIRM_MESSAGE', { n }),
+			items: updatable.map(p => `${p.name} → v${p.available_version}`),
+			confirmLabel: i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPDATE_ALL'),
 		});
 		if (!ok) return;
 		updatingAll = true;

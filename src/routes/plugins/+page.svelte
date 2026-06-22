@@ -185,9 +185,12 @@
 	async function handleUpdatePlugin(plugin: PluginInfo, e: Event) {
 		e.stopPropagation();
 		const ok = await dialogs.confirm({
-			title: 'Update plugin?',
-			message: `Update ${plugin.name} to v${plugin.available_version}?`,
-			confirmLabel: 'Update',
+			title: i18n.t('ADMIN_NEXT.PLUGINS.UPDATE_CONFIRM_TITLE'),
+			message: i18n.t('ADMIN_NEXT.PLUGINS.UPDATE_CONFIRM_MESSAGE', {
+				name: plugin.name,
+				version: plugin.available_version,
+			}),
+			confirmLabel: i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: plugin.available_version }),
 		});
 		if (!ok) return;
 		updatingSlug = plugin.slug;
@@ -234,10 +237,12 @@
 	}
 
 	async function handleUpdateAll() {
+		const updatable = plugins.filter((p) => p.updatable);
 		const ok = await dialogs.confirm({
-			title: 'Update all packages?',
-			message: `This will update ${updatableCount} package${updatableCount !== 1 ? 's' : ''} (plugins and themes). Continue?`,
-			confirmLabel: 'Update All',
+			title: i18n.t('ADMIN_NEXT.PLUGINS.UPDATE_ALL_CONFIRM_TITLE'),
+			message: i18n.t('ADMIN_NEXT.PLUGINS.UPDATE_ALL_CONFIRM_MESSAGE', { n: updatable.length }),
+			items: updatable.map((p) => `${p.name} → v${p.available_version}`),
+			confirmLabel: i18n.t('ADMIN_NEXT.PLUGINS.UPDATE_ALL'),
 		});
 		if (!ok) return;
 		updatingAll = true;

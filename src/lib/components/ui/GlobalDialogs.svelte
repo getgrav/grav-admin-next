@@ -7,6 +7,7 @@
 	open={!!dialogs.current}
 	title={dialogs.current?.title}
 	message={dialogs.current?.message ?? ''}
+	items={dialogs.current?.items}
 	confirmLabel={dialogs.current?.confirmLabel}
 	cancelLabel={dialogs.current?.cancelLabel}
 	variant={dialogs.current?.variant}

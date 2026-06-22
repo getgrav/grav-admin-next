@@ -11,6 +11,8 @@
 export interface ConfirmOptions {
 	title?: string;
 	message: string;
+	/** Optional list of items rendered beneath the message (e.g. the packages about to be updated). */
+	items?: string[];
 	confirmLabel?: string;
 	cancelLabel?: string;
 	variant?: 'destructive' | 'default';
@@ -37,6 +39,7 @@ export const dialogs = {
 			current = {
 				title: options.title ?? 'Are you sure?',
 				message: options.message,
+				items: options.items ?? [],
 				confirmLabel: options.confirmLabel ?? 'Confirm',
 				cancelLabel: options.cancelLabel ?? 'Cancel',
 				variant: options.variant ?? 'default',

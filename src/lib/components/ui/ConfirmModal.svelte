@@ -8,6 +8,7 @@
 		open: boolean;
 		title?: string;
 		message: string;
+		items?: string[];
 		confirmLabel?: string;
 		cancelLabel?: string;
 		variant?: 'destructive' | 'default';
@@ -19,6 +20,7 @@
 		open,
 		title = i18n.t('ADMIN_NEXT.ARE_YOU_SURE'),
 		message,
+		items = [],
 		confirmLabel = i18n.t('ADMIN_NEXT.CONFIRM'),
 		cancelLabel = i18n.t('ADMIN_NEXT.CANCEL'),
 		variant = 'default',
@@ -55,6 +57,16 @@
 				<div class="min-w-0 flex-1">
 					<h3 class="text-base font-semibold text-foreground">{title}</h3>
 					<p class="mt-1.5 text-sm text-muted-foreground">{message}</p>
+					{#if items.length > 0}
+						<ul class="mt-3 max-h-48 overflow-y-auto rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-foreground">
+							{#each items as item}
+								<li class="flex items-baseline gap-2 py-0.5">
+									<span class="text-muted-foreground/60">•</span>
+									<span class="min-w-0 break-words">{item}</span>
+								</li>
+							{/each}
+						</ul>
+					{/if}
 				</div>
 			</div>
 			<div class="mt-5 flex justify-end gap-2">
