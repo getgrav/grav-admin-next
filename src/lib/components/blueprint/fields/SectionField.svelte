@@ -1,8 +1,11 @@
 <script lang="ts">
+	import { slide } from 'svelte/transition';
+	import { ChevronDown } from 'lucide-svelte';
 	import { marked } from 'marked';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import FieldRenderer from '../FieldRenderer.svelte';
 	import FieldOverrideIndicator from '../FieldOverrideIndicator.svelte';
+	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldMatches, fieldMatchesSelf } from '$lib/utils/field-filter';
 
@@ -16,6 +19,12 @@
 
 	let { field, getValue, onFieldChange, onFieldCommit, filter = '' }: Props = $props();
 	const translateLabel = i18n.tMaybe;
+
+	// A collapsible section/fieldset gets a clickable header that toggles its
+	// body. Initial state honours `collapsed`; only collapsible sections can
+	// ever be collapsed. An active filter force-expands so matches stay visible.
+	let collapsed = $state(field.collapsible ? (field.collapsed ?? false) : false);
+	const isCollapsed = $derived(field.collapsible && !filter && collapsed);
 
 	const visibleFields = $derived(
 		filter && field.fields
@@ -63,6 +72,33 @@
 		return val !== null && val !== undefined;
 	}
 
+	// The value a field takes when its toggleable wrapper is switched ON.
+	// An explicit blueprint default always wins. For a toggle/switch we commit
+	// the option the control visually highlights (its `highlight`, else the
+	// first option) so the saved data matches what the user sees — otherwise an
+	// enabled toggle persists '' which Grav reads as "off", e.g. dropping a page
+	// from navigation (getgrav/grav#4153). Other field types keep the prior ''.
+	function resolveOnValue(f: BlueprintField): unknown {
+		if (f.default !== undefined && f.default !== null) return f.default;
+
+		if (f.type === 'toggle' || f.type === 'switch') {
+			const isBool = f.validate?.type === 'bool';
+			const optionValues = f.options?.length
+				? f.options.map(o => o.value)
+				: (isBool ? ['1', '0'] : []);
+			const chosen = f.highlight !== undefined && f.highlight !== null
+				? String(f.highlight)
+				: (optionValues.length ? String(optionValues[0]) : undefined);
+			if (chosen !== undefined) {
+				if (isBool) return chosen === '1' || chosen === 'true';
+				const num = Number(chosen);
+				return Number.isNaN(num) ? chosen : num;
+			}
+		}
+
+		return '';
+	}
+
 	// When a toggleable field is OFF, the actual page value is null —
 	// but we want the inner field to render its blueprint default so the
 	// user can see what they'd be inheriting (matches classic admin's
@@ -70,7 +106,7 @@
 	// where the real value (which `toggleField` initialised to the
 	// default) is authoritative again.
 	function displayValue(f: BlueprintField, toggled: boolean): unknown {
-		if (f.toggleable && !toggled) return f.default ?? null;
+		if (f.toggleable && !toggled) return resolveOnValue(f) ?? null;
 		return getValue(f.name);
 	}
 
@@ -80,8 +116,8 @@
 			// (undefined would be stripped, leaving the value on the server).
 			onFieldChange(name, null);
 		} else {
-			// Toggling ON — restore the default value.
-			onFieldChange(name, fieldDef.default ?? '');
+			// Toggling ON — adopt the field's effective on-value.
+			onFieldChange(name, resolveOnValue(fieldDef));
 		}
 	}
 
@@ -110,10 +146,20 @@
 {#if !filter || visibleFields.length > 0}
 <div class="rounded-xl border border-border bg-muted/30">
 	{#if field.title || field.label}
-		<div class="px-6 pt-6 pb-2">
-			<h3 class="text-base font-bold text-foreground">
-				{translateLabel(field.title || field.label)}
+		{#snippet heading()}
+			<h3 class="flex items-center gap-2 text-base font-bold text-foreground">
+				{#if field.icon}
+					<i class="fa-solid fa-{field.icon} text-sm text-muted-foreground"></i>
+				{/if}
+				<span>{translateLabel(field.title || field.label)}</span>
+				{#if field.collapsible}
+					<span class="ms-auto text-muted-foreground transition-transform duration-200 {isCollapsed ? '-rotate-90 rtl:rotate-90' : ''}">
+						<ChevronDown size={16} />
+					</span>
+				{/if}
 			</h3>
+		{/snippet}
+		{#snippet description()}
 			{#if field.text || field.description}
 				{@const desc = translateLabel(field.text || field.description)}
 				{#if field.markdown}
@@ -122,11 +168,27 @@
 					<p class="mt-1 text-sm text-muted-foreground">{@html desc}</p>
 				{/if}
 			{/if}
-		</div>
+		{/snippet}
+		{#if field.collapsible}
+			<button
+				type="button"
+				class="flex w-full flex-col items-stretch px-6 pt-6 pb-2 text-start"
+				aria-expanded={!isCollapsed}
+				onclick={() => (collapsed = !collapsed)}
+			>
+				{@render heading()}
+				{@render description()}
+			</button>
+		{:else}
+			<div class="px-6 pt-6 pb-2">
+				{@render heading()}
+				{@render description()}
+			</div>
+		{/if}
 	{/if}
 
-	{#if visibleFields.length > 0}
-		<div class="space-y-5 px-6 py-5">
+	{#if visibleFields.length > 0 && !isCollapsed}
+		<div class="space-y-5 px-6 py-5" transition:slide={{ duration: 200 }}>
 			{#each visibleFields as childField (childField.name)}
 				{@const toggled = isToggleOn(childField)}
 

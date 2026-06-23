@@ -59,6 +59,8 @@ export interface BlueprintField {
 	controls?: string;
 	collapsed?: boolean;
 	collapsible?: boolean;
+	/** section/fieldset — FontAwesome icon name shown before the title. */
+	icon?: string;
 	sort?: boolean;
 	btnLabel?: string;
 	placement?: string;
