@@ -10,7 +10,7 @@
 	import { getUserBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson, pruneEmpty } from '$lib/utils/blueprint-validation';
 	import { resolveInheritedAccess } from '$lib/utils/user-access';
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
 	import TwoFactorField from '$lib/components/TwoFactorField.svelte';
@@ -85,7 +85,7 @@
 
 	const hasChanges = $derived(
 		stableJson(configData) !== originalJson ||
-		(canManagePermissions && JSON.stringify(access) !== originalAccessJson)
+		(canManagePermissions && stableJson(access) !== originalAccessJson)
 	);
 
 	// Names of fields/sections handled manually outside the blueprint form.
@@ -174,8 +174,8 @@
 		};
 		originalJson = stableJson(configData);
 
-		access = structuredClone(u.access);
-		originalAccessJson = JSON.stringify(access);
+		access = structuredClone(u.access ?? {});
+		originalAccessJson = stableJson(access);
 	}
 
 	async function loadUser() {
@@ -262,10 +262,12 @@
 		saving = true;
 		try {
 			const cleaned = stripRedacted(configData) as Record<string, unknown>;
-			// Merge blueprint data with access permissions
+			// Merge blueprint data with access permissions. Prune empty branches
+			// so any legacy `{api:{pages:{}}}` pollution is cleaned on save
+			// (admin2#50).
 			const body: Record<string, unknown> = {
 				...cleaned,
-				access,
+				access: pruneEmpty(access),
 			};
 			// Don't send username (readonly) or empty password
 			delete body.username;

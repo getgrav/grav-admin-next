@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { getPermissionsBlueprint, type PermissionAction } from '$lib/api/endpoints/blueprints';
+	import { pruneEmpty } from '$lib/utils/blueprint-validation';
 	import type { InheritedAccessMap } from '$lib/utils/user-access';
 	import { Loader2, ChevronDown, Check, Users, Crown } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
@@ -96,7 +97,12 @@
 			delete current[lastKey];
 		}
 
-		onchange(updated);
+		// Unsetting a permission deletes the leaf but leaves the parent objects
+		// the walk created above (e.g. `api.pages: {}`). Prune those empty
+		// branches so the tree round-trips back to its original shape — otherwise
+		// a set-then-unset leaves `{api:{pages:{}}}` and the form looks dirty with
+		// no net change, and the empty objects get persisted (admin2#50).
+		onchange(pruneEmpty(updated) as Record<string, unknown>);
 	}
 
 	function toggleSection(name: string) {

@@ -9,7 +9,7 @@
 	import { getGroup, updateGroup, deleteGroup, type GroupInfo } from '$lib/api/endpoints/groups';
 	import { getGroupBlueprint, type BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson, pruneEmpty } from '$lib/utils/blueprint-validation';
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
@@ -41,7 +41,7 @@
 
 	const hasChanges = $derived(
 		stableJson(configData) !== originalJson ||
-		JSON.stringify(access) !== originalAccessJson
+		stableJson(access) !== originalAccessJson
 	);
 
 	function filterFields(fields: BlueprintSchema['fields']): BlueprintSchema['fields'] {
@@ -68,7 +68,7 @@
 		};
 		originalJson = stableJson(configData);
 		access = structuredClone(g.access ?? {});
-		originalAccessJson = JSON.stringify(access);
+		originalAccessJson = stableJson(access);
 	}
 
 	async function load() {
@@ -128,7 +128,7 @@
 
 		saving = true;
 		try {
-			const body: Record<string, unknown> = { ...configData, access };
+			const body: Record<string, unknown> = { ...configData, access: pruneEmpty(access) };
 			delete body.groupname;
 			const result = await updateGroup(name, body, etag);
 			group = result.group;
