@@ -42,6 +42,36 @@ export interface UserListFilters {
 	access?: string;
 	/** Group name — keeps users belonging to that group. */
 	group?: string;
+	/**
+	 * Active Users-tab id (see getUserFilters). Sent to the server as `filter`,
+	 * which fires onApiUserListFilter so a plugin can narrow the listing before
+	 * pagination. `all` (or empty) means the unfiltered list.
+	 */
+	filter?: string;
+}
+
+/**
+ * A tab in the Users-list nav row. The built-in `all` tab is always returned
+ * first; the rest come from plugins via the onApiUserListFilters event.
+ */
+export interface UserFilterTab {
+	id: string;
+	plugin: string;
+	label: string;
+	icon?: string;
+	priority?: number;
+	badge?: string | number | null;
+	/** API path returning { count: N }, refreshed live (mirrors sidebar badges). */
+	badgeEndpoint?: string;
+}
+
+/**
+ * Fetch the filter tabs for the Users list. Requires api.users.read; callers
+ * without it should not render the tab row. Selecting a non-`all` tab adds its
+ * id as the `filter` param on getUsers().
+ */
+export async function getUserFilters(): Promise<UserFilterTab[]> {
+	return api.get<UserFilterTab[]>('/users/filters');
 }
 
 /**
@@ -58,6 +88,7 @@ export async function getUsers(page = 1, perPage = 20, filters: UserListFilters 
 	if (filters.search) params.search = filters.search;
 	if (filters.access) params.access = filters.access;
 	if (filters.group) params.group = filters.group;
+	if (filters.filter && filters.filter !== 'all') params.filter = filters.filter;
 
 	const body = await api.getFullBody<PaginatedUsersBody>('/users', params);
 

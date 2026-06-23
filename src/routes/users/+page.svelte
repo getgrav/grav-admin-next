@@ -2,7 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { getUsers, type UserInfo, type UsersPage } from '$lib/api/endpoints/users';
+	import { getUsers, getUserFilters, type UserInfo, type UsersPage, type UserFilterTab } from '$lib/api/endpoints/users';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
@@ -16,6 +16,7 @@
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import UsersTabNav from '$lib/components/users/UsersTabNav.svelte';
+	import Tabs from '$lib/components/ui/Tabs.svelte';
 	import UsersTableView from '$lib/components/users/UsersTableView.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import TypeaheadFilter from '$lib/components/ui/TypeaheadFilter.svelte';
@@ -40,6 +41,10 @@
 	let accessFilter = $state<string | null>(null);
 	let groupFilter = $state<string | null>(null);
 	let currentPage = $state(1);
+	// Plugin-contributed Users-list tabs (onApiUserListFilters). The built-in
+	// "all" tab is always present; the row only renders when a plugin adds more.
+	let filterTabs = $state<UserFilterTab[]>([]);
+	let activeFilter = $state('all');
 	let selectedUsername = $state<string | null>(null);
 	let pendingDelete = $state<string | null>(null);
 	let confirmDeleteOpen = $state(false);
@@ -65,6 +70,7 @@
 			search: search.trim() || undefined,
 			access: accessFilter ?? undefined,
 			group: groupFilter ?? undefined,
+			filter: activeFilter !== 'all' ? activeFilter : undefined,
 		};
 	}
 
@@ -84,6 +90,16 @@
 			toast.error(i18n.t('ADMIN_NEXT.USERS.FAILED_TO_LOAD_USERS'));
 		} finally {
 			loading = false;
+		}
+	}
+
+	async function loadFilterTabs() {
+		try {
+			filterTabs = await getUserFilters();
+		} catch {
+			// No tabs (e.g. the caller lacks api.users.read) — the listing still
+			// works; the tab row simply stays hidden.
+			filterTabs = [];
 		}
 	}
 
@@ -201,6 +217,7 @@
 		void search;
 		void accessFilter;
 		void groupFilter;
+		void activeFilter;
 		clearTimeout(reloadTimer);
 		reloadTimer = setTimeout(() => loadUsers(1), 250);
 		return () => clearTimeout(reloadTimer);
@@ -209,6 +226,7 @@
 	// Refetch when any user mutation happens elsewhere or on tab refocus.
 	onMount(() => {
 		loadFilterOptions();
+		loadFilterTabs();
 		const unsubUsers = invalidations.subscribe('users:*', () => loadUsers(currentPage));
 		const unsubFocus = invalidations.subscribe('*:focus', () => loadUsers(currentPage));
 		return () => { unsubUsers(); unsubFocus(); };
@@ -249,6 +267,12 @@
 	</StickyHeader>
 
 	<UsersTabNav />
+
+	<!-- Plugin-contributed list filter tabs (onApiUserListFilters). Hidden until
+	     a plugin adds at least one tab alongside the built-in "All Users". -->
+	{#if filterTabs.length > 1}
+		<Tabs items={filterTabs} active={activeFilter} onchange={(id) => (activeFilter = id)} />
+	{/if}
 
 	{#if loading && !data}
 		<div class="flex flex-1 items-center justify-center">
