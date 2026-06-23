@@ -181,10 +181,18 @@ function createAuthStore() {
 			persist();
 		},
 
-		setServer(url: string, env: string, prefix = '/api/v1') {
+		setServer(url: string, env: string, prefix?: string) {
 			serverUrl = url.replace(/\/+$/, '');
 			environment = env;
-			apiPrefix = prefix;
+			// Only overwrite the API prefix when one is explicitly supplied.
+			// The login/setup pages call setServer(url, env) without a prefix,
+			// and must not clobber the per-site prefix injected via
+			// window.__GRAV_CONFIG__ (e.g. a custom `route: /grav-api`). Doing so
+			// sent every post-login request to the default /api/v1 and broke
+			// installs that moved the API route off /api (issue #8).
+			if (prefix !== undefined) {
+				apiPrefix = prefix;
+			}
 			persist();
 		},
 
