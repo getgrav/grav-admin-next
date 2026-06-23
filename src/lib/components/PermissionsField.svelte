@@ -67,6 +67,23 @@
 		return current;
 	}
 
+	/** Find a permission action by its full dotted name in the loaded tree. */
+	function findAction(name: string, nodes: PermissionAction[] = sections): PermissionAction | null {
+		for (const node of nodes) {
+			if (node.name === name) return node;
+			if (node.children) {
+				const found = findAction(name, node.children);
+				if (found) return found;
+			}
+		}
+		return null;
+	}
+
+	/** Leaf segments of a node's immediate children (e.g. ['read','write']). */
+	function childLeafKeys(dottedName: string): string[] {
+		return (findAction(dottedName)?.children ?? []).map((c) => c.name.split('.').pop() as string);
+	}
+
 	/** Whether any group-inherited permissions are present — gates the legend. */
 	const hasInherited = $derived(!!inherited && Object.keys(inherited).length > 0);
 
@@ -82,7 +99,19 @@
 
 		for (let i = 0; i < parts.length - 1; i++) {
 			const key = parts[i];
-			if (typeof current[key] !== 'object' || current[key] === null) {
+			const ancestor = current[key];
+			if (typeof ancestor === 'boolean') {
+				// The ancestor holds a blanket grant (e.g. `api.pages: true`). Grav's
+				// nested access can't keep a parent boolean and a child override at
+				// once, so descending here would silently drop the blanket. Preserve
+				// the intent by materialising it onto the node's known children before
+				// we set the more specific permission (admin2#50).
+				const expanded: Record<string, unknown> = {};
+				for (const child of childLeafKeys(parts.slice(0, i + 1).join('.'))) {
+					expanded[child] = ancestor;
+				}
+				current[key] = expanded;
+			} else if (typeof ancestor !== 'object' || ancestor === null) {
 				current[key] = {};
 			}
 			current = current[key] as Record<string, unknown>;
