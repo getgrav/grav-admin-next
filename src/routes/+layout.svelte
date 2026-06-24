@@ -5,6 +5,7 @@
 	import { goto, beforeNavigate } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { authSession } from '$lib/stores/auth-session.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
@@ -22,6 +23,7 @@
 	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { modals } from '$lib/stores/modals.svelte';
 	import { Toaster, toast } from 'svelte-sonner';
+	import { Loader2 } from 'lucide-svelte';
 
 	let { children } = $props();
 
@@ -32,7 +34,28 @@
 		page.url.pathname === `${base}/invite` ||
 		page.url.pathname === `${base}/setup`
 	);
-	const needsAuth = $derived(!isAuthPage && !auth.isAuthenticated);
+	// Boot-time silent re-auth. The access token is short-lived (jwt_expiry,
+	// 1h by default) while the refresh token lasts days. If the browser was
+	// closed past the access-token lifetime and reopened, `isAuthenticated` is
+	// false on boot even though a perfectly valid refresh token is still in
+	// localStorage. Without recovering here the guard below would bounce the
+	// user straight to /login — the symptom reported in admin2 #55 ("ignores
+	// session timeout, makes me log in again"). So before deciding the session
+	// is dead, try one refresh; only redirect if it fails (or nothing to
+	// recover from). `authSession.start()` takes over once AppShell mounts.
+	let bootResolving = $state(false);
+	let bootAttempted = false;
+
+	$effect(() => {
+		if (bootAttempted || isAuthPage) return;
+		bootAttempted = true;
+		if (!auth.isAuthenticated && auth.canRefresh) {
+			bootResolving = true;
+			void authSession.performRefresh().finally(() => { bootResolving = false; });
+		}
+	});
+
+	const needsAuth = $derived(!isAuthPage && !auth.isAuthenticated && !bootResolving);
 
 	// Favicon: a custom uploaded favicon (resolved to an absolute URL the same
 	// way BrandLogo resolves logo paths) takes precedence over the generated
@@ -288,4 +311,8 @@
 	<AppShell>
 		{@render children()}
 	</AppShell>
+{:else if bootResolving}
+	<div class="flex h-screen w-full items-center justify-center">
+		<Loader2 size={28} class="animate-spin text-muted-foreground" />
+	</div>
 {/if}

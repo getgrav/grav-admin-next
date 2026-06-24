@@ -88,6 +88,15 @@ function createAuthStore() {
 
 	const isAuthenticated = $derived(!!accessToken && Date.now() < expiresAt);
 	const isExpiringSoon = $derived(!!accessToken && expiresAt - Date.now() < 5 * 60 * 1000);
+	// A session is recoverable when a refresh token is present and not itself
+	// expired — even if the (short-lived) access token has already lapsed. This
+	// is what lets a cold boot silently re-auth instead of bouncing to /login
+	// after the browser was closed past the access-token lifetime (admin2 #55).
+	// If the refresh token can't be decoded we stay optimistic and let the
+	// server be the judge on the actual refresh call.
+	const canRefresh = $derived(
+		!!refreshToken && (decodeJwtExp(refreshToken) ?? Infinity) > Date.now()
+	);
 	const isSuperAdmin = $derived(superAdmin);
 	const hasGravConfig = gravConfig !== null;
 
@@ -141,6 +150,7 @@ function createAuthStore() {
 
 		get isAuthenticated() { return isAuthenticated; },
 		get isExpiringSoon() { return isExpiringSoon; },
+		get canRefresh() { return canRefresh; },
 		get isSuperAdmin() { return isSuperAdmin; },
 		get access() { return access; },
 		get hasGravConfig() { return hasGravConfig; },
