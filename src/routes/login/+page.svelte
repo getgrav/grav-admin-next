@@ -14,14 +14,19 @@
 	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
 
 	const defaultUrl = import.meta.env.DEV ? 'http://localhost:5180/grav-api' : 'https://localhost/grav-api';
-	// When admin2 injected __GRAV_CONFIG__, its serverUrl is authoritative — even
-	// when it's an empty string, which is the valid "same-origin" value the plugin
-	// emits for a site served at the web root (e.g. https://example.test/admin).
-	// Only fall back to defaultUrl in standalone/dev mode where no config exists;
-	// otherwise `'' || defaultUrl` would point every login request at
-	// https://localhost/grav-api cross-origin and the auth cookie/token would
-	// never be sent, breaking login on any root-hosted site (admin2#58).
-	let serverUrl = $state(auth.hasGravConfig ? auth.serverUrl : (auth.serverUrl || defaultUrl));
+	// When admin2 injected __GRAV_CONFIG__, its serverUrl is a path-only base
+	// (e.g. '' for a root-hosted site, '/grav-api' for a subfolder). That's the
+	// correct same-origin value for requests, but it's meaningless to show in the
+	// field, so display the full URL against the *actual* host the shell was served
+	// from: window.location.origin + the injected base. Using the live origin
+	// (never the canonical custom_base_url) keeps both alternate-host (#56) and
+	// root-hosted (#58) logins same-origin, so the auth cookie/token are still sent.
+	// In standalone/dev mode there's no injected config, so fall back to defaultUrl.
+	function injectedServerUrl(): string {
+		const base = auth.serverUrl;
+		return typeof window !== 'undefined' ? window.location.origin + base : base;
+	}
+	let serverUrl = $state(auth.hasGravConfig ? injectedServerUrl() : (auth.serverUrl || defaultUrl));
 	let environment = $state(auth.environment || 'localhost');
 	let username = $state('');
 	let password = $state('');

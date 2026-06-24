@@ -15,10 +15,15 @@
 	import { evaluatePassword } from '$lib/utils/passwordStrength';
 
 	const defaultUrl = import.meta.env.DEV ? 'http://localhost:5180/grav-api' : 'https://localhost/grav-api';
-	// An injected __GRAV_CONFIG__ serverUrl is authoritative even when empty (the
-	// same-origin value for a root-hosted site); only fall back to defaultUrl in
-	// standalone/dev mode, or login/setup fires cross-origin and fails (admin2#58).
-	let serverUrl = $state(auth.hasGravConfig ? auth.serverUrl : (auth.serverUrl || defaultUrl));
+	// admin2 injects a path-only same-origin base (e.g. '' or '/grav-api'). Show
+	// the full URL against the actual host (origin + base) so the field is
+	// meaningful, while requests stay same-origin (#56/#58). Standalone/dev mode
+	// has no injected config, so fall back to defaultUrl.
+	function injectedServerUrl(): string {
+		const base = auth.serverUrl;
+		return typeof window !== 'undefined' ? window.location.origin + base : base;
+	}
+	let serverUrl = $state(auth.hasGravConfig ? injectedServerUrl() : (auth.serverUrl || defaultUrl));
 	let environment = $state(auth.environment || 'localhost');
 	let showServerConfig = $state(!auth.serverUrl && !auth.hasGravConfig);
 
