@@ -6,6 +6,8 @@ export type FontSize = 'small' | 'normal' | 'large' | 'xlarge';
 export type EditorMode = 'normal' | 'expert';
 export type LogoMode = 'default' | 'text' | 'custom';
 export type LogoVariant = 'light' | 'dark';
+/** Upload/delete variants: the two logo slots plus the custom favicon. */
+export type BrandingVariant = 'light' | 'dark' | 'favicon';
 export type PagesViewMode = 'tree' | 'list' | 'miller';
 export type AccountsViewMode = 'cards' | 'table';
 
@@ -21,11 +23,20 @@ export interface SiteBranding {
 	text: string;
 	logoLight: string;
 	logoDark: string;
+	/** Custom sign-in heading + browser-tab title. Empty = built-in "Grav Admin". */
+	title: string;
+	/** Custom sign-in subtitle. Empty = built-in copy. */
+	subtitle: string;
+	/** Show the "Powered by Grav CMS" line on the login/setup screens. */
+	showPoweredBy: boolean;
+	/** Custom favicon filename. Empty = the generated accent-coloured favicon. */
+	favicon: string;
 }
 
 export interface BrandingUrls {
 	light: string;
 	dark: string;
+	favicon: string;
 }
 
 /** Tier B — keys the user is allowed to override. */
@@ -108,9 +119,9 @@ export async function saveSiteBranding(
 	return api.patch<PreferencesResponse>('/admin-next/branding', payload);
 }
 
-/** Super-admin: upload a logo file (variant = light or dark). */
+/** Super-admin: upload a logo or favicon file (variant = light, dark, or favicon). */
 export async function uploadBrandingLogo(
-	variant: LogoVariant,
+	variant: BrandingVariant,
 	file: File,
 ): Promise<PreferencesResponse> {
 	return api.uploadFile<PreferencesResponse>(`/admin-next/branding/logo?variant=${variant}`, file, {
@@ -118,7 +129,7 @@ export async function uploadBrandingLogo(
 	});
 }
 
-/** Super-admin: delete a logo file (variant = light or dark). */
-export async function deleteBrandingLogo(variant: LogoVariant): Promise<PreferencesResponse> {
+/** Super-admin: delete a logo or favicon file (variant = light, dark, or favicon). */
+export async function deleteBrandingLogo(variant: BrandingVariant): Promise<PreferencesResponse> {
 	return api.delete<PreferencesResponse>(`/admin-next/branding/logo?variant=${variant}`);
 }

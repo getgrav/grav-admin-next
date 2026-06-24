@@ -46,6 +46,40 @@
 		try { await branding.save({ text }); } catch { toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_SAVE_LOGO_TEXT')); }
 	}
 
+	async function setBrandingTitle(title: string) {
+		try { await branding.save({ title }); } catch { toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_SAVE_BRANDING')); }
+	}
+
+	async function setBrandingSubtitle(subtitle: string) {
+		try { await branding.save({ subtitle }); } catch { toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_SAVE_BRANDING')); }
+	}
+
+	async function setShowPoweredBy(showPoweredBy: boolean) {
+		try { await branding.save({ showPoweredBy }); } catch { toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_SAVE_BRANDING')); }
+	}
+
+	async function handleFaviconUpload(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+		try {
+			await branding.uploadLogo('favicon', file);
+			toast.success(i18n.t('ADMIN_NEXT.SETTINGS.FAVICON_UPLOADED'));
+		} catch {
+			toast.error(i18n.t('ADMIN_NEXT.SETTINGS.LOGO_UPLOAD_FAILED'));
+		}
+		input.value = '';
+	}
+
+	async function deleteFavicon() {
+		try {
+			await branding.deleteLogo('favicon');
+			toast.success(i18n.t('ADMIN_NEXT.SETTINGS.FAVICON_REMOVED'));
+		} catch {
+			toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_REMOVE_LOGO'));
+		}
+	}
+
 	async function handleLogoUpload(variant: 'light' | 'dark', event: Event) {
 		const input = event.target as HTMLInputElement;
 		const file = input.files?.[0];
@@ -645,6 +679,79 @@
 								</div>
 							</div>
 						{/if}
+
+						<!-- Sign-in screen + browser tab ───────────────────── -->
+						<div class="space-y-4 border-t border-border/60 pt-4">
+							<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+								<div class="lg:pt-2.5">
+									<span class="text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_TITLE')}</span>
+									<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_TITLE_DESC')}</p>
+								</div>
+								<input
+									type="text"
+									class="flex h-10 w-full max-w-xs rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+									value={branding.title}
+									placeholder="Grav Admin"
+									maxlength="64"
+									onblur={(e) => setBrandingTitle((e.target as HTMLInputElement).value)}
+								/>
+							</div>
+
+							<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+								<div class="lg:pt-2.5">
+									<span class="text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.LOGIN_SUBTITLE')}</span>
+									<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.LOGIN_SUBTITLE_DESC')}</p>
+								</div>
+								<input
+									type="text"
+									class="flex h-10 w-full max-w-xs rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+									value={branding.subtitle}
+									placeholder={i18n.t('ADMIN_NEXT.LOGIN.SUBTITLE')}
+									maxlength="128"
+									onblur={(e) => setBrandingSubtitle((e.target as HTMLInputElement).value)}
+								/>
+							</div>
+
+							<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+								<div class="lg:pt-2.5">
+									<span class="text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SHOW_POWERED_BY')}</span>
+									<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SHOW_POWERED_BY_DESC')}</p>
+								</div>
+								<div>
+									<SegmentedToggle
+										value={branding.showPoweredBy}
+										onchange={(v) => setShowPoweredBy(v as boolean)}
+										options={[
+											{ value: true, label: i18n.t('ADMIN_NEXT.SETTINGS.ON') },
+											{ value: false, label: i18n.t('ADMIN_NEXT.SETTINGS.OFF') }
+										]}
+									/>
+								</div>
+							</div>
+
+							<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+								<div class="lg:pt-2.5">
+									<span class="text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.FAVICON')}</span>
+									<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.FAVICON_DESC')}</p>
+								</div>
+								<div class="flex items-center gap-3">
+									{#if branding.urlFavicon}
+										{@const favSrc = (typeof window !== 'undefined' ? ((window as unknown as { __GRAV_CONFIG__?: { serverUrl?: string } }).__GRAV_CONFIG__?.serverUrl ?? '') : '') + branding.urlFavicon}
+										<img src={favSrc} alt="Favicon" class="h-8 w-8 rounded border border-border bg-card p-1" />
+										<button
+											type="button"
+											class="text-xs text-muted-foreground hover:text-destructive"
+											onclick={deleteFavicon}
+										>{i18n.t('ADMIN_NEXT.REMOVE')}</button>
+									{/if}
+									<label class="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50">
+										<Upload size={14} />
+										{i18n.t('ADMIN_NEXT.UPLOAD')}
+										<input type="file" accept="image/svg+xml,image/png,image/webp,image/x-icon,image/vnd.microsoft.icon" class="hidden" onchange={handleFaviconUpload} />
+									</label>
+								</div>
+							</div>
+						</div>
 					</div>
 
 					<!-- Site Settings card (draft + save) ────────────────────── -->

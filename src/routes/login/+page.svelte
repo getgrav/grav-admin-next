@@ -10,6 +10,7 @@
 	import { Sun, Moon, LogIn, Server, Globe, ChevronDown, Loader2, ShieldCheck } from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
+	import { branding } from '$lib/stores/branding.svelte';
 	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
 
 	const defaultUrl = import.meta.env.DEV ? 'http://localhost:5180/grav-api' : 'https://localhost/grav-api';
@@ -162,12 +163,12 @@
 			<div class="mb-4">
 				<BrandLogo size="login" />
 			</div>
-			<h1 class="text-2xl font-semibold tracking-tight text-foreground">{i18n.t('ADMIN_NEXT.LOGIN.GRAV_ADMIN')}</h1>
+			<h1 class="text-2xl font-semibold tracking-tight text-foreground">{branding.title || i18n.t('ADMIN_NEXT.LOGIN.GRAV_ADMIN')}</h1>
 			<p class="mt-1 text-[0.8125rem] text-muted-foreground">
 				{#if stage === '2fa'}
 					{i18n.t('ADMIN_NEXT.LOGIN.TWOFA_SUBTITLE')}
 				{:else}
-					{i18n.t('ADMIN_NEXT.LOGIN.SUBTITLE')}
+					{branding.subtitle || i18n.t('ADMIN_NEXT.LOGIN.SUBTITLE')}
 				{/if}
 			</p>
 		</div>
@@ -328,8 +329,10 @@
 			{/if}
 		</div>
 
-		<p class="mt-6 text-center text-xs text-muted-foreground">
-			{i18n.t('ADMIN_NEXT.LOGIN.POWERED_BY_GRAV_CMS')}
-		</p>
+		{#if branding.showPoweredBy}
+			<p class="mt-6 text-center text-xs text-muted-foreground">
+				{i18n.t('ADMIN_NEXT.LOGIN.POWERED_BY_GRAV_CMS')}
+			</p>
+		{/if}
 	</div>
 </div>

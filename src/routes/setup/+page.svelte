@@ -8,6 +8,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Sun, Moon, Server, Globe, ChevronDown, Loader2, UserPlus } from 'lucide-svelte';
 	import { theme } from '$lib/stores/theme.svelte';
+	import { branding } from '$lib/stores/branding.svelte';
 	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
 	import PasswordField from '$lib/components/ui/PasswordField.svelte';
 	import { passwordPolicy } from '$lib/stores/passwordPolicy.svelte';
@@ -263,8 +264,10 @@
 			{/if}
 		</div>
 
-		<p class="mt-6 text-center text-xs text-muted-foreground">
-			{i18n.t('ADMIN_NEXT.SETUP.POWERED_BY_GRAV_CMS')}
-		</p>
+		{#if branding.showPoweredBy}
+			<p class="mt-6 text-center text-xs text-muted-foreground">
+				{i18n.t('ADMIN_NEXT.SETUP.POWERED_BY_GRAV_CMS')}
+			</p>
+		{/if}
 	</div>
 </div>

@@ -30,9 +30,21 @@ function loadCached(): CachedTranslations | null {
 	}
 }
 
+/**
+ * Pre-auth admin language injected into `window.__GRAV_CONFIG__` by admin2.php.
+ * Lets the sign-in screen render in the site's configured admin language on a
+ * first/cache-less visit instead of defaulting to English until login. Returns
+ * undefined when absent (older admin2 build) or running server-side.
+ */
+function bootConfigLang(): string | undefined {
+	if (typeof window === 'undefined') return undefined;
+	const lang = (window as unknown as { __GRAV_CONFIG__?: { language?: string } }).__GRAV_CONFIG__?.language;
+	return typeof lang === 'string' && lang !== '' ? lang : undefined;
+}
+
 function createI18nStore() {
 	const cached = loadCached();
-	const cachedLang = normalizeLang(cached?.lang ?? DEFAULT_LANG);
+	const cachedLang = normalizeLang(cached?.lang ?? bootConfigLang() ?? DEFAULT_LANG);
 
 	let lang = $state(cachedLang);
 	let dir = $state<Direction>(cached?.dir ?? 'ltr');

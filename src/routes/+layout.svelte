@@ -34,6 +34,43 @@
 	);
 	const needsAuth = $derived(!isAuthPage && !auth.isAuthenticated);
 
+	// Favicon: a custom uploaded favicon (resolved to an absolute URL the same
+	// way BrandLogo resolves logo paths) takes precedence over the generated
+	// accent-coloured one. Applies pre-auth too — the branding store seeds from
+	// window.__GRAV_CONFIG__ on a cache-less visit.
+	const faviconHref = $derived.by(() => {
+		const url = branding.urlFavicon;
+		if (url) {
+			if (url.startsWith('http://') || url.startsWith('https://')) return url;
+			const server = typeof window !== 'undefined'
+				? ((window as unknown as { __GRAV_CONFIG__?: { serverUrl?: string } }).__GRAV_CONFIG__?.serverUrl ?? '')
+				: '';
+			return server + url;
+		}
+		return generateFavicon(theme.accentHue, theme.accentSaturation, theme.isDark);
+	});
+
+	// Custom app title: route components set browser-tab titles like
+	// "Dashboard — Grav Admin" via <svelte:head>. When the operator has set a
+	// branding title, swap the "Grav Admin" token for it on every title change.
+	// A MutationObserver (rather than reacting to each route) keeps it applied
+	// regardless of effect ordering and re-application is a no-op once swapped.
+	$effect(() => {
+		if (typeof document === 'undefined') return;
+		const custom = branding.title.trim();
+		if (!custom) return;
+		const titleEl = document.querySelector('title');
+		if (!titleEl) return;
+		const swap = () => {
+			const next = document.title.replaceAll('Grav Admin', custom);
+			if (next !== document.title) document.title = next;
+		};
+		swap();
+		const obs = new MutationObserver(swap);
+		obs.observe(titleEl, { childList: true, characterData: true, subtree: true });
+		return () => obs.disconnect();
+	});
+
 	$effect(() => {
 		if (needsAuth) {
 			const returnTo = page.url.pathname + page.url.search + page.url.hash;
@@ -231,7 +268,7 @@
 	});
 </script>
 
-<svelte:head><link rel="icon" href={generateFavicon(theme.accentHue, theme.accentSaturation, theme.isDark)} /></svelte:head>
+<svelte:head><link rel="icon" href={faviconHref} /></svelte:head>
 
 <Toaster
 	position={i18n.dir === 'rtl' ? 'bottom-left' : 'bottom-right'}
