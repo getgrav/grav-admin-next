@@ -14,7 +14,14 @@
 	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
 
 	const defaultUrl = import.meta.env.DEV ? 'http://localhost:5180/grav-api' : 'https://localhost/grav-api';
-	let serverUrl = $state(auth.serverUrl || defaultUrl);
+	// When admin2 injected __GRAV_CONFIG__, its serverUrl is authoritative — even
+	// when it's an empty string, which is the valid "same-origin" value the plugin
+	// emits for a site served at the web root (e.g. https://example.test/admin).
+	// Only fall back to defaultUrl in standalone/dev mode where no config exists;
+	// otherwise `'' || defaultUrl` would point every login request at
+	// https://localhost/grav-api cross-origin and the auth cookie/token would
+	// never be sent, breaking login on any root-hosted site (admin2#58).
+	let serverUrl = $state(auth.hasGravConfig ? auth.serverUrl : (auth.serverUrl || defaultUrl));
 	let environment = $state(auth.environment || 'localhost');
 	let username = $state('');
 	let password = $state('');

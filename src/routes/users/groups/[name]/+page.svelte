@@ -11,6 +11,7 @@
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson, pruneEmpty } from '$lib/utils/blueprint-validation';
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
+	import { toAccessRecord } from '$lib/utils/user-access';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -67,7 +68,7 @@
 			enabled: g.enabled,
 		};
 		originalJson = stableJson(configData);
-		access = structuredClone(g.access ?? {});
+		access = structuredClone(toAccessRecord(g.access));
 		originalAccessJson = stableJson(access);
 	}
 

@@ -2,7 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { getPermissionsBlueprint, type PermissionAction } from '$lib/api/endpoints/blueprints';
 	import { pruneEmpty } from '$lib/utils/blueprint-validation';
-	import type { InheritedAccessMap } from '$lib/utils/user-access';
+	import { toAccessRecord, type InheritedAccessMap } from '$lib/utils/user-access';
 	import { Loader2, ChevronDown, Check, Users, Crown } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
 	import PermissionRow from './PermissionRow.svelte';
@@ -94,7 +94,10 @@
 
 	function handleToggle(name: string, newVal: 'allowed' | 'denied' | 'unset') {
 		const parts = name.split('.');
-		const updated = deepClone(value);
+		// Coerce to a plain object first: an empty access map arrives from the API
+		// as `[]`, and mutating that as an object then pruning would lose the
+		// changes, so the first permission could never be added (admin2#58).
+		const updated = deepClone(toAccessRecord(value));
 		let current: Record<string, unknown> = updated;
 
 		for (let i = 0; i < parts.length - 1; i++) {

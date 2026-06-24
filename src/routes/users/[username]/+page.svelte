@@ -11,7 +11,7 @@
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson, pruneEmpty } from '$lib/utils/blueprint-validation';
-	import { resolveInheritedAccess } from '$lib/utils/user-access';
+	import { resolveInheritedAccess, toAccessRecord } from '$lib/utils/user-access';
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
 	import TwoFactorField from '$lib/components/TwoFactorField.svelte';
 	import ApiKeysField from '$lib/components/ApiKeysField.svelte';
@@ -174,7 +174,7 @@
 		};
 		originalJson = stableJson(configData);
 
-		access = structuredClone(u.access ?? {});
+		access = structuredClone(toAccessRecord(u.access));
 		originalAccessJson = stableJson(access);
 	}
 

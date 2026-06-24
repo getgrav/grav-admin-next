@@ -15,7 +15,10 @@
 	import { evaluatePassword } from '$lib/utils/passwordStrength';
 
 	const defaultUrl = import.meta.env.DEV ? 'http://localhost:5180/grav-api' : 'https://localhost/grav-api';
-	let serverUrl = $state(auth.serverUrl || defaultUrl);
+	// An injected __GRAV_CONFIG__ serverUrl is authoritative even when empty (the
+	// same-origin value for a root-hosted site); only fall back to defaultUrl in
+	// standalone/dev mode, or login/setup fires cross-origin and fails (admin2#58).
+	let serverUrl = $state(auth.hasGravConfig ? auth.serverUrl : (auth.serverUrl || defaultUrl));
 	let environment = $state(auth.environment || 'localhost');
 	let showServerConfig = $state(!auth.serverUrl && !auth.hasGravConfig);
 

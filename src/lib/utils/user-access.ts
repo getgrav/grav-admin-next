@@ -25,6 +25,22 @@ export interface InheritedPermission {
 export type InheritedAccessMap = Record<string, InheritedPermission>;
 
 /**
+ * Coerce a loaded `access` value into a plain object.
+ *
+ * The API serialises an empty access map as a JSON array (`[]`) rather than an
+ * object (`{}`), because PHP can't tell an empty map from an empty list. Left as
+ * an array it breaks the permissions editor: the toggle adds object keys but
+ * pruneEmpty treats the value as an array and strips them, so the first
+ * permission can never be added and the form never goes dirty (admin2#58).
+ * Anything that isn't a plain object becomes `{}`.
+ */
+export function toAccessRecord(value: unknown): Record<string, unknown> {
+	return value && typeof value === 'object' && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: {};
+}
+
+/**
  * Flatten a nested access object into dot-notation keys, keeping BOTH explicit
  * grants and denials. `{ api: { pages: { read: true, delete: false } } }` →
  * `{ 'api.pages.read': true, 'api.pages.delete': false }`. (flattenAccess above
