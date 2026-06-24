@@ -35,14 +35,17 @@ function bootConfigBranding(): { branding?: Partial<SiteBranding>; brandingUrls?
  * uses the URL the server hands back. Empty URL = render built-in Grav SVG.
  */
 function createBrandingStore() {
-	// Seed precedence: localStorage boot cache (last-resolved values) first, then
-	// the pre-auth config injected by admin2.php, then built-in defaults. The
-	// boot cache wins when present because it reflects this device's last server
-	// response; the injected config only matters on a first/cache-less visit.
+	// Seed precedence for site branding: the config admin2.php injects into
+	// window.__GRAV_CONFIG__ wins, because it's read fresh from the server's
+	// admin-next.yaml on every full page load — strictly more current than the
+	// localStorage boot cache, which can lag a save made here or on another
+	// device. The cache is only a fallback for standalone/dev mode where there's
+	// no injected config. (Branding is site-wide, unlike the per-device theme
+	// state the boot cache also carries.)
 	const cache = loadBootCache();
 	const boot = bootConfigBranding();
-	const seedB = cache?.branding ?? boot.branding;
-	const seedUrls = cache?.brandingUrls ?? boot.brandingUrls;
+	const seedB = boot.branding ?? cache?.branding;
+	const seedUrls = boot.brandingUrls ?? cache?.brandingUrls;
 
 	let mode = $state<LogoMode>(seedB?.mode ?? 'default');
 	let text = $state<string>(seedB?.text ?? 'Grav');
@@ -71,27 +74,30 @@ function createBrandingStore() {
 		loaded = true;
 	}
 
-	function init(payload: PreferencesResponse): void {
+	// Apply a server payload to live state AND refresh the boot cache. Every
+	// mutation path goes through here so the cache never lags a save — otherwise
+	// a saved title/logo could still read stale from the cache on the next full
+	// reload (the symptom behind "custom title not kept on refresh").
+	function applyAndCache(payload: PreferencesResponse): PreferencesResponse {
 		applyPayload(payload);
 		saveBootCache(payload);
+		return payload;
+	}
+
+	function init(payload: PreferencesResponse): void {
+		applyAndCache(payload);
 	}
 
 	async function save(patch: Partial<SiteBranding>): Promise<PreferencesResponse> {
-		const resp = await apiSaveSiteBranding(patch);
-		applyPayload(resp);
-		return resp;
+		return applyAndCache(await apiSaveSiteBranding(patch));
 	}
 
 	async function uploadLogo(variant: BrandingVariant, file: File): Promise<PreferencesResponse> {
-		const resp = await apiUploadBrandingLogo(variant, file);
-		applyPayload(resp);
-		return resp;
+		return applyAndCache(await apiUploadBrandingLogo(variant, file));
 	}
 
 	async function deleteLogo(variant: BrandingVariant): Promise<PreferencesResponse> {
-		const resp = await apiDeleteBrandingLogo(variant);
-		applyPayload(resp);
-		return resp;
+		return applyAndCache(await apiDeleteBrandingLogo(variant));
 	}
 
 	return {
