@@ -4,7 +4,7 @@
 	import { page as pageStore } from '$app/state';
 	import { base } from '$app/paths';
 	import { createPage } from '$lib/api/endpoints/pages';
-	import { getPageTypes, type PageType } from '$lib/api/endpoints/blueprints';
+	import { getPageTypes, getPageBlueprint, emptyDateFieldKeys, type PageType } from '$lib/api/endpoints/blueprints';
 	import { getChildren, pageApiRoute, type PageSummary } from '$lib/api/endpoints/pages';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -243,6 +243,48 @@
 		}
 	});
 
+	// ── Date seeding ────────────────────────────────────────────────
+	/**
+	 * Current time as `d-m-Y H:i` — the same storage format DateTimeField
+	 * writes, so a seeded date is indistinguishable from one picked by hand.
+	 */
+	function formatNowForStorage(): string {
+		const d = new Date();
+		const p = (n: number) => String(n).padStart(2, '0');
+		return `${p(d.getDate())}-${p(d.getMonth() + 1)}-${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+	}
+
+	/** Set a (possibly nested) header key, never clobbering an existing value. */
+	function seedHeaderValue(header: Record<string, unknown>, path: string, value: unknown): void {
+		const parts = path.split('.');
+		let cur = header;
+		for (let i = 0; i < parts.length - 1; i++) {
+			const k = parts[i];
+			if (typeof cur[k] !== 'object' || cur[k] === null) cur[k] = {};
+			cur = cur[k] as Record<string, unknown>;
+		}
+		const last = parts[parts.length - 1];
+		if (cur[last] === undefined) cur[last] = value;
+	}
+
+	/**
+	 * Seed empty datetime fields with "now" so a new page carries a date the
+	 * author never had to type — matching Grav 1.7's datetime widget. Best
+	 * effort: a blueprint that fails to load just skips seeding rather than
+	 * blocking the create.
+	 */
+	async function seedDateDefaults(header: Record<string, unknown>): Promise<void> {
+		try {
+			const schema = await getPageBlueprint(template);
+			const keys = emptyDateFieldKeys(schema);
+			if (keys.length === 0) return;
+			const now = formatNowForStorage();
+			for (const key of keys) seedHeaderValue(header, key, now);
+		} catch {
+			// Non-fatal — proceed without seeded dates.
+		}
+	}
+
 	// ── Create ──────────────────────────────────────────────────────
 	async function handleCreate() {
 		if (!canSave || saving) return;
@@ -266,6 +308,13 @@
 			if (kind === 'page') {
 				if (visible === 'yes') header.visible = true;
 				if (visible === 'no') header.visible = false;
+			}
+
+			// Folder-only pages have no .md/frontmatter, so there is nothing to
+			// seed. Pages and modules pick up their template's empty datetime
+			// defaults (e.g. `header.date`) stamped with the current time.
+			if (kind !== 'folder') {
+				await seedDateDefaults(header);
 			}
 
 			const created = await createPage({

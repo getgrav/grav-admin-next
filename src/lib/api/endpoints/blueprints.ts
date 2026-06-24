@@ -110,6 +110,55 @@ export async function getPageTypes(modular?: boolean): Promise<PageType[]> {
 	return api.get<PageType[]>('/blueprints/pages', params);
 }
 
+/**
+ * Header-relative keys of the date/datetime fields a new page should seed with
+ * the current time on create (e.g. `date`, `publish_date`, a theme's custom
+ * `event_date`).
+ *
+ * This reproduces Grav 1.7's datetime widget, which pre-filled an empty date
+ * input with "now" so a freshly created page carried a date the author never
+ * had to type. The new-admin create request is lighter — it renders no
+ * blueprint form — so the seed is computed here from the template blueprint and
+ * sent as an explicit header value.
+ *
+ * A field qualifies only when it is:
+ *   - typed `datetime`/`date` — so the rule is generic, not pinned to one field
+ *     name;
+ *   - NOT `toggleable` — opt-in fields carry a placeholder default, not a value
+ *     to persist (this is also exactly what the API drops server-side, so the
+ *     two stay in lockstep);
+ *   - empty/blank by default — a real default is a value the author chose and
+ *     the server already keeps, so we must not overwrite it with now.
+ */
+export function emptyDateFieldKeys(schema: BlueprintSchema): string[] {
+	const keys: string[] = [];
+
+	const walk = (fields: BlueprintField[] | undefined): void => {
+		if (!fields) return;
+		for (const field of fields) {
+			// Containers (tabs/sections/fieldsets) nest their own fields; recurse
+			// before the leaf check so nested date fields are still found.
+			walk(field.fields);
+
+			if (field.type !== 'datetime' && field.type !== 'date') continue;
+			if (field.toggleable) continue;
+
+			const def = field.default;
+			if (def !== undefined && def !== null && def !== '') continue;
+
+			// Field names arrive as the full frontmatter path (`header.date`); the
+			// create payload's `header` object is the frontmatter itself, so strip
+			// the prefix to a header-relative key.
+			if (typeof field.name === 'string' && field.name.startsWith('header.')) {
+				keys.push(field.name.slice('header.'.length));
+			}
+		}
+	};
+
+	walk(schema.fields);
+	return keys;
+}
+
 export async function getPageBlueprint(template: string): Promise<BlueprintSchema> {
 	return api.get<BlueprintSchema>(`/blueprints/pages/${template}`);
 }
