@@ -205,6 +205,8 @@ export interface TwigContentMeta {
 	editor_enabled: boolean;
 	leak_count: number;
 	event_count: number;
+	global_request_gated?: boolean;
+	frontmatter_request_gated?: boolean;
 }
 
 /** "Add to allowlist" descriptor attached to a sandbox-block report row. */

@@ -186,6 +186,18 @@
 		</span>
 	</div>
 
+	<!-- Migrated-from-1.7 misconfiguration callout -->
+	{#if meta.global_request_gated || meta.frontmatter_request_gated}
+		<div class="mx-4 mb-3 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+			<AlertTriangle size={14} class="mt-0.5 shrink-0" />
+			<span>
+				{meta.global_request_gated
+					? i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.GLOBAL_REQUEST_GATED')
+					: i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.FRONTMATTER_REQUEST_GATED')}
+			</span>
+		</div>
+	{/if}
+
 	<!-- Leaking pages -->
 	{#if leaks.length > 0}
 		<div class="px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
