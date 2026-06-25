@@ -272,6 +272,17 @@ export async function getTwigContentPageStatus(route: string): Promise<TwigConte
 	return api.get(`/reports/twig-content/page?route=${encodeURIComponent(route)}`);
 }
 
+export interface TwigContentScan {
+	tags: Record<string, string[]>;
+	filters: Record<string, string[]>;
+	functions: Record<string, string[]>;
+}
+
+/** Scan all content for Twig tags/filters/functions the sandbox doesn't allow. */
+export async function scanTwigContent(): Promise<TwigContentScan> {
+	return api.get('/reports/twig-content/scan');
+}
+
 // ── Direct Install ──
 
 export async function directInstallUrl(url: string): Promise<{ message: string }> {

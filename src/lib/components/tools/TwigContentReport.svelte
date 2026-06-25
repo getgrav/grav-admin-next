@@ -7,12 +7,14 @@
 	import {
 		addTwigAllowlist,
 		clearTwigContentEvents,
+		scanTwigContent,
 		type ReportItem,
 		type TwigContentMeta,
 		type TwigContentItem,
 		type TwigContentLeakItem,
 		type TwigContentEventItem,
 		type TwigAllowlistTarget,
+		type TwigContentScan,
 	} from '$lib/api/endpoints/tools';
 	import {
 		CheckCircle2,
@@ -25,6 +27,7 @@
 		Plus,
 		Trash2,
 		Loader2,
+		ScanSearch,
 	} from 'lucide-svelte';
 
 	let { report, onChanged }: { report: ReportItem; onChanged: () => void | Promise<void> } = $props();
@@ -37,6 +40,19 @@
 	// Tokens currently being added (keyed) so each button can show its own spinner.
 	let pending = $state<Record<string, boolean>>({});
 	let clearing = $state(false);
+	let scanning = $state(false);
+	let scan = $state<TwigContentScan | null>(null);
+
+	const scanGroups = $derived(
+		scan
+			? ([
+					['tags', scan.tags],
+					['filters', scan.filters],
+					['functions', scan.functions],
+				] as const).filter(([, m]) => Object.keys(m).length > 0)
+			: [],
+	);
+	const scanEmpty = $derived(!!scan && scanGroups.length === 0);
 
 	const statusConfig = {
 		success: { bg: 'bg-emerald-500/10', text: 'text-emerald-700 dark:text-emerald-400', icon: CheckCircle2 },
@@ -107,6 +123,17 @@
 
 	function openSecurity() {
 		goto(`${base}/config/security`);
+	}
+
+	async function runScan() {
+		scanning = true;
+		try {
+			scan = await scanTwigContent();
+		} catch {
+			toast.error(i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.SCAN_FAILED'));
+		} finally {
+			scanning = false;
+		}
 	}
 </script>
 
@@ -231,6 +258,47 @@
 							{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.ADD_TO_ALLOWLIST')}
 						</Button>
 					{/if}
+				</div>
+			{/each}
+		</div>
+	{/if}
+
+	<!-- Content scan: what content uses that the sandbox doesn't allow yet -->
+	<div class="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
+		<span class="text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.SCAN_INTRO')}</span>
+		<Button variant="outline" size="sm" class="shrink-0" onclick={runScan} disabled={scanning}>
+			{#if scanning}
+				<Loader2 size={13} class="me-1.5 animate-spin" />
+			{:else}
+				<ScanSearch size={13} class="me-1.5" />
+			{/if}
+			{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.SCAN_CONTENT')}
+		</Button>
+	</div>
+
+	{#if scanEmpty}
+		<div class="flex items-center gap-2 px-4 pb-3 text-sm text-emerald-700 dark:text-emerald-400">
+			<CheckCircle2 size={14} />
+			{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.SCAN_CLEAN')}
+		</div>
+	{:else if scanGroups.length > 0}
+		<div class="space-y-3 px-4 pb-4">
+			{#each scanGroups as [type, tokenMap] (type)}
+				<div>
+					<div class="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+						{i18n.t(`ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.SCAN_${type.toUpperCase()}`)}
+					</div>
+					<div class="flex flex-wrap gap-1.5">
+						{#each Object.entries(tokenMap) as [token, routes] (token)}
+							<span
+								class="inline-flex items-center gap-1 rounded bg-amber-500/10 px-2 py-1 text-xs text-amber-800 dark:text-amber-300"
+								title={routes.join(', ')}
+							>
+								<code class="font-mono">{token}</code>
+								<span class="text-amber-700/60 dark:text-amber-400/60">×{routes.length}</span>
+							</span>
+						{/each}
+					</div>
 				</div>
 			{/each}
 		</div>
