@@ -125,6 +125,16 @@
 		goto(`${base}/config/security`);
 	}
 
+	// A route is linkable to the page editor when it's a real page route, not the
+	// 'unknown' placeholder some events carry.
+	function isLinkable(route: string): boolean {
+		return !!route && route.startsWith('/') && route !== '/unknown';
+	}
+
+	function pageHref(route: string): string {
+		return `${base}/pages/edit${route}`;
+	}
+
 	async function runScan() {
 		scanning = true;
 		try {
@@ -208,7 +218,11 @@
 				<div class="flex items-start gap-2 px-4 py-2.5 text-sm">
 					<FileWarning size={14} class="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
 					<div class="min-w-0">
-						<div class="font-medium text-primary truncate">{leak.route}</div>
+						{#if isLinkable(leak.route)}
+							<a href={pageHref(leak.route)} class="font-medium text-primary truncate hover:underline">{leak.route}</a>
+						{:else}
+							<div class="font-medium text-primary truncate">{leak.route}</div>
+						{/if}
 						<div class="text-xs text-muted-foreground">
 							{leak.reason === 'gate_off'
 								? i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.LEAK_GATE_OFF')
@@ -249,7 +263,11 @@
 								{#if event.token}
 									<code class="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-foreground">{event.token}</code>
 								{/if}
-								<span class="text-xs text-muted-foreground truncate">{event.route}</span>
+								{#if isLinkable(event.route)}
+									<a href={pageHref(event.route)} class="text-xs text-primary truncate hover:underline">{event.route}</a>
+								{:else}
+									<span class="text-xs text-muted-foreground truncate">{event.route}</span>
+								{/if}
 							</div>
 							<div class="mt-0.5 text-xs text-muted-foreground">{event.hint}</div>
 						</div>
