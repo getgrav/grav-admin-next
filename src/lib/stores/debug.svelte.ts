@@ -20,6 +20,13 @@
  * which is exactly when the debugger is enabled — so the panel's launcher
  * gates on it with no extra config plumbing.
  */
+/** One Server-Timing phase: `boot;dur=5.4;desc="Grav boot"`. */
+export interface ServerTimingPhase {
+	name: string;
+	label: string;
+	durationMs: number;
+}
+
 export interface DebugRequest {
 	id: number;
 	method: string;
@@ -27,7 +34,41 @@ export interface DebugRequest {
 	status: number;
 	durationMs: number;
 	clockworkId: string | null;
+	/**
+	 * Server-reported phase timings (Grav boot, auth, controller, total) parsed
+	 * from the API's `Server-Timing` header. Lets the panel show where each
+	 * request's time went on the server vs. network — notably how much of a cold
+	 * (cache-off) request is Grav boot (admin2#65).
+	 */
+	serverTiming: ServerTimingPhase[] | null;
 	at: number;
+}
+
+/**
+ * Parse a `Server-Timing` header into ordered phases. Tolerates missing
+ * `desc` and metric-only entries; returns null when nothing parses.
+ */
+export function parseServerTiming(header: string | null): ServerTimingPhase[] | null {
+	if (!header) return null;
+	const phases: ServerTimingPhase[] = [];
+	for (const raw of header.split(',')) {
+		const parts = raw.split(';');
+		const name = parts[0]?.trim();
+		if (!name) continue;
+		let durationMs = NaN;
+		let label = name;
+		for (const p of parts.slice(1)) {
+			const eq = p.indexOf('=');
+			if (eq === -1) continue;
+			const key = p.slice(0, eq).trim();
+			const val = p.slice(eq + 1).trim().replace(/^"|"$/g, '');
+			if (key === 'dur') durationMs = parseFloat(val);
+			else if (key === 'desc') label = val;
+		}
+		if (Number.isNaN(durationMs)) continue;
+		phases.push({ name, label, durationMs });
+	}
+	return phases.length ? phases : null;
 }
 
 /** One Clockwork log entry (the `log` array of /__clockwork/{id}). */

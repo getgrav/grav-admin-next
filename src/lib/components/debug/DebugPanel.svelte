@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { debug, type DebugRequest, type ClockworkData } from '$lib/stores/debug.svelte';
+	import { debug, type DebugRequest, type ClockworkData, type ServerTimingPhase } from '$lib/stores/debug.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { Bug, X, Trash2, ChevronRight } from 'lucide-svelte';
 
@@ -93,6 +93,53 @@
 			if (pending) loadConsole();
 		}
 	});
+
+	// Fixed colour per known phase so the same phase always reads the same.
+	// Covers the API router's own phases (boot/auth/route/controller, present
+	// when Grav's debugger is OFF) — anything unrecognised, including Grav core's
+	// per-processor phases when the debugger is ON, cycles through the palette.
+	const PHASE_COLOR: Record<string, string> = {
+		boot: 'bg-primary',
+		auth: 'bg-warning',
+		route: 'bg-muted-foreground',
+		controller: 'bg-success',
+	};
+	const PALETTE = ['bg-primary', 'bg-warning', 'bg-success', 'bg-destructive', 'bg-secondary', 'bg-muted-foreground'];
+
+	// Names that represent the whole-request denominator rather than a segment:
+	// our own synthetic "total", and Grav core's wrapping "app" (Application).
+	const TOTAL_NAMES = new Set(['total', 'app']);
+
+	function timingTotal(phases: ServerTimingPhase[]): number {
+		const t = phases.find((p) => TOTAL_NAMES.has(p.name));
+		if (t) return t.durationMs;
+		return phases.reduce((sum, p) => sum + p.durationMs, 0);
+	}
+
+	// Build a stacked-bar segment per phase (excluding the denominator). The
+	// #65 at-a-glance view: how much of a request is Grav boot vs. the rest.
+	function timingSegments(phases: ServerTimingPhase[]) {
+		const total = timingTotal(phases);
+		const span = total || 1;
+		const segs = phases
+			.filter((p) => !TOTAL_NAMES.has(p.name))
+			.map((p, i) => ({
+				name: p.name,
+				label: p.label,
+				durationMs: p.durationMs,
+				pct: (p.durationMs / span) * 100,
+				color: PHASE_COLOR[p.name] ?? PALETTE[i % PALETTE.length],
+			}));
+		// When the phases come from a wrapper total (Grav's "Application") the
+		// named segments don't account for all of it — the rest is request work
+		// not broken into sub-timers. Show that remainder so the bar reads true.
+		const accounted = segs.reduce((sum, s) => sum + s.durationMs, 0);
+		const remainder = total - accounted;
+		if (total > 0 && remainder / total > 0.02) {
+			segs.push({ name: 'other', label: 'Other', durationMs: remainder, pct: (remainder / span) * 100, color: 'bg-muted' });
+		}
+		return segs;
+	}
 
 	// Timeline geometry: map each event's [start,end] (epoch seconds) onto a
 	// 0–100% track spanning the whole request.
@@ -210,6 +257,31 @@
 				<button class="text-muted-foreground hover:text-foreground" onclick={back}>← Back</button>
 				<span class="truncate font-mono">{selected.method} {selected.path}</span>
 			</div>
+
+			{#if selected.serverTiming}
+				<!-- Server-Timing phase breakdown (admin2#65): always available, no
+				     Clockwork required. Stacked bar + per-phase legend. -->
+				<div class="border-b border-border px-3 py-2">
+					<div class="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
+						<span>Server phases</span>
+						<span class="tabular-nums">{Math.round(timingTotal(selected.serverTiming))}ms total</span>
+					</div>
+					<div class="flex h-2.5 w-full overflow-hidden rounded bg-muted/50">
+						{#each timingSegments(selected.serverTiming) as seg}
+							<div class="{seg.color} h-full" style="width:{seg.pct}%" title="{seg.label}: {seg.durationMs.toFixed(1)}ms"></div>
+						{/each}
+					</div>
+					<div class="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px]">
+						{#each timingSegments(selected.serverTiming) as seg}
+							<span class="flex items-center gap-1">
+								<span class="{seg.color} inline-block h-2 w-2 rounded-sm"></span>
+								<span class="text-muted-foreground">{seg.label}</span>
+								<span class="tabular-nums text-foreground">{seg.durationMs < 1 ? seg.durationMs.toFixed(1) : Math.round(seg.durationMs)}ms</span>
+							</span>
+						{/each}
+					</div>
+				</div>
+			{/if}
 
 			{#if !selected.clockworkId}
 				<div class="flex-1 overflow-y-auto p-3 text-xs">

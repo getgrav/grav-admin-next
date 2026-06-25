@@ -1,7 +1,7 @@
 import { auth, decodeJwtExp } from '$lib/stores/auth.svelte';
 import { authSession, type PendingRequest } from '$lib/stores/auth-session.svelte';
 import { invalidations } from '$lib/stores/invalidation.svelte';
-import { debug } from '$lib/stores/debug.svelte';
+import { debug, parseServerTiming } from '$lib/stores/debug.svelte';
 
 import type { ToastHint } from '$lib/utils/toast-hint';
 
@@ -232,6 +232,7 @@ class ApiClient {
 				status: 0,
 				durationMs: Math.round(performance.now() - startedAt),
 				clockworkId: null,
+				serverTiming: null,
 				at: Date.now(),
 			});
 			throw new ApiRequestError(
@@ -253,6 +254,7 @@ class ApiClient {
 			status: response.status,
 			durationMs: Math.round(performance.now() - startedAt),
 			clockworkId: response.headers.get('x-clockwork-id'),
+			serverTiming: parseServerTiming(response.headers.get('server-timing')),
 			at: Date.now(),
 		});
 
