@@ -1,13 +1,16 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import type { UserInfo } from '$lib/api/endpoints/users';
+	import type { FlexDetailConfig } from '$lib/api/endpoints/flexObjects';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
-	import { Pencil, Trash2, Shield, ShieldCheck, ArrowUp, ArrowDown, Loader2 } from 'lucide-svelte';
+	import { Pencil, Trash2, Shield, ShieldCheck, ArrowUp, ArrowDown, Loader2, ChevronDown, ChevronRight } from 'lucide-svelte';
 	import { flattenAccess, isSuperAdmin, hasBackendAccess } from '$lib/utils/user-access';
+	import FlexDetailTable from '$lib/components/flex-objects/FlexDetailTable.svelte';
 
 	interface Props {
 		users: UserInfo[];
 		canEdit: boolean;
+		detail?: FlexDetailConfig | null;
 		togglingUsername?: string | null;
 		onEdit: (username: string) => void;
 		onDelete?: (username: string) => void;
@@ -16,7 +19,7 @@
 		onFilterPermission?: (permission: string) => void;
 	}
 
-	let { users, canEdit, togglingUsername, onEdit, onDelete, onToggleState, onFilterPermission }: Props = $props();
+	let { users, canEdit, detail, togglingUsername, onEdit, onDelete, onToggleState, onFilterPermission }: Props = $props();
 
 	// How many permission chips to show before collapsing into a "+N" count.
 	const MAX_CHIPS = 3;
@@ -24,6 +27,9 @@
 	type SortKey = 'username' | 'email' | 'fullname' | 'state';
 	let sortKey = $state<SortKey>('username');
 	let sortDir = $state<'asc' | 'desc'>('asc');
+	let openDetailUsername = $state<string | null>(null);
+
+	const columnCount = $derived(detail?.enabled ? 7 : 6);
 
 	function toggleSort(key: SortKey) {
 		if (sortKey === key) {
@@ -44,12 +50,35 @@
 		});
 		return list;
 	});
+
+	function getLocalValue(user: UserInfo): string | number | boolean | null {
+		const localKey = detail?.relation.local_key;
+		if (!localKey) return null;
+		const value = (user as unknown as Record<string, unknown>)[localKey];
+		if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+			return value;
+		}
+		return null;
+	}
+
+	function toggleDetail(username: string) {
+		openDetailUsername = openDetailUsername === username ? null : username;
+	}
+
+	function iconClass(icon: string | undefined): string {
+		if (!icon) return 'fa-solid fa-list';
+		if (icon.includes('fa-solid') || icon.includes('fa-regular') || icon.includes('fa-brands')) return icon;
+		return `fa-solid ${icon.startsWith('fa-') ? icon : 'fa-' + icon}`;
+	}
 </script>
 
 <div class="overflow-x-auto">
 	<table class="w-full text-sm">
 		<thead class="border-b border-border bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
 			<tr>
+				{#if detail?.enabled}
+					<th class="w-10 px-2 py-2 text-center font-medium" data-flex-detail-cell></th>
+				{/if}
 				<th class="px-4 py-2 text-start font-medium">
 					<button class="inline-flex items-center gap-1 hover:text-foreground" onclick={() => toggleSort('username')}>
 						{i18n.t('ADMIN_NEXT.USERS_TABLE.USERNAME')}
@@ -89,7 +118,32 @@
 		<tbody>
 			{#each sorted as user (user.username)}
 				{@const perms = flattenAccess(user.access)}
+				{@const localValue = getLocalValue(user)}
 				<tr class="border-b border-border transition-colors hover:bg-muted/30">
+					{#if detail?.enabled}
+						<td class="w-10 px-2 py-2 text-center" data-flex-detail-cell>
+							{#if localValue !== null}
+								<button
+									type="button"
+									class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+									aria-label={detail.label ?? detail.title ?? detail.relation.type}
+									title={detail.label ?? detail.title ?? detail.relation.type}
+									onclick={() => toggleDetail(user.username)}
+								>
+									<span class="relative inline-flex h-4 w-4 items-center justify-center">
+										<i class="{iconClass(detail.icon)} text-[0.8125rem]"></i>
+										<span class="absolute -bottom-1 -end-1 rounded-full bg-background">
+											{#if openDetailUsername === user.username}
+												<ChevronDown size={9} />
+											{:else}
+												<ChevronRight size={9} class="flip-rtl" />
+											{/if}
+										</span>
+									</span>
+								</button>
+							{/if}
+						</td>
+					{/if}
 					<td class="px-4 py-2">
 						<button class="inline-flex items-center gap-2 text-primary hover:underline" onclick={() => onEdit(user.username)}>
 							<img
@@ -189,10 +243,17 @@
 						</div>
 					</td>
 				</tr>
+				{#if detail?.enabled && localValue !== null && openDetailUsername === user.username}
+					<tr>
+						<td colspan={columnCount} class="p-0">
+							<FlexDetailTable {detail} {localValue} />
+						</td>
+					</tr>
+				{/if}
 			{/each}
 			{#if sorted.length === 0}
 				<tr>
-					<td colspan="6" class="px-4 py-8 text-center text-sm text-muted-foreground">
+					<td colspan={columnCount} class="px-4 py-8 text-center text-sm text-muted-foreground">
 						{i18n.t('ADMIN_NEXT.USERS_TABLE.NO_USERS')}
 					</td>
 				</tr>

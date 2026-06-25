@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { getUsers, getUserFilters, type UserInfo, type UsersPage, type UserFilterTab } from '$lib/api/endpoints/users';
+	import { getDirectoryMetadata, type FlexDetailConfig } from '$lib/api/endpoints/flexObjects';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
@@ -48,6 +49,7 @@
 	let selectedUsername = $state<string | null>(null);
 	let pendingDelete = $state<string | null>(null);
 	let confirmDeleteOpen = $state(false);
+	let usersDetail = $state<FlexDetailConfig | null>(null);
 	const perPage = 20;
 
 	// Filter sources for the type-ahead controls (loaded once).
@@ -100,6 +102,15 @@
 			// No tabs (e.g. the caller lacks api.users.read) — the listing still
 			// works; the tab row simply stays hidden.
 			filterTabs = [];
+		}
+	}
+
+	async function loadUsersDetailMetadata() {
+		try {
+			const metadata = await getDirectoryMetadata('user-accounts');
+			usersDetail = metadata.list.detail?.enabled ? metadata.list.detail : null;
+		} catch {
+			usersDetail = null;
 		}
 	}
 
@@ -227,6 +238,7 @@
 	onMount(() => {
 		loadFilterOptions();
 		loadFilterTabs();
+		loadUsersDetailMetadata();
 		const unsubUsers = invalidations.subscribe('users:*', () => loadUsers(currentPage));
 		const unsubFocus = invalidations.subscribe('*:focus', () => loadUsers(currentPage));
 		return () => { unsubUsers(); unsubFocus(); };
@@ -363,6 +375,7 @@
 				<UsersTableView
 					users={filtered}
 					canEdit={canEditUsers}
+					detail={usersDetail}
 					{togglingUsername}
 					onEdit={openUserEdit}
 					onDelete={canEditUsers ? requestDelete : undefined}
