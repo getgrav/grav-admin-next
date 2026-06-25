@@ -252,6 +252,26 @@ export async function clearTwigContentEvents(): Promise<{ cleared: boolean }> {
 	return api.delete('/reports/twig-content/events');
 }
 
+export interface TwigContentLeak {
+	route: string;
+	requested: boolean;
+	gate: boolean;
+	reason: 'gate_off' | 'page_off';
+}
+
+export interface TwigContentPageStatus {
+	route: string;
+	gate: boolean;
+	sandbox: boolean;
+	leak: TwigContentLeak | null;
+	events: TwigContentEventItem[];
+}
+
+/** Per-page Twig-in-content status for the page-editor banner. */
+export async function getTwigContentPageStatus(route: string): Promise<TwigContentPageStatus> {
+	return api.get(`/reports/twig-content/page?route=${encodeURIComponent(route)}`);
+}
+
 // ── Direct Install ──
 
 export async function directInstallUrl(url: string): Promise<{ message: string }> {

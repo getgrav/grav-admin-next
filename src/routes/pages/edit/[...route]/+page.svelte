@@ -56,6 +56,7 @@
 	import { api as apiClient } from '$lib/api/client';
 	import { pageEditorBar } from '$lib/stores/pageEditorBar.svelte';
 	import EditorLockNotice from '$lib/components/sync/EditorLockNotice.svelte';
+	import TwigContentBanner from '$lib/components/pages/TwigContentBanner.svelte';
 
 	const canEditPages = $derived(canWrite('pages'));
 	let accessDenied = $state(false);
@@ -736,6 +737,18 @@
 				: title !== pageData.title || Object.keys(headerChanges).length > 0 || normalMoveDirty)
 		)
 	);
+
+	// Once the net diff returns to clean — the user typed something then deleted
+	// it back to the loaded/saved state — drop the sticky local-edits flag so the
+	// unsaved indicator and leave guard clear in step with the Save button, which
+	// reads `hasChanges` directly (admin2#62). `hasChanges` is the authoritative
+	// "differs from baseline" check; when it's false there is genuinely nothing
+	// unsaved to lose — in collab too, since a peer's edit would keep it true.
+	$effect(() => {
+		if (!hasChanges && hasLocalEdits) {
+			hasLocalEdits = false;
+		}
+	});
 
 	// Reactive validity gate: keep Save disabled while a required header field is empty
 	// (admin2#34). Skipped in Expert mode, which edits raw YAML rather than the
@@ -1704,6 +1717,7 @@
 	{#if loading}
 		<div class="py-20 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.LOADING_PAGE')}</div>
 	{:else if pageData}
+		<TwigContentBanner {route} />
 		<div class="grid grid-cols-1 gap-4 {prefs.pageSidebarCollapsed ? 'lg:grid-cols-1' : 'lg:grid-cols-[minmax(0,1fr)_280px]'}">
 			<!-- Main content area -->
 			<div class="space-y-4">
