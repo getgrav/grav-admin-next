@@ -21,7 +21,13 @@
 	// has no injected config, so fall back to defaultUrl.
 	function injectedServerUrl(): string {
 		const base = auth.serverUrl;
-		return typeof window !== 'undefined' ? window.location.origin + base : base;
+		if (typeof window === 'undefined') return base;
+		// base is normally a path-only base, but setServer() persists the full
+		// displayed URL back into auth.serverUrl, so on a remount it can already
+		// be absolute. Only prepend the live origin to a path; otherwise we'd
+		// double it up (e.g. https://hosthttps://host).
+		if (/^https?:\/\//i.test(base)) return base;
+		return window.location.origin + base;
 	}
 	let serverUrl = $state(auth.hasGravConfig ? injectedServerUrl() : (auth.serverUrl || defaultUrl));
 	let environment = $state(auth.environment || 'localhost');
