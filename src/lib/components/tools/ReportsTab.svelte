@@ -5,6 +5,7 @@
 	import { getReports } from '$lib/api/endpoints/tools';
 	import type { ReportItem } from '$lib/api/endpoints/tools';
 	import ReportComponentWrapper from './ReportComponentWrapper.svelte';
+	import TwigContentReport from './TwigContentReport.svelte';
 	import { ShieldAlert, CheckCircle2, AlertTriangle, XCircle, Loader2 } from 'lucide-svelte';
 
 	let reports = $state<ReportItem[]>([]);
@@ -52,7 +53,10 @@
 		<div class="p-8 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.NO_REPORTS_AVAILABLE')}</div>
 	{:else}
 		{#each reports as report (report.id)}
-			{#if report.component}
+			{#if report.id === 'twig-content'}
+				<!-- Core "Twig in Content" report: config state, leaking pages, recent blocks -->
+				<TwigContentReport {report} onChanged={load} />
+			{:else if report.component}
 				<!-- Plugin-provided web component -->
 				<div class="rounded-lg border border-border bg-card overflow-hidden">
 					<h2 class="px-4 py-3 text-base font-semibold text-foreground">{report.title}</h2>
