@@ -188,11 +188,101 @@ export interface ReportItem {
 	component: string | null;
 	status: 'success' | 'warning' | 'error';
 	message: string;
+	meta?: Record<string, unknown>;
 	items: Record<string, unknown>[];
 }
 
 export async function getReports(): Promise<ReportItem[]> {
 	return api.get<ReportItem[]>('/reports');
+}
+
+// ── Twig in Content report ──
+
+export interface TwigContentMeta {
+	gate: boolean;
+	sandbox: boolean;
+	xss_scan: boolean;
+	editor_enabled: boolean;
+	leak_count: number;
+	event_count: number;
+	global_request_gated?: boolean;
+	frontmatter_request_gated?: boolean;
+}
+
+/** "Add to allowlist" descriptor attached to a sandbox-block report row. */
+export interface TwigAllowlistTarget {
+	rule: 'tag' | 'filter' | 'function' | 'method' | 'property';
+	key: string;
+	kind: 'list' | 'map';
+	token: string;
+	class: string;
+}
+
+export interface TwigContentLeakItem {
+	kind: 'leak';
+	route: string;
+	reason: 'gate_off' | 'page_off';
+	requested: boolean;
+}
+
+export interface TwigContentEventItem {
+	kind: 'event';
+	type: string;
+	route: string;
+	token: string;
+	class: string;
+	hint: string;
+	timestamp: number;
+	allowlist: TwigAllowlistTarget | null;
+}
+
+export type TwigContentItem = TwigContentLeakItem | TwigContentEventItem;
+
+/** Append a blocked token to the matching Twig sandbox allowlist. Super-only. */
+export async function addTwigAllowlist(
+	target: Pick<TwigAllowlistTarget, 'rule' | 'token' | 'class'>,
+): Promise<{ rule: string; key: string; value: unknown }> {
+	return api.post('/reports/twig-content/allowlist', {
+		rule: target.rule,
+		token: target.token,
+		class: target.class,
+	});
+}
+
+/** Clear the recent Twig-content diagnostics events ring buffer. */
+export async function clearTwigContentEvents(): Promise<{ cleared: boolean }> {
+	return api.delete('/reports/twig-content/events');
+}
+
+export interface TwigContentLeak {
+	route: string;
+	requested: boolean;
+	gate: boolean;
+	reason: 'gate_off' | 'page_off';
+}
+
+export interface TwigContentPageStatus {
+	route: string;
+	gate: boolean;
+	sandbox: boolean;
+	leak: TwigContentLeak | null;
+	events: TwigContentEventItem[];
+}
+
+/** Per-page Twig-in-content status for the page-editor banner. */
+export async function getTwigContentPageStatus(route: string): Promise<TwigContentPageStatus> {
+	return api.get(`/reports/twig-content/page?route=${encodeURIComponent(route)}`);
+}
+
+export interface TwigContentScan {
+	tags: Record<string, string[]>;
+	filters: Record<string, string[]>;
+	functions: Record<string, string[]>;
+}
+
+/** Scan all content for Twig tags/filters/functions the sandbox doesn't allow. */
+export async function scanTwigContent(): Promise<TwigContentScan> {
+	return api.get('/reports/twig-content/scan');
 }
 
 // ── Direct Install ──

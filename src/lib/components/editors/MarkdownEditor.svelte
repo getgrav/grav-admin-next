@@ -728,9 +728,19 @@
 </div>
 
 <style>
-	/* Ensure the CodeMirror editor fills its container */
+	/* Ensure the CodeMirror editor fills its container. The wrapper is a flex
+	   column and the editor flex-grows so it occupies the full `min-height`
+	   even when the document is short — without this the .cm-editor collapses
+	   to its content height, leaving the empty area below it dead to clicks so
+	   only the text itself could focus the editor (admin2#61). CM6 then makes
+	   .cm-scroller / .cm-content fill that height, so a click anywhere places
+	   the cursor. */
+	.markdown-editor-cm {
+		display: flex;
+		flex-direction: column;
+	}
 	.markdown-editor-cm :global(.cm-editor) {
-		height: 100%;
+		flex: 1 1 auto;
 		/* When a fixed height is set (admin2#37), cap the editor here — the
 		   CodeMirror-recommended spot — so `.cm-scroller` scrolls internally
 		   instead of the whole page growing. `none` = auto-grow. */

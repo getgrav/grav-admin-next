@@ -12,6 +12,7 @@
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
 	import ConfigNav from '$lib/components/config/ConfigNav.svelte';
+	import TwigContentProfile from '$lib/components/config/TwigContentProfile.svelte';
 	import ConfigInfoPage from '$lib/components/config/ConfigInfoPage.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
@@ -451,6 +452,14 @@
 	{:else if isInfo}
 		<ConfigInfoPage {filter} />
 	{:else if blueprint}
+		{#if scope === 'security' && !filter}
+			<!-- One profile control over the security.twig_content keys; the raw
+			     process_enabled/editor_enabled toggles stay in the form below as
+			     the advanced view (and the Custom escape hatch). -->
+			<div class="mb-4">
+				<TwigContentProfile data={configData} onchange={handleBlueprintChange} />
+			</div>
+		{/if}
 		<BlueprintForm
 			fields={blueprint.fields}
 			data={configData}
