@@ -23,6 +23,7 @@
 	import { navBadges } from '$lib/stores/navBadges.svelte';
 	import { floatingWidgetStore } from '$lib/stores/floatingWidgets.svelte';
 	import FloatingWidgetLoader from '$lib/components/floating-widgets/FloatingWidgetLoader.svelte';
+	import DebugPanel from '$lib/components/debug/DebugPanel.svelte';
 	import { contextPanelStore } from '$lib/stores/contextPanels.svelte';
 	import ContextPanelHost from '$lib/components/context-panels/ContextPanelHost.svelte';
 	import ReauthModal from '$lib/components/auth/ReauthModal.svelte';
@@ -454,5 +455,6 @@
 
 	<ContextPanelHost />
 	<FloatingWidgetLoader />
+	<DebugPanel />
 	<ReauthModal />
 </div>

@@ -1,6 +1,5 @@
 import { beforeNavigate, goto } from '$app/navigation';
 import { onDestroy } from 'svelte';
-import { i18n } from '$lib/stores/i18n.svelte';
 
 /**
  * Active dirty-checkers across all mounted guards. Lets non-navigation flows
@@ -44,13 +43,21 @@ export function createUnsavedGuard(isDirty: () => boolean) {
 	dirtyCheckers.add(isDirty);
 	onDestroy(() => dirtyCheckers.delete(isDirty));
 
-	beforeNavigate(({ cancel, to }) => {
+	beforeNavigate(({ cancel, to, type }) => {
 		if (isDirty() && !bypassing) {
 			cancel();
-			pendingUrl = to?.url
-				? to.url.pathname + to.url.search + to.url.hash
-				: null;
-			showModal = true;
+			// A full-page unload (refresh, tab close, external link) can't host a
+			// custom modal, and SvelteKit turns this cancel() into the browser's
+			// own native "leave site?" prompt. Let that be the only prompt —
+			// showing our Svelte modal as well produced a confusing double
+			// confirmation on refresh (admin2#63). For in-app SPA navigation we
+			// cancel and show our themed confirm modal instead.
+			if (type !== 'leave') {
+				pendingUrl = to?.url
+					? to.url.pathname + to.url.search + to.url.hash
+					: null;
+				showModal = true;
+			}
 		}
 		bypassing = false;
 	});

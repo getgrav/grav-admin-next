@@ -9,6 +9,27 @@
 	import { toast } from 'svelte-sonner';
 	import { Loader2 } from 'lucide-svelte';
 
+	// Variant → token-based classes. Every color references an admin-next theme
+	// token (never a raw hex), so plugin buttons stay theme-agnostic and
+	// dark-mode safe (admin2#67). `default` keeps the original muted icon look.
+	const VARIANT_CLASSES: Record<string, string> = {
+		default: 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+		primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
+		success: 'bg-success text-success-foreground hover:bg-success/90',
+		warning: 'bg-warning text-warning-foreground hover:bg-warning/90',
+		danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+	};
+
+	function itemClasses(item: MenubarItem): string {
+		const variant = VARIANT_CLASSES[item.variant ?? 'default'] ?? VARIANT_CLASSES.default;
+		const md = item.size === 'md';
+		// Labelled buttons need horizontal padding; icon-only buttons stay square.
+		const geometry = item.showLabel
+			? (md ? 'h-8 gap-2 px-3 text-sm' : 'h-7 gap-1.5 px-2.5 text-xs')
+			: (md ? 'h-8 w-8' : 'h-7 w-7');
+		return `inline-flex shrink-0 items-center justify-center rounded-md font-medium transition-colors disabled:opacity-50 ${geometry} ${variant}`;
+	}
+
 	let items = $state<MenubarItem[]>([]);
 	let executing = $state<string | null>(null);
 	let confirmOpen = $state(false);
@@ -110,7 +131,7 @@
 
 {#each items as item (item.id)}
 	<button
-		class="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+		class={itemClasses(item)}
 		title={item.label}
 		onclick={() => handleAction(item)}
 		disabled={executing === item.id}
@@ -121,6 +142,9 @@
 			<i class="fa-solid {item.icon.startsWith('fa-') ? item.icon : 'fa-' + item.icon} text-sm"></i>
 		{:else}
 			<i class="fa-solid fa-circle-dot text-sm"></i>
+		{/if}
+		{#if item.showLabel}
+			<span>{item.label}</span>
 		{/if}
 	</button>
 {/each}

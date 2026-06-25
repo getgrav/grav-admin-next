@@ -1,6 +1,7 @@
 import { auth, decodeJwtExp } from '$lib/stores/auth.svelte';
 import { authSession, type PendingRequest } from '$lib/stores/auth-session.svelte';
 import { invalidations } from '$lib/stores/invalidation.svelte';
+import { debug } from '$lib/stores/debug.svelte';
 
 import type { ToastHint } from '$lib/utils/toast-hint';
 
@@ -219,9 +220,20 @@ class ApiClient {
 		}
 
 		let response: Response;
+		const startedAt = performance.now();
 		try {
 			response = await fetch(url, fetchOptions);
 		} catch (err) {
+			// Record the failed round-trip too, so the debug panel shows network
+			// errors (status 0) alongside successful calls.
+			debug.record({
+				method: upperMethod,
+				path,
+				status: 0,
+				durationMs: Math.round(performance.now() - startedAt),
+				clockworkId: null,
+				at: Date.now(),
+			});
 			throw new ApiRequestError(
 				{
 					status: 0,
@@ -231,6 +243,18 @@ class ApiClient {
 				new Response(null, { status: 0 })
 			);
 		}
+
+		// Log every actual round-trip (including 401/405 retries below — each is a
+		// real request). The X-Clockwork-Id header is present whenever Grav's
+		// debugger is enabled (admin2#66).
+		debug.record({
+			method: upperMethod,
+			path,
+			status: response.status,
+			durationMs: Math.round(performance.now() - startedAt),
+			clockworkId: response.headers.get('x-clockwork-id'),
+			at: Date.now(),
+		});
 
 		// Auto-refresh on 401 (but not for auth endpoints or if already retrying)
 		if (response.status === 401 && !path.startsWith('/auth/') && options.retry !== false) {
