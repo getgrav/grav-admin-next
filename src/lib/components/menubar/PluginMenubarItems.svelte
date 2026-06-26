@@ -130,21 +130,42 @@
 />
 
 {#each items as item (item.id)}
-	<button
-		class={itemClasses(item)}
-		title={item.label}
-		onclick={() => handleAction(item)}
-		disabled={executing === item.id}
-	>
-		{#if executing === item.id}
-			<Loader2 size={14} class="animate-spin" />
-		{:else if item.icon}
-			<i class="fa-solid {item.icon.startsWith('fa-') ? item.icon : 'fa-' + item.icon} text-sm"></i>
-		{:else}
-			<i class="fa-solid fa-circle-dot text-sm"></i>
-		{/if}
-		{#if item.showLabel}
-			<span>{item.label}</span>
-		{/if}
-	</button>
+	{#if item.href}
+		<!-- Plain link (e.g. quick-tray-links): a real anchor so middle-click and
+		     new-tab work, and external URLs aren't routed through the SPA. -->
+		<a
+			class={itemClasses(item)}
+			href={item.href}
+			target={item.target || undefined}
+			rel={item.target === '_blank' ? 'noopener' : undefined}
+			title={item.label}
+		>
+			{#if item.icon}
+				<i class="fa-solid {item.icon.startsWith('fa-') ? item.icon : 'fa-' + item.icon} text-sm"></i>
+			{:else}
+				<i class="fa-solid fa-circle-dot text-sm"></i>
+			{/if}
+			{#if item.showLabel}
+				<span>{item.label}</span>
+			{/if}
+		</a>
+	{:else}
+		<button
+			class={itemClasses(item)}
+			title={item.label}
+			onclick={() => handleAction(item)}
+			disabled={executing === item.id}
+		>
+			{#if executing === item.id}
+				<Loader2 size={14} class="animate-spin" />
+			{:else if item.icon}
+				<i class="fa-solid {item.icon.startsWith('fa-') ? item.icon : 'fa-' + item.icon} text-sm"></i>
+			{:else}
+				<i class="fa-solid fa-circle-dot text-sm"></i>
+			{/if}
+			{#if item.showLabel}
+				<span>{item.label}</span>
+			{/if}
+		</button>
+	{/if}
 {/each}

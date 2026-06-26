@@ -28,9 +28,18 @@ export interface MenubarItem {
 	/**
 	 * Client-side intent (overrides the server `action`):
 	 * `route` navigates the SPA (e.g. `/pages/new?parent=/blog&template=item`);
+	 * `href` is a plain link to an external URL (or any address outside the SPA);
 	 * `modal` opens a plugin modal web component.
 	 */
 	route?: string;
+	/**
+	 * External link target. When set, the item renders as a real `<a>` anchor
+	 * (not an action button), matching the classic admin quick tray. Combine with
+	 * `target` (e.g. `_blank`) to open in a new tab.
+	 */
+	href?: string;
+	/** Anchor target for `href`, e.g. `_blank`. */
+	target?: string;
 	modal?: {
 		component: string;
 		title?: string;
