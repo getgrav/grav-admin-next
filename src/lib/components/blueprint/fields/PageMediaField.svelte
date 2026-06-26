@@ -19,7 +19,13 @@
 		externalItems={mediaCtx?.items}
 	/>
 {:else if route}
-	<PageMedia {route} onMediaChange={(items) => mediaCtx?.update(items)} externalItems={mediaCtx?.items} />
+	<PageMedia
+		{route}
+		onMediaChange={(items) => mediaCtx?.update(items)}
+		externalItems={mediaCtx?.items}
+		onOrderChange={mediaCtx?.setOrder ? (filenames) => mediaCtx.setOrder?.(filenames) : undefined}
+		orderActive={mediaCtx?.orderActive ?? false}
+	/>
 {:else}
 	<div class="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
 		{i18n.t('ADMIN_NEXT.FIELDS.PAGE_MEDIA.PAGE_MEDIA_UNAVAILABLE')}

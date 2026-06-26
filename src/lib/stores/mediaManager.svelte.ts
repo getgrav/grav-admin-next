@@ -5,6 +5,7 @@ import {
 	deleteFolder as apiDeleteFolder,
 	renameSiteMedia as apiRenameSiteMedia,
 	renameFolder as apiRenameFolder,
+	setSiteMediaOrder,
 	type MediaItem,
 	type FolderInfo,
 	type Pagination,
@@ -12,7 +13,9 @@ import {
 import { prefs } from './preferences.svelte';
 import type { MediaViewMode } from './preferences.svelte';
 
-export type SortField = 'name' | 'size' | 'modified' | 'type';
+// 'manual' preserves the folder's saved order (media_order.yaml) — the order
+// the API returns — instead of applying a client-side sort.
+export type SortField = 'name' | 'size' | 'modified' | 'type' | 'manual';
 export type SortOrder = 'asc' | 'desc';
 export type TypeFilter = '' | 'image' | 'video' | 'audio' | 'document';
 
@@ -43,6 +46,8 @@ function createMediaManagerStore() {
 
 	// Derived: all items sorted (folders first, then files)
 	const sortedFiles = $derived.by(() => {
+		// Manual mode keeps the server-provided order (saved media_order.yaml).
+		if (sortField === 'manual') return [...files];
 		const sorted = [...files];
 		sorted.sort((a, b) => {
 			let cmp = 0;
@@ -65,7 +70,7 @@ function createMediaManagerStore() {
 		return sorted;
 	});
 
-	async function loadFolder(path: string, gen: number) {
+	async function loadFolder(path: string, gen: number, resetSort = false) {
 		try {
 			const result = await getSiteMedia({
 				path: path || undefined,
@@ -80,6 +85,12 @@ function createMediaManagerStore() {
 			folders = result.folders;
 			pagination = result.pagination;
 			isSearching = false;
+			// On a fresh navigation, honor a saved manual order by default; drop
+			// out of manual when the folder we just entered has none.
+			if (resetSort) {
+				if (result.ordered) sortField = 'manual';
+				else if (sortField === 'manual') sortField = 'name';
+			}
 		} catch (err) {
 			if (gen !== generation) return;
 			console.error('[MediaManager] Failed to load folder:', err);
@@ -106,6 +117,8 @@ function createMediaManagerStore() {
 			folders = [];
 			pagination = result.pagination;
 			isSearching = true;
+			// Cross-folder results have no single saved order to honor.
+			if (sortField === 'manual') sortField = 'name';
 		} catch (err) {
 			if (gen !== generation) return;
 			console.error('[MediaManager] Search failed:', err);
@@ -147,7 +160,7 @@ function createMediaManagerStore() {
 			inspectedFile = null;
 			loading = true;
 			const gen = ++generation;
-			loadFolder(path, gen);
+			loadFolder(path, gen, true);
 		},
 
 		goUp() {
@@ -202,11 +215,59 @@ function createMediaManagerStore() {
 		},
 
 		setSort(field: SortField) {
+			// Manual order has no asc/desc — just switch into it.
+			if (field === 'manual') {
+				sortField = 'manual';
+				return;
+			}
 			if (sortField === field) {
 				sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
 			} else {
 				sortField = field;
 				sortOrder = 'asc';
+			}
+		},
+
+		// Files can be drag-reordered in any real folder (not a cross-folder
+		// search result). Dragging while sorted by name/size/etc. is allowed and
+		// switches the folder into custom order — see reorder().
+		get canReorder() {
+			return !isSearching;
+		},
+
+		/**
+		 * Move a file from one position to another and persist the new order as
+		 * the folder's `media_order.yaml`. Dragging implies custom order: if the
+		 * folder is currently shown under a name/size/etc. sort, that visible
+		 * order is baked in as the starting point and the sort switches to
+		 * 'manual'. Optimistic — reverts via refresh() if the save fails.
+		 */
+		async reorder(fromIndex: number, toIndex: number): Promise<void> {
+			if (isSearching) return;
+
+			// Capture the order the user currently sees BEFORE switching modes,
+			// so flipping out of a name/size sort doesn't snap to a different order.
+			const current = [...sortedFiles];
+			if (
+				fromIndex < 0 || toIndex < 0 ||
+				fromIndex >= current.length || toIndex >= current.length ||
+				fromIndex === toIndex
+			) {
+				return;
+			}
+
+			if (sortField !== 'manual') sortField = 'manual';
+
+			const [moved] = current.splice(fromIndex, 1);
+			current.splice(toIndex, 0, moved);
+			files = current;
+
+			try {
+				await setSiteMediaOrder(currentPath, current.map((f) => f.filename));
+			} catch (err) {
+				console.error('[MediaManager] Failed to save order:', err);
+				this.refresh();
+				throw err;
 			}
 		},
 

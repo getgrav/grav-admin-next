@@ -34,6 +34,8 @@ export interface SiteMediaResponse {
 	path: string;
 	pagination: Pagination;
 	search?: string;
+	/** True when this folder has a saved manual order (media_order.yaml). */
+	ordered: boolean;
 }
 
 interface SiteMediaApiBody {
@@ -43,6 +45,7 @@ interface SiteMediaApiBody {
 		path: string;
 		folders: FolderInfo[];
 		search?: string;
+		ordered?: boolean;
 	};
 }
 
@@ -97,6 +100,7 @@ export async function getSiteMedia(params: SiteMediaParams = {}): Promise<SiteMe
 		path: body.meta.path,
 		pagination: body.meta.pagination,
 		search: body.meta.search,
+		ordered: body.meta.ordered ?? false,
 	};
 }
 
@@ -133,6 +137,15 @@ export async function renameSiteMedia(from: string, to: string): Promise<MediaIt
  */
 export async function renameFolder(from: string, to: string): Promise<FolderInfo> {
 	return api.post<FolderInfo>('/media/folders/rename', { from, to });
+}
+
+/**
+ * Persist a manual ordering of files in a site media folder. `path` is the
+ * folder's relative path ('' for the media root); `order` is the ordered
+ * filename list. Stored as a per-folder `media_order.yaml` sidecar.
+ */
+export async function setSiteMediaOrder(path: string, order: string[]): Promise<void> {
+	return api.post('/media/order', { path, order });
 }
 
 // ── Blueprint files (stream-aware folder browse) ────────────────────────

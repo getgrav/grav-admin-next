@@ -55,6 +55,7 @@
 		{ value: 'size', label: 'Size' },
 		{ value: 'modified', label: 'Date' },
 		{ value: 'type', label: 'Type' },
+		{ value: 'manual', label: i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.CUSTOM_ORDER') },
 	];
 
 	const selectionCount = $derived(mediaManager.selectedFiles.size);

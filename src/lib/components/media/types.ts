@@ -7,6 +7,13 @@ import type { MediaItem } from '$lib/api/endpoints/media';
 export interface PageMediaContext {
 	readonly items: MediaItem[];
 	update(items: MediaItem[]): void;
+	/**
+	 * Persist a manual ordering of page media as `header.media_order`. Receives
+	 * the ordered filename list. Page mode only — flex/object sources omit it.
+	 */
+	setOrder?(filenames: string[]): void;
+	/** True when the page already has a `media_order` in effect. */
+	readonly orderActive?: boolean;
 }
 
 /**

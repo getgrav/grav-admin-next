@@ -129,6 +129,7 @@
 					alt={props.item.filename}
 					class="h-full w-full object-cover"
 					loading="lazy"
+					draggable="false"
 				/>
 			{:else}
 				<div class="flex h-full w-full flex-col items-center justify-center gap-2 {fileInfo.bg}">

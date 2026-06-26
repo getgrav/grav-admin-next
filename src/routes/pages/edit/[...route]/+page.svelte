@@ -138,6 +138,15 @@
 	setContext('pageMediaItems', {
 		get items() { return pageMediaItems; },
 		update: updatePageMedia,
+		// Persist a manual media ordering into the page header. Core reads
+		// `header.media_order` (comma-separated filenames) back when listing.
+		setOrder: (filenames: string[]) => {
+			handleBlueprintChange('header.media_order', filenames.join(', '));
+		},
+		get orderActive() {
+			const header = headerData?.header as Record<string, unknown> | undefined;
+			return Boolean(header?.media_order);
+		},
 	});
 
 	let pageData = $state<PageDetail | null>(null);
@@ -1771,7 +1780,7 @@
 							{:else}
 								<MarkdownEditor
 									value={content}
-									onchange={(v) => { content = v; if (!applyingRemote) hasLocalEdits = true; }}
+									onchange={(v) => { content = v; if (!applyingRemote && !valuesEqual(v, originalContent)) hasLocalEdits = true; }}
 									placeholder={i18n.t('ADMIN_NEXT.PAGES.EDIT.WRITE_YOUR_MARKDOWN_CONTENT_HERE')}
 									minHeight="400px"
 									class="border-0 shadow-none"
@@ -1905,7 +1914,7 @@
 					{:else}
 						<MarkdownEditor
 							value={content}
-							onchange={(v) => { content = v; if (!applyingRemote) hasLocalEdits = true; }}
+							onchange={(v) => { content = v; if (!applyingRemote && !valuesEqual(v, originalContent)) hasLocalEdits = true; }}
 							placeholder={i18n.t('ADMIN_NEXT.PAGES.EDIT.WRITE_YOUR_MARKDOWN_CONTENT_HERE')}
 							minHeight="400px"
 							readonly={!!editorLock}

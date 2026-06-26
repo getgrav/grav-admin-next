@@ -122,7 +122,7 @@
 		<!-- Thumbnail -->
 		<div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted/50">
 			{#if thumbUrl && props.item.type.startsWith('image/')}
-				<img src={thumbUrl} alt="" class="h-full w-full object-cover" loading="lazy" />
+				<img src={thumbUrl} alt="" class="h-full w-full object-cover" loading="lazy" draggable="false" />
 			{:else}
 				<fileInfo.icon size={16} class={fileInfo.color} />
 			{/if}

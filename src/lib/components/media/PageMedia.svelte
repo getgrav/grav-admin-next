@@ -25,13 +25,30 @@
 		onMediaChange?: (items: MediaItem[]) => void;
 		/** External media items from shared context — when updated externally, syncs into local state */
 		externalItems?: MediaItem[];
+		/**
+		 * Persist a manual media ordering as the page's `header.media_order`.
+		 * Receives the ordered filename list. Only wired in page mode (a page
+		 * header exists to hold the value); absent in flex/object mode.
+		 */
+		onOrderChange?: (filenames: string[]) => void;
+		/** True when the page already has a `media_order` in effect, so uploads/deletes keep it synced. */
+		orderActive?: boolean;
 	}
 
-	let { route = '/', apiBase, invalidationKeys, onMediaChange, externalItems }: Props = $props();
+	let { route = '/', apiBase, invalidationKeys, onMediaChange, externalItems, onOrderChange, orderActive = false }: Props = $props();
 
 	// True when this instance addresses a non-page source via apiBase. The
 	// `apiBase` prop being present (even if null) signals flex/object mode.
 	const objectMode = $derived(apiBase !== undefined);
+
+	// Manual drag-to-reorder is only meaningful in page mode, where the ordered
+	// filename list is saved to `header.media_order` and read back by core.
+	const reorderEnabled = $derived(!objectMode && !!onOrderChange);
+
+	// In-grid reorder drag state (distinct from the drag-OUT-to-editor on the tile body).
+	let draggingIndex = $state<number | null>(null);
+	let dragOverIndex = $state<number | null>(null);
+	let dropPos = $state<'before' | 'after'>('before');
 
 	let mediaItems = $state<MediaItem[]>([]);
 
@@ -144,13 +161,16 @@
 			toast.error(`Failed to upload ${file?.name ?? 'file'}: ${error.message}`);
 		});
 
-		uppy.on('complete', () => {
+		uppy.on('complete', async () => {
 			uploading = false;
 			uploadProgress = new Map();
 			// XHRUpload bypasses our API client, so emit invalidation manually.
 			invalidations.emit(getInvalidationKeys());
 			// Refresh media list after uploads complete
-			loadMedia();
+			await loadMedia();
+			// Record the newly uploaded file(s) into a saved ordering so they
+			// don't drift back to natural sort on the next reload.
+			if (orderActive) emitOrder();
 			// Clear Uppy's file list so the dropzone is ready for new files
 			uppy?.cancelAll();
 		});
@@ -210,6 +230,8 @@
 			}
 			mediaItems = mediaItems.filter(m => m.filename !== item.filename);
 			onMediaChange?.(mediaItems);
+			// Keep a saved ordering coherent after removing a file.
+			if (orderActive) emitOrder();
 			toast.success(i18n.t('ADMIN_NEXT.TOASTS.FILE_DELETED', { name: item.filename }));
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.TOASTS.FILE_DELETE_FAILED', { name: item.filename }));
@@ -284,6 +306,55 @@
 		e.dataTransfer.setData('text/plain', mdText);
 		e.dataTransfer.setData('application/x-grav-media', JSON.stringify(item));
 		e.dataTransfer.effectAllowed = 'copy';
+	}
+
+	// Emit the current ordering to the host as `header.media_order`.
+	function emitOrder() {
+		onOrderChange?.(mediaItems.map((m) => m.filename));
+	}
+
+	// In-grid reorder: drag starts from the grip handle so the tile body keeps
+	// its drag-OUT-to-editor behavior. stopPropagation prevents the tile's own
+	// dragstart (markdown payload) from also firing.
+	function handleReorderStart(e: DragEvent, index: number) {
+		if (!reorderEnabled || !e.dataTransfer) return;
+		e.stopPropagation();
+		draggingIndex = index;
+		e.dataTransfer.effectAllowed = 'move';
+		e.dataTransfer.setData('application/x-grav-reorder', String(index));
+	}
+
+	function handleReorderOver(e: DragEvent, index: number) {
+		if (draggingIndex === null) return;
+		e.preventDefault();
+		e.stopPropagation();
+		if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+		dropPos = e.clientX - rect.left > rect.width / 2 ? 'after' : 'before';
+		dragOverIndex = index;
+	}
+
+	function handleReorderDrop(e: DragEvent, index: number) {
+		if (draggingIndex === null) return;
+		e.preventDefault();
+		e.stopPropagation();
+		const from = draggingIndex;
+		const pos = dropPos;
+		handleReorderEnd();
+		let to = pos === 'after' ? index + 1 : index;
+		if (from < to) to -= 1;
+		if (from === to) return;
+		const next = [...mediaItems];
+		const [moved] = next.splice(from, 1);
+		next.splice(to, 0, moved);
+		mediaItems = next;
+		onMediaChange?.(mediaItems);
+		emitOrder();
+	}
+
+	function handleReorderEnd() {
+		draggingIndex = null;
+		dragOverIndex = null;
 	}
 
 	function resolveUrl(url: string): string {
@@ -393,11 +464,20 @@
 			</div>
 		{:else if mediaItems.length > 0}
 			<div class="grid grid-cols-3 gap-1.5 p-2">
-				{#each mediaItems as item (item.filename)}
+				{#each mediaItems as item, index (item.filename)}
+					<!-- Outer cell (unclipped) so the insertion line shows in the gap -->
+					<div class="relative">
+					{#if dragOverIndex === index && draggingIndex !== index}
+						<div
+							class="pointer-events-none absolute inset-y-0 z-20 w-1 rounded-full bg-primary {dropPos === 'before' ? '-left-1' : '-right-1'}"
+						></div>
+					{/if}
 					<div
-						class="group relative aspect-square cursor-grab overflow-hidden rounded-md border border-border bg-muted/50 transition-shadow hover:shadow-md active:cursor-grabbing"
+						class="group relative aspect-square cursor-grab overflow-hidden rounded-md border border-border bg-muted/50 transition-shadow hover:shadow-md active:cursor-grabbing {draggingIndex === index ? 'opacity-40' : ''}"
 						draggable="true"
 						ondragstart={(e) => handleThumbnailDragStart(e, item)}
+						ondragover={(e) => handleReorderOver(e, index)}
+						ondrop={(e) => handleReorderDrop(e, index)}
 						title="{item.filename} ({formatSize(item.size)}) — {i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.DRAG_INTO_EDITOR')}"
 					>
 						{#if isImage(item)}
@@ -435,10 +515,22 @@
 							</div>
 						</div>
 
-						<!-- Drag grip indicator -->
-						<div class="absolute right-1 top-1 rounded bg-black/30 p-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-							<GripVertical size={10} class="text-white/80" />
-						</div>
+						<!-- Reorder grip handle (page mode only) -->
+						{#if reorderEnabled}
+							<div
+								class="absolute right-1 top-1 cursor-grab rounded bg-black/30 p-0.5 opacity-0 transition-opacity hover:bg-black/50 group-hover:opacity-100 active:cursor-grabbing"
+								role="button"
+								tabindex="-1"
+								aria-label={i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.REORDER')}
+								title={i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.REORDER')}
+								draggable="true"
+								ondragstart={(e) => handleReorderStart(e, index)}
+								ondragend={handleReorderEnd}
+							>
+								<GripVertical size={10} class="text-white/80" />
+							</div>
+						{/if}
+					</div>
 					</div>
 				{/each}
 			</div>
