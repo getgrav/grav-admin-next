@@ -165,7 +165,7 @@
 					<div class="group flex w-full items-stretch">
 						<button
 							type="button"
-							class="flex flex-1 items-center gap-2 px-3 py-1.5 text-start text-[0.8125rem] transition-colors
+							class="flex flex-1 items-center gap-2 whitespace-nowrap px-3 py-1.5 text-start text-[0.8125rem] transition-colors
 								{env.name === configEnv.target
 									? 'bg-accent text-accent-foreground font-medium'
 									: 'text-popover-foreground hover:bg-accent/50'}"
@@ -200,7 +200,7 @@
 				{#if !showCreateInput}
 					<button
 						type="button"
-						class="flex w-full items-center gap-2 px-3 py-1.5 text-start text-[0.8125rem] text-popover-foreground transition-colors hover:bg-accent/50"
+						class="flex w-full items-center gap-2 whitespace-nowrap px-3 py-1.5 text-start text-[0.8125rem] text-popover-foreground transition-colors hover:bg-accent/50"
 						onclick={showCreate}
 					>
 						<Plus size={13} />

@@ -11,6 +11,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { useFormCommit } from '$lib/utils/form-commit.svelte';
 	import { toast } from 'svelte-sonner';
+	import { uploadErrorMessage } from '$lib/utils/upload-error';
 	import { Upload, X } from 'lucide-svelte';
 
 	interface Props {
@@ -251,8 +252,9 @@
 			}
 		});
 
-		uppy.on('upload-error', (file, error) => {
-			toast.error(`Failed to upload ${file?.name ?? 'file'}: ${error.message}`);
+		uppy.on('upload-error', (file, error, request) => {
+			const message = uploadErrorMessage(error, request as XMLHttpRequest | undefined);
+			toast.error(`Failed to upload ${file?.name ?? 'file'}: ${message}`);
 		});
 
 		uppy.on('complete', () => {

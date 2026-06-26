@@ -9,6 +9,7 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { getPageMedia, deletePageMedia, getObjectMedia, deleteObjectMedia, encodeMediaFileUrl, type MediaItem } from '$lib/api/endpoints/media';
 	import { toast } from 'svelte-sonner';
+	import { uploadErrorMessage } from '$lib/utils/upload-error';
 	import { Upload, X, ImagePlus, GripVertical } from 'lucide-svelte';
 
 	interface Props {
@@ -157,8 +158,9 @@
 			}
 		});
 
-		uppy.on('upload-error', (file, error) => {
-			toast.error(`Failed to upload ${file?.name ?? 'file'}: ${error.message}`);
+		uppy.on('upload-error', (file, error, request) => {
+			const message = uploadErrorMessage(error, request as XMLHttpRequest | undefined);
+			toast.error(`Failed to upload ${file?.name ?? 'file'}: ${message}`);
 		});
 
 		uppy.on('complete', async () => {

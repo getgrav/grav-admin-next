@@ -10,6 +10,7 @@
 	import { mediaManager } from '$lib/stores/mediaManager.svelte';
 	import type { MediaItem } from '$lib/api/endpoints/media';
 	import { toast } from 'svelte-sonner';
+	import { uploadErrorMessage } from '$lib/utils/upload-error';
 	import { Upload, Loader2, FolderOpen } from 'lucide-svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import MediaToolbar from './MediaToolbar.svelte';
@@ -106,8 +107,9 @@
 			}
 		});
 
-		uppy.on('upload-error', (file, error) => {
-			toast.error(`Failed to upload ${file?.name ?? 'file'}: ${error.message}`);
+		uppy.on('upload-error', (file, error, request) => {
+			const message = uploadErrorMessage(error, request as XMLHttpRequest | undefined);
+			toast.error(`Failed to upload ${file?.name ?? 'file'}: ${message}`);
 		});
 
 		uppy.on('complete', (result) => {
