@@ -75,23 +75,42 @@
 
 	// Custom app title: route components set browser-tab titles like
 	// "Dashboard — Grav Admin" via <svelte:head>. When the operator has set a
-	// branding title, swap the "Grav Admin" token for it on every title change.
-	// A MutationObserver (rather than reacting to each route) keeps it applied
-	// regardless of effect ordering and re-application is a no-op once swapped.
+	// branding title, swap the "Grav Admin" token for it.
+	//
+	// The swap is non-destructive: we remember the route's canonical title (the
+	// one still carrying the "Grav Admin" token) separately from what we write
+	// to the tab. Mutating document.title in place would erase the token, so a
+	// later change to the branding title would have nothing left to match and
+	// the tab would stay pinned to the previously-applied custom value.
+	let canonicalTitle = $state('');
+
+	// Capture the canonical route title. A MutationObserver (rather than
+	// reacting to each route) catches it regardless of effect ordering. We only
+	// record titles that still carry the token, so our own swapped output below
+	// never echoes back into the base and there's no feedback loop.
 	$effect(() => {
 		if (typeof document === 'undefined') return;
-		const custom = branding.title.trim();
-		if (!custom) return;
 		const titleEl = document.querySelector('title');
 		if (!titleEl) return;
-		const swap = () => {
-			const next = document.title.replaceAll('Grav Admin', custom);
-			if (next !== document.title) document.title = next;
+		const capture = () => {
+			if (document.title.includes('Grav Admin')) canonicalTitle = document.title;
 		};
-		swap();
-		const obs = new MutationObserver(swap);
+		capture();
+		const obs = new MutationObserver(capture);
 		obs.observe(titleEl, { childList: true, characterData: true, subtree: true });
 		return () => obs.disconnect();
+	});
+
+	// Apply the branding title to the captured canonical base. Re-runs whenever
+	// the route title or the branding title changes — always swapping from the
+	// preserved base rather than the live (already-swapped) tab text.
+	$effect(() => {
+		if (typeof document === 'undefined') return;
+		const base = canonicalTitle;
+		if (!base) return;
+		const custom = branding.title.trim();
+		const next = custom ? base.replaceAll('Grav Admin', custom) : base;
+		if (next !== document.title) document.title = next;
 	});
 
 	$effect(() => {
