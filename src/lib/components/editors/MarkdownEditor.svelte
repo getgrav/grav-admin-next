@@ -27,6 +27,8 @@
 		Eye, PenLine
 	} from 'lucide-svelte';
 	import { marked } from 'marked';
+	import { modals } from '$lib/stores/modals.svelte';
+	import { getEditorButtons, type EditorToolbarButton } from '$lib/api/endpoints/editorButtons';
 
 	import type { Awareness } from 'y-protocols/awareness';
 	import { yCollab, yUndoManagerKeymap } from 'y-codemirror.next';
@@ -49,6 +51,12 @@
 		 */
 		yText?: Y.Text | null;
 		yAwareness?: Awareness | null;
+		/**
+		 * Show plugin-contributed toolbar buttons (e.g. the YouTube insert
+		 * button). Defaults on. Set false for compact/auxiliary markdown fields
+		 * where plugin buttons would be noise.
+		 */
+		pluginButtons?: boolean;
 	}
 
 	let {
@@ -62,6 +70,7 @@
 		readonly: isReadonly = false,
 		yText = null,
 		yAwareness = null,
+		pluginButtons = true,
 	}: Props = $props();
 
 	let showPreview = $state(false);
@@ -543,6 +552,50 @@
 		view.focus();
 	}
 
+	// Plugin-contributed toolbar buttons (e.g. YouTube). Fetched once and
+	// shared across editor instances via the endpoint's session cache.
+	let pluginToolbarButtons = $state<EditorToolbarButton[]>([]);
+
+	// Insert text into THIS editor at its current selection. Used for plugin
+	// button output so it lands in the editor whose toolbar was clicked —
+	// unlike the global `grav:editor:insert-content` event, which every mounted
+	// markdown editor would react to.
+	function insertAtCursor(text: string) {
+		if (!view || !text) return;
+		const { from, to } = view.state.selection.main;
+		view.dispatch({
+			changes: { from, to, insert: text },
+			selection: { anchor: from + text.length },
+		});
+		view.focus();
+	}
+
+	async function handlePluginButton(button: EditorToolbarButton) {
+		if (!view) return;
+		if (button.modal) {
+			// The modal builds the markdown and resolves { insertContent } so we
+			// can drop it into this specific editor at the cursor.
+			const result = (await modals.open({
+				kind: 'component',
+				plugin: button.plugin,
+				component: button.modal.component,
+				title: button.modal.title ?? button.label,
+				props: button.modal.props,
+				size: button.modal.size,
+				useStandardHeader: button.modal.useStandardHeader,
+			})) as { insertContent?: string } | null;
+			if (result && typeof result.insertContent === 'string') {
+				insertAtCursor(result.insertContent);
+			} else {
+				view?.focus();
+			}
+			return;
+		}
+		if (button.insert) {
+			insertAtCursor(button.insert.content);
+		}
+	}
+
 	// Sync external value changes to editor — but only when yCollab isn't
 	// in charge. With yCollab active, the Y.Text owns the document state
 	// and any view.dispatch driven by an external `value` prop would
@@ -584,6 +637,13 @@
 		observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
 		createEditor();
+
+		// Load plugin-contributed toolbar buttons (cached across instances).
+		if (pluginButtons) {
+			getEditorButtons()
+				.then((btns) => { pluginToolbarButtons = btns; })
+				.catch(() => { /* non-critical */ });
+		}
 
 		// Listen for content changes from floating widgets (e.g., AI chat)
 		function handleEditorInsert(e: CustomEvent) {
@@ -694,6 +754,30 @@
 				{/each}
 			{/if}
 		{/each}
+
+		<!-- Plugin-contributed buttons (e.g. YouTube). Rendered after the
+		     built-in groups; each opens a plugin modal or inserts directly. -->
+		{#if pluginToolbarButtons.length > 0}
+			<Separator orientation="vertical" class="mx-1 !h-5" />
+			{#each pluginToolbarButtons as button (button.id)}
+				<button
+					type="button"
+					class="inline-flex h-7 w-7 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-50 [&_svg]:h-[15px] [&_svg]:w-[15px]"
+					title={button.label}
+					aria-label={button.label}
+					onclick={() => handlePluginButton(button)}
+					disabled={disabled || isReadonly}
+				>
+					{#if button.icon && button.icon.trim().startsWith('<svg')}
+						{@html button.icon}
+					{:else if button.icon}
+						<i class="fa-solid {button.icon.startsWith('fa-') ? button.icon : 'fa-' + button.icon} text-sm"></i>
+					{:else}
+						<i class="fa-solid fa-circle-dot text-sm"></i>
+					{/if}
+				</button>
+			{/each}
+		{/if}
 	</div>
 
 	<!-- Editor / Preview -->
