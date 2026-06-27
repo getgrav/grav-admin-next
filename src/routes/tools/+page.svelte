@@ -2,6 +2,9 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
+	import { auth } from '$lib/stores/auth.svelte';
+	import { getAuditStatus } from '$lib/api/endpoints/audit';
 	import Tabs from '$lib/components/ui/Tabs.svelte';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import BackupsTab from '$lib/components/tools/BackupsTab.svelte';
@@ -9,16 +12,32 @@
 	import LogsTab from '$lib/components/tools/LogsTab.svelte';
 	import ReportsTab from '$lib/components/tools/ReportsTab.svelte';
 	import DirectInstallTab from '$lib/components/tools/DirectInstallTab.svelte';
+	import AuditTrailTab from '$lib/components/tools/AuditTrailTab.svelte';
 
-	const tabs = [
+	// The Audit Trail tab is super-admin-only and only shown when the feature is
+	// enabled in the API plugin config (off by default). Status is fetched once
+	// per visit; the tab stays hidden otherwise.
+	let auditEnabled = $state(false);
+	onMount(async () => {
+		if (!auth.isSuperAdmin) return;
+		try {
+			const status = await getAuditStatus();
+			auditEnabled = status.enabled;
+		} catch {
+			auditEnabled = false;
+		}
+	});
+
+	const tabs = $derived([
 		{ id: 'backups', label: 'Backups' },
 		{ id: 'scheduler', label: 'Scheduler' },
 		{ id: 'logs', label: 'Logs' },
 		{ id: 'reports', label: 'Reports' },
 		{ id: 'direct-install', label: 'Direct Install' },
-	];
+		...(auditEnabled ? [{ id: 'audit', label: 'Audit Trail' }] : []),
+	]);
 
-	const validIds = new Set(tabs.map(t => t.id));
+	const validIds = $derived(new Set(tabs.map(t => t.id)));
 
 	// Read active tab from URL hash, default to 'backups'
 	// Supports nested hashes like #scheduler--jobs_tab (first segment is the tools tab)
@@ -65,6 +84,8 @@
 			<ReportsTab />
 		{:else if activeTab === 'direct-install'}
 			<DirectInstallTab />
+		{:else if activeTab === 'audit'}
+			<AuditTrailTab />
 		{/if}
 	</div>
 </div>
