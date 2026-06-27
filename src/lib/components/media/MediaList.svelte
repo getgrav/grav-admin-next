@@ -3,9 +3,9 @@
 	import { mediaManager, type SortField } from '$lib/stores/mediaManager.svelte';
 	import { toast } from 'svelte-sonner';
 	import MediaFileRow from './MediaFileRow.svelte';
-	import { ArrowUp, ArrowDown, GripVertical } from 'lucide-svelte';
+	import { ArrowUp, ArrowDown } from 'lucide-svelte';
 
-	const { folders, files, sortField, sortOrder, canReorder } = $derived(mediaManager);
+	const { folders, files, sortField, sortOrder, reordering } = $derived(mediaManager);
 
 	function toggleSort(field: SortField) {
 		mediaManager.setSort(field);
@@ -20,7 +20,7 @@
 	// compete with), with the row itself as the ghost — so you drag the row,
 	// not a tiny grip.
 	function handleDragStart(e: DragEvent, index: number) {
-		if (!canReorder || !e.dataTransfer) return;
+		if (!reordering || !e.dataTransfer) return;
 		// Stop the drag from reaching MediaManager's file-upload dropzone.
 		e.stopPropagation();
 		draggingIndex = index;
@@ -149,8 +149,8 @@
 <!-- Rows -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-	ondragover={canReorder ? handleContainerDragOver : undefined}
-	ondrop={canReorder ? handleContainerDrop : undefined}
+	ondragover={reordering ? handleContainerDragOver : undefined}
+	ondrop={reordering ? handleContainerDrop : undefined}
 >
 	{#each folders as folder (folder.path)}
 		<MediaFileRow kind="folder" {folder} />
@@ -158,29 +158,20 @@
 	{#each files as item, index (item.path + '/' + item.filename)}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
-			class="group relative {canReorder ? 'ps-5 cursor-grab active:cursor-grabbing' : ''} {draggingIndex === index ? 'opacity-40' : ''}"
-			draggable={canReorder}
-			ondragstart={canReorder ? (e) => handleDragStart(e, index) : undefined}
-			ondragend={canReorder ? handleDragEnd : undefined}
-			ondragenter={canReorder ? (e) => handleDragOver(e, index) : undefined}
-			ondragover={canReorder ? (e) => handleDragOver(e, index) : undefined}
-			ondrop={canReorder ? (e) => handleDrop(e, index) : undefined}
+			class="group relative {reordering ? 'cursor-move ring-1 ring-primary/40 active:cursor-grabbing' : ''} {draggingIndex === index ? 'opacity-40' : ''}"
+			draggable={reordering}
+			ondragstart={reordering ? (e) => handleDragStart(e, index) : undefined}
+			ondragend={reordering ? handleDragEnd : undefined}
+			ondragenter={reordering ? (e) => handleDragOver(e, index) : undefined}
+			ondragover={reordering ? (e) => handleDragOver(e, index) : undefined}
+			ondrop={reordering ? (e) => handleDrop(e, index) : undefined}
+			title={reordering ? i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.REORDER') : undefined}
 		>
 			<!-- Insertion line: shows which gap the dropped row will land in -->
 			{#if dragOverIndex === index && draggingIndex !== index}
 				<div
 					class="pointer-events-none absolute inset-x-0 z-20 h-0.5 bg-primary {dropPos === 'before' ? 'top-0' : 'bottom-0'}"
 				></div>
-			{/if}
-
-			<!-- Grip: a visual affordance only; the whole row is the drag source -->
-			{#if canReorder}
-				<div
-					class="pointer-events-none absolute start-0 top-1/2 z-20 flex h-7 w-5 -translate-y-1/2 items-center justify-center text-muted-foreground/60"
-					title={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.REORDER')}
-				>
-					<GripVertical size={15} />
-				</div>
 			{/if}
 
 			<MediaFileRow kind="file" {item} {index} />

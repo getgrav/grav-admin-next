@@ -36,6 +36,12 @@ function createMediaManagerStore() {
 	let sortField = $state<SortField>('name');
 	let sortOrder = $state<SortOrder>('asc');
 
+	// Reorder is an explicit mode (matching the page-media panel): a toggle that
+	// makes the whole card/row draggable to set the folder's order, instead of a
+	// hidden grip handle. Off by default so normal browsing/selection isn't
+	// hijacked by drags.
+	let reordering = $state(false);
+
 	// Search/filter
 	let searchQuery = $state('');
 	let typeFilter = $state<TypeFilter>('');
@@ -90,6 +96,8 @@ function createMediaManagerStore() {
 			if (resetSort) {
 				if (result.ordered) sortField = 'manual';
 				else if (sortField === 'manual') sortField = 'name';
+				// Leaving a folder ends any in-progress arranging.
+				reordering = false;
 			}
 		} catch (err) {
 			if (gen !== generation) return;
@@ -119,6 +127,8 @@ function createMediaManagerStore() {
 			isSearching = true;
 			// Cross-folder results have no single saved order to honor.
 			if (sortField === 'manual') sortField = 'name';
+			// Can't reorder a cross-folder search result.
+			reordering = false;
 		} catch (err) {
 			if (gen !== generation) return;
 			console.error('[MediaManager] Search failed:', err);
@@ -233,6 +243,22 @@ function createMediaManagerStore() {
 		// switches the folder into custom order — see reorder().
 		get canReorder() {
 			return !isSearching;
+		},
+
+		// Whether arrange/reorder mode is currently on.
+		get reordering() {
+			return reordering && !isSearching;
+		},
+
+		/**
+		 * Toggle (or set) arrange mode. Turning it on switches the view into the
+		 * folder's manual order so what you drag is the order that gets saved.
+		 */
+		setReordering(on?: boolean) {
+			const next = on ?? !reordering;
+			if (next && isSearching) return;
+			reordering = next;
+			if (next && sortField !== 'manual') sortField = 'manual';
 		},
 
 		/**

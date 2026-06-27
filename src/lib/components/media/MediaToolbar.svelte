@@ -169,6 +169,23 @@
 		</button>
 	</div>
 
+	<!-- Reorder toggle: turns the whole card/row into a drag-to-arrange source -->
+	{#if !mediaManager.isSearching && mediaManager.files.length > 1}
+		<button
+			class="inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs transition-colors {mediaManager.reordering
+				? 'bg-primary text-primary-foreground hover:bg-primary/90'
+				: 'border border-input bg-muted/50 text-muted-foreground hover:bg-accent hover:text-foreground'}"
+			aria-pressed={mediaManager.reordering}
+			title={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.REORDER')}
+			onclick={() => mediaManager.setReordering()}
+		>
+			<ArrowUpDown size={14} />
+			{mediaManager.reordering
+				? i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.REORDER_DONE')
+				: i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.REORDER_MODE')}
+		</button>
+	{/if}
+
 	<!-- Separator -->
 	<div class="h-5 w-px bg-border"></div>
 
