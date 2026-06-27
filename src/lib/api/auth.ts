@@ -92,6 +92,42 @@ export async function login(username: string, password: string): Promise<LoginRe
 	return { requires2fa: false };
 }
 
+export interface SsoProvider {
+	id: string;
+	label: string;
+	icon: string;
+	plugin: string;
+}
+
+/**
+ * List the SSO/OAuth login providers the server offers (public, pre-auth).
+ * Best-effort: an unreachable or empty endpoint just yields no buttons.
+ */
+export async function getSsoProviders(): Promise<SsoProvider[]> {
+	try {
+		const data = await api.get<{ providers: SsoProvider[] }>('/auth/sso/providers');
+		return Array.isArray(data?.providers) ? data.providers : [];
+	} catch {
+		return [];
+	}
+}
+
+/**
+ * Trade the one-time code from an SSO callback for a real session. Returns the
+ * same shape as login() — a finalized session, or a pending 2FA challenge the
+ * caller hands to the existing 2FA stage.
+ */
+export async function exchangeSsoCode(code: string): Promise<LoginResult> {
+	const data = await api.post<TokenResponse | ChallengeResponse>('/auth/sso/exchange', { code });
+
+	if ('requires_2fa' in data && data.requires_2fa) {
+		return { requires2fa: true, challengeToken: data.challenge_token };
+	}
+
+	await finalizeLogin(data as TokenResponse, '');
+	return { requires2fa: false };
+}
+
 export interface SetupStatus {
 	setup_required: boolean;
 	password_policy?: PasswordPolicy;

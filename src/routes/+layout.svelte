@@ -32,7 +32,8 @@
 		page.url.pathname === `${base}/forgot` ||
 		page.url.pathname === `${base}/reset` ||
 		page.url.pathname === `${base}/invite` ||
-		page.url.pathname === `${base}/setup`
+		page.url.pathname === `${base}/setup` ||
+		page.url.pathname === `${base}/oauth-callback`
 	);
 	// Boot-time silent re-auth. The access token is short-lived (jwt_expiry,
 	// 1h by default) while the refresh token lasts days. If the browser was

@@ -1,10 +1,11 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { login, verify2fa, getSetupStatus } from '$lib/api/auth';
+	import { login, verify2fa, getSetupStatus, getSsoProviders, type SsoProvider } from '$lib/api/auth';
 	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
 	import { Sun, Moon, LogIn, Server, Globe, ChevronDown, Loader2, ShieldCheck } from 'lucide-svelte';
@@ -46,6 +47,9 @@
 	let code = $state('');
 	let codeInvalid = $state(false);
 
+	let ssoProviders = $state<SsoProvider[]>([]);
+	let ssoLoaded = $state(false);
+
 	const usernameInvalid = $derived(attempted && stage === 'credentials' && !username.trim());
 	const passwordInvalid = $derived(attempted && stage === 'credentials' && !password.trim());
 
@@ -70,6 +74,44 @@
 				.catch(() => { /* no-op — probe is best-effort */ });
 		}
 	});
+
+	// Load any SSO/OAuth providers the server offers (best-effort, once). Gate on
+	// hasGravConfig too: a root-hosted plugin install injects serverUrl='' (valid
+	// same-origin), which is falsy — so serverUrl alone would never fire here.
+	$effect(() => {
+		if ((auth.hasGravConfig || auth.serverUrl) && !ssoLoaded) {
+			ssoLoaded = true;
+			getSsoProviders()
+				.then((list) => { ssoProviders = list; })
+				.catch(() => { /* no-op — no buttons if unavailable */ });
+		}
+	});
+
+	// Resume an SSO login that came back needing 2FA: oauth-callback stashed the
+	// challenge token and bounced here, so drop straight into the 2FA stage and
+	// reuse the existing verify UI.
+	onMount(() => {
+		const pending = sessionStorage.getItem('grav_sso_2fa');
+		if (pending) {
+			sessionStorage.removeItem('grav_sso_2fa');
+			challengeToken = pending;
+			stage = '2fa';
+			code = '';
+			attempted = false;
+		}
+	});
+
+	// Leave the SPA for the server's OAuth start endpoint (full-page navigation
+	// — the provider round-trip can't run through the in-app router). Carry the
+	// returnTo through so the callback drops the user back where they intended.
+	function startSso(id: string) {
+		auth.setServer(serverUrl, environment);
+		const prefix = auth.apiPrefix || '/api/v1';
+		const returnTo = page.url.searchParams.get('returnTo') || `${base}/`;
+		window.location.href =
+			`${auth.serverUrl}${prefix}/auth/sso/${encodeURIComponent(id)}/start` +
+			`?returnTo=${encodeURIComponent(returnTo)}`;
+	}
 
 	function completeSignIn() {
 		toast.success(i18n.t('ADMIN_NEXT.LOGIN.SIGNED_IN_SUCCESSFULLY'));
@@ -292,6 +334,31 @@
 						{/if}
 					</Button>
 				</form>
+
+				{#if ssoProviders.length > 0}
+					<div class="px-6 pb-5">
+						<div class="relative mb-4 flex items-center">
+							<div class="flex-grow border-t border-border"></div>
+							<span class="mx-3 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
+								{i18n.t('ADMIN_NEXT.LOGIN.OR_CONTINUE_WITH')}
+							</span>
+							<div class="flex-grow border-t border-border"></div>
+						</div>
+						<div class="space-y-2">
+							{#each ssoProviders as provider (provider.id)}
+								<Button
+									type="button"
+									variant="outline"
+									class="w-full"
+									disabled={loading}
+									onclick={() => startSso(provider.id)}
+								>
+									{i18n.t('ADMIN_NEXT.LOGIN.CONTINUE_WITH', { provider: provider.label })}
+								</Button>
+							{/each}
+						</div>
+					</div>
+				{/if}
 			{:else}
 				<!-- 2FA challenge form -->
 				<form onsubmit={handleVerify} class="space-y-4 px-6 py-5">
