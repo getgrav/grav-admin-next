@@ -37,6 +37,20 @@
 
 	let nextId = 0;
 
+	// Leaf name of the single value sub-field, when the list has exactly one.
+	// A bare scalar item (e.g. a migrated `- img.jpg`, or data corrupted by the
+	// old single-field-collapse bug) is keyed back under this name so it lands
+	// in the right sub-field instead of an unreachable `value` slot.
+	const singleValueLeaf = $derived(
+		valueFieldDefs.length === 1
+			? (valueFieldDefs[0].name.split('.').pop() || valueFieldDefs[0].name || '')
+			: ''
+	);
+
+	function wrapScalar(item: unknown): Record<string, unknown> {
+		return singleValueLeaf ? { [singleValueLeaf]: item } : { value: item };
+	}
+
 	function parseItems(val: unknown): ListItem[] {
 		if (val === null || val === undefined) return [];
 
@@ -46,7 +60,7 @@
 				key: '',
 				data: (typeof item === 'object' && item !== null && !Array.isArray(item))
 					? (item as Record<string, unknown>)
-					: { value: item },
+					: wrapScalar(item),
 				collapsed: !!field.collapsed
 			}));
 		}
@@ -57,7 +71,7 @@
 				key: k,
 				data: (typeof v === 'object' && v !== null && !Array.isArray(v))
 					? (v as Record<string, unknown>)
-					: { value: v },
+					: wrapScalar(v),
 				collapsed: !!field.collapsed
 			}));
 		}
@@ -88,13 +102,12 @@
 			}
 			payload = obj;
 		} else {
-			// Array mode: emit as array
-			payload = items.map((item) => {
-				if (valueFieldDefs.length === 1) {
-					return getItemFieldValue(item, valueFieldDefs[0]);
-				}
-				return { ...item.data };
-			});
+			// Array mode: emit each item as a keyed object ({ image: 'x.jpg' }).
+			// Classic Grav always stores list items keyed by sub-field name, even
+			// when there's a single field — collapsing those to a bare scalar
+			// (`- x.jpg`) broke the round-trip: on reload the value landed under
+			// `value`, not the sub-field, so the row rendered empty (admin2#73).
+			payload = items.map((item) => ({ ...item.data }));
 		}
 		// Remember what we just emitted so the $effect below can tell our own
 		// round-trip apart from a truly external change. Without this, every
