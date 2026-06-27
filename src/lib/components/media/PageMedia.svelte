@@ -10,7 +10,7 @@
 	import { getPageMedia, deletePageMedia, getObjectMedia, deleteObjectMedia, encodeMediaFileUrl, type MediaItem } from '$lib/api/endpoints/media';
 	import { toast } from 'svelte-sonner';
 	import { uploadErrorMessage } from '$lib/utils/upload-error';
-	import { Upload, X, ImagePlus, GripVertical } from 'lucide-svelte';
+	import { Upload, X, ImagePlus, ArrowUpDown } from 'lucide-svelte';
 
 	interface Props {
 		route?: string;
@@ -46,12 +46,25 @@
 	// filename list is saved to `header.media_order` and read back by core.
 	const reorderEnabled = $derived(!objectMode && !!onOrderChange);
 
+	// Reorder is an explicit mode rather than a hidden grip handle: in 1.7 you
+	// just dragged the image to reorder, so here a toggle flips what dragging a
+	// tile does — into the editor (default) vs reordering within the grid. They
+	// can't share one drag gesture, hence the mode.
+	let reordering = $state(false);
+
 	// In-grid reorder drag state (distinct from the drag-OUT-to-editor on the tile body).
 	let draggingIndex = $state<number | null>(null);
 	let dragOverIndex = $state<number | null>(null);
 	let dropPos = $state<'before' | 'after'>('before');
 
 	let mediaItems = $state<MediaItem[]>([]);
+
+	// The toggle only appears when reorder is possible and there's more than one
+	// item to sort. Declared after mediaItems so the derived can read it.
+	const canReorder = $derived(reorderEnabled && mediaItems.length > 1);
+	// Reorder is actually active only while the toggle is on AND still possible
+	// (e.g. deleting down to one item silently exits the mode).
+	const inReorderMode = $derived(reordering && canReorder);
 
 	// Sync from external context when it changes (e.g. FileField uploaded a file)
 	$effect(() => {
@@ -298,6 +311,16 @@
 		}
 	}
 
+	// Dragging a tile means different things by mode: reorder within the grid
+	// when reorder mode is on, otherwise drag-OUT into the markdown editor.
+	function handleTileDragStart(e: DragEvent, item: MediaItem, index: number) {
+		if (inReorderMode) {
+			handleReorderStart(e, index);
+		} else {
+			handleThumbnailDragStart(e, item);
+		}
+	}
+
 	// Drag-OUT: drag media thumbnail into the markdown editor
 	function handleThumbnailDragStart(e: DragEvent, item: MediaItem) {
 		if (!e.dataTransfer) return;
@@ -315,15 +338,15 @@
 		onOrderChange?.(mediaItems.map((m) => m.filename));
 	}
 
-	// In-grid reorder: drag starts from the grip handle so the tile body keeps
-	// its drag-OUT-to-editor behavior. stopPropagation prevents the tile's own
-	// dragstart (markdown payload) from also firing.
+	// In-grid reorder, with the whole tile as both the drag source and the drag
+	// ghost (so the image moves, not a tiny handle — matching 1.7's feel).
 	function handleReorderStart(e: DragEvent, index: number) {
 		if (!reorderEnabled || !e.dataTransfer) return;
-		e.stopPropagation();
 		draggingIndex = index;
 		e.dataTransfer.effectAllowed = 'move';
 		e.dataTransfer.setData('application/x-grav-reorder', String(index));
+		const tile = e.currentTarget as HTMLElement | null;
+		if (tile) e.dataTransfer.setDragImage(tile, tile.clientWidth / 2, tile.clientHeight / 2);
 	}
 
 	function handleReorderOver(e: DragEvent, index: number) {
@@ -409,14 +432,32 @@
 				<span class="ms-1 font-normal text-muted-foreground">({mediaItems.length})</span>
 			{/if}
 		</h3>
-		<button
-			type="button"
-			class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-			onclick={() => fileInputEl?.click()}
-		>
-			<ImagePlus size={13} />
-			Add
-		</button>
+		<div class="flex items-center gap-1">
+			{#if canReorder}
+				<button
+					type="button"
+					class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs transition-colors {reordering
+						? 'bg-primary text-primary-foreground hover:bg-primary/90'
+						: 'text-muted-foreground hover:bg-accent hover:text-foreground'}"
+					aria-pressed={reordering}
+					title={i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.REORDER')}
+					onclick={() => (reordering = !reordering)}
+				>
+					<ArrowUpDown size={13} />
+					{reordering
+						? i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.REORDER_DONE')
+						: i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.REORDER_MODE')}
+				</button>
+			{/if}
+			<button
+				type="button"
+				class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+				onclick={() => fileInputEl?.click()}
+			>
+				<ImagePlus size={13} />
+				Add
+			</button>
+		</div>
 		<input
 			bind:this={fileInputEl}
 			type="file"
@@ -425,6 +466,12 @@
 			onchange={handleFileInput}
 		/>
 	</div>
+
+	{#if inReorderMode}
+		<p class="-mt-1 text-xs text-muted-foreground">
+			{i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.REORDER_HINT')}
+		</p>
+	{/if}
 
 	<!-- Drop zone + media grid (unified container) -->
 	<div
@@ -475,12 +522,17 @@
 						></div>
 					{/if}
 					<div
-						class="group relative aspect-square cursor-grab overflow-hidden rounded-md border border-border bg-muted/50 transition-shadow hover:shadow-md active:cursor-grabbing {draggingIndex === index ? 'opacity-40' : ''}"
+						class="group relative aspect-square overflow-hidden rounded-md border bg-muted/50 transition-shadow hover:shadow-md active:cursor-grabbing {inReorderMode
+							? 'cursor-move border-primary/50 ring-1 ring-primary/40'
+							: 'cursor-grab border-border'} {draggingIndex === index ? 'opacity-40' : ''}"
 						draggable="true"
-						ondragstart={(e) => handleThumbnailDragStart(e, item)}
+						ondragstart={(e) => handleTileDragStart(e, item, index)}
+						ondragend={handleReorderEnd}
 						ondragover={(e) => handleReorderOver(e, index)}
 						ondrop={(e) => handleReorderDrop(e, index)}
-						title="{item.filename} ({formatSize(item.size)}) — {i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.DRAG_INTO_EDITOR')}"
+						title={inReorderMode
+							? i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.REORDER')
+							: `${item.filename} (${formatSize(item.size)}) — ${i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.DRAG_INTO_EDITOR')}`}
 					>
 						{#if isImage(item)}
 							<img
@@ -517,21 +569,6 @@
 							</div>
 						</div>
 
-						<!-- Reorder grip handle (page mode only) -->
-						{#if reorderEnabled}
-							<div
-								class="absolute right-1 top-1 cursor-grab rounded bg-black/30 p-0.5 opacity-0 transition-opacity hover:bg-black/50 group-hover:opacity-100 active:cursor-grabbing"
-								role="button"
-								tabindex="-1"
-								aria-label={i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.REORDER')}
-								title={i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.REORDER')}
-								draggable="true"
-								ondragstart={(e) => handleReorderStart(e, index)}
-								ondragend={handleReorderEnd}
-							>
-								<GripVertical size={10} class="text-white/80" />
-							</div>
-						{/if}
 					</div>
 					</div>
 				{/each}

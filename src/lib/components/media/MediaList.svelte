@@ -16,7 +16,9 @@
 	let dragOverIndex = $state<number | null>(null);
 	let dropPos = $state<'before' | 'after'>('before');
 
-	// Drag originates from the grip handle (matches the grid + page-media UX).
+	// The whole row is the drag source (there's no drag-into-editor here to
+	// compete with), with the row itself as the ghost — so you drag the row,
+	// not a tiny grip.
 	function handleDragStart(e: DragEvent, index: number) {
 		if (!canReorder || !e.dataTransfer) return;
 		// Stop the drag from reaching MediaManager's file-upload dropzone.
@@ -24,6 +26,8 @@
 		draggingIndex = index;
 		e.dataTransfer.effectAllowed = 'move';
 		e.dataTransfer.setData('application/x-grav-media-reorder', String(index));
+		const row = e.currentTarget as HTMLElement | null;
+		if (row) e.dataTransfer.setDragImage(row, 24, row.clientHeight / 2);
 	}
 
 	function handleDragOver(e: DragEvent, index: number) {
@@ -154,7 +158,10 @@
 	{#each files as item, index (item.path + '/' + item.filename)}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
-			class="group relative {canReorder ? 'ps-5' : ''} {draggingIndex === index ? 'opacity-40' : ''}"
+			class="group relative {canReorder ? 'ps-5 cursor-grab active:cursor-grabbing' : ''} {draggingIndex === index ? 'opacity-40' : ''}"
+			draggable={canReorder}
+			ondragstart={canReorder ? (e) => handleDragStart(e, index) : undefined}
+			ondragend={canReorder ? handleDragEnd : undefined}
 			ondragenter={canReorder ? (e) => handleDragOver(e, index) : undefined}
 			ondragover={canReorder ? (e) => handleDragOver(e, index) : undefined}
 			ondrop={canReorder ? (e) => handleDrop(e, index) : undefined}
@@ -166,15 +173,11 @@
 				></div>
 			{/if}
 
-			<!-- Drag handle (grip) on the left — the reorder drag source -->
+			<!-- Grip: a visual affordance only; the whole row is the drag source -->
 			{#if canReorder}
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
-					class="absolute start-0 top-1/2 z-20 flex h-7 w-5 -translate-y-1/2 cursor-grab items-center justify-center rounded text-muted-foreground/70 transition-colors hover:text-foreground active:cursor-grabbing"
+					class="pointer-events-none absolute start-0 top-1/2 z-20 flex h-7 w-5 -translate-y-1/2 items-center justify-center text-muted-foreground/60"
 					title={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.REORDER')}
-					draggable="true"
-					ondragstart={(e) => handleDragStart(e, index)}
-					ondragend={handleDragEnd}
 				>
 					<GripVertical size={15} />
 				</div>
