@@ -51,6 +51,8 @@ export interface FlexDetailConfig {
 	icon?: string;
 	limit?: number;
 	actions?: boolean;
+	can_edit?: boolean;
+	can_delete?: boolean;
 	relation: {
 		type: string;
 		local_key: string;
@@ -87,6 +89,8 @@ export type FlexObject = Record<string, unknown> & {
 		limit?: number;
 		sort?: { by?: string; dir?: 'asc' | 'desc' };
 		actions?: boolean;
+		can_edit?: boolean;
+		can_delete?: boolean;
 	};
 };
 

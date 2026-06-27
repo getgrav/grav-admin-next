@@ -72,7 +72,10 @@
 
 	const rangeStart = $derived(data && data.total > 0 ? (currentPage - 1) * perPage + 1 : 0);
 	const rangeEnd = $derived(data ? Math.min(currentPage * perPage, data.total) : 0);
-	const colSpan = $derived(Math.max(columns.length + (detail.actions ? 1 : 0), 1));
+	const canEdit = $derived(detail.can_edit === true);
+	const canDelete = $derived(detail.can_delete === true);
+	const showActions = $derived(canEdit || canDelete);
+	const colSpan = $derived(Math.max(columns.length + (showActions ? 1 : 0), 1));
 
 	$effect(() => {
 		detail;
@@ -278,7 +281,7 @@
 								</button>
 							</th>
 						{/each}
-						{#if detail.actions}
+						{#if showActions}
 							<th class="w-20 px-4 py-2 text-end font-medium">
 								{i18n.t('ADMIN_NEXT.FLEX_OBJECTS.ACTIONS')}
 							</th>
@@ -332,32 +335,36 @@
 									{/if}
 								</td>
 							{/each}
-							{#if detail.actions}
+							{#if showActions}
 								<td class="px-4 py-2 text-end">
 									<div class="inline-flex items-center gap-1">
-										<button
-											type="button"
-											class="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-											aria-label={i18n.t('ADMIN_NEXT.EDIT')}
-											title={i18n.t('ADMIN_NEXT.EDIT')}
-											onclick={() => editObject(obj.key)}
-										>
-											<Pencil size={14} />
-										</button>
-										<button
-											type="button"
-											class="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-60"
-											aria-label={i18n.t('ADMIN_NEXT.DELETE')}
-											title={i18n.t('ADMIN_NEXT.DELETE')}
-											disabled={deletingKey === obj.key}
-											onclick={() => confirmDeleteObject(obj)}
-										>
-											{#if deletingKey === obj.key}
-												<Loader2 size={14} class="animate-spin" />
-											{:else}
-												<Trash2 size={14} />
-											{/if}
-										</button>
+										{#if canEdit}
+											<button
+												type="button"
+												class="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+												aria-label={i18n.t('ADMIN_NEXT.EDIT')}
+												title={i18n.t('ADMIN_NEXT.EDIT')}
+												onclick={() => editObject(obj.key)}
+											>
+												<Pencil size={14} />
+											</button>
+										{/if}
+										{#if canDelete}
+											<button
+												type="button"
+												class="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-60"
+												aria-label={i18n.t('ADMIN_NEXT.DELETE')}
+												title={i18n.t('ADMIN_NEXT.DELETE')}
+												disabled={deletingKey === obj.key}
+												onclick={() => confirmDeleteObject(obj)}
+											>
+												{#if deletingKey === obj.key}
+													<Loader2 size={14} class="animate-spin" />
+												{:else}
+													<Trash2 size={14} />
+												{/if}
+											</button>
+										{/if}
 									</div>
 								</td>
 							{/if}
