@@ -50,6 +50,7 @@
 	import { createFormBinding, type FormBinding } from '$lib/sync/bindings/formBinding';
 	import { createEditorBinding, type EditorCollab } from '$lib/sync/bindings/editorBinding';
 	import { tryInitRoom } from '$lib/sync/initRoom';
+	import { isSyncUnavailable, markSyncUnavailable, isNotFoundError } from '$lib/sync/availability';
 	import { subscribePageSaved, type PageSavedSubscriber } from '$lib/sync/pageSavedSubscriber';
 	import type { Peer, SyncProvider, SyncStatus } from '$lib/sync/SyncProvider';
 	import * as Y from 'yjs';
@@ -333,6 +334,10 @@
 		const currentTemplate = template || 'default';
 
 		if (!enabled || !loaded || !currentRoute) return;
+		// A previous page in this session already learned the API has no /sync
+		// routes — skip collab wholesale so we don't restart the pollers and
+		// re-flood 404s on every page open. (admin2#73)
+		if (isSyncUnavailable()) return;
 
 		// Room id format mirrors RoomRegistry on the server side:
 		//   <route>@<template>            — default language
@@ -467,6 +472,10 @@
 			try {
 				await mgr.connect();
 				if (cancelled) return;
+				// connect() stands the provider down (and latches the session
+				// flag) when the pull 404s because /sync isn't installed. Bail to
+				// solo mode here so we don't fire the init POST at a 404 route.
+				if (isSyncUnavailable()) { syncFailed = true; return; }
 				if (binding.map.size === 0) {
 					// Two clients opening the same fresh page would each see
 					// an empty doc here and both push their own seed update,
@@ -522,8 +531,12 @@
 				}
 				syncBinding = binding;
 				syncReady = true;
-			} catch {
+			} catch (e) {
 				// Connect/seed failed (commonly 403 from missing api.pages.*).
+				// A 404 means the /sync routes aren't installed at all — latch it
+				// so the page-saved subscriber and later page opens stand down too
+				// instead of retrying missing endpoints. (admin2#73)
+				if (isNotFoundError(e)) markSyncUnavailable();
 				// Unblock collabPending so the editor mounts in solo mode.
 				if (!cancelled) syncFailed = true;
 			}
@@ -552,6 +565,7 @@
 	// when the CRDT provider handshake fails.
 	$effect(() => {
 		if (!prefs.collabEnabled) return;
+		if (isSyncUnavailable()) return; // no /sync routes — don't poll channels
 		if (loading || pageData === null) return;
 		const currentRoute = route;
 		if (!currentRoute) return;

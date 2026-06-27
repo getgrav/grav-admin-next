@@ -18,6 +18,7 @@
  */
 
 import { api } from '$lib/api/client';
+import { isSyncUnavailable } from './availability';
 
 export interface PageSavedEvent {
 	roomId: string;
@@ -64,6 +65,11 @@ export function subscribePageSaved(opts: {
 
 	async function tick() {
 		if (cancelled) return;
+		// Another sync caller (the CRDT provider / init) learned the API has no
+		// /sync routes — stop polling the channel endpoint too. A 404 here alone
+		// is ambiguous (the channel isn't registered until the first save), so we
+		// defer to that shared latch rather than guessing. (admin2#73)
+		if (isSyncUnavailable()) { cancelled = true; return; }
 		try {
 			const params: Record<string, string> = { id: channelId };
 			if (since !== null) params.since = String(since);

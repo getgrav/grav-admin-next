@@ -17,6 +17,7 @@ import { api } from '$lib/api/client';
 import type { Awareness } from 'y-protocols/awareness';
 import { encodeAwarenessUpdate, applyAwarenessUpdate } from 'y-protocols/awareness';
 import type { Peer, RemoteUpdateHandler, StatusHandler, SyncProvider, SyncProviderOptions, PeersHandler, SyncStatus } from './SyncProvider';
+import { markSyncUnavailable, isSyncUnavailable, isNotFoundError } from './availability';
 
 // The admin2 API client already unwraps the outer `{ data: … }` envelope
 // (see client.ts:169), so these types describe the inner shape directly.
@@ -102,6 +103,12 @@ export class PollingProvider implements SyncProvider {
 
 	async connect(): Promise<void> {
 		if (this.disposed) return;
+		// The API has already told us (this session) it has no /sync routes —
+		// don't even start. Avoids re-flooding on every page open. (admin2#73)
+		if (isSyncUnavailable()) {
+			this.setStatus('offline', 'sync endpoints not available');
+			return;
+		}
 		this.setStatus('connecting');
 		this.installUnloadHandler();
 		try {
@@ -111,10 +118,27 @@ export class PollingProvider implements SyncProvider {
 			this.schedulePull();
 			this.schedulePresence();
 		} catch (e) {
+			if (this.standDownIfUnavailable(e)) return;
 			this.setStatus('error', (e as Error).message);
 			// Retry after a delay — pull loop will keep trying.
 			this.schedulePull();
 		}
+	}
+
+	/**
+	 * A 404 from a core sync endpoint means the sync plugin isn't installed.
+	 * Latch it for the session, stop all timers, and report offline so the
+	 * pull/presence loops stop retrying a route that will never exist.
+	 * Returns true when it handled the error (caller must not reschedule).
+	 */
+	private standDownIfUnavailable(e: unknown): boolean {
+		if (!isNotFoundError(e)) return false;
+		markSyncUnavailable();
+		if (this.pullTimer) clearTimeout(this.pullTimer);
+		if (this.presenceTimer) clearTimeout(this.presenceTimer);
+		this.pullTimer = this.presenceTimer = null;
+		this.setStatus('offline', 'sync endpoints not available');
+		return true;
 	}
 
 	async disconnect(): Promise<void> {
@@ -259,6 +283,7 @@ export class PollingProvider implements SyncProvider {
 			await this.pullOnce();
 			this.setStatus('connected');
 		} catch (e) {
+			if (this.standDownIfUnavailable(e)) return;
 			this.setStatus('error', (e as Error).message);
 		}
 		this.schedulePull();
@@ -269,6 +294,7 @@ export class PollingProvider implements SyncProvider {
 		try {
 			await this.heartbeatOnce();
 		} catch (e) {
+			if (this.standDownIfUnavailable(e)) return;
 			// Non-fatal; presence just won't refresh this tick.
 			this.setStatus('error', (e as Error).message);
 		}
