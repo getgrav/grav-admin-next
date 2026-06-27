@@ -22,6 +22,7 @@ export interface FlexListConfig {
 	title?: string;
 	fields: Record<string, FlexListFieldConfig>;
 	options?: FlexListOptions;
+	detail?: FlexDetailConfig;
 }
 
 export interface FlexEditConfig {
@@ -43,6 +44,26 @@ export interface FlexDirectoryInfo {
 	export?: Record<string, unknown>;
 }
 
+export interface FlexDetailConfig {
+	enabled: boolean;
+	label?: string;
+	title?: string;
+	icon?: string;
+	limit?: number;
+	actions?: boolean;
+	can_edit?: boolean;
+	can_delete?: boolean;
+	relation: {
+		type: string;
+		local_key: string;
+		foreign_key: string;
+		sort?: { by?: string; dir?: 'asc' | 'desc' };
+	};
+	fields: Record<string, FlexListFieldConfig>;
+	field_types?: Record<string, string>;
+	field_options?: Record<string, Record<string, string>>;
+}
+
 // --- Object types ---
 
 /**
@@ -60,6 +81,17 @@ export interface FlexObjectMeta {
 export type FlexObject = Record<string, unknown> & {
 	key: string;
 	__meta?: FlexObjectMeta;
+	__detail?: {
+		type: string;
+		title?: string;
+		label?: string;
+		filter?: Record<string, string | number | boolean>;
+		limit?: number;
+		sort?: { by?: string; dir?: 'asc' | 'desc' };
+		actions?: boolean;
+		can_edit?: boolean;
+		can_delete?: boolean;
+	};
 };
 
 export interface FlexObjectsPage {
@@ -74,6 +106,10 @@ export interface FlexObjectsPage {
 
 export async function getDirectories(): Promise<FlexDirectoryInfo[]> {
 	return api.get<FlexDirectoryInfo[]>('/flex-objects');
+}
+
+export async function getDirectoryMetadata(type: string): Promise<FlexDirectoryInfo> {
+	return api.get<FlexDirectoryInfo>(`/flex-objects/${type}/metadata`);
 }
 
 interface PaginatedFlexBody {
@@ -96,6 +132,7 @@ export async function getObjects(
 		search?: string;
 		sort?: string;
 		order?: 'asc' | 'desc';
+		filters?: Record<string, string | number | boolean | null | undefined>;
 	} = {},
 ): Promise<FlexObjectsPage> {
 	const params: Record<string, string> = {};
@@ -104,6 +141,12 @@ export async function getObjects(
 	if (options.search) params.search = options.search;
 	if (options.sort) params.sort = options.sort;
 	if (options.order) params.order = options.order;
+	if (options.filters) {
+		for (const [field, value] of Object.entries(options.filters)) {
+			if (value === null || value === undefined) continue;
+			params[`filters[${field}]`] = String(value);
+		}
+	}
 
 	const body = await api.getFullBody<PaginatedFlexBody>(
 		`/flex-objects/${type}`,
