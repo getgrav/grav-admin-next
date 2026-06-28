@@ -5,11 +5,18 @@ import { debug, parseServerTiming } from '$lib/stores/debug.svelte';
 
 import type { ToastHint } from '$lib/utils/toast-hint';
 
+/** One per-field validation failure, as emitted by the API's 422 response. */
+export interface ValidationFieldError {
+	/** Blueprint leaf path, e.g. `pages.dateformat.long`. */
+	field: string;
+	message: string;
+}
+
 export interface ApiError {
 	status: number;
 	title: string;
 	detail: string;
-	errors?: Record<string, string[]>;
+	errors?: ValidationFieldError[];
 	/** Optional plugin-supplied toast override (message/duration/dismissible). */
 	toast?: ToastHint;
 }

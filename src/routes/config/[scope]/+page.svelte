@@ -6,6 +6,7 @@
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import { getConfig, saveConfig, getConfigSections, revertConfig } from '$lib/api/endpoints/config';
+	import { ApiRequestError } from '$lib/api/client';
 	import type { ConfigOverridesCtx } from '$lib/components/blueprint/FieldOverrideIndicator.svelte';
 	import { getConfigBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
@@ -184,10 +185,28 @@
 			await formCommit.emit();
 			toast.success(i18n.t('ADMIN_NEXT.CONFIG.CONFIGURATION_SAVED_SUCCESSFULLY'));
 		} catch (err: unknown) {
-			if (err && typeof err === 'object' && 'status' in err) {
-				const status = (err as { status: number }).status;
-				if (status === 409) {
+			if (err instanceof ApiRequestError) {
+				if (err.status === 409) {
 					toast.error(i18n.t('ADMIN_NEXT.CONFIG.CONFIGURATION_WAS_MODIFIED_ELSEWHERE'));
+					return;
+				}
+				// 422: the API names each offending field. Map them onto the form
+				// for inline display and call them out in the toast, so a single
+				// pre-existing bad value (e.g. a migrated system.yaml setting) is
+				// identifiable instead of a generic "validation failed"
+				// (getgrav/grav#4176).
+				const fieldErrors = err.error.errors;
+				if (err.status === 422 && Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+					validationErrors = fieldErrors.reduce<Record<string, string>>((acc, fe) => {
+						acc[fe.field] = fe.message;
+						return acc;
+					}, {});
+					scrollToFirstError();
+					toast.error(
+						i18n.t('ADMIN_NEXT.CONFIG.VALIDATION_FAILED_FOR_FIELDS', {
+							fields: fieldErrors.map((fe) => fe.field).join(', ')
+						})
+					);
 					return;
 				}
 			}
