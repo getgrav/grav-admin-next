@@ -16,6 +16,7 @@
 	import { getPreferences } from '$lib/api/endpoints/preferences';
 	import { migrateLegacyPreferences } from '$lib/stores/_legacyMigration';
 	import { hasPendingSync } from '$lib/stores/_serverSync';
+	import { hasUnsavedChanges } from '$lib/utils/unsaved-guard.svelte';
 	import { generateFavicon } from '$lib/utils/favicon';
 	import AppShell from '$lib/components/AppShell.svelte';
 	import GlobalDialogs from '$lib/components/ui/GlobalDialogs.svelte';
@@ -178,6 +179,15 @@
 			lastFetchAt = now;
 			try {
 				const payload = await getPreferences();
+				// While the user is actively editing (page content or any config
+				// form), do NOT re-seed the preference/theme/branding stores. A
+				// background poll must never disturb the editing surface: re-init
+				// here can churn a store the page editor depends on (e.g.
+				// `collabEnabled`), which tears down and reseeds the collaboration
+				// session and silently loses unsaved work (admin2#83). The fetch
+				// itself still ran, so the JWT stays fresh; we just defer applying
+				// the result until the edit is saved or abandoned.
+				if (hasUnsavedChanges()) return;
 				prefs.init(payload);
 				theme.init(payload);
 				branding.init(payload);
@@ -279,7 +289,12 @@
 	// an SPA fetch; otherwise the router asks for a chunk hash that no
 	// longer exists on disk and the user sees a 500.
 	beforeNavigate((nav) => {
-		if (updated.current && !nav.willUnload && nav.to?.url) {
+		// Don't force a full page load out from under an active edit: a hard
+		// reload here would discard unsaved page content or config changes
+		// (admin2#83). The unsaved-guard already prompts on the navigation
+		// itself; once the user saves or discards, the next clean navigation
+		// picks up the new bundle.
+		if (updated.current && !nav.willUnload && nav.to?.url && !hasUnsavedChanges()) {
 			nav.cancel();
 			window.location.href = nav.to.url.href;
 		}
