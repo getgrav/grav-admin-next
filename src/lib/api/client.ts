@@ -26,8 +26,26 @@ export class ApiRequestError extends Error {
 		public readonly error: ApiError,
 		public readonly response: Response
 	) {
-		super(error.detail || error.title);
+		super(ApiRequestError.composeMessage(error));
 		this.name = 'ApiRequestError';
+	}
+
+	/**
+	 * Build the human-facing message. A 422 blueprint-validation failure carries
+	 * a generic `detail` ("The submitted data did not pass blueprint validation")
+	 * plus a per-field `errors[]` array that names the actual cause. Surfacing
+	 * only `detail` left a save failure undebuggable — it said validation failed
+	 * without saying what or why. When field errors are present, show those
+	 * instead so the cause is visible (getgrav/grav#4178).
+	 */
+	private static composeMessage(error: ApiError): string {
+		const parts = (error.errors ?? [])
+			.map((e) => e.message?.trim() || e.field)
+			.filter(Boolean);
+		if (parts.length > 0) {
+			return parts.join('; ');
+		}
+		return error.detail || error.title;
 	}
 
 	get status() {

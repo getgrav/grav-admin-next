@@ -54,7 +54,7 @@
 	import { subscribePageSaved, type PageSavedSubscriber } from '$lib/sync/pageSavedSubscriber';
 	import type { Peer, SyncProvider, SyncStatus } from '$lib/sync/SyncProvider';
 	import * as Y from 'yjs';
-	import { api as apiClient } from '$lib/api/client';
+	import { api as apiClient, ApiRequestError } from '$lib/api/client';
 	import { pageEditorBar } from '$lib/stores/pageEditorBar.svelte';
 	import EditorLockNotice from '$lib/components/sync/EditorLockNotice.svelte';
 	import TwigContentBanner from '$lib/components/pages/TwigContentBanner.svelte';
@@ -1341,6 +1341,27 @@
 
 			toast.success(i18n.t('ADMIN_NEXT.PAGES.SAVED'));
 		} catch (err: unknown) {
+			// 422: the API names each offending field (e.g. `header.process` when a
+			// gated `twig` value is rejected). Map them onto the form for inline
+			// display and call them out in the toast, so the cause is identifiable
+			// instead of a generic "validation failed" (getgrav/grav#4178). Mirrors
+			// the config-save handling added for getgrav/grav#4176.
+			if (err instanceof ApiRequestError && err.status === 422) {
+				const fieldErrors = err.error.errors;
+				if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+					validationErrors = fieldErrors.reduce<Record<string, string>>((acc, fe) => {
+						acc[fe.field] = fe.message;
+						return acc;
+					}, { ...validationErrors });
+					scrollToFirstError();
+					toast.error(
+						i18n.t('ADMIN_NEXT.PAGES.VALIDATION_FAILED_FOR_FIELDS', {
+							fields: fieldErrors.map((fe) => fe.field).join(', ')
+						})
+					);
+					return;
+				}
+			}
 			if (err && typeof err === 'object' && 'message' in err) {
 				toast.error((err as { message: string }).message);
 			} else {

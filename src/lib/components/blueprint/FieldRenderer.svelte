@@ -531,6 +531,9 @@
 				</label>
 			{/each}
 		</div>
+		{#if fieldError}
+			<p class="text-xs font-medium text-destructive" data-field-error>{fieldError}</p>
+		{/if}
 	</div>
 
 {:else if field.type === 'radio' && field.options}
