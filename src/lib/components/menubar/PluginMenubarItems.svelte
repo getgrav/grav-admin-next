@@ -2,12 +2,17 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { getMenubarItems, executeMenubarAction, type MenubarItem } from '$lib/api/endpoints/menubar';
-	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { executeMenubarAction, type MenubarItem, type MenubarPlacement } from '$lib/api/endpoints/menubar';
+	import { menubar } from '$lib/stores/menubar.svelte';
 	import { modals } from '$lib/stores/modals.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { toast } from 'svelte-sonner';
 	import { Loader2 } from 'lucide-svelte';
+
+	// Which toolbar zone this instance renders. The shared menubar store is
+	// fetched once and split per zone (admin2#81); AppShell renders one
+	// instance for `start` and one for `end`.
+	let { placement = 'start' }: { placement?: MenubarPlacement } = $props();
 
 	// Variant → token-based classes. Every color references an admin-next theme
 	// token (never a raw hex), so plugin buttons stay theme-agnostic and
@@ -30,31 +35,10 @@
 		return `inline-flex shrink-0 items-center justify-center rounded-md font-medium transition-colors disabled:opacity-50 ${geometry} ${variant}`;
 	}
 
-	let items = $state<MenubarItem[]>([]);
+	const items = $derived(menubar.forPlacement(placement));
 	let executing = $state<string | null>(null);
 	let confirmOpen = $state(false);
 	let pendingItem = $state<MenubarItem | null>(null);
-
-	async function loadItems() {
-		try {
-			items = await getMenubarItems();
-		} catch {
-			// Silently fail — menubar is non-critical
-		}
-	}
-
-	// Reload when a plugin is installed/removed/enabled/disabled. A single
-	// API response can emit multiple tags (e.g. `plugins:create:foo,
-	// plugins:list, gpm:update`); coalesce them into one reload per burst.
-	let reloadScheduled = false;
-	function scheduleReload() {
-		if (reloadScheduled) return;
-		reloadScheduled = true;
-		queueMicrotask(() => {
-			reloadScheduled = false;
-			loadItems();
-		});
-	}
 
 	async function handleAction(item: MenubarItem) {
 		if (item.confirm) {
@@ -105,19 +89,6 @@
 			executing = null;
 		}
 	}
-
-	$effect(() => {
-		loadItems();
-	});
-
-	$effect(() => {
-		const unsubs = [
-			invalidations.subscribe('plugins:*', scheduleReload),
-			invalidations.subscribe('themes:*', scheduleReload),
-			invalidations.subscribe('gpm:*', scheduleReload),
-		];
-		return () => { for (const u of unsubs) u(); };
-	});
 </script>
 
 <ConfirmModal

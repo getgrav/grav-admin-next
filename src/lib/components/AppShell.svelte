@@ -19,6 +19,7 @@
 	import MenubarLinks from '$lib/components/menubar/MenubarLinks.svelte';
 	import PluginMenubarItems from '$lib/components/menubar/PluginMenubarItems.svelte';
 	import ViewSiteButton from '$lib/components/menubar/ViewSiteButton.svelte';
+	import { menubar } from '$lib/stores/menubar.svelte';
 	import { sidebarStore } from '$lib/stores/sidebar.svelte';
 	import { navBadges } from '$lib/stores/navBadges.svelte';
 	import { floatingWidgetStore } from '$lib/stores/floatingWidgets.svelte';
@@ -39,6 +40,15 @@
 
 	interface Props { children: Snippet; }
 	let { children }: Props = $props();
+
+	// Menubar zones (admin2#81). The store fetches once; AppShell drives loading
+	// and decides which zone wrappers/divider to render based on what's present.
+	const startMenubarItems = $derived(menubar.forPlacement('start'));
+	const endMenubarItems = $derived(menubar.forPlacement('end'));
+	// The end-zone "custom" group is plugin buttons that opted in plus the user's
+	// own quick links — separated from the core actions by a divider.
+	const hasEndCustom = $derived(endMenubarItems.length > 0 || prefs.menubarLinks.length > 0);
+	$effect(() => { menubar.load(); });
 
 	// Proactive token refresh + focus checking is handled by authSession.
 	// It decodes the JWT exp claim, refreshes at exp-60s, and opens ReauthModal
@@ -396,6 +406,14 @@
 				</div>
 			{/if}
 
+			<!-- Plugin toolbar — start zone. The open space on the left, kept well
+				 clear of the destructive Clear Cache action (admin2#81). -->
+			{#if startMenubarItems.length > 0}
+				<div class="flex items-center gap-1 border-s border-border ps-3">
+					<PluginMenubarItems placement="start" />
+				</div>
+			{/if}
+
 			<div class="flex-1"></div>
 
 			<!-- Page-editor Normal/Expert toggle. Only set on page edit route. -->
@@ -431,9 +449,16 @@
 
 			<!-- Menubar -->
 			<div class="flex items-center gap-1">
-				<ViewSiteButton />
-				<PluginMenubarItems />
+				<!-- Custom group: plugin buttons that opted into the end zone, plus
+					 the user's own quick links. A divider sets them apart from the
+					 core actions so it's clear which buttons are system controls. -->
+				<PluginMenubarItems placement="end" />
 				<MenubarLinks />
+				{#if hasEndCustom}
+					<div class="mx-1 h-5 w-px bg-border"></div>
+				{/if}
+				<!-- Core actions — fixed, never plugin-movable. -->
+				<ViewSiteButton />
 				<CacheClearButton />
 			</div>
 

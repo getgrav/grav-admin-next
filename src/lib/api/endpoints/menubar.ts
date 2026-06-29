@@ -7,6 +7,16 @@ import { api } from '../client';
  */
 export type MenubarItemVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger';
 
+/**
+ * Which toolbar zone an item renders in (admin2#81). `start` is the open space
+ * on the left of the header — the default, and the spot to use for everyday
+ * plugin actions so they sit well clear of the destructive Clear Cache button.
+ * `end` places the item beside the core action cluster (View site / Clear
+ * Cache) for buttons that genuinely belong with system maintenance. The core
+ * actions themselves are never plugin-movable.
+ */
+export type MenubarPlacement = 'start' | 'end';
+
 export interface MenubarItem {
 	id: string;
 	plugin: string;
@@ -15,6 +25,13 @@ export interface MenubarItem {
 	/** Server action key — POSTed to /menubar/actions/{plugin}/{action} when clicked. */
 	action: string;
 	confirm?: string;
+	/** Toolbar zone. Defaults to `start` (open space, away from Clear Cache). */
+	placement?: MenubarPlacement;
+	/**
+	 * Ordering within a zone. Higher renders earlier (further left); ties keep
+	 * plugin registration order. Matches the sidebar's `priority` semantics.
+	 */
+	priority?: number;
 	/** Color emphasis. Defaults to a muted, icon-only button. */
 	variant?: MenubarItemVariant;
 	/**
