@@ -56,11 +56,27 @@
 	// Web component tag name: plugin-slug--field-type (must contain a hyphen)
 	const tagName = `grav-${pluginSlug}--${fieldType}`;
 
-	// Global loading lock — prevents multiple instances from loading the same script
+	// Global per-tag define lock — prevents multiple instances from defining the
+	// same element twice.
 	const loadingPromises: Record<string, Promise<void> | undefined> = ((window as any).__GRAV_FIELD_LOADING ??= {});
 
-	function getScriptPath(): string {
-		return `/gpm/${providerKind}/${pluginSlug}/field/${fieldType}`;
+	// Global per-plugin bundle cache. A plugin's field scripts are fetched as one
+	// bundle (`{ fieldType: code }`) so seven seo-magic fields cost one request
+	// instead of seven; each field's code is then evaluated locally with its own
+	// element tag. Keyed by `${kind}/${slug}`.
+	const bundlePromises: Record<string, Promise<Record<string, string>> | undefined> =
+		((window as any).__GRAV_FIELD_BUNDLES ??= {});
+
+	function loadBundle(): Promise<Record<string, string>> {
+		const key = `${providerKind}/${pluginSlug}`;
+		let bundle = bundlePromises[key];
+		if (!bundle) {
+			bundle = api
+				.fetchScript(`/gpm/${providerKind}/${pluginSlug}/fields`)
+				.then((text) => JSON.parse(text) as Record<string, string>);
+			bundlePromises[key] = bundle;
+		}
+		return bundle;
 	}
 
 	async function loadComponent() {
@@ -71,7 +87,7 @@
 			return;
 		}
 
-		// If another instance is already loading this tag, wait for it
+		// If another instance is already defining this tag, wait for it
 		if (loadingPromises[tagName]) {
 			try {
 				await loadingPromises[tagName];
@@ -83,16 +99,23 @@
 			return;
 		}
 
-		// First instance — load the script
+		// First instance of this tag — pull the plugin's field bundle (shared
+		// across all of its fields) and evaluate this field's module.
 		loadingPromises[tagName] = (async () => {
-			const code = await api.fetchScript(getScriptPath());
+			const scripts = await loadBundle();
+			const code = scripts[fieldType];
+			if (typeof code !== 'string') {
+				throw new Error(`Field "${fieldType}" missing from ${pluginSlug} bundle`);
+			}
 
 			// Expose auth context as globals for web component API calls
 			window.__GRAV_API_SERVER_URL = auth.serverUrl;
 			window.__GRAV_API_PREFIX = auth.apiPrefix || '/api/v1';
 			window.__GRAV_API_TOKEN = auth.accessToken;
 
-			// Execute the module — it calls customElements.define(TAG, ...)
+			// Execute the module — it reads __GRAV_FIELD_TAG and calls
+			// customElements.define(TAG, ...). Module bodies run synchronously, so
+			// the tag set here is read before any other field's module evaluates.
 			const blob = new Blob([
 				`window.__GRAV_FIELD_TAG = ${JSON.stringify(tagName)};\n${code}`
 			], { type: 'application/javascript' });

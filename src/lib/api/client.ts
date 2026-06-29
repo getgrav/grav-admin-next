@@ -43,6 +43,8 @@ interface RequestOptions {
 	retry?: boolean;
 	/** Internal — disables method-override retry on recursion. */
 	overrideRetry?: boolean;
+	/** Internal — counts 429 backoff retries so recursion is bounded. */
+	rateAttempt?: number;
 }
 
 /** Refresh proactively if the access token expires within this window. */
@@ -70,6 +72,117 @@ function rememberMethodOverride(): void {
 		sessionStorage.setItem(METHOD_OVERRIDE_FLAG, '1');
 	} catch {
 		/* storage disabled — retry-per-request still works, just without the cache */
+	}
+}
+
+/**
+ * Transient-failure retry: a single editor load fans out a large burst of
+ * requests, which a busy backend answers with 429 (rate limited) or 503/502/504
+ * (workers momentarily exhausted). These clear on their own, so we retry with a
+ * short exponential backoff plus jitter, capped so a genuinely down server fails
+ * fast instead of hanging the UI.
+ *
+ * 429 is always safe to retry (the request was rejected before processing).
+ * 5xx-busy is only retried for idempotent methods, since the server may have
+ * begun processing a mutation before giving up.
+ */
+const RATE_LIMIT_MAX_RETRIES = 4;
+const SERVER_BUSY_STATUSES = new Set([502, 503, 504]);
+const IDEMPOTENT_METHODS = new Set(['GET', 'HEAD']);
+
+function isRetryableStatus(status: number, method: string): boolean {
+	if (status === 429) return true;
+	return SERVER_BUSY_STATUSES.has(status) && IDEMPOTENT_METHODS.has(method.toUpperCase());
+}
+
+function rateLimitBackoffMs(attempt: number): number {
+	// 0 → ~400-700ms, 1 → ~800ms-1.4s, 2 → ~1.6-2.8s, 3 → ~3.2-4s (capped).
+	const base = Math.min(400 * 2 ** attempt, 4000);
+	return base * (0.7 + Math.random() * 0.6);
+}
+
+function sleep(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Cap how many API requests are in flight at once. Opening an editor fans out
+ * ~30 authenticated calls (page, blueprint, a fleet of component scripts, plus
+ * sidebar/menubar/widgets/panels/configs); firing them all in parallel exhausts
+ * the PHP-FPM pool and the overflow comes back 503. A modest cap smooths the
+ * burst into a few quick waves without a noticeable slowdown.
+ *
+ * Two endpoint classes are exempt and bypass the gate entirely:
+ *  - Long-poll / continuous endpoints (`/sync/`): they stay open by design, so a
+ *    slot would never free up and would starve every other request.
+ *  - Auth (`/auth/`): a slotted request can await a token refresh, so refresh
+ *    must never wait on a slot or the whole gate deadlocks.
+ */
+const API_MAX_CONCURRENCY = 8;
+let apiSlotsInUse = 0;
+const apiSlotWaiters: Array<() => void> = [];
+
+function isConcurrencyExempt(path: string): boolean {
+	return path.includes('/sync/') || path.includes('/auth/');
+}
+
+function acquireApiSlot(): Promise<void> {
+	if (apiSlotsInUse < API_MAX_CONCURRENCY) {
+		apiSlotsInUse++;
+		return Promise.resolve();
+	}
+	return new Promise((resolve) => apiSlotWaiters.push(resolve));
+}
+
+function releaseApiSlot(): void {
+	const next = apiSlotWaiters.shift();
+	// Hand the slot straight to the next waiter; only drop the count if idle.
+	if (next) next();
+	else apiSlotsInUse = Math.max(0, apiSlotsInUse - 1);
+}
+
+/**
+ * localStorage cache for immutable admin-next component scripts (custom fields,
+ * widgets, panels, plugin pages, etc.). The body is keyed by URL with its ETag;
+ * we revalidate with If-None-Match on every load, so an unchanged script comes
+ * back as a 304 and is served from cache (no multi-KB re-download) while a
+ * rebuilt one returns 200 and refreshes the entry — correct even mid-development.
+ */
+const SCRIPT_CACHE_PREFIX = 'gan:script:';
+
+interface CachedScript {
+	etag: string;
+	body: string;
+}
+
+function readScriptCache(url: string): CachedScript | null {
+	try {
+		const raw = localStorage.getItem(SCRIPT_CACHE_PREFIX + url);
+		if (!raw) return null;
+		const parsed = JSON.parse(raw);
+		if (parsed && typeof parsed.etag === 'string' && typeof parsed.body === 'string') {
+			return parsed as CachedScript;
+		}
+	} catch {
+		/* corrupt entry or storage disabled */
+	}
+	return null;
+}
+
+function writeScriptCache(url: string, entry: CachedScript): void {
+	try {
+		localStorage.setItem(SCRIPT_CACHE_PREFIX + url, JSON.stringify(entry));
+	} catch {
+		// Quota exceeded or storage disabled. Drop our own cached scripts to free
+		// space and carry on uncached — correctness doesn't depend on the cache.
+		try {
+			for (let i = localStorage.length - 1; i >= 0; i--) {
+				const key = localStorage.key(i);
+				if (key && key.startsWith(SCRIPT_CACHE_PREFIX)) localStorage.removeItem(key);
+			}
+		} catch {
+			/* ignore */
+		}
 	}
 }
 
@@ -228,6 +341,11 @@ class ApiClient {
 
 		let response: Response;
 		const startedAt = performance.now();
+		// Gate the actual round-trip through the global concurrency limiter. The
+		// slot is released as soon as the response headers arrive (the server has
+		// done its work by then); body parsing and any retry happen unslotted.
+		const limited = !isConcurrencyExempt(path);
+		if (limited) await acquireApiSlot();
 		try {
 			response = await fetch(url, fetchOptions);
 		} catch (err) {
@@ -250,6 +368,8 @@ class ApiClient {
 				},
 				new Response(null, { status: 0 })
 			);
+		} finally {
+			if (limited) releaseApiSlot();
 		}
 
 		// Log every actual round-trip (including 401/405 retries below — each is a
@@ -286,6 +406,16 @@ class ApiClient {
 		) {
 			rememberMethodOverride();
 			return this.request<T>(method, path, { ...options, overrideRetry: false });
+		}
+
+		// Rate limited (429) or server momentarily busy (5xx): back off briefly
+		// and retry rather than failing the call — these clear on their own.
+		if (isRetryableStatus(response.status, upperMethod)) {
+			const attempt = options.rateAttempt ?? 0;
+			if (attempt < RATE_LIMIT_MAX_RETRIES) {
+				await sleep(rateLimitBackoffMs(attempt));
+				return this.request<T>(method, path, { ...options, rateAttempt: attempt + 1 });
+			}
 		}
 
 		return this.handleResponse<T>(response);
@@ -630,27 +760,62 @@ class ApiClient {
 		// Only pre-check token for our API; external URLs skip the check.
 		if (!isAbsolute) await this.ensureFreshToken(urlOrPath);
 
-		const response = await fetch(url, {
-			method: 'GET',
-			headers: this.authHeaders,
-		});
+		// Revalidate against the localStorage cache for our own component scripts.
+		const cached = isAbsolute ? null : readScriptCache(url);
+		const headers: Record<string, string> = { ...this.authHeaders };
+		if (cached) headers['If-None-Match'] = cached.etag;
 
-		if (response.status === 401 && options.retry !== false) {
-			const refreshed = await this.tryRefresh();
-			if (refreshed) {
-				return this.fetchScript(urlOrPath, { retry: false });
+		for (let attempt = 0; ; attempt++) {
+			// Hold a concurrency slot across the fetch AND the body read — these
+			// scripts run to several MB, so capping the parallel downloads matters.
+			await acquireApiSlot();
+			let response: Response;
+			let body: string | null = null;
+			try {
+				response = await fetch(url, { method: 'GET', headers });
+				// Unchanged since last load — serve the body straight from cache.
+				if (response.status === 304 && cached) {
+					return cached.body;
+				}
+				if (response.ok) {
+					body = await response.text();
+				}
+			} finally {
+				releaseApiSlot();
 			}
-			return new Promise((resolve, reject) => {
-				authSession.enqueuePendingRequest({
-					method: 'SCRIPT',
-					path: urlOrPath,
-					resolve: (v) => resolve(v as string),
-					reject,
-				});
-			});
-		}
 
-		if (!response.ok) {
+			if (body !== null) {
+				// Cache for next load when the server provided a validator.
+				const etag = response.headers.get('etag');
+				if (!isAbsolute && etag) writeScriptCache(url, { etag, body });
+				return body;
+			}
+
+			if (response.status === 401 && options.retry !== false) {
+				const refreshed = await this.tryRefresh();
+				if (refreshed) return this.fetchScript(urlOrPath, { ...options, retry: false });
+				return new Promise((resolve, reject) => {
+					authSession.enqueuePendingRequest({
+						method: 'SCRIPT',
+						path: urlOrPath,
+						resolve: (v) => resolve(v as string),
+						reject,
+					});
+				});
+			}
+
+			// Rate limited / server momentarily busy: back off and retry (capped).
+			if (isRetryableStatus(response.status, 'GET') && attempt < RATE_LIMIT_MAX_RETRIES) {
+				await sleep(rateLimitBackoffMs(attempt));
+				continue;
+			}
+
+			// Retries exhausted (or a non-retryable error). These scripts are
+			// immutable per plugin version, so a valid cached copy is still correct
+			// — serve it rather than failing, keeping the editor working through a
+			// transient server hiccup.
+			if (cached) return cached.body;
+
 			throw new ApiRequestError(
 				{
 					status: response.status,
@@ -660,8 +825,6 @@ class ApiClient {
 				response,
 			);
 		}
-
-		return response.text();
 	}
 
 	/**

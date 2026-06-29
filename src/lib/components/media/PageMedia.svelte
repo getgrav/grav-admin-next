@@ -415,9 +415,9 @@
 
 	onMount(() => {
 		initUppy();
-		// Initial load — `loadMedia` is a no-op if the route isn't resolved
-		// yet. The $effect above re-fires it once routeReady flips true.
-		loadMedia();
+		// The $effect above owns the initial load: it runs once routeReady is
+		// (or becomes) true. Calling loadMedia() here too double-fetches media
+		// whenever the route is already resolved at mount.
 		return () => {
 			uppy?.cancelAll();
 		};

@@ -1538,6 +1538,15 @@
 	}
 
 	$effect(() => {
+		// Defer the first load until the content-language store has resolved.
+		// loadPage() reads contentLang.activeLang synchronously; firing before
+		// the store loads sends a lang-less request, then the store resolving
+		// triggers a second, full reload with ?lang=... (page + blueprint fetched
+		// twice). Reading `loaded` here makes the effect re-run once it flips
+		// true. The store always sets `loaded` (even on failure), so this never
+		// deadlocks.
+		if (!contentLang.loaded) return;
+
 		autoSave.reset();
 		// One-shot suppression after a self-initiated move-with-rename: the
 		// $effect refires because `route` changed (loadPage reads it
