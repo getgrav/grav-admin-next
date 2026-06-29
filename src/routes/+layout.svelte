@@ -90,16 +90,22 @@
 	// reacting to each route) catches it regardless of effect ordering. We only
 	// record titles that still carry the token, so our own swapped output below
 	// never echoes back into the base and there's no feedback loop.
+	//
+	// We observe <head> rather than the <title> element itself: this effect runs
+	// once at mount, and on a cold load (e.g. incognito) the route's <title> may
+	// not exist yet. Watching the subtree of <head> catches the title element
+	// being added later as well as every subsequent text change, so the capture
+	// no longer races route rendering.
 	$effect(() => {
 		if (typeof document === 'undefined') return;
-		const titleEl = document.querySelector('title');
-		if (!titleEl) return;
+		const headEl = document.head;
+		if (!headEl) return;
 		const capture = () => {
 			if (document.title.includes('Grav Admin')) canonicalTitle = document.title;
 		};
 		capture();
 		const obs = new MutationObserver(capture);
-		obs.observe(titleEl, { childList: true, characterData: true, subtree: true });
+		obs.observe(headEl, { childList: true, characterData: true, subtree: true });
 		return () => obs.disconnect();
 	});
 
