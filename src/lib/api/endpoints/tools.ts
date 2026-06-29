@@ -241,7 +241,7 @@ export type TwigContentItem = TwigContentLeakItem | TwigContentEventItem;
 /** Append a blocked token to the matching Twig sandbox allowlist. Super-only. */
 export async function addTwigAllowlist(
 	target: Pick<TwigAllowlistTarget, 'rule' | 'token' | 'class'>,
-): Promise<{ rule: string; key: string; value: unknown }> {
+): Promise<{ rule: string; key: string; value: unknown; resolved: number }> {
 	return api.post('/reports/twig-content/allowlist', {
 		rule: target.rule,
 		token: target.token,

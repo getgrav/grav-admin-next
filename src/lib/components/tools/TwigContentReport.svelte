@@ -35,7 +35,18 @@
 	const meta = $derived((report.meta ?? {}) as Partial<TwigContentMeta>);
 	const items = $derived(report.items as unknown as TwigContentItem[]);
 	const leaks = $derived(items.filter((i): i is TwigContentLeakItem => i.kind === 'leak'));
-	const events = $derived(items.filter((i): i is TwigContentEventItem => i.kind === 'event'));
+
+	// Allowlist targets the operator has resolved this session (keyed) — used to
+	// hide their now-fixed rows optimistically.
+	let resolved = $state<Set<string>>(new Set());
+	// Hide rows the operator just allowed straight away — the backend also purges
+	// the resolved events, but this drops the row before the refetch lands so the
+	// click has immediate, visible effect.
+	const events = $derived(
+		items
+			.filter((i): i is TwigContentEventItem => i.kind === 'event')
+			.filter((e) => !(e.allowlist && resolved.has(allowlistKey(e.allowlist)))),
+	);
 
 	// Tokens currently being added (keyed) so each button can show its own spinner.
 	let pending = $state<Record<string, boolean>>({});
@@ -87,11 +98,18 @@
 		return `${leak.route}|${leak.reason}`;
 	}
 
+	function allowlistKey(target: TwigAllowlistTarget): string {
+		return `${target.rule}:${target.class}:${target.token}`;
+	}
+
 	async function addToAllowlist(target: TwigAllowlistTarget) {
-		const key = `${target.rule}:${target.class}:${target.token}`;
+		const key = allowlistKey(target);
 		pending = { ...pending, [key]: true };
 		try {
 			const res = await addTwigAllowlist({ rule: target.rule, token: target.token, class: target.class });
+			// Hide the resolved row immediately, then refetch (the backend has now
+			// purged the matching events too).
+			resolved = new Set(resolved).add(key);
 			toast.success(
 				i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.ADDED_TO_ALLOWLIST', {
 					token: target.token,
@@ -251,9 +269,7 @@
 		</div>
 		<div class="divide-y divide-border">
 			{#each events as event, idx (idx)}
-				{@const key = event.allowlist
-					? `${event.allowlist.rule}:${event.allowlist.class}:${event.allowlist.token}`
-					: ''}
+				{@const key = event.allowlist ? allowlistKey(event.allowlist) : ''}
 				<div class="flex items-start justify-between gap-3 px-4 py-2.5 text-sm">
 					<div class="flex items-start gap-2 min-w-0">
 						<Ban size={14} class="mt-0.5 shrink-0 text-red-600 dark:text-red-400" />
