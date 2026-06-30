@@ -336,8 +336,11 @@
 		if (!enabled || !loaded || !currentRoute) return;
 		// A previous page in this session already learned the API has no /sync
 		// routes — skip collab wholesale so we don't restart the pollers and
-		// re-flood 404s on every page open. (admin2#73)
-		if (isSyncUnavailable()) return;
+		// re-flood 404s on every page open. Set syncFailed so collabPending
+		// clears and the content field mounts in solo mode; the effect cleanup
+		// resets this flag on every re-run, so without it the second page edit
+		// of the session hangs forever on "Connecting…". (admin2#73, admin2#87)
+		if (isSyncUnavailable()) { syncFailed = true; return; }
 
 		// Room id format mirrors RoomRegistry on the server side:
 		//   <route>@<template>            — default language
