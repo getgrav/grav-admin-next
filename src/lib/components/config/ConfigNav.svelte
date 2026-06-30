@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { Cpu, Globe, Image, Shield, Info, SlidersHorizontal } from 'lucide-svelte';
+	import { Cpu, Globe, Image, Shield, Info, Archive, SlidersHorizontal } from 'lucide-svelte';
 	import { dragScroll } from '$lib/utils/dragScroll';
 
 	interface Props {
@@ -18,6 +18,7 @@
 		site: Globe,
 		media: Image,
 		security: Shield,
+		backups: Archive,
 		info: Info
 	};
 

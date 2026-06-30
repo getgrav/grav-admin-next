@@ -147,10 +147,16 @@
 	const suppressedNames = new Set([
 		'order_title', 'header.order_by', 'header.order_manual', 'enabled',
 		'health_status', 'active_triggers',
+		// Orphaned header for the suppressed `backupshistory` widget (the archive
+		// list lives in Tools → Backups, not the config form).
+		'history_title',
 	]);
 	// Sections whose title should be hidden (content still renders)
 	const hideTitleSections = new Set(['status_title']);
-	const suppressedTypes = new Set(['order', 'blueprint', 'hidden']);
+	// `backupshistory` is an admin-classic display widget (lists/downloads
+	// existing archives); it's not saved config and is already covered by the
+	// Tools → Backups tab, so hide it in the generic config form.
+	const suppressedTypes = new Set(['order', 'blueprint', 'hidden', 'backupshistory']);
 	// Fields to relocate from later columns into the first column (e.g. ordering toggle → settings)
 	const relocateToFirstColumn = new Set(['ordering']);
 
