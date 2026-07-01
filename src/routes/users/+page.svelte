@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { base } from '$app/paths';
 	import { getUsers, getUserFilters, type UserInfo, type UsersPage, type UserFilterTab } from '$lib/api/endpoints/users';
 	import { getDirectoryMetadata, type FlexDetailConfig } from '$lib/api/endpoints/flexObjects';
@@ -43,9 +44,19 @@
 	let groupFilter = $state<string | null>(null);
 	let currentPage = $state(1);
 	// Plugin-contributed Users-list tabs (onApiUserListFilters). The built-in
-	// "all" tab is always present; the row only renders when a plugin adds more.
+	// "all" tab is present unless a plugin suppresses it (showAll:false); the row
+	// only renders when there's more than one tab to choose between.
 	let filterTabs = $state<UserFilterTab[]>([]);
-	let activeFilter = $state('all');
+	// The tab the client lands on with no ?filter in the URL. A plugin can
+	// nominate one via defaultFilter; core validates it against the caller's tabs.
+	let defaultFilter = $state('all');
+	// The filter is route state: read it from ?filter=, fall back to the plugin
+	// default. Deriving from the URL makes hard-loaded links, refresh, and
+	// back/forward all resolve to the right tab (grav-plugin-admin2#51).
+	const activeFilter = $derived(page.url.searchParams.get('filter') ?? defaultFilter);
+	// Gate the first list fetch on the filter policy so the initial request
+	// already carries the right filter — no unfiltered flash then re-fetch.
+	let filtersReady = $state(false);
 	let selectedUsername = $state<string | null>(null);
 	let pendingDelete = $state<string | null>(null);
 	let confirmDeleteOpen = $state(false);
@@ -97,12 +108,30 @@
 
 	async function loadFilterTabs() {
 		try {
-			filterTabs = await getUserFilters();
+			const policy = await getUserFilters();
+			filterTabs = policy.tabs;
+			defaultFilter = policy.defaultFilter || 'all';
 		} catch {
 			// No tabs (e.g. the caller lacks api.users.read) — the listing still
 			// works; the tab row simply stays hidden.
 			filterTabs = [];
+			defaultFilter = 'all';
+		} finally {
+			filtersReady = true;
 		}
+	}
+
+	// Reflect the chosen tab in the URL so refresh, deep-links, back/forward and
+	// copied URLs all round-trip. activeFilter derives from the URL, so the goto
+	// is what actually switches tabs. The default filter stays as the clean URL.
+	function selectFilter(id: string) {
+		const url = new URL(page.url);
+		if (id === defaultFilter) {
+			url.searchParams.delete('filter');
+		} else {
+			url.searchParams.set('filter', id);
+		}
+		goto(url, { keepFocus: true, noScroll: true });
 	}
 
 	async function loadUsersDetailMetadata() {
@@ -229,6 +258,9 @@
 		void accessFilter;
 		void groupFilter;
 		void activeFilter;
+		// Hold the first fetch until the filter policy resolves, so the initial
+		// request already carries the deep-linked/default filter.
+		if (!filtersReady) return;
 		clearTimeout(reloadTimer);
 		reloadTimer = setTimeout(() => loadUsers(1), 250);
 		return () => clearTimeout(reloadTimer);
@@ -283,7 +315,7 @@
 	<!-- Plugin-contributed list filter tabs (onApiUserListFilters). Hidden until
 	     a plugin adds at least one tab alongside the built-in "All Users". -->
 	{#if filterTabs.length > 1}
-		<Tabs items={filterTabs} active={activeFilter} onchange={(id) => (activeFilter = id)} />
+		<Tabs items={filterTabs} active={activeFilter} onchange={selectFilter} />
 	{/if}
 
 	{#if loading && !data}

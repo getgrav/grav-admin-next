@@ -66,12 +66,34 @@ export interface UserFilterTab {
 }
 
 /**
- * Fetch the filter tabs for the Users list. Requires api.users.read; callers
- * without it should not render the tab row. Selecting a non-`all` tab adds its
- * id as the `filter` param on getUsers().
+ * The Users-list filter policy: the tab row plus which tab the client lands on
+ * with no `?filter` in the URL, and whether the built-in "All Users" tab is
+ * present (a plugin can suppress it via showAll:false on onApiUserListFilters).
  */
-export async function getUserFilters(): Promise<UserFilterTab[]> {
-	return api.get<UserFilterTab[]>('/users/filters');
+export interface UserFilterPolicy {
+	tabs: UserFilterTab[];
+	defaultFilter: string;
+	showAll: boolean;
+}
+
+/**
+ * Fetch the filter policy for the Users list. Requires api.users.read; callers
+ * without it should not render the tab row. Selecting a non-default tab adds its
+ * id as the `filter` param on getUsers().
+ *
+ * Tolerates the pre-1.0.4 API shape (a bare tab array) so a newer admin2 still
+ * works against an older API plugin.
+ */
+export async function getUserFilters(): Promise<UserFilterPolicy> {
+	const res = await api.get<UserFilterPolicy | UserFilterTab[]>('/users/filters');
+	if (Array.isArray(res)) {
+		return { tabs: res, defaultFilter: 'all', showAll: true };
+	}
+	return {
+		tabs: res.tabs ?? [],
+		defaultFilter: res.defaultFilter ?? 'all',
+		showAll: res.showAll ?? true,
+	};
 }
 
 /**
