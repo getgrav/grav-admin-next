@@ -99,6 +99,39 @@
 	const currentDisplay = $derived(
 		typeof value === 'string' && value ? phpDateFormat(value, now) : ''
 	);
+
+	// Grav's config accepts any PHP date format string, so the presets are a
+	// convenience, not a limit. A saved value that isn't one of the presets is
+	// treated as custom, and the "Custom…" option lets a user type their own.
+	const presetFormats = $derived(new Set(options.map((o) => o.format)));
+	const valueIsCustom = $derived(typeof value === 'string' && value !== '' && !presetFormats.has(value));
+	// Sticky flag so the text input stays open after the user picks "Custom…"
+	// even before they've typed anything (when the value is still a preset/empty).
+	let customChosen = $state(false);
+	const isCustom = $derived(customChosen || valueIsCustom);
+
+	const CUSTOM_OPTION = '__custom__';
+
+	// Local buffer for the custom input so the preview updates as you type while
+	// the parent (auto-save / undo) is only notified on commit — dateformat is an
+	// immediate-commit field, so committing per keystroke would spam the stack.
+	// Re-syncs from `value` whenever we (re-)enter custom mode or it changes remotely.
+	let customText = $state('');
+	$effect(() => {
+		if (isCustom) customText = typeof value === 'string' ? value : '';
+	});
+	const customPreview = $derived(customText ? phpDateFormat(customText, now) : '');
+
+	function onSelectChange(v: string) {
+		if (v === CUSTOM_OPTION) {
+			// Enter custom mode without discarding the current value, so the text
+			// input starts pre-filled with whatever preset was selected.
+			customChosen = true;
+			return;
+		}
+		customChosen = false;
+		onchange(v);
+	}
 </script>
 
 <div class="space-y-2">
@@ -117,20 +150,33 @@
 	<div class="relative">
 		<select
 			class="flex h-10 w-full appearance-none rounded-lg border border-input bg-muted/50 ps-3 pe-8 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-			value={value ?? field.default ?? ''}
-			onchange={(e) => onchange((e.target as HTMLSelectElement).value)}
+			value={isCustom ? CUSTOM_OPTION : (value ?? field.default ?? '')}
+			onchange={(e) => onSelectChange((e.target as HTMLSelectElement).value)}
 			disabled={field.disabled}
 		>
 			<option value="">{i18n.t('ADMIN_NEXT.FIELDS.DATE_FORMAT.SELECT_FORMAT')}</option>
 			{#each options as opt (opt.format)}
-				<option value={opt.format} selected={String(value) === opt.format}>{opt.display}</option>
+				<option value={opt.format} selected={!isCustom && String(value) === opt.format}>{opt.display}</option>
 			{/each}
+			<option value={CUSTOM_OPTION} selected={isCustom}>{i18n.t('ADMIN_NEXT.FIELDS.DATE_FORMAT.CUSTOM')}</option>
 		</select>
 		<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pe-2.5">
 			<ChevronsUpDown size={14} class="text-muted-foreground" />
 		</div>
 	</div>
-	{#if currentDisplay}
+	{#if isCustom}
+		<input
+			type="text"
+			class="flex h-10 w-full rounded-lg border border-input bg-muted/50 px-3 py-2 font-mono text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+			bind:value={customText}
+			placeholder={i18n.t('ADMIN_NEXT.FIELDS.DATE_FORMAT.CUSTOM_PLACEHOLDER')}
+			onchange={(e) => onchange((e.target as HTMLInputElement).value)}
+			disabled={field.disabled}
+		/>
+		{#if customPreview}
+			<p class="text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.DATE_FORMAT.PREVIEW')} {customPreview}</p>
+		{/if}
+	{:else if currentDisplay}
 		<p class="text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.DATE_FORMAT.FORMAT_STRING')} <code class="rounded bg-muted px-1 py-0.5 font-mono text-[0.6875rem]">{value}</code></p>
 	{/if}
 </div>
