@@ -171,7 +171,15 @@
 
 	// Preview
 	let showFrontendPreview = $state(false);
-	const frontendPreviewUrl = $derived(pageData ? `${auth.serverUrl}${pageData.route}` : '');
+	// `admin_preview` tells the API plugin to render this front-end page without
+	// starting the shared front-end session, so opening the preview (iframe or
+	// new tab) can't rotate or invalidate a visitor's `grav-site` session and log
+	// them out of the public site in the same browser (admin2#88).
+	const frontendPreviewUrl = $derived.by(() => {
+		if (!pageData) return '';
+		const sep = pageData.route.includes('?') ? '&' : '?';
+		return `${auth.serverUrl}${pageData.route}${sep}admin_preview=1`;
+	});
 
 	// Editable fields
 	let title = $state('');
