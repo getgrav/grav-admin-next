@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { setContext } from 'svelte';
-	import { getPage, updatePage, deletePage, movePage, duplicatePage, getChildren } from '$lib/api/endpoints/pages';
+	import { getPage, updatePage, deletePage, movePage, duplicatePage, getChildren, getPagePreviewToken } from '$lib/api/endpoints/pages';
 	import { createTranslation, syncTranslation, adoptPageLanguage } from '$lib/api/endpoints/languages';
 	import { getPageBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { PageDetail } from '$lib/api/endpoints/pages';
@@ -127,10 +127,18 @@
 			autoSave.oncommit('content', updatedContent, oldContent);
 		}
 		window.addEventListener('grav:editor:get-content', handleGetContent);
+		// Vim ex-commands (:w / :q / :wq) dispatch these on the shared bus;
+		// route them to the same save and close actions the toolbar uses.
+		const handleVimSave = () => triggerSave();
+		const handleVimClose = () => goto(`${base}/pages`);
 		window.addEventListener('grav:editor:insert-content', handleInsertContent as EventListener);
+		window.addEventListener('grav:editor:save', handleVimSave);
+		window.addEventListener('grav:editor:close', handleVimClose);
 		return () => {
 			window.removeEventListener('grav:editor:get-content', handleGetContent);
 			window.removeEventListener('grav:editor:insert-content', handleInsertContent as EventListener);
+			window.removeEventListener('grav:editor:save', handleVimSave);
+			window.removeEventListener('grav:editor:close', handleVimClose);
 		};
 	});
 	// Provide page type context (standard vs modular) for template selectors
@@ -171,15 +179,43 @@
 
 	// Preview
 	let showFrontendPreview = $state(false);
+	let previewLoading = $state(false);
+	// A short-lived, route-scoped token that lets the front end render this page
+	// even when it is unpublished (admin2#100). Minted fresh each time the preview
+	// opens; null for published pages (which need no token) or if minting fails.
+	let previewToken = $state<string | null>(null);
 	// `admin_preview` tells the API plugin to render this front-end page without
 	// starting the shared front-end session, so opening the preview (iframe or
 	// new tab) can't rotate or invalidate a visitor's `grav-site` session and log
-	// them out of the public site in the same browser (admin2#88).
+	// them out of the public site in the same browser (admin2#88). `preview_token`
+	// additionally unlocks an unpublished draft for this one request (admin2#100).
 	const frontendPreviewUrl = $derived.by(() => {
 		if (!pageData) return '';
 		const sep = pageData.route.includes('?') ? '&' : '?';
-		return `${auth.serverUrl}${pageData.route}${sep}admin_preview=1`;
+		let url = `${auth.serverUrl}${pageData.route}${sep}admin_preview=1`;
+		if (previewToken) url += `&preview_token=${encodeURIComponent(previewToken)}`;
+		return url;
 	});
+
+	// Open the front-end preview. We mint the draft-preview token BEFORE showing
+	// the modal so the iframe's first (and only) load already carries it —
+	// otherwise an unpublished page would 404 in the iframe and never retry. A
+	// failed mint still opens the preview: published pages render fine without a
+	// token, and a draft simply falls back to the 404 it showed before.
+	async function openFrontendPreview() {
+		if (!pageData) return;
+		previewLoading = true;
+		previewToken = null;
+		try {
+			const res = await getPagePreviewToken(pageData.route);
+			previewToken = res.token ?? null;
+		} catch {
+			previewToken = null;
+		} finally {
+			previewLoading = false;
+			showFrontendPreview = true;
+		}
+	}
 
 	// Editable fields
 	let title = $state('');
@@ -688,21 +724,14 @@
 
 	// Sync state when switching between Normal and Expert modes
 	function switchToExpert() {
-		// Build current header from blueprint changes
-		const currentHeader = { ...(pageData?.header ?? {}), title };
-		if (Object.keys(headerChanges).length > 0) {
-			for (const [dotPath, val] of Object.entries(headerChanges)) {
-				const parts = dotPath.split('.');
-				let current: Record<string, unknown> = currentHeader;
-				for (let i = 0; i < parts.length - 1; i++) {
-					if (!current[parts[i]] || typeof current[parts[i]] !== 'object') {
-						current[parts[i]] = {};
-					}
-					current = current[parts[i]] as Record<string, unknown>;
-				}
-				current[parts[parts.length - 1]] = val;
-			}
-		}
+		// Serialize the CURRENT header. `headerData.header` is kept live by
+		// handleBlueprintChange (Normal-mode edits) and switchToNormal (Expert
+		// edits parsed back in), and — unlike `pageData.header` + `headerChanges`
+		// — it correctly reflects keys the user DELETED. Rebuilding from the
+		// saved baseline plus a change-only delta resurrected deleted header
+		// fields on every mode toggle (admin2#102). Title is a top-level form
+		// field, so fold its current value back into the YAML.
+		const currentHeader = { ...((headerData.header as Record<string, unknown>) ?? {}), title };
 		expertFrontmatter = yaml.dump(currentHeader, { lineWidth: -1, noRefs: true }).trimEnd();
 		if (pageData) {
 			expertSlug = pageData.slug.replace(/^\.+/, '');
@@ -737,6 +766,17 @@
 					const orig = (originalHeader as Record<string, unknown>)[key];
 					if (!valuesEqual(val, orig)) {
 						next[key] = val;
+					}
+				}
+				// Stage removals too: a top-level key present in the saved header
+				// but absent from the Expert YAML is a deletion. Record it as null
+				// so a later Normal-mode save drops it (mergePatch + stripNull);
+				// otherwise the deletion would live only in Expert state and be
+				// silently lost on save (admin2#102).
+				for (const key of Object.keys(originalHeader as Record<string, unknown>)) {
+					if (key === 'title') continue;
+					if (!(key in parsed)) {
+						next[key] = null;
 					}
 				}
 				headerChanges = next;
@@ -1144,6 +1184,11 @@
 					if (parsed && typeof parsed === 'object') {
 						body.title = (parsed.title as string) ?? title;
 						body.header = parsed;
+						// Expert YAML is the COMPLETE header — tell the API to
+						// replace it wholesale rather than merge, so keys the user
+						// deleted (including nested ones) don't survive the save
+						// via the merge that Normal mode relies on (admin2#102).
+						body.header_mode = 'replace';
 					}
 				} catch {
 					toast.error(i18n.t('ADMIN_NEXT.PAGES.EDIT.INVALID_YAML_FRONTMATTER_FIX_SYNTAX'));
@@ -1690,7 +1735,7 @@
 				{/if}
 			</button>
 			<!-- Preview, Copy, Delete — always icon-only -->
-			<Button variant="outline" size="icon" class="h-8 w-8" title={i18n.t('ADMIN_NEXT.PAGES.EDIT.PREVIEW_PAGE')} onclick={() => showFrontendPreview = true} disabled={loading || !pageData}>
+			<Button variant="outline" size="icon" class="h-8 w-8" title={i18n.t('ADMIN_NEXT.PAGES.EDIT.PREVIEW_PAGE')} onclick={openFrontendPreview} disabled={loading || previewLoading || !pageData}>
 				<Eye size={14} />
 			</Button>
 			{#if canEditPages}

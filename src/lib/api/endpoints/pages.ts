@@ -228,6 +228,18 @@ export async function createPage(body: CreatePageBody): Promise<PageDetail> {
 	return api.post<PageDetail>('/pages', body);
 }
 
+/**
+ * Mint a short-lived, route-scoped token that lets the front-end render this
+ * page even when it is unpublished, so the editor's preview works for drafts
+ * (getgrav/grav-plugin-admin2#100). The token is appended to the preview URL
+ * alongside `admin_preview=1`; the API plugin validates it and force-publishes
+ * only this one page for that request.
+ */
+export async function getPagePreviewToken(route: string): Promise<{ token: string; expires_in: number }> {
+	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
+	return api.post<{ token: string; expires_in: number }>(`/pages/${cleanRoute}/preview-token`, {});
+}
+
 export async function updatePage(route: string, body: UpdatePageBody, etag?: string, lang?: string): Promise<PageDetail> {
 	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
 	const path = lang ? `/pages/${cleanRoute}?lang=${encodeURIComponent(lang)}` : `/pages/${cleanRoute}`;
