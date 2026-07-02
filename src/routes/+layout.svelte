@@ -1,6 +1,16 @@
 <script lang="ts">
 	import './layout.css';
 	import '@fortawesome/fontawesome-free/css/all.min.css';
+	// Self-hosted alternate UI fonts (user-selectable in Settings). Bundled at
+	// build time so the admin needs no network access — see getgrav/grav-plugin-admin2#97.
+	// Google Sans (the default) is self-hosted via @font-face in layout.css.
+	import '@fontsource-variable/inter/wght.css';
+	import '@fontsource-variable/public-sans/wght.css';
+	import '@fontsource-variable/public-sans/wght-italic.css';
+	import '@fontsource-variable/nunito-sans/wght.css';
+	import '@fontsource-variable/nunito-sans/wght-italic.css';
+	import '@fontsource-variable/jost/wght.css';
+	import '@fontsource-variable/jost/wght-italic.css';
 	import { page, updated } from '$app/state';
 	import { goto, beforeNavigate } from '$app/navigation';
 	import { base } from '$app/paths';

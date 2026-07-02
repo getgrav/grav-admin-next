@@ -44,10 +44,10 @@ export interface FontOption {
 
 export const FONT_OPTIONS: FontOption[] = [
 	{ value: 'google-sans',  label: 'Google Sans',  stack: "'Google Sans', ui-sans-serif, system-ui, -apple-system, sans-serif" },
-	{ value: 'inter',        label: 'Inter',        stack: "'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif" },
-	{ value: 'public-sans',  label: 'Public Sans',  stack: "'Public Sans', ui-sans-serif, system-ui, -apple-system, sans-serif" },
-	{ value: 'nunito-sans',  label: 'Nunito Sans',  stack: "'Nunito Sans', ui-sans-serif, system-ui, -apple-system, sans-serif" },
-	{ value: 'jost',         label: 'Jost',         stack: "'Jost', ui-sans-serif, system-ui, -apple-system, sans-serif" },
+	{ value: 'inter',        label: 'Inter',        stack: "'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif" },
+	{ value: 'public-sans',  label: 'Public Sans',  stack: "'Public Sans Variable', 'Public Sans', ui-sans-serif, system-ui, -apple-system, sans-serif" },
+	{ value: 'nunito-sans',  label: 'Nunito Sans',  stack: "'Nunito Sans Variable', 'Nunito Sans', ui-sans-serif, system-ui, -apple-system, sans-serif" },
+	{ value: 'jost',         label: 'Jost',         stack: "'Jost Variable', 'Jost', ui-sans-serif, system-ui, -apple-system, sans-serif" },
 ];
 
 export interface FontSizeOption {
