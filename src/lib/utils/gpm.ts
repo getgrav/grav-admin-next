@@ -431,9 +431,34 @@ export interface PackageDep {
  */
 export function descriptionText(pkg: { description?: string | null; description_html?: string | null }): string {
 	if (pkg.description_html) {
-		return pkg.description_html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+		return decodeHtmlEntities(pkg.description_html.replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim();
 	}
-	return (pkg.description ?? '').replace(/\s+/g, ' ').trim();
+	return decodeHtmlEntities(pkg.description ?? '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Decode HTML character entity references (e.g. `&amp;`, `&#039;`, `&nbsp;`) into
+ * their plain-text characters. GPM descriptions arrive HTML-encoded, so when we
+ * strip tags for a plain-text preview the raw entities would otherwise leak
+ * through as literal `&#039;` text (admin2#103). Uses the browser parser when
+ * available and falls back to a small named/numeric map for SSR/prerender.
+ */
+function decodeHtmlEntities(input: string): string {
+	if (!input) return input;
+	if (typeof document !== 'undefined') {
+		const el = document.createElement('textarea');
+		el.innerHTML = input;
+		return el.value;
+	}
+	return input
+		.replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+		.replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+		.replace(/&nbsp;/g, ' ')
+		.replace(/&quot;/g, '"')
+		.replace(/&apos;/g, "'")
+		.replace(/&lt;/g, '<')
+		.replace(/&gt;/g, '>')
+		.replace(/&amp;/g, '&');
 }
 
 /**
