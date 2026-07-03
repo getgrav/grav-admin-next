@@ -154,8 +154,9 @@ export async function setSiteMediaOrder(path: string, order: string[]): Promise<
 export interface MediaMetaField {
 	key: string;
 	label: string;
-	type: 'text' | 'textarea';
-	value: string;
+	type: 'text' | 'textarea' | 'tags';
+	/** String for text/textarea; array of strings for a tags field. */
+	value: string | string[];
 }
 
 /** A media file's metadata: editable fields plus read-only stored keys. */
@@ -168,7 +169,7 @@ export interface MediaMetaResponse {
 }
 
 /** Map of field key → value, as sent when saving metadata. */
-export type MediaMetaValues = Record<string, string>;
+export type MediaMetaValues = Record<string, string | string[]>;
 
 // -- Page media metadata --
 

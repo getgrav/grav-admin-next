@@ -2,6 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
+	import { X } from 'lucide-svelte';
 	import type { MediaMetaResponse, MediaMetaValues } from '$lib/api/endpoints/media';
 
 	interface Props {
@@ -19,20 +20,33 @@
 
 	let { filename, load, save, readonly = false, onsaved }: Props = $props();
 
+	type FieldValue = string | string[];
+
 	let loading = $state(true);
 	let saving = $state(false);
 	let error = $state<string | null>(null);
 	let meta = $state<MediaMetaResponse | null>(null);
 
 	// Current edit buffer and the last-saved baseline, keyed by field key.
-	let values = $state<Record<string, string>>({});
-	let baseline = $state<Record<string, string>>({});
+	let values = $state<Record<string, FieldValue>>({});
+	let baseline = $state<Record<string, FieldValue>>({});
+	// In-progress text for each tags field's input (not yet committed to a chip).
+	let tagDrafts = $state<Record<string, string>>({});
 	let loadedFor = $state('');
+
+	function eqValue(a: FieldValue | undefined, b: FieldValue | undefined): boolean {
+		if (Array.isArray(a) || Array.isArray(b)) {
+			const aa = Array.isArray(a) ? a : [];
+			const bb = Array.isArray(b) ? b : [];
+			return aa.length === bb.length && aa.every((v, i) => v === bb[i]);
+		}
+		return (a ?? '') === (b ?? '');
+	}
 
 	const dirty = $derived.by(() => {
 		const keys = new Set([...Object.keys(values), ...Object.keys(baseline)]);
 		for (const k of keys) {
-			if ((values[k] ?? '') !== (baseline[k] ?? '')) return true;
+			if (!eqValue(values[k], baseline[k])) return true;
 		}
 		return false;
 	});
@@ -48,14 +62,46 @@
 		return String(value);
 	}
 
+	function tags(key: string): string[] {
+		const v = values[key];
+		return Array.isArray(v) ? v : [];
+	}
+
+	function addTag(key: string, raw: string) {
+		const t = raw.trim();
+		tagDrafts[key] = '';
+		if (!t) return;
+		const arr = tags(key);
+		if (!arr.some((x) => x.toLowerCase() === t.toLowerCase())) {
+			values[key] = [...arr, t];
+		}
+	}
+
+	function removeTag(key: string, index: number) {
+		values[key] = tags(key).filter((_, i) => i !== index);
+	}
+
+	function handleTagKeydown(e: KeyboardEvent, key: string) {
+		if (e.key === 'Enter' || e.key === ',') {
+			e.preventDefault();
+			addTag(key, tagDrafts[key] ?? '');
+		} else if (e.key === 'Backspace' && !(tagDrafts[key] ?? '')) {
+			const arr = tags(key);
+			if (arr.length) values[key] = arr.slice(0, -1);
+		}
+	}
+
 	function applyMeta(res: MediaMetaResponse) {
 		meta = res;
-		const next: Record<string, string> = {};
+		const next: Record<string, FieldValue> = {};
+		const drafts: Record<string, string> = {};
 		for (const field of res.fields) {
-			next[field.key] = field.value ?? '';
+			next[field.key] = Array.isArray(field.value) ? [...field.value] : (field.value ?? '');
+			if (field.type === 'tags') drafts[field.key] = '';
 		}
 		values = { ...next };
-		baseline = { ...next };
+		baseline = structuredClone(next);
+		tagDrafts = drafts;
 	}
 
 	async function doLoad() {
@@ -72,6 +118,10 @@
 
 	async function doSave() {
 		if (saving || readonly) return;
+		// Fold any uncommitted tag drafts into their lists before sending.
+		for (const [key, draft] of Object.entries(tagDrafts)) {
+			if (draft.trim()) addTag(key, draft);
+		}
 		saving = true;
 		try {
 			applyMeta(await save({ ...values }));
@@ -87,7 +137,8 @@
 	}
 
 	function reset() {
-		values = { ...baseline };
+		values = structuredClone(baseline);
+		for (const key of Object.keys(tagDrafts)) tagDrafts[key] = '';
 	}
 
 	// (Re)load whenever the target file changes.
@@ -120,13 +171,52 @@
 					>
 						{field.label}
 					</label>
-					{#if field.type === 'textarea'}
+					{#if field.type === 'tags'}
+						<div
+							class="mt-1 flex flex-wrap items-center gap-1 rounded-md border border-input bg-transparent px-1.5 py-1 focus-within:ring-1 focus-within:ring-ring {readonly ||
+							saving
+								? 'opacity-60'
+								: ''}"
+						>
+							{#each tags(field.key) as tag, i (tag)}
+								<span
+									class="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-foreground"
+								>
+									{tag}
+									{#if !readonly}
+										<button
+											type="button"
+											class="text-muted-foreground hover:text-foreground"
+											onclick={() => removeTag(field.key, i)}
+											aria-label={i18n.t('ADMIN_NEXT.DELETE')}
+											disabled={saving}
+										>
+											<X size={11} />
+										</button>
+									{/if}
+								</span>
+							{/each}
+							{#if !readonly}
+								<input
+									id={`meta-${field.key}`}
+									type="text"
+									class="min-w-[6rem] flex-1 bg-transparent px-1 py-0.5 text-sm focus:outline-none disabled:opacity-60"
+									placeholder={i18n.t('ADMIN_NEXT.MEDIA.METADATA.TAGS_PLACEHOLDER')}
+									disabled={saving}
+									bind:value={tagDrafts[field.key]}
+									onkeydown={(e) => handleTagKeydown(e, field.key)}
+									onblur={() => addTag(field.key, tagDrafts[field.key] ?? '')}
+								/>
+							{/if}
+						</div>
+					{:else if field.type === 'textarea'}
 						<textarea
 							id={`meta-${field.key}`}
 							class="mt-1 w-full resize-y rounded-md border border-input bg-transparent px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60"
 							rows="2"
 							disabled={readonly || saving}
-							bind:value={values[field.key]}
+							value={typeof values[field.key] === 'string' ? (values[field.key] as string) : ''}
+							oninput={(e) => (values[field.key] = e.currentTarget.value)}
 						></textarea>
 					{:else}
 						<input
@@ -134,7 +224,8 @@
 							type="text"
 							class="mt-1 w-full rounded-md border border-input bg-transparent px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60"
 							disabled={readonly || saving}
-							bind:value={values[field.key]}
+							value={typeof values[field.key] === 'string' ? (values[field.key] as string) : ''}
+							oninput={(e) => (values[field.key] = e.currentTarget.value)}
 						/>
 					{/if}
 				</div>
