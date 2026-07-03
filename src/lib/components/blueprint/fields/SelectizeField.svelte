@@ -55,11 +55,14 @@
 	});
 
 	function emitChange(newTags: string[]) {
-		if (field.validate?.type === 'commalist') {
-			onchange(newTags.join(','));
-		} else {
-			onchange(newTags);
-		}
+		// Always emit an array, including for `validate: type: commalist`.
+		// Grav's `filterCommaList` passes arrays through unchanged, so an array
+		// is the canonical stored form for these fields (`level_classes:` etc.).
+		// Emitting the array directly — rather than a comma-joined string the
+		// server has to split back — means the value round-trips correctly even
+		// on save paths that don't run blueprint filtering, and without needing
+		// any blueprint changes. Fixes getgrav/grav-plugin-admin2#96.
+		onchange(newTags);
 	}
 
 	function addTag(tag: string) {

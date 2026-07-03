@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { prefs, FONT_OPTIONS, FONT_SIZE_OPTIONS, type FontSize, type MenubarLink, type PagesViewMode, type AccountsViewMode } from '$lib/stores/preferences.svelte';
+	import { prefs, FONT_OPTIONS, FONT_SIZE_OPTIONS, type FontSize, type EditorKeymap, type MenubarLink, type PagesViewMode, type AccountsViewMode } from '$lib/stores/preferences.svelte';
 	import { normalizeLang } from '$lib/i18n';
 	import { theme, ACCENT_PRESETS } from '$lib/stores/theme.svelte';
 	import { branding } from '$lib/stores/branding.svelte';
@@ -456,6 +456,22 @@
 				<p class="mt-1 text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_SECTION_DESC')}</p>
 			</div>
 			<div class="space-y-5 px-6 py-5">
+				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+					<div class="lg:pt-2.5">
+						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP')}</span>
+						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP_DESC')}</p>
+					</div>
+					<div>
+						<SegmentedToggle
+							value={prefs.editorKeymap}
+							onchange={(v) => prefs.editorKeymap = v as EditorKeymap}
+							options={[
+								{ value: 'default', label: i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP_DEFAULT') },
+								{ value: 'vim', label: i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP_VIM') }
+							]}
+						/>
+					</div>
+				</div>
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
 						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR')}</span>
@@ -958,6 +974,22 @@
 											options={[
 												{ value: 'normal', label: i18n.t('ADMIN_NEXT.PAGES.MODE_NORMAL') },
 												{ value: 'expert', label: i18n.t('ADMIN_NEXT.PAGES.MODE_EXPERT') }
+											]}
+										/>
+									</div>
+								</div>
+								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+									<div class="lg:pt-2.5">
+										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP')}</span>
+										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP_DESC')}</p>
+									</div>
+									<div>
+										<SegmentedToggle
+											value={siteDraft.editorKeymap ?? 'default'}
+											onchange={(v) => siteDraft = { ...siteDraft, editorKeymap: v as EditorKeymap }}
+											options={[
+												{ value: 'default', label: i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP_DEFAULT') },
+												{ value: 'vim', label: i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP_VIM') }
 											]}
 										/>
 									</div>

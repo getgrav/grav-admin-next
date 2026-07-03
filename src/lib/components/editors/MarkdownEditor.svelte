@@ -29,6 +29,7 @@
 	import { marked } from 'marked';
 	import { modals } from '$lib/stores/modals.svelte';
 	import { getEditorButtons, type EditorToolbarButton } from '$lib/api/endpoints/editorButtons';
+	import { ensureKeymapLoaded, keymapExtension } from './keymap';
 
 	import type { Awareness } from 'y-protocols/awareness';
 	import { yCollab, yUndoManagerKeymap } from 'y-codemirror.next';
@@ -267,6 +268,10 @@
 		const undoKeymap = yText ? yUndoManagerKeymap : historyKeymap;
 
 		const extensions: Extension[] = [
+			// Optional vim keybindings (admin2#95) — MUST be first so it
+			// intercepts keys ahead of the default keymap. Empty unless the
+			// user's `editorKeymap` preference is 'vim' and its chunk has loaded.
+			keymapExtension(prefs.editorKeymap),
 			// Base
 			...historyExt,
 			drawSelection(),
@@ -609,12 +614,17 @@
 		}
 	});
 
-	// React to dark mode changes only — untrack to avoid re-creating on value/prop changes
+	// React to dark mode or keymap-preference changes — untrack to avoid
+	// re-creating on value/prop changes. Preload the keymap module (a no-op
+	// unless 'vim') before rebuilding so vim() is present in the extensions.
 	$effect(() => {
 		isDark; // track dark mode
+		const keymap = prefs.editorKeymap; // track keymap preference
 		editorContainer; // track mount
 		untrack(() => {
-			if (view && editorContainer) {
+			if (!view || !editorContainer) return;
+			void ensureKeymapLoaded(keymap).then(() => {
+				if (!view || !editorContainer) return;
 				const currentDoc = view.state.doc.toString();
 				view.destroy();
 				view = new EditorView({
@@ -625,7 +635,7 @@
 					parent: editorContainer,
 				});
 				(view.dom as unknown as { __cmView?: EditorView }).__cmView = view;
-			}
+			});
 		});
 	});
 
@@ -636,7 +646,9 @@
 		const observer = new MutationObserver(() => checkDarkMode());
 		observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
-		createEditor();
+		// Preload the keymap module (no-op unless 'vim') so the first paint
+		// already carries vim bindings instead of flashing default ones.
+		void ensureKeymapLoaded(prefs.editorKeymap).then(() => createEditor());
 
 		// Load plugin-contributed toolbar buttons (cached across instances).
 		if (pluginButtons) {

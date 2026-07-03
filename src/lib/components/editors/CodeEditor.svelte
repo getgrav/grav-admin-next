@@ -24,6 +24,8 @@
 	import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 	import { yaml } from '@codemirror/lang-yaml';
 	import { oneDark } from '@codemirror/theme-one-dark';
+	import { prefs } from '$lib/stores/preferences.svelte';
+	import { ensureKeymapLoaded, keymapExtension } from './keymap';
 
 	interface Props {
 		value?: string;
@@ -118,6 +120,10 @@
 
 	function getExtensions(dark: boolean): Extension[] {
 		const extensions: Extension[] = [
+			// Optional vim keybindings (admin2#95) — MUST be first so it
+			// intercepts keys ahead of the default keymap. Empty unless the
+			// user's `editorKeymap` preference is 'vim' and its chunk has loaded.
+			keymapExtension(prefs.editorKeymap),
 			history(),
 			drawSelection(),
 			indentOnInput(),
@@ -188,17 +194,20 @@
 		}
 	});
 
-	// Recreate on dark mode change only — untrack to avoid re-creating on value changes
+	// Recreate on dark mode or keymap-preference change — untrack to avoid
+	// re-creating on value changes. Preload the keymap module (a no-op unless
+	// 'vim') before rebuilding so vim() is present in the extensions array.
 	$effect(() => {
 		isDark; // track dark mode
-		if (containerEl) untrack(() => createEditor());
+		const keymap = prefs.editorKeymap; // track keymap preference
+		if (containerEl) untrack(() => void ensureKeymapLoaded(keymap).then(() => createEditor()));
 	});
 
 	onMount(() => {
 		checkDarkMode();
 		const observer = new MutationObserver(() => checkDarkMode());
 		observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-		createEditor();
+		void ensureKeymapLoaded(prefs.editorKeymap).then(() => createEditor());
 		return () => {
 			observer.disconnect();
 			view?.destroy();

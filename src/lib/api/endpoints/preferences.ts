@@ -4,6 +4,7 @@ export type ColorMode = '' | 'light' | 'dark';
 export type FontFamily = 'inter' | 'google-sans' | 'public-sans' | 'nunito-sans' | 'jost';
 export type FontSize = 'small' | 'normal' | 'large' | 'xlarge';
 export type EditorMode = 'normal' | 'expert';
+export type EditorKeymap = 'default' | 'vim';
 export type LogoMode = 'default' | 'text' | 'custom';
 export type LogoVariant = 'light' | 'dark';
 /** Upload/delete variants: the two logo slots plus the custom favicon. */
@@ -47,6 +48,7 @@ export interface PreferenceValues {
 	fontFamily: FontFamily;
 	fontSize: FontSize;
 	editorMode: EditorMode;
+	editorKeymap: EditorKeymap;
 	editorStickyToolbar: boolean;
 	editorFixedHeight: number;
 	adminLanguage: string;

@@ -10,6 +10,7 @@ import {
 	type FontFamily,
 	type FontSize,
 	type EditorMode,
+	type EditorKeymap,
 	type MenubarLink,
 	type PagesViewMode,
 	type PreferenceValues,
@@ -22,6 +23,7 @@ export type {
 	AccountsViewMode,
 	ColorMode,
 	EditorMode,
+	EditorKeymap,
 	FontFamily,
 	FontSize,
 	LogoMode,
@@ -124,6 +126,7 @@ const BUILTIN_DEFAULTS: EffectivePreferences = {
 	fontFamily: 'google-sans',
 	fontSize: 'normal',
 	editorMode: 'normal',
+	editorKeymap: 'default',
 	editorStickyToolbar: true,
 	editorFixedHeight: 0,
 	adminLanguage: 'en-US',
@@ -149,6 +152,7 @@ function createPreferencesStore() {
 	let fontFamily = $state<FontFamily>(cache?.fontFamily ?? BUILTIN_DEFAULTS.fontFamily);
 	let fontSize = $state<FontSize>(cache?.fontSize ?? BUILTIN_DEFAULTS.fontSize);
 	let editorMode = $state<EditorMode>(cache?.editorMode ?? BUILTIN_DEFAULTS.editorMode);
+	let editorKeymap = $state<EditorKeymap>(cache?.editorKeymap ?? BUILTIN_DEFAULTS.editorKeymap);
 	let editorStickyToolbar = $state<boolean>(cache?.editorStickyToolbar ?? BUILTIN_DEFAULTS.editorStickyToolbar);
 	let editorFixedHeight = $state<number>(cache?.editorFixedHeight ?? BUILTIN_DEFAULTS.editorFixedHeight);
 	let adminLanguage = $state<string>(BUILTIN_DEFAULTS.adminLanguage);
@@ -199,6 +203,7 @@ function createPreferencesStore() {
 		fontFamily = eff.fontFamily;
 		fontSize = eff.fontSize;
 		editorMode = eff.editorMode;
+		editorKeymap = eff.editorKeymap;
 		editorStickyToolbar = eff.editorStickyToolbar;
 		editorFixedHeight = eff.editorFixedHeight;
 		adminLanguage = normalizeLang(eff.adminLanguage);
@@ -268,6 +273,7 @@ function createPreferencesStore() {
 			case 'fontFamily': fontFamily = fallback as FontFamily; applyFont(fontFamily); break;
 			case 'fontSize': fontSize = fallback as FontSize; applyFontSize(fontSize); break;
 			case 'editorMode': editorMode = fallback as EditorMode; break;
+			case 'editorKeymap': editorKeymap = fallback as EditorKeymap; break;
 			case 'editorStickyToolbar': editorStickyToolbar = fallback as boolean; break;
 			case 'editorFixedHeight': editorFixedHeight = fallback as number; break;
 			case 'adminLanguage': adminLanguage = fallback as string; break;
@@ -303,6 +309,9 @@ function createPreferencesStore() {
 
 		get editorMode() { return editorMode; },
 		set editorMode(v: EditorMode) { editorMode = v; patchUser('editorMode', v); },
+
+		get editorKeymap() { return editorKeymap; },
+		set editorKeymap(v: EditorKeymap) { editorKeymap = v; patchUser('editorKeymap', v); },
 
 		get editorStickyToolbar() { return editorStickyToolbar; },
 		set editorStickyToolbar(v: boolean) { editorStickyToolbar = v; patchUser('editorStickyToolbar', v); },

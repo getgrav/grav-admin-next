@@ -3,6 +3,7 @@ import type {
 	BrandingUrls,
 	ColorMode,
 	EditorMode,
+	EditorKeymap,
 	FontFamily,
 	FontSize,
 	PreferencesResponse,
@@ -31,6 +32,7 @@ export interface BootCache {
 	fontFamily: FontFamily;
 	fontSize: FontSize;
 	editorMode: EditorMode;
+	editorKeymap: EditorKeymap;
 	editorStickyToolbar: boolean;
 	editorFixedHeight: number;
 	branding: SiteBranding;
@@ -47,6 +49,7 @@ export function saveBootCache(payload: PreferencesResponse): void {
 			fontFamily: payload.effective.fontFamily,
 			fontSize: payload.effective.fontSize,
 			editorMode: payload.effective.editorMode,
+			editorKeymap: payload.effective.editorKeymap,
 			editorStickyToolbar: payload.effective.editorStickyToolbar,
 			editorFixedHeight: payload.effective.editorFixedHeight,
 			branding: payload.branding,
