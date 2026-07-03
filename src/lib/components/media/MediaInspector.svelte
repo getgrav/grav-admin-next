@@ -1,9 +1,15 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { encodeMediaFileUrl, type MediaItem } from '$lib/api/endpoints/media';
+	import {
+		encodeMediaFileUrl,
+		getSiteMediaMeta,
+		saveSiteMediaMeta,
+		type MediaItem,
+	} from '$lib/api/endpoints/media';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { mediaManager } from '$lib/stores/mediaManager.svelte';
 	import { toast } from 'svelte-sonner';
+	import MediaMetadataForm from './MediaMetadataForm.svelte';
 	import {
 		X, Trash2, Copy, PenLine,
 		FileVideo2, FileAudio, FileText, FileArchive, FileSpreadsheet,
@@ -14,9 +20,14 @@
 	interface Props {
 		file: MediaItem;
 		ondelete: (file: MediaItem) => void;
+		readonly?: boolean;
 	}
 
-	let { file, ondelete }: Props = $props();
+	let { file, ondelete, readonly = false }: Props = $props();
+
+	// Full path of the file relative to the media root, used to address its
+	// `.meta.yaml` sidecar via the metadata endpoints.
+	const filePath = $derived(file.path ? `${file.path}/${file.filename}` : file.filename);
 
 	let renaming = $state(false);
 	let renameValue = $state('');
@@ -209,6 +220,19 @@
 				<dt class="text-[0.6875rem] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_MODIFIED')}</dt>
 				<dd class="mt-0.5 text-sm text-foreground">{formatDate(file.modified)}</dd>
 			</div>
+		</div>
+
+		<!-- Editable metadata (.meta.yaml sidecar) -->
+		<div class="mt-5 border-t border-border pt-4">
+			<h4 class="mb-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground">
+				{i18n.t('ADMIN_NEXT.MEDIA.METADATA.TITLE')}
+			</h4>
+			<MediaMetadataForm
+				filename={filePath}
+				load={() => getSiteMediaMeta(filePath)}
+				save={(values) => saveSiteMediaMeta(filePath, values)}
+				{readonly}
+			/>
 		</div>
 
 		<!-- Copy actions -->

@@ -7,10 +7,11 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
-	import { getPageMedia, deletePageMedia, getObjectMedia, deleteObjectMedia, encodeMediaFileUrl, type MediaItem } from '$lib/api/endpoints/media';
+	import { getPageMedia, deletePageMedia, getObjectMedia, deleteObjectMedia, getPageMediaMeta, savePageMediaMeta, encodeMediaFileUrl, type MediaItem } from '$lib/api/endpoints/media';
 	import { toast } from 'svelte-sonner';
 	import { uploadErrorMessage } from '$lib/utils/upload-error';
-	import { Upload, X, ImagePlus, ArrowUpDown } from 'lucide-svelte';
+	import { Upload, X, ImagePlus, ArrowUpDown, Info } from 'lucide-svelte';
+	import MediaMetadataModal from './MediaMetadataModal.svelte';
 
 	interface Props {
 		route?: string;
@@ -80,6 +81,12 @@
 
 	// Image editor state
 	let editingFile = $state<{ id: string; name: string; url: string } | null>(null);
+
+	// Metadata editor state. Editing the `.meta.yaml` sidecar is a page-media
+	// concept (keyed by page route + filename), so it's offered in page mode
+	// only — not for flex/object media sources, which have no such endpoint.
+	let metaItem = $state<MediaItem | null>(null);
+	const canEditMeta = $derived(!objectMode && route !== '/' && route !== '');
 
 	// Uppy instance
 	let uppy: Uppy | undefined;
@@ -554,18 +561,30 @@
 
 						<!-- Overlay on hover -->
 						<div class="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100">
-							<div class="flex w-full items-center justify-between p-1.5">
-								<span class="max-w-[calc(100%-24px)] truncate text-[0.625rem] text-white/90">
+							<div class="flex w-full items-center justify-between gap-1 p-1.5">
+								<span class="min-w-0 flex-1 truncate text-[0.625rem] text-white/90">
 									{item.filename}
 								</span>
-								<button
-									type="button"
-									class="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-sm text-white/80 transition-colors hover:bg-red-500 hover:text-white"
-									onclick={(e) => { e.stopPropagation(); handleDelete(item); }}
-									title={i18n.t('ADMIN_NEXT.DELETE')}
-								>
-									<X size={12} />
-								</button>
+								<div class="flex flex-shrink-0 items-center gap-0.5">
+									{#if canEditMeta && !inReorderMode}
+										<button
+											type="button"
+											class="inline-flex h-5 w-5 items-center justify-center rounded-sm text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+											onclick={(e) => { e.stopPropagation(); metaItem = item; }}
+											title={i18n.t('ADMIN_NEXT.MEDIA.METADATA.EDIT')}
+										>
+											<Info size={12} />
+										</button>
+									{/if}
+									<button
+										type="button"
+										class="inline-flex h-5 w-5 items-center justify-center rounded-sm text-white/80 transition-colors hover:bg-red-500 hover:text-white"
+										onclick={(e) => { e.stopPropagation(); handleDelete(item); }}
+										title={i18n.t('ADMIN_NEXT.DELETE')}
+									>
+										<X size={12} />
+									</button>
+								</div>
 							</div>
 						</div>
 
@@ -588,6 +607,17 @@
 		</button>
 	</div>
 </div>
+
+{#if metaItem}
+	{@const target = metaItem}
+	<MediaMetadataModal
+		open={true}
+		filename={target.filename}
+		load={() => getPageMediaMeta(route, target.filename)}
+		save={(values) => savePageMediaMeta(route, target.filename, values)}
+		onclose={() => (metaItem = null)}
+	/>
+{/if}
 
 <style>
 	/* Uppy image editor modal styles */

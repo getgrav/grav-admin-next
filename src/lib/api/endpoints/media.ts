@@ -148,6 +148,66 @@ export async function setSiteMediaOrder(path: string, order: string[]): Promise<
 	return api.post('/media/order', { path, order });
 }
 
+// ── Media metadata (.meta.yaml sidecars) ────────────────────────────────
+
+/** One editable metadata field, as defined by the API's plugin config. */
+export interface MediaMetaField {
+	key: string;
+	label: string;
+	type: 'text' | 'textarea';
+	value: string;
+}
+
+/** A media file's metadata: editable fields plus read-only stored keys. */
+export interface MediaMetaResponse {
+	filename: string;
+	has_meta: boolean;
+	fields: MediaMetaField[];
+	/** Other sidecar keys the editor never touches (EXIF, dimensions, upload info). */
+	extra: Record<string, unknown>;
+}
+
+/** Map of field key → value, as sent when saving metadata. */
+export type MediaMetaValues = Record<string, string>;
+
+// -- Page media metadata --
+
+export async function getPageMediaMeta(route: string, filename: string): Promise<MediaMetaResponse> {
+	const cleanRoute = normalizePageRoute(route);
+	if (cleanRoute === null) throw new Error('Cannot read media metadata: route is not resolved yet.');
+	return api.get<MediaMetaResponse>(`/pages/${cleanRoute}/media/${encodeURIComponent(filename)}/meta`);
+}
+
+export async function savePageMediaMeta(
+	route: string,
+	filename: string,
+	fields: MediaMetaValues,
+): Promise<MediaMetaResponse> {
+	const cleanRoute = normalizePageRoute(route);
+	if (cleanRoute === null) throw new Error('Cannot save media metadata: route is not resolved yet.');
+	return api.patch<MediaMetaResponse>(`/pages/${cleanRoute}/media/${encodeURIComponent(filename)}/meta`, { fields });
+}
+
+export async function clearPageMediaMeta(route: string, filename: string): Promise<void> {
+	const cleanRoute = normalizePageRoute(route);
+	if (cleanRoute === null) throw new Error('Cannot clear media metadata: route is not resolved yet.');
+	return api.delete(`/pages/${cleanRoute}/media/${encodeURIComponent(filename)}/meta`);
+}
+
+// -- Site media metadata (addressed by ?path=) --
+
+export async function getSiteMediaMeta(filePath: string): Promise<MediaMetaResponse> {
+	return api.get<MediaMetaResponse>('/media/meta', { path: filePath });
+}
+
+export async function saveSiteMediaMeta(filePath: string, fields: MediaMetaValues): Promise<MediaMetaResponse> {
+	return api.patch<MediaMetaResponse>(`/media/meta?path=${encodeURIComponent(filePath)}`, { fields });
+}
+
+export async function clearSiteMediaMeta(filePath: string): Promise<void> {
+	return api.delete(`/media/meta?path=${encodeURIComponent(filePath)}`);
+}
+
 // ── Blueprint files (stream-aware folder browse) ────────────────────────
 
 export interface BlueprintFilesParams {

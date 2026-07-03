@@ -369,7 +369,7 @@
 		<!-- Inspector panel -->
 		{#if mediaManager.inspectedFile}
 			<div class="hidden w-[320px] shrink-0 lg:block">
-				<MediaInspector file={mediaManager.inspectedFile} ondelete={handleDeleteFile} />
+				<MediaInspector file={mediaManager.inspectedFile} ondelete={handleDeleteFile} {readonly} />
 			</div>
 		{/if}
 
