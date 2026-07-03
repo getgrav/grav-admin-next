@@ -154,6 +154,10 @@ export interface UpdatePageBody {
 	published?: boolean;
 	visible?: boolean;
 	header?: Record<string, unknown>;
+	// Expert (raw-frontmatter) mode sends the complete header and sets this to
+	// 'replace' so the API replaces the header wholesale instead of merging —
+	// otherwise deleted keys survive the merge and reappear (admin2#102).
+	header_mode?: 'replace';
 }
 
 function toParams(p: PageListParams): Record<string, string> {
