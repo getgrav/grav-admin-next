@@ -16,12 +16,51 @@
 	let { field, value, onchange }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
+	/** Build a CalendarDateTime from a native Date. */
+	function toCalendar(d: Date): CalendarDateTime {
+		return new CalendarDateTime(
+			d.getFullYear(),
+			d.getMonth() + 1,
+			d.getDate(),
+			d.getHours(),
+			d.getMinutes(),
+			d.getSeconds()
+		);
+	}
+
 	/**
-	 * Parse a date string into a CalendarDateTime.
-	 * Handles common Grav date formats: ISO, d-m-Y H:i, m/d/Y h:i a, etc.
+	 * Parse a date value into a CalendarDateTime.
+	 * Handles Unix-timestamp integers as well as common Grav date string
+	 * formats: ISO, d-m-Y H:i, m/d/Y h:i a, etc.
 	 */
 	function parseValue(val: unknown): CalendarDateTime | undefined {
-		if (!val || typeof val !== 'string') return undefined;
+		if (val === null || val === undefined) return undefined;
+
+		// Numeric epoch. YAML parses an unquoted ISO datetime (e.g.
+		// `date: 2026-03-17T16:30:00`) as a Unix timestamp, so header dates
+		// often reach us as integers rather than strings — accept seconds or
+		// milliseconds. A bare numeric string (e.g. after an untouched save
+		// round-trips it back through YAML) is treated the same way.
+		if (typeof val === 'number' || (typeof val === 'string' && /^\d{9,}$/.test(val.trim()))) {
+			const n = typeof val === 'number' ? val : parseInt(val.trim(), 10);
+			if (!Number.isFinite(n) || n <= 0) return undefined;
+			// < 1e12 is seconds (1e12s ≈ year 33658, 1e12ms ≈ 2001).
+			const d = new Date(n < 1e12 ? n * 1000 : n);
+			if (isNaN(d.getTime())) return undefined;
+			// YAML reads an unquoted `...T16:30:00` as UTC, so read the epoch's
+			// UTC wall-clock to show the same time the author typed, rather than
+			// shifting it into the browser's local zone.
+			return new CalendarDateTime(
+				d.getUTCFullYear(),
+				d.getUTCMonth() + 1,
+				d.getUTCDate(),
+				d.getUTCHours(),
+				d.getUTCMinutes(),
+				d.getUTCSeconds()
+			);
+		}
+
+		if (typeof val !== 'string') return undefined;
 		const str = val.trim();
 		if (!str) return undefined;
 
@@ -87,14 +126,7 @@
 
 		if (!d || isNaN(d.getTime())) return undefined;
 
-		return new CalendarDateTime(
-			d.getFullYear(),
-			d.getMonth() + 1,
-			d.getDate(),
-			d.getHours(),
-			d.getMinutes(),
-			d.getSeconds()
-		);
+		return toCalendar(d);
 	}
 
 	/** Format CalendarDateTime to d-m-Y H:i for Grav storage (matches old admin format) */
