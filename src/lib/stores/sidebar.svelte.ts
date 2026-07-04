@@ -31,15 +31,18 @@ export const sidebarStore = {
 
 	/** Fetch live counts for every item that declares a `badgeEndpoint`. */
 	async fetchBadges() {
-		for (const item of pluginItems) {
-			if (!item.badgeEndpoint) continue;
-			try {
-				const result = await api.get<{ count: number }>(item.badgeEndpoint);
-				this.setBadge(item.id, result.count);
-			} catch {
-				// Badge fetch failure is non-critical
-			}
-		}
+		await Promise.all(
+			pluginItems
+				.filter((item) => item.badgeEndpoint)
+				.map(async (item) => {
+					try {
+						const result = await api.get<{ count: number }>(item.badgeEndpoint!);
+						this.setBadge(item.id, result.count);
+					} catch {
+						// Badge fetch failure is non-critical
+					}
+				})
+		);
 	},
 
 	setBadge(id: string, count: number) {

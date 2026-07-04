@@ -520,7 +520,17 @@ class ApiClient {
 			fetchOptions.body = JSON.stringify(options.body);
 		}
 
-		const response = await fetch(url, fetchOptions);
+		// Same concurrency gate as request() — list endpoints (pages, users,
+		// media) come through here and are exactly the burst-prone calls the
+		// slot cap exists for.
+		let response: Response;
+		const limited = !isConcurrencyExempt(path);
+		if (limited) await acquireApiSlot();
+		try {
+			response = await fetch(url, fetchOptions);
+		} finally {
+			if (limited) releaseApiSlot();
+		}
 
 		if (response.status === 401 && !path.startsWith('/auth/') && options.retry !== false) {
 			const refreshed = await this.tryRefresh();
@@ -577,10 +587,17 @@ class ApiClient {
 			url += `?${searchParams.toString()}`;
 		}
 
-		const response = await fetch(url, {
-			method: 'GET',
-			headers: this.headers
-		});
+		let response: Response;
+		const limited = !isConcurrencyExempt(path);
+		if (limited) await acquireApiSlot();
+		try {
+			response = await fetch(url, {
+				method: 'GET',
+				headers: this.headers
+			});
+		} finally {
+			if (limited) releaseApiSlot();
+		}
 
 		if (response.status === 401 && !path.startsWith('/auth/') && options.retry !== false) {
 			const refreshed = await this.tryRefresh();
