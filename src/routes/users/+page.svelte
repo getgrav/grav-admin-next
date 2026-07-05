@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
-	import { getUsers, getUserFilters, type UserInfo, type UsersPage, type UserFilterTab } from '$lib/api/endpoints/users';
+	import { getUsers, getUserFilters, getUserColumns, type UserInfo, type UsersPage, type UserFilterTab, type UserColumn } from '$lib/api/endpoints/users';
 	import { getDirectoryMetadata, type FlexDetailConfig } from '$lib/api/endpoints/flexObjects';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
@@ -61,6 +61,9 @@
 	let pendingDelete = $state<string | null>(null);
 	let confirmDeleteOpen = $state(false);
 	let usersDetail = $state<FlexDetailConfig | null>(null);
+	// Plugin-declared extra columns (onApiUserListColumns). Their per-user values
+	// arrive inside each UserInfo.extra on the list response — no extra fetch.
+	let userColumns = $state<UserColumn[]>([]);
 	const perPage = 20;
 
 	// Filter sources for the type-ahead controls (loaded once).
@@ -132,6 +135,12 @@
 			url.searchParams.set('filter', id);
 		}
 		goto(url, { keepFocus: true, noScroll: true });
+	}
+
+	async function loadUserColumns() {
+		// Tolerant of an API plugin that predates the columns contract — returns
+		// []. No columns simply means the table renders exactly as before.
+		userColumns = await getUserColumns();
 	}
 
 	async function loadUsersDetailMetadata() {
@@ -270,6 +279,7 @@
 	onMount(() => {
 		loadFilterOptions();
 		loadFilterTabs();
+		loadUserColumns();
 		loadUsersDetailMetadata();
 		const unsubUsers = invalidations.subscribe('users:*', () => loadUsers(currentPage));
 		const unsubFocus = invalidations.subscribe('*:focus', () => loadUsers(currentPage));
@@ -408,6 +418,7 @@
 					users={filtered}
 					canEdit={canEditUsers}
 					detail={usersDetail}
+					columns={userColumns}
 					{togglingUsername}
 					onEdit={openUserEdit}
 					onDelete={canEditUsers ? requestDelete : undefined}

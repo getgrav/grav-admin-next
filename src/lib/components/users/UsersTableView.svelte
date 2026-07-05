@@ -1,16 +1,19 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import type { UserInfo } from '$lib/api/endpoints/users';
+	import type { UserInfo, UserColumn } from '$lib/api/endpoints/users';
 	import type { FlexDetailConfig } from '$lib/api/endpoints/flexObjects';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
 	import { Pencil, Trash2, Shield, ShieldCheck, ArrowUp, ArrowDown, Loader2, ChevronDown, ChevronRight } from 'lucide-svelte';
 	import { flattenAccess, isSuperAdmin, hasBackendAccess } from '$lib/utils/user-access';
 	import FlexDetailTable from '$lib/components/flex-objects/FlexDetailTable.svelte';
+	import UserColumnCell from '$lib/components/users/UserColumnCell.svelte';
 
 	interface Props {
 		users: UserInfo[];
 		canEdit: boolean;
 		detail?: FlexDetailConfig | null;
+		/** Plugin-declared extra columns (onApiUserListColumns). */
+		columns?: UserColumn[];
 		togglingUsername?: string | null;
 		onEdit: (username: string) => void;
 		onDelete?: (username: string) => void;
@@ -19,7 +22,7 @@
 		onFilterPermission?: (permission: string) => void;
 	}
 
-	let { users, canEdit, detail, togglingUsername, onEdit, onDelete, onToggleState, onFilterPermission }: Props = $props();
+	let { users, canEdit, detail, columns = [], togglingUsername, onEdit, onDelete, onToggleState, onFilterPermission }: Props = $props();
 
 	// How many permission chips to show before collapsing into a "+N" count.
 	const MAX_CHIPS = 3;
@@ -29,7 +32,7 @@
 	let sortDir = $state<'asc' | 'desc'>('asc');
 	let openDetailUsername = $state<string | null>(null);
 
-	const columnCount = $derived(detail?.enabled ? 7 : 6);
+	const columnCount = $derived((detail?.enabled ? 7 : 6) + columns.length);
 
 	function toggleSort(key: SortKey) {
 		if (sortKey === key) {
@@ -112,6 +115,9 @@
 					</button>
 				</th>
 				<th class="px-4 py-2 text-start font-medium">{i18n.t('ADMIN_NEXT.USERS_TABLE.PERMISSIONS')}</th>
+				{#each columns as column (column.id)}
+					<th class="px-4 py-2 text-start font-medium">{column.label}</th>
+				{/each}
 				<th class="w-20 px-4 py-2 text-end font-medium">{i18n.t('ADMIN_NEXT.USERS_TABLE.ACTIONS')}</th>
 			</tr>
 		</thead>
@@ -220,6 +226,11 @@
 							{/if}
 						</div>
 					</td>
+					{#each columns as column (column.id)}
+						<td class="px-4 py-2 text-sm">
+							<UserColumnCell value={user.extra?.[column.field]} formatter={column.formatter} />
+						</td>
+					{/each}
 					<td class="px-4 py-2 text-end">
 						<div class="inline-flex items-center gap-1">
 							{#if canEdit}

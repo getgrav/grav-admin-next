@@ -21,6 +21,13 @@ export interface UserInfo {
 	twofa_global_enabled?: boolean;
 	created: string | null;
 	modified: string | null;
+	/**
+	 * Plugin-owned scalar values for any custom columns declared via
+	 * onApiUserListColumns (getgrav/grav-plugin-admin2#111). Keyed by a column's
+	 * `field`; present only on the list endpoint, and only for users a plugin
+	 * returned data for. Always scalars — the API strips anything else.
+	 */
+	extra?: Record<string, string | number | boolean | null>;
 }
 
 export interface UsersPage {
@@ -95,6 +102,46 @@ export async function getUserFilters(): Promise<UserFilterPolicy> {
 		defaultFilter: res.defaultFilter ?? 'all',
 		showAll: res.showAll ?? true,
 	};
+}
+
+/**
+ * A client-side renderer a plugin column may name. The server validates this
+ * against the same whitelist, so an unknown value never reaches us — but we
+ * default to 'text' anyway. No renderer function or HTML crosses the wire.
+ */
+export type ColumnFormatter = 'text' | 'link' | 'date' | 'datetime' | 'boolean' | 'number' | 'badge';
+
+/**
+ * A plugin-declared extra column for the Users list (onApiUserListColumns).
+ * Admin owns the table; the plugin only describes the column. Per-user values
+ * ride along inside each UserInfo.extra, keyed by `field`.
+ */
+export interface UserColumn {
+	id: string;
+	plugin: string;
+	label: string;
+	/** Key into each user's `extra` map. */
+	field: string;
+	formatter: ColumnFormatter;
+	/** Client-side sort, current page only (data is page-scoped). */
+	sortable?: boolean;
+	priority?: number;
+}
+
+/**
+ * Fetch the plugin-declared column set for the Users list. Requires
+ * api.users.read. Tolerates an API plugin that predates the columns contract
+ * (404 / no `columns` key) by returning an empty list, so a newer admin2 still
+ * works against an older API.
+ */
+export async function getUserColumns(): Promise<UserColumn[]> {
+	try {
+		const res = await api.get<{ columns?: UserColumn[] } | UserColumn[]>('/users/columns');
+		if (Array.isArray(res)) return res;
+		return res.columns ?? [];
+	} catch {
+		return [];
+	}
 }
 
 /**
