@@ -1,5 +1,6 @@
 import { api } from '../client';
 import { extractEtag } from '$lib/utils/etag';
+import type { IconSpec } from '$lib/utils/icon-spec';
 
 export interface UserInfo {
 	username: string;
@@ -58,7 +59,7 @@ export interface UserFilterTab {
 	id: string;
 	plugin: string;
 	label: string;
-	icon?: string;
+	icon?: IconSpec;
 	priority?: number;
 	badge?: string | number | null;
 	/** API path returning { count: N }, refreshed live (mirrors sidebar badges). */
