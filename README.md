@@ -99,6 +99,12 @@ Admin-next supports RTL admin languages (Arabic, Hebrew, Persian, Urdu — anyth
 
 See [`docs/RTL.md`](docs/RTL.md) for the conventions: when to reach for Tailwind's logical utilities (`ms-*` / `me-*` / `border-s` / `text-start`), when the `rtl:` variant is the right tool, the directional-icon wrapper, and the "code stays LTR" rule.
 
+## Extension icons
+
+Extension APIs that expose icon fields can use the shared `IconSpec` contract for Font Awesome, other loaded CSS icon sets, bundled Lucide icons, and safe structured SVG icons.
+
+See [`docs/IconSpec.md`](docs/IconSpec.md) for the supported shorthands and SVG safety rules.
+
 ## Contributing
 
 Issues and pull requests are welcome. For bugs that are clearly about the PHP wrapper or static asset delivery, open them on [`grav-plugin-admin2`](https://github.com/getgrav/grav-plugin-admin2/issues); for API shape or data questions, open them on [`grav-plugin-api`](https://github.com/getgrav/grav-plugin-api/issues); for everything UI, open them here.
