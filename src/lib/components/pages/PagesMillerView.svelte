@@ -1120,8 +1120,8 @@
 					{#if previewPage.summary}
 						<div class="mt-4 border-t border-border pt-4">
 							<h4 class="mb-2 text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.SUMMARY')}</h4>
-							<div class="prose prose-sm dark:prose-invert max-w-none text-[0.8125rem] leading-relaxed text-foreground/80">
-								{@html previewPage.summary}
+							<div class="max-w-none text-[0.8125rem] leading-relaxed text-foreground/80">
+								{previewPage.summary}
 							</div>
 						</div>
 					{/if}
