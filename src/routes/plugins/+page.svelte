@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
-	import { getInstalledPlugins, setPluginEnabled, checkUpdates, updatePackage, updateAllPackages, removePlugin, type PluginInfo } from '$lib/api/endpoints/gpm';
+	import { getInstalledPlugins, setPluginEnabled, checkUpdates, updatePackage, updateAllPackages, removePlugin, getPluginChangelog, type PluginInfo } from '$lib/api/endpoints/gpm';
 	import { reloadIfAdminUpdated } from '$lib/utils/gpm';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
@@ -11,10 +11,11 @@
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import AddPluginModal from '$lib/components/AddPluginModal.svelte';
 	import { toast } from 'svelte-sonner';
-	import { Search, Puzzle, ExternalLink, ArrowUpCircle, Loader2, Plus, RefreshCw, BadgeCheck, CornerDownRight, LayoutGrid, Table as TableIcon, Trash2 } from 'lucide-svelte';
+	import { Search, Puzzle, ExternalLink, ArrowUpCircle, Loader2, Plus, RefreshCw, BadgeCheck, CornerDownRight, LayoutGrid, Table as TableIcon, Trash2, FileText } from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText } from '$lib/utils/gpm';
+	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText, formatChangelog } from '$lib/utils/gpm';
+	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { scopedKey } from '$lib/utils/scopedStorage';
 	import { prefs } from '$lib/stores/preferences.svelte';
@@ -54,6 +55,26 @@
 	let togglingSlug = $state<string | null>(null);
 	let addModalOpen = $state(false);
 	let installSlug = $state('');
+
+	// Changelog modal
+	let changelogOpen = $state(false);
+	let changelogTitle = $state('');
+	let changelogContent = $state('');
+	let changelogLoading = $state(false);
+
+	async function showChangelog(plugin: PluginInfo) {
+		changelogLoading = true;
+		changelogTitle = `${plugin.name} — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`;
+		changelogContent = '';
+		changelogOpen = true;
+		try {
+			changelogContent = formatChangelog(await getPluginChangelog(plugin.slug));
+		} catch {
+			changelogContent = '*Changelog not available.*';
+		} finally {
+			changelogLoading = false;
+		}
+	}
 
 	// Auto-open install modal when navigating with ?install=slug
 	$effect(() => {
@@ -397,6 +418,7 @@
 					onConfigure={openPluginConfig}
 					onToggle={toggleEnabled}
 					onUpdate={handleUpdatePlugin}
+					onChangelog={showChangelog}
 					onRemove={handleRemovePlugin}
 				/>
 			</div>
@@ -581,6 +603,13 @@
 							{/if}
 						{/if}
 
+						<!-- Links -->
+						<div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+							<button type="button" class="inline-flex items-center gap-1 hover:text-foreground" onclick={() => selectedPlugin && showChangelog(selectedPlugin)}>
+								<FileText size={12} /> {i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}
+							</button>
+						</div>
+
 						<!-- Metadata grid -->
 						<div class="mt-6 grid grid-cols-2 gap-4">
 							{#if selectedPlugin.author?.name}
@@ -691,4 +720,11 @@
 	initialSearch={installSlug}
 	onclose={() => { addModalOpen = false; installSlug = ''; if (page.url.searchParams.has('install')) goto(`${base}/plugins`, { replaceState: true }); }}
 	oninstalled={handlePluginInstalled}
+/>
+
+<MarkdownModal
+	open={changelogOpen}
+	title={changelogTitle}
+	content={changelogLoading ? 'Loading...' : changelogContent}
+	onclose={() => { changelogOpen = false; }}
 />

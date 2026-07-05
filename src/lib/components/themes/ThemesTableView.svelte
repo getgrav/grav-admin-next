@@ -2,7 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import type { ThemeInfo } from '$lib/api/endpoints/gpm';
 	import { faIconClass, isFirstParty } from '$lib/utils/gpm';
-	import { Palette, ArrowUpCircle, BadgeCheck, Loader2, CornerDownRight, ArrowUp, ArrowDown, Settings, Check, Trash2 } from 'lucide-svelte';
+	import { Palette, ArrowUpCircle, BadgeCheck, Loader2, CornerDownRight, ArrowUp, ArrowDown, Settings, Check, Trash2, FileText } from 'lucide-svelte';
 
 	interface Props {
 		themes: ThemeInfo[];
@@ -14,6 +14,7 @@
 		resolveUrl: (url: string | null | undefined) => string | null;
 		onConfigure: (slug: string) => void;
 		onUpdate: (theme: ThemeInfo, e: Event) => void;
+		onChangelog: (theme: ThemeInfo, e: Event) => void;
 		onActivate?: (theme: ThemeInfo, e: Event) => void;
 		onRemove?: (theme: ThemeInfo, e: Event) => void;
 	}
@@ -28,6 +29,7 @@
 		resolveUrl,
 		onConfigure,
 		onUpdate,
+		onChangelog,
 		onActivate,
 		onRemove,
 	}: Props = $props();
@@ -166,6 +168,14 @@
 									{/if}
 								</button>
 							{/if}
+							<button
+								class="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+								aria-label={i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}
+								title={i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}
+								onclick={(e) => onChangelog(theme, e)}
+							>
+								<FileText size={14} />
+							</button>
 							<button
 								class="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
 								aria-label={i18n.t('ADMIN_NEXT.PLUGINS.CONFIGURE')}

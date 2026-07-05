@@ -537,3 +537,36 @@ export function parseCompatibility(compatibility: unknown): CompatibilityRow[] {
 	}
 	return rows;
 }
+
+/**
+ * Preprocess Grav changelog markdown into clean HTML-friendly markdown.
+ *
+ * Grav changelogs use a special format:
+ *   1. [](#bugfix)      →  badge
+ *   1. [](#new)         →  badge
+ *   1. [](#improved)    →  badge
+ *       * item text     →  bullet item
+ */
+export function formatChangelog(raw: string): string {
+	const badgeColors: Record<string, string> = {
+		new: 'background:#2563eb;color:white',
+		improved: 'background:#f59e0b;color:white',
+		bugfix: 'background:#ef4444;color:white',
+	};
+	const badgeLabels: Record<string, string> = {
+		new: 'New',
+		improved: 'Improved',
+		bugfix: 'Bugfix',
+	};
+
+	return raw
+		// Replace "1. [](#type)" lines with badge HTML
+		.replace(/^\d+\.\s*\[]\(#(\w+)\)\s*$/gm, (_match, type: string) => {
+			const color = badgeColors[type] ?? 'background:#6b7280;color:white';
+			const label = badgeLabels[type] ?? type;
+			return `<span style="${color};padding:2px 8px;border-radius:4px;font-size:0.6875rem;font-weight:600;display:inline-block;margin-top:8px">${label}</span>\n`;
+		})
+		// Convert indented "* item" to flat bullets (remove extra nesting)
+		.replace(/^ {4}\* /gm, '- ')
+		.replace(/^\t\* /gm, '- ');
+}

@@ -2,7 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import type { PluginInfo } from '$lib/api/endpoints/gpm';
 	import { faIconClass, isFirstParty } from '$lib/utils/gpm';
-	import { Puzzle, ArrowUpCircle, BadgeCheck, Loader2, CornerDownRight, ArrowUp, ArrowDown, Settings, Trash2 } from 'lucide-svelte';
+	import { Puzzle, ArrowUpCircle, BadgeCheck, Loader2, CornerDownRight, ArrowUp, ArrowDown, Settings, Trash2, FileText } from 'lucide-svelte';
 
 	interface Props {
 		plugins: PluginInfo[];
@@ -15,6 +15,7 @@
 		onConfigure: (slug: string) => void;
 		onToggle: (plugin: PluginInfo, e: Event) => void;
 		onUpdate: (plugin: PluginInfo, e: Event) => void;
+		onChangelog: (plugin: PluginInfo, e: Event) => void;
 		onRemove?: (plugin: PluginInfo, e: Event) => void;
 	}
 
@@ -29,6 +30,7 @@
 		onConfigure,
 		onToggle,
 		onUpdate,
+		onChangelog,
 		onRemove,
 	}: Props = $props();
 
@@ -160,6 +162,14 @@
 									{/if}
 								</button>
 							{/if}
+							<button
+								class="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+								aria-label={i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}
+								title={i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}
+								onclick={(e) => onChangelog(plugin, e)}
+							>
+								<FileText size={14} />
+							</button>
 							<button
 								class="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
 								aria-label={i18n.t('ADMIN_NEXT.PLUGINS.CONFIGURE')}

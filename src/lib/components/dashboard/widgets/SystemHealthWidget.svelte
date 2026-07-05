@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { Shield, Server, HardDrive, ArrowUpCircle, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-svelte';
+	import { Shield, Server, HardDrive, ArrowUpCircle, AlertTriangle, CheckCircle2, Loader2, FileText } from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { getDashboardData } from '$lib/dashboard/context';
 	import { formatBytes } from '$lib/dashboard/format';
@@ -60,14 +60,10 @@
 								<DirectionalIcon name="arrow-forward" size={11} class="text-purple-500" />
 								<span class="font-semibold tabular-nums text-purple-600 dark:text-purple-400">v{updates.grav.available}</span>
 							</div>
-							{#if canWriteGpm}
-								{#if updates.grav.is_symlink}
-									<div class="mt-2 text-[0.6875rem] italic text-muted-foreground">
-										{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.GRAV_IS_INSTALLED_VIA_SYMLINK_UPGRADE')}
-									</div>
-								{:else}
+							<div class="mt-2.5 flex flex-wrap items-center gap-2">
+								{#if canWriteGpm && !updates.grav.is_symlink}
 									<button type="button"
-										class="mt-2.5 inline-flex h-8 items-center gap-1.5 rounded-md bg-purple-600 px-3 text-[0.75rem] font-semibold text-white shadow-sm transition-colors hover:bg-purple-700 disabled:opacity-60 dark:bg-purple-500 dark:hover:bg-purple-600"
+										class="inline-flex h-8 items-center gap-1.5 rounded-md bg-purple-600 px-3 text-[0.75rem] font-semibold text-white shadow-sm transition-colors hover:bg-purple-700 disabled:opacity-60 dark:bg-purple-500 dark:hover:bg-purple-600"
 										onclick={() => data().onUpgradeGrav()}
 										disabled={updatingAll || upgradingGrav}
 									>
@@ -75,6 +71,18 @@
 										{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPGRADE_GRAV')}
 									</button>
 								{/if}
+								<button type="button"
+									class="inline-flex h-8 items-center gap-1.5 rounded-md border border-purple-500/30 px-3 text-[0.75rem] font-medium text-purple-600 transition-colors hover:bg-purple-500/10 dark:text-purple-400"
+									onclick={() => data().onShowGravChangelog()}
+								>
+									<FileText size={12} />
+									{i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}
+								</button>
+							</div>
+							{#if canWriteGpm && updates.grav.is_symlink}
+								<div class="mt-2 text-[0.6875rem] italic text-muted-foreground">
+									{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.GRAV_IS_INSTALLED_VIA_SYMLINK_UPGRADE')}
+								</div>
 							{/if}
 						</div>
 					</div>

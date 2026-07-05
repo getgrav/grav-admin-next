@@ -22,7 +22,7 @@
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
-	import { faIconClass, parseKeywords, parseDependencies, isFirstParty } from '$lib/utils/gpm';
+	import { faIconClass, parseKeywords, parseDependencies, isFirstParty, formatChangelog } from '$lib/utils/gpm';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
@@ -78,39 +78,6 @@
 		} finally {
 			modalLoading = false;
 		}
-	}
-
-	/**
-	 * Preprocess Grav changelog markdown into clean HTML-friendly markdown.
-	 *
-	 * Grav changelogs use a special format:
-	 *   1. [](#bugfix)      →  badge
-	 *   1. [](#new)         →  badge
-	 *   1. [](#improved)    →  badge
-	 *       * item text     →  bullet item
-	 */
-	function formatChangelog(raw: string): string {
-		const badgeColors: Record<string, string> = {
-			new: 'background:#2563eb;color:white',
-			improved: 'background:#f59e0b;color:white',
-			bugfix: 'background:#ef4444;color:white',
-		};
-		const badgeLabels: Record<string, string> = {
-			new: 'New',
-			improved: 'Improved',
-			bugfix: 'Bugfix',
-		};
-
-		return raw
-			// Replace "1. [](#type)" lines with badge HTML
-			.replace(/^\d+\.\s*\[]\(#(\w+)\)\s*$/gm, (_match, type: string) => {
-				const color = badgeColors[type] ?? 'background:#6b7280;color:white';
-				const label = badgeLabels[type] ?? type;
-				return `<span style="${color};padding:2px 8px;border-radius:4px;font-size:0.6875rem;font-weight:600;display:inline-block;margin-top:8px">${label}</span>\n`;
-			})
-			// Convert indented "* item" to flat bullets (remove extra nesting)
-			.replace(/^ {4}\* /gm, '- ')
-			.replace(/^\t\* /gm, '- ');
 	}
 
 	async function showChangelog() {

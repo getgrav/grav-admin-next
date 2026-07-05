@@ -29,6 +29,7 @@ export interface DashboardData {
 	canWriteSystem: boolean;
 	onUpdateAll: () => void | Promise<void>;
 	onUpgradeGrav: () => void | Promise<void>;
+	onShowGravChangelog: () => void | Promise<void>;
 	onCreateBackup: () => void | Promise<void>;
 }
 

@@ -7,8 +7,9 @@
 		type FeedItem, type BackupInfo, type UpdatesData, type SystemInfoOverview
 	} from '$lib/api/endpoints/dashboard';
 	import { getWidgets, saveUserLayout, saveSiteLayout } from '$lib/api/endpoints/dashboard-widgets';
-	import { updateAllPackages, upgradeGrav } from '$lib/api/endpoints/gpm';
-	import { reloadIfAdminUpdated } from '$lib/utils/gpm';
+	import { updateAllPackages, upgradeGrav, getGravChangelog } from '$lib/api/endpoints/gpm';
+	import { reloadIfAdminUpdated, formatChangelog } from '$lib/utils/gpm';
+	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
 	import { createBackup } from '$lib/api/endpoints/tools';
 	import { canWrite } from '$lib/utils/permissions';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
@@ -56,6 +57,24 @@
 	let editMode = $state(false);
 	let saving = $state(false);
 	let pickerOpen = $state(false);
+
+	// Grav core changelog modal
+	let gravChangelogOpen = $state(false);
+	let gravChangelogContent = $state('');
+	let gravChangelogLoading = $state(false);
+
+	async function handleShowGravChangelog() {
+		gravChangelogLoading = true;
+		gravChangelogContent = '';
+		gravChangelogOpen = true;
+		try {
+			gravChangelogContent = formatChangelog(await getGravChangelog());
+		} catch {
+			gravChangelogContent = '*Changelog not available.*';
+		} finally {
+			gravChangelogLoading = false;
+		}
+	}
 	const dirty = $derived(JSON.stringify(widgets) !== JSON.stringify(savedWidgetsSnapshot));
 
 	const canWriteGpm = $derived(canWrite('gpm'));
@@ -66,6 +85,7 @@
 		animated, updatingAll, upgradingGrav, creatingBackup, canWriteGpm, canWriteSystem,
 		onUpdateAll: handleUpdateAll,
 		onUpgradeGrav: handleUpgradeGrav,
+		onShowGravChangelog: handleShowGravChangelog,
 		onCreateBackup: handleCreateBackup,
 	}));
 
@@ -360,3 +380,10 @@
 		<WidgetPicker {widgets} bind:open={pickerOpen} onAdd={addWidget} />
 	</div>
 {/if}
+
+<MarkdownModal
+	open={gravChangelogOpen}
+	title={`Grav — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`}
+	content={gravChangelogLoading ? 'Loading...' : gravChangelogContent}
+	onclose={() => { gravChangelogOpen = false; }}
+/>

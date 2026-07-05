@@ -70,6 +70,14 @@ export async function getPluginChangelog(slug: string): Promise<string> {
 }
 
 /**
+ * Get the Grav core changelog for versions newer than the one installed.
+ */
+export async function getGravChangelog(): Promise<string> {
+	const result = await api.get<{ content: string }>(`/gpm/grav/changelog`);
+	return result.content;
+}
+
+/**
  * Get plugin configuration data (with ETag for concurrency).
  */
 export async function getPluginConfig(slug: string): Promise<ConfigResponse> {
