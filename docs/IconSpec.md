@@ -10,7 +10,6 @@ Use strings for common cases:
 'icon' => 'fa-regular:clock';      // Font Awesome regular
 'icon' => 'fa-brands:github';      // Font Awesome brands
 'icon' => 'class:ti ti-user';      // Any icon CSS classes already loaded by Admin2
-'icon' => 'lucide:user-round-check'; // Bundled lucide-svelte icon
 ```
 
 Structured objects are available when a string is not enough:
@@ -20,12 +19,12 @@ Structured objects are available when a string is not enough:
     'type' => 'class',
     'class' => 'bi bi-person',
 ];
-
-'icon' => [
-    'type' => 'lucide',
-    'name' => 'user-round-check',
-];
 ```
+
+For a custom glyph, send structured SVG data (below). Font Awesome and the
+`class:` form both reuse icon CSS the admin already loads, so they add nothing
+to the bundle; SVG data lets a plugin ship its own glyph without pulling a
+whole icon library into the admin build.
 
 For custom SVG icons, prefer the safe single-path shorthand:
 

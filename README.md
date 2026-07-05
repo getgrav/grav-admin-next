@@ -101,7 +101,7 @@ See [`docs/RTL.md`](docs/RTL.md) for the conventions: when to reach for Tailwind
 
 ## Extension icons
 
-Extension APIs that expose icon fields can use the shared `IconSpec` contract for Font Awesome, other loaded CSS icon sets, bundled Lucide icons, and safe structured SVG icons.
+Extension APIs that expose icon fields can use the shared `IconSpec` contract for Font Awesome, other loaded CSS icon sets, and safe structured SVG icons.
 
 See [`docs/IconSpec.md`](docs/IconSpec.md) for the supported shorthands and SVG safety rules.
 

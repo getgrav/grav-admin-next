@@ -14,7 +14,11 @@ export interface SvgIconElement {
  * - "fa:clock" => "fa-solid fa-clock"
  * - "fa-regular:clock" => "fa-regular fa-clock"
  * - "class:ti ti-user" => any already loaded CSS icon classes
- * - "lucide:user-round-check" => bundled lucide-svelte icon
+ *
+ * Both forms cost nothing at the bundle level: Font Awesome is already loaded
+ * as a webfont, and `class:` reuses whatever icon CSS the admin already ships.
+ * For a truly custom glyph, plugins send structured SVG data (below) rather
+ * than pulling a whole icon library into the admin bundle.
  *
  * Structured SVG icons intentionally accept only data, not raw SVG markup.
  * The renderer whitelists SVG tags and attributes before creating DOM nodes.
@@ -26,10 +30,6 @@ export type IconSpec =
 			class: string;
 	  }
 	| {
-			type: 'lucide';
-			name: string;
-	  }
-	| {
 			type: 'svg';
 			viewBox?: string;
 			path?: string;
@@ -39,7 +39,6 @@ export type IconSpec =
 
 type ResolvedIcon =
 	| { type: 'class'; className: string }
-	| { type: 'lucide'; name: string }
 	| { type: 'svg'; viewBox: string; elements: { tag: SvgIconTag; attrs: Record<string, string> }[] };
 
 const SVG_TAGS = new Set<SvgIconTag>(['path', 'circle', 'rect', 'line', 'polyline', 'polygon']);
@@ -70,7 +69,6 @@ export function resolveIconSpec(icon: IconSpec | null | undefined): ResolvedIcon
 	if (typeof icon === 'string') {
 		const value = icon.trim();
 		if (!value) return null;
-		if (value.startsWith('lucide:')) return { type: 'lucide', name: value.slice(7).trim() };
 		const className = iconClassFromString(value);
 		return className ? { type: 'class', className } : null;
 	}
@@ -78,11 +76,6 @@ export function resolveIconSpec(icon: IconSpec | null | undefined): ResolvedIcon
 	if (icon.type === 'class') {
 		const className = icon.class.trim();
 		return className ? { type: 'class', className } : null;
-	}
-
-	if (icon.type === 'lucide') {
-		const name = icon.name.trim();
-		return name ? { type: 'lucide', name } : null;
 	}
 
 	if (icon.type === 'svg') {
@@ -98,12 +91,6 @@ export function resolveIconSpec(icon: IconSpec | null | undefined): ResolvedIcon
 	}
 
 	return null;
-}
-
-export function resolveLucideName(name: string): string {
-	return name
-		.trim()
-		.replace(/(^|-|_|\s+)([a-z])/g, (_match: string, _separator: string, letter: string) => letter.toUpperCase());
 }
 
 function iconClassFromString(value: string): string {
