@@ -128,6 +128,7 @@
 		onclick={() => open = !open}
 		title={i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.SELECT_WHERE_CONFIG_WRITES_ARE_SAVED')}
 	>
+		<span class="opacity-60">{i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.PREFIX')}</span>
 		<span>{badgeLabel}</span>
 		<ChevronDown size={11} class="transition-transform {open ? 'rotate-180' : ''}" />
 	</button>

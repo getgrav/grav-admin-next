@@ -27,8 +27,10 @@
 		const p = page.url.pathname.replace(base, '');
 		if (p.startsWith('/users/groups')) return 'groups';
 		// Both the pending list (/users/invitations) and the create form
-		// (/users/invite) belong to the Invitations tab.
-		if (p.startsWith('/users/invite')) return 'invitations';
+		// (/users/invite) belong to the Invitations tab. Match the shared
+		// '/users/invit' prefix so both routes highlight the tab — '/users/invite'
+		// alone misses '/users/invitations' (they diverge at "invit-e" vs "invit-a").
+		if (p.startsWith('/users/invit')) return 'invitations';
 		if (p.startsWith('/users/config')) return 'config';
 		return 'users';
 	});

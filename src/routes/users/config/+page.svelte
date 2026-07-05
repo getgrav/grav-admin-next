@@ -13,7 +13,7 @@
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import UsersTabNav from '$lib/components/users/UsersTabNav.svelte';
 	import { toast } from 'svelte-sonner';
-	import { Save, Loader2, Settings } from 'lucide-svelte';
+	import { Save, Loader2 } from 'lucide-svelte';
 
 	const isSuper = $derived(auth.isSuperAdmin);
 
@@ -131,11 +131,13 @@
 			{#snippet children({ scrolled })}
 				<div class="px-6 transition-[padding] duration-200 {scrolled ? 'py-2' : 'pt-6 pb-3'}">
 					<div class="flex items-center justify-between {scrolled ? 'min-h-6' : 'min-h-8'}">
-						<div class="flex items-center gap-2">
-							<Settings size={scrolled ? 16 : 20} class="text-muted-foreground" />
+						<div>
 							<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">
 								{i18n.t('ADMIN_NEXT.ACCOUNTS_CONFIG.TITLE')}
 							</h1>
+							{#if !scrolled}
+								<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.ACCOUNTS_CONFIG.SUBTITLE')}</p>
+							{/if}
 						</div>
 						<Button size="sm" disabled={!hasChanges || saving || !requiredOk} onclick={handleSave}>
 							{#if saving}
