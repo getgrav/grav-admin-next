@@ -9,6 +9,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import AddThemeModal from '$lib/components/AddThemeModal.svelte';
+	import GravUpdateBanner from '$lib/components/GravUpdateBanner.svelte';
 	import { toast } from 'svelte-sonner';
 	import { Search, Palette, ExternalLink, ArrowUpCircle, Loader2, Plus, RefreshCw, BadgeCheck, Check, CornerDownRight, LayoutGrid, Table as TableIcon, Trash2, FileText } from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
@@ -337,6 +338,8 @@
 			</div>
 		{/snippet}
 	</StickyHeader>
+
+	<GravUpdateBanner onUpgraded={loadThemes} />
 
 	{#if loading}
 		<div class="flex flex-1 items-center justify-center">
