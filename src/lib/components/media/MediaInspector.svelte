@@ -4,7 +4,9 @@
 		encodeMediaFileUrl,
 		getSiteMediaMeta,
 		saveSiteMediaMeta,
+		mediaMarkdown,
 		type MediaItem,
+		type MediaMetaResponse,
 	} from '$lib/api/endpoints/media';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { mediaManager } from '$lib/stores/mediaManager.svelte';
@@ -77,12 +79,26 @@
 		return `media://${fullPath}`;
 	}
 
+	// Alt/title just saved in the inline metadata form, so the markdown snippet
+	// reflects the edit without waiting for the listing to reload. Reset when a
+	// different file is selected.
+	let savedMeta = $state<{ alt: string; title: string } | null>(null);
+	$effect(() => {
+		void file.filename;
+		savedMeta = null;
+	});
+
+	function applySavedMeta(meta: MediaMetaResponse) {
+		const field = (key: string) => {
+			const v = meta.fields.find((f) => f.key === key)?.value;
+			return typeof v === 'string' ? v : '';
+		};
+		savedMeta = { alt: field('alt'), title: field('title') };
+	}
+
 	function getMarkdownSnippet(): string {
-		const streamPath = getMediaStreamPath();
-		if (file.type.startsWith('image/')) {
-			return `![${file.filename}](${streamPath})`;
-		}
-		return `[${file.filename}](${streamPath})`;
+		const item = savedMeta ? { ...file, ...savedMeta } : file;
+		return mediaMarkdown(item, getMediaStreamPath());
 	}
 
 	async function copyToClipboard(text: string, label: string) {
@@ -231,6 +247,7 @@
 				filename={filePath}
 				load={() => getSiteMediaMeta(filePath)}
 				save={(values) => saveSiteMediaMeta(filePath, values)}
+				onsaved={applySavedMeta}
 				{readonly}
 			/>
 		</div>

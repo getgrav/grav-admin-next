@@ -30,6 +30,8 @@
 	import { modals } from '$lib/stores/modals.svelte';
 	import { getEditorButtons, type EditorToolbarButton } from '$lib/api/endpoints/editorButtons';
 	import { ensureKeymapLoaded, keymapExtension } from './keymap';
+	import ImageInsertModal from './ImageInsertModal.svelte';
+	import type { PageMediaContext } from '$lib/components/media/types';
 
 	import type { Awareness } from 'y-protocols/awareness';
 	import { yCollab, yUndoManagerKeymap } from 'y-codemirror.next';
@@ -89,6 +91,10 @@
 
 	// Resolve image paths for preview: page-relative, media://, image://
 	const getRoute = getContext<(() => string) | undefined>('pageRoute');
+
+	// Live page media (set by the page editor). Absent in contexts without page
+	// media (flex objects, config) — the image picker then shows only URL entry.
+	const mediaCtx = getContext<PageMediaContext | undefined>('pageMediaItems');
 
 	function resolveImagePaths(md: string): string {
 		const serverUrl = auth.serverUrl || '';
@@ -512,24 +518,29 @@
 		view.focus();
 	}
 
+	// Image toolbar button: open a picker (page media thumbnails + manual URL)
+	// rather than dropping a `![alt text](image-url)` placeholder. The cursor
+	// range is captured now because opening the modal takes focus off CodeMirror.
+	let showImageModal = $state(false);
+	let imageInsertRange = { from: 0, to: 0 };
+	let imageAltSeed = $state('');
+
 	function insertImage() {
 		if (!view) return;
 		const { from, to } = view.state.selection.main;
-		const selected = view.state.sliceDoc(from, to);
+		imageInsertRange = { from, to };
+		imageAltSeed = view.state.sliceDoc(from, to);
+		showImageModal = true;
+	}
 
-		if (selected) {
-			const insert = `![${selected}](image-url)`;
-			view.dispatch({
-				changes: { from, to, insert },
-				selection: { anchor: from + selected.length + 4, head: from + selected.length + 13 },
-			});
-		} else {
-			const insert = '![alt text](image-url)';
-			view.dispatch({
-				changes: { from, insert },
-				selection: { anchor: from + 2, head: from + 10 },
-			});
-		}
+	function handleImageInsert(markdown: string) {
+		showImageModal = false;
+		if (!view) return;
+		const { from, to } = imageInsertRange;
+		view.dispatch({
+			changes: { from, to, insert: markdown },
+			selection: { anchor: from + markdown.length },
+		});
 		view.focus();
 	}
 
@@ -822,6 +833,14 @@
 		style:display={showPreview ? 'none' : ''}
 	></div>
 </div>
+
+<ImageInsertModal
+	open={showImageModal}
+	items={mediaCtx?.items ?? []}
+	altSeed={imageAltSeed}
+	oninsert={handleImageInsert}
+	onclose={() => { showImageModal = false; view?.focus(); }}
+/>
 
 <style>
 	/* Ensure the CodeMirror editor fills its container. The wrapper is a flex

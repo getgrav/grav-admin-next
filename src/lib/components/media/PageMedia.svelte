@@ -7,10 +7,10 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
-	import { getPageMedia, deletePageMedia, getObjectMedia, deleteObjectMedia, getPageMediaMeta, savePageMediaMeta, encodeMediaFileUrl, type MediaItem } from '$lib/api/endpoints/media';
+	import { getPageMedia, deletePageMedia, getObjectMedia, deleteObjectMedia, getPageMediaMeta, savePageMediaMeta, encodeMediaFileUrl, mediaMarkdown, type MediaItem, type MediaMetaResponse } from '$lib/api/endpoints/media';
 	import { toast } from 'svelte-sonner';
 	import { uploadErrorMessage } from '$lib/utils/upload-error';
-	import { Upload, X, ImagePlus, ArrowUpDown, Info } from 'lucide-svelte';
+	import { Upload, X, ImagePlus, ArrowUpDown, Info, Plus } from 'lucide-svelte';
 	import MediaMetadataModal from './MediaMetadataModal.svelte';
 
 	interface Props {
@@ -328,13 +328,38 @@
 		}
 	}
 
+	// Fold freshly-saved metadata back into the grid item so a following insert
+	// (or drag) uses the new alt/title without waiting for a reload — the modal
+	// only writes the sidecar on disk, it doesn't refresh the listing.
+	function applySavedMeta(filename: string, meta: MediaMetaResponse) {
+		const field = (key: string) => {
+			const v = meta.fields.find((f) => f.key === key)?.value;
+			return typeof v === 'string' ? v : '';
+		};
+		const alt = field('alt');
+		const title = field('title');
+		mediaItems = mediaItems.map((m) =>
+			m.filename === filename ? { ...m, alt, title } : m,
+		);
+	}
+
+	// Insert-at-cursor: the 1.7 (+) affordance. Sidesteps drag-and-drop (which
+	// is awkward when the media list is scrolled away from the editor) by asking
+	// the active editor to drop the markdown at its cursor via a window event.
+	// The CodeMirror editor listens for this; editor-pro will be wired up later.
+	function handleInsert(item: MediaItem) {
+		window.dispatchEvent(
+			new CustomEvent('grav:editor:insert-content', {
+				detail: { content: mediaMarkdown(item), mode: 'insert-at-cursor' },
+			}),
+		);
+		toast.success(i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.INSERTED', { filename: item.filename }));
+	}
+
 	// Drag-OUT: drag media thumbnail into the markdown editor
 	function handleThumbnailDragStart(e: DragEvent, item: MediaItem) {
 		if (!e.dataTransfer) return;
-		const isImage = item.type.startsWith('image/');
-		const mdText = isImage
-			? `![${item.filename}](${item.filename})`
-			: `[${item.filename}](${item.filename})`;
+		const mdText = mediaMarkdown(item);
 		e.dataTransfer.setData('text/plain', mdText);
 		e.dataTransfer.setData('application/x-grav-media', JSON.stringify(item));
 		e.dataTransfer.effectAllowed = 'copy';
@@ -566,6 +591,16 @@
 									{item.filename}
 								</span>
 								<div class="flex flex-shrink-0 items-center gap-0.5">
+									{#if !inReorderMode}
+										<button
+											type="button"
+											class="inline-flex h-5 w-5 items-center justify-center rounded-sm text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+											onclick={(e) => { e.stopPropagation(); handleInsert(item); }}
+											title={i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.INSERT_AT_CURSOR')}
+										>
+											<Plus size={12} />
+										</button>
+									{/if}
 									{#if canEditMeta && !inReorderMode}
 										<button
 											type="button"
@@ -615,6 +650,7 @@
 		filename={target.filename}
 		load={() => getPageMediaMeta(route, target.filename)}
 		save={(values) => savePageMediaMeta(route, target.filename, values)}
+		onsaved={(meta) => applySavedMeta(target.filename, meta)}
 		onclose={() => (metaItem = null)}
 	/>
 {/if}

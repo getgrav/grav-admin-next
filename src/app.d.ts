@@ -17,6 +17,18 @@ declare global {
 		__GRAV_API_PREFIX: string;
 		__GRAV_API_TOKEN: string | null;
 		__GRAV_PAGE_ROUTE: string;
+		/**
+		 * Live page media snapshot for web components (editor-pro's image picker).
+		 * Absolute `thumb` URL plus alt/title from each file's metadata.
+		 */
+		__GRAV_PAGE_MEDIA?: () => Array<{
+			filename: string;
+			type: string;
+			thumb: string | undefined;
+			url: string | undefined;
+			alt: string;
+			title: string;
+		}>;
 		__GRAV_CONTENT_LANG: string;
 		__GRAV_PAGE_LOADING: Record<string, Promise<void> | undefined>;
 		__GRAV_FIELD_LOADING: Record<string, Promise<void> | undefined>;

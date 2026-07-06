@@ -7,11 +7,37 @@ export interface MediaItem {
 	thumbnail_url?: string;
 	type: string;
 	size: number;
+	/** Alt text from the file's `.meta.yaml` sidecar, when set. */
+	alt?: string;
+	/** Title from the file's `.meta.yaml` sidecar, when set. */
+	title?: string;
 	dimensions?: {
 		width: number;
 		height: number;
 	};
 	modified: string;
+}
+
+/**
+ * Resolve the alt text to use when inserting an image into the editor:
+ * the sidecar `alt`, else its `title`, else the filename. Keeping a filename
+ * fallback matches Grav 1.7; pass an empty string here instead if a blank alt
+ * is preferred over the filename.
+ */
+export function mediaAltText(item: MediaItem): string {
+	return item.alt?.trim() || item.title?.trim() || item.filename;
+}
+
+/**
+ * Build the markdown snippet for inserting a media item. Images become
+ * `![alt](target)`; everything else a `[filename](target)` link. `target`
+ * defaults to the bare filename (page-relative), matching drag-and-drop.
+ */
+export function mediaMarkdown(item: MediaItem, target: string = item.filename): string {
+	if (item.type.startsWith('image/')) {
+		return `![${mediaAltText(item)}](${target})`;
+	}
+	return `[${item.filename}](${target})`;
 }
 
 export interface FolderInfo {

@@ -77,6 +77,28 @@
 		window.__GRAV_PAGE_ROUTE = route;
 		return () => { window.__GRAV_PAGE_ROUTE = ''; };
 	});
+	// Expose the live page media list to web components (editor-pro's image
+	// picker). Returns a plain snapshot with absolute thumbnail URLs and the
+	// alt/title metadata, mirroring what the CodeMirror picker reads from context.
+	$effect(() => {
+		const abs = (u: string | undefined) => {
+			if (!u) return u;
+			if (u.startsWith('http')) return u;
+			return u.startsWith('/') ? `${auth.serverUrl}${u}` : `${auth.serverUrl}/${u}`;
+		};
+		window.__GRAV_PAGE_MEDIA = () =>
+			pageMediaItems.map((m) => ({
+				filename: m.filename,
+				type: m.type,
+				thumb: abs(m.thumbnail_url ?? m.url),
+				// Full-size URL for the editor to display; markdown still stores the
+				// bare filename (editor-pro keeps it as data-src).
+				url: abs(m.url),
+				alt: m.alt ?? '',
+				title: m.title ?? '',
+			}));
+		return () => { delete window.__GRAV_PAGE_MEDIA; };
+	});
 	// Expose active content language for plugin scripts (e.g., ai-translate)
 	$effect(() => {
 		window.__GRAV_CONTENT_LANG = contentLang.activeLang;
@@ -421,8 +443,7 @@
 
 		(async () => {
 			// 1) Pick the transport. Mercure when the API advertises it;
-			//    polling otherwise. Capability fetch is best-effort — any
-			//    failure cleanly falls back to polling.
+			//    polling otherwise. A 404 means the sync plugin isn't there.
 			let useMercure = false;
 			try {
 				const caps = await apiClient.get<Capabilities>('/sync/capabilities');
@@ -435,7 +456,20 @@
 					caps.preferred === 'mercure' &&
 					hasMercure &&
 					!!caps.mercure?.hub;
-			} catch { /* fall back to polling */ }
+			} catch (e) {
+				// A 404 here means grav-plugin-sync isn't installed. Every
+				// released sync version (1.0.0+) serves /sync/capabilities, so
+				// its absence is a reliable "no collab backend" signal. Latch it
+				// and drop straight to solo mode: a site with collab enabled but
+				// no sync plugin then behaves exactly as if collab were off — no
+				// "Connecting…" flash, no /sync/* 404 burst from the pollers, and
+				// normal full-header saves. collabEnabled stays on by default so
+				// collab lights up automatically the moment sync is installed.
+				// Any other failure (network / 5xx) falls through to polling,
+				// which retries and latches via the pull path as before.
+				if (isNotFoundError(e)) { markSyncUnavailable(); syncFailed = true; return; }
+				/* fall back to polling */
+			}
 			if (cancelled) return;
 
 			const providerOpts = {
