@@ -31,8 +31,10 @@
 	import AppShell from '$lib/components/AppShell.svelte';
 	import GlobalDialogs from '$lib/components/ui/GlobalDialogs.svelte';
 	import PluginModal from '$lib/components/ui/PluginModal.svelte';
+	import MediaPickerModal from '$lib/components/media/MediaPickerModal.svelte';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { modals } from '$lib/stores/modals.svelte';
+	import { mediaPicker } from '$lib/stores/mediaPicker.svelte';
 	import { Toaster, toast } from 'svelte-sonner';
 	import { Loader2 } from 'lucide-svelte';
 
@@ -298,6 +300,13 @@
 		window.__GRAV_NAVIGATE = (url, opts) => goto(url, opts);
 	});
 
+	// Expose the site-media picker so plugin web components (editor-pro) can
+	// browse the media library and get back a `media://` url + display url.
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+		window.__GRAV_MEDIA_PICKER = () => mediaPicker.open();
+	});
+
 	// SvelteKit's version-poll (configured in svelte.config.js) flips
 	// `updated.current` to true when _app/version.json changes — i.e. admin2
 	// (or anything else writing to the SPA's bundle) has been updated under
@@ -355,6 +364,7 @@
 
 <GlobalDialogs />
 <PluginModal />
+<MediaPickerModal />
 
 {#if isAuthPage}
 	{@render children()}

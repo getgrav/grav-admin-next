@@ -29,6 +29,15 @@ export function mediaAltText(item: MediaItem): string {
 }
 
 /**
+ * The `media://` stream path for a site-media item, e.g.
+ * `media://photos/hero.jpg`. Site-media `path` is the folder relative to the
+ * media root; page-relative items (no path) resolve to the bare filename.
+ */
+export function siteMediaStreamPath(item: MediaItem): string {
+	return `media://${item.path ? `${item.path}/${item.filename}` : item.filename}`;
+}
+
+/**
  * Build the markdown snippet for inserting a media item. Images become
  * `![alt](target)`; everything else a `[filename](target)` link. `target`
  * defaults to the bare filename (page-relative), matching drag-and-drop.

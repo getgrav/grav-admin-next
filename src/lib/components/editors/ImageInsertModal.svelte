@@ -4,6 +4,8 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { X, ImageOff } from 'lucide-svelte';
 	import { encodeMediaFileUrl, mediaMarkdown, type MediaItem } from '$lib/api/endpoints/media';
+	import MediaBrowser from '$lib/components/media/MediaBrowser.svelte';
+	import type { MediaPickResult } from '$lib/stores/mediaPicker.svelte';
 
 	interface Props {
 		open: boolean;
@@ -20,17 +22,26 @@
 
 	const images = $derived(items.filter((i) => i.type.startsWith('image/')));
 
+	type Tab = 'page' | 'site' | 'url';
+	let tab = $state<Tab>('page');
+
 	// Manual entry buffer. `url` doubles as the enable-gate for the Insert button.
 	let url = $state('');
 	let alt = $state('');
 
-	// Seed the manual alt from the editor selection each time the modal opens.
+	// Seed the manual alt from the editor selection each time the modal opens,
+	// and default to the page-media tab (or site media when the page has none).
 	$effect(() => {
 		if (open) {
 			url = '';
 			alt = altSeed;
+			tab = images.length ? 'page' : 'site';
 		}
 	});
+
+	function pickSite(result: MediaPickResult) {
+		oninsert(`![${result.alt}](${result.url})`);
+	}
 
 	function thumb(item: MediaItem): string {
 		const raw = encodeMediaFileUrl(item.thumbnail_url ?? item.url);
@@ -81,12 +92,21 @@
 				</button>
 			</div>
 
-			<div class="space-y-5 overflow-y-auto p-4">
-				<!-- Page media -->
-				<div>
-					<h4 class="mb-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground">
-						{i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.IMAGE_INSERT.PAGE_MEDIA')}
-					</h4>
+			<!-- Tabs -->
+			<div class="flex gap-1 border-b border-border px-4 pt-2">
+				{#each [['page', i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.IMAGE_INSERT.PAGE_MEDIA')], ['site', i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.IMAGE_INSERT.SITE_MEDIA')], ['url', i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.IMAGE_INSERT.FROM_URL')]] as [key, label] (key)}
+					<button
+						type="button"
+						class="-mb-px border-b-2 px-3 py-2 text-xs font-medium transition-colors {tab === key ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}"
+						onclick={() => (tab = key as Tab)}
+					>
+						{label}
+					</button>
+				{/each}
+			</div>
+
+			<div class="overflow-y-auto p-4">
+				{#if tab === 'page'}
 					{#if images.length > 0}
 						<div class="grid grid-cols-3 gap-2 sm:grid-cols-4">
 							{#each images as item (item.filename)}
@@ -116,50 +136,48 @@
 							{i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.IMAGE_INSERT.NO_MEDIA')}
 						</div>
 					{/if}
-				</div>
-
-				<!-- Manual URL -->
-				<div class="space-y-2 border-t border-border pt-4">
-					<h4 class="text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground">
-						{i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.IMAGE_INSERT.FROM_URL')}
-					</h4>
-					<div>
-						<label for="img-insert-url" class="mb-1 block text-xs text-muted-foreground">
-							{i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.IMAGE_INSERT.URL_LABEL')}
-						</label>
-						<input
-							id="img-insert-url"
-							type="text"
-							bind:value={url}
-							onkeydown={(e) => e.key === 'Enter' && insertUrl()}
-							placeholder={i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.IMAGE_INSERT.URL_PLACEHOLDER')}
-							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-						/>
+				{:else if tab === 'site'}
+					<MediaBrowser onpick={pickSite} />
+				{:else}
+					<div class="space-y-3">
+						<div>
+							<label for="img-insert-url" class="mb-1 block text-xs text-muted-foreground">
+								{i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.IMAGE_INSERT.URL_LABEL')}
+							</label>
+							<input
+								id="img-insert-url"
+								type="text"
+								bind:value={url}
+								onkeydown={(e) => e.key === 'Enter' && insertUrl()}
+								placeholder={i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.IMAGE_INSERT.URL_PLACEHOLDER')}
+								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+							/>
+						</div>
+						<div>
+							<label for="img-insert-alt" class="mb-1 block text-xs text-muted-foreground">
+								{i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.IMAGE_INSERT.ALT_LABEL')}
+							</label>
+							<input
+								id="img-insert-alt"
+								type="text"
+								bind:value={alt}
+								onkeydown={(e) => e.key === 'Enter' && insertUrl()}
+								placeholder={i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.IMAGE_INSERT.ALT_PLACEHOLDER')}
+								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+							/>
+						</div>
+						<div class="flex justify-end pt-1">
+							<button
+								type="button"
+								disabled={!url.trim()}
+								onclick={insertUrl}
+								class="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+							>
+								{i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.IMAGE_INSERT.INSERT')}
+							</button>
+						</div>
 					</div>
-					<div>
-						<label for="img-insert-alt" class="mb-1 block text-xs text-muted-foreground">
-							{i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.IMAGE_INSERT.ALT_LABEL')}
-						</label>
-						<input
-							id="img-insert-alt"
-							type="text"
-							bind:value={alt}
-							onkeydown={(e) => e.key === 'Enter' && insertUrl()}
-							placeholder={i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.IMAGE_INSERT.ALT_PLACEHOLDER')}
-							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-						/>
-					</div>
-					<div class="flex justify-end pt-1">
-						<button
-							type="button"
-							disabled={!url.trim()}
-							onclick={insertUrl}
-							class="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
-						>
-							{i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.IMAGE_INSERT.INSERT')}
-						</button>
-					</div>
-				</div>
+				{/if}
 			</div>
 		</div>
 	</div>
