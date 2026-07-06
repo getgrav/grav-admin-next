@@ -165,8 +165,18 @@
 		el.field = field;
 		el.value = value;
 
-		// Listen for value changes from the web component
+		// Listen for value changes from the web component. The field's
+		// value-change protocol is a CustomEvent dispatched on the element
+		// itself (`this.dispatchEvent`), so its target is `el`. A light-DOM
+		// field (e.g. seo-magic's title/description) that renders a plain
+		// `<input>`/`<textarea>` also emits the native, bubbling `change`
+		// event on blur — with `e.detail === undefined` — which would reach
+		// this same listener and wipe the field value. Shadow-DOM fields
+		// don't leak it (`change` has `composed: false`), so this guard makes
+		// light-DOM fields behave the same: only honour events fired on the
+		// element itself, not native ones bubbling up from inner controls.
 		el.addEventListener('change', ((e: CustomEvent) => {
+			if (e.target !== el) return;
 			onchange(e.detail);
 			// Treat change as a commit for custom fields (immediate action)
 			oncommit?.(e.detail);
@@ -174,6 +184,7 @@
 
 		// Also listen for explicit commit events from web components that distinguish commit from change
 		el.addEventListener('commit', ((e: CustomEvent) => {
+			if (e.target !== el) return;
 			oncommit?.(e.detail);
 		}) as EventListener);
 

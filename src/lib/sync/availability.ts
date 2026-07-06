@@ -8,11 +8,12 @@
  * endpoint flips this latch; the pollers then stand down and the page
  * editor skips collab entirely until a reload. (getgrav/grav-plugin-admin2#73)
  *
- * A 404 from a *core* endpoint (pull / init) is the reliable signal — those
- * exist in every version of the sync plugin, so their absence means the
- * plugin isn't there. We deliberately do NOT latch on a `/sync/capabilities`
- * 404 alone, since an older sync plugin can lack that newer route while still
- * serving pull/push.
+ * A 404 from a *core* endpoint is the reliable signal — `/sync/capabilities`,
+ * pull and init have all existed since the first released sync plugin (1.0.0),
+ * so a 404 from any of them means the plugin isn't installed. The page editor
+ * probes `/sync/capabilities` first and latches here on its 404, so a site with
+ * collab enabled but no sync plugin drops straight to solo mode without first
+ * firing the pull/presence pollers at missing routes.
  */
 
 let unavailable = false;
