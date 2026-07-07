@@ -21,7 +21,7 @@ type Scalar = string | number | boolean | null | undefined;
  * formatter. Unknown formatters and unparseable values degrade to plain text
  * (or an em-dash for empty values) rather than throwing.
  */
-export function formatColumnValue(value: Scalar, formatter: ColumnFormatter): FormattedCell {
+export function formatColumnValue(value: Scalar, formatter: ColumnFormatter, label?: Scalar): FormattedCell {
 	if (value === null || value === undefined || value === '') {
 		return EMPTY;
 	}
@@ -43,7 +43,8 @@ export function formatColumnValue(value: Scalar, formatter: ColumnFormatter): Fo
 
 		case 'link': {
 			const href = safeHref(String(value));
-			return href ? { kind: 'link', text: String(value), href } : { kind: 'text', text: String(value) };
+			const text = label === null || label === undefined || label === '' ? String(value) : String(label);
+			return href ? { kind: 'link', text, href } : { kind: 'text', text };
 		}
 
 		case 'badge':
