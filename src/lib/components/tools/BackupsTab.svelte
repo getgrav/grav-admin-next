@@ -21,9 +21,29 @@
 	const newestDate = $derived(backups.length > 0 ? backups[0].date : null);
 	const oldestDate = $derived(backups.length > 0 ? backups[backups.length - 1].date : null);
 
-	// Storage usage
+	// Storage usage — the fill ratio depends on which purge trigger is active,
+	// mirroring the trigger cases in usageLabel below (space / number / time).
 	const maxBytes = $derived(purge?.trigger === 'space' ? (purge.max_backups_space * 1024 * 1024 * 1024) : 0);
-	const usagePercent = $derived(maxBytes > 0 ? Math.min(100, Math.round((totalSize / maxBytes) * 100)) : 0);
+	const usagePercent = $derived.by(() => {
+		if (!purge) return 0;
+		if (purge.trigger === 'space') {
+			return maxBytes > 0 ? Math.min(100, Math.round((totalSize / maxBytes) * 100)) : 0;
+		}
+		if (purge.trigger === 'number') {
+			return purge.max_backups_count > 0
+				? Math.min(100, Math.round((totalCount / purge.max_backups_count) * 100))
+				: 0;
+		}
+		if (purge.trigger === 'time') {
+			// Fill by how close the oldest backup is to the retention window.
+			if (purge.max_backups_time > 0 && oldestDate) {
+				const ageDays = (Date.now() - new Date(oldestDate).getTime()) / 86_400_000;
+				return Math.min(100, Math.round((ageDays / purge.max_backups_time) * 100));
+			}
+			return 0;
+		}
+		return 0;
+	});
 	const usageLabel = $derived(() => {
 		if (!purge) return '';
 		if (purge.trigger === 'space') return `Using ${formatSize(totalSize)} of ${purge.max_backups_space} GB`;
