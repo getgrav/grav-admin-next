@@ -3,7 +3,10 @@
 	import { getRepositoryThemes, installTheme, type RepositoryTheme } from '$lib/api/endpoints/gpm';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
+	import { canWrite } from '$lib/utils/permissions';
 	import { Search, X, Palette, ExternalLink, Download, Loader2, ShoppingCart, BadgeCheck } from 'lucide-svelte';
+
+	const canInstall = $derived(canWrite('gpm'));
 	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText } from '$lib/utils/gpm';
 
 	interface Props {
@@ -76,6 +79,10 @@
 	}
 
 	async function handleInstall(slug: string) {
+		if (!canInstall) {
+			toast.warning(i18n.t('ADMIN_NEXT.TOASTS.DEMO_MODE_BLOCKED'));
+			return;
+		}
 		installingSlug = slug;
 		try {
 			const result = await installTheme(slug);
@@ -145,7 +152,7 @@
 								Buy
 							</Button>
 						{:else}
-							<Button size="sm" onclick={() => handleInstall(selectedTheme.slug)} disabled={installingSlug === selectedTheme.slug}>
+							<Button size="sm" onclick={() => handleInstall(selectedTheme.slug)} disabled={installingSlug === selectedTheme.slug || !canInstall}>
 								{#if installingSlug === selectedTheme.slug}
 									<Loader2 size={14} class="me-1.5 animate-spin" />
 									{i18n.t('ADMIN_NEXT.INSTALLING')}
@@ -236,7 +243,7 @@
 										variant="outline"
 										size="sm"
 										onclick={(e: MouseEvent) => { e.stopPropagation(); handleInstall(theme.slug); }}
-										disabled={installingSlug === theme.slug}
+										disabled={installingSlug === theme.slug || !canInstall}
 										class="shrink-0"
 									>
 										{#if installingSlug === theme.slug}

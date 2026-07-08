@@ -199,13 +199,15 @@
 			{:else}
 				<div class="flex items-center gap-2">
 					<h3 class="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{file.filename}</h3>
-					<button
-						class="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-						onclick={startRename}
-						aria-label={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.RENAME')}
-					>
-						<PenLine size={12} />
-					</button>
+					{#if !readonly}
+						<button
+							class="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+							onclick={startRename}
+							aria-label={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.RENAME')}
+						>
+							<PenLine size={12} />
+						</button>
+					{/if}
 				</div>
 			{/if}
 		</div>
@@ -282,13 +284,15 @@
 				Open
 			</a>
 			<div class="flex-1"></div>
-			<button
-				class="inline-flex h-8 items-center gap-1.5 rounded-md border border-destructive/30 bg-destructive/10 px-3 text-[0.75rem] font-medium text-destructive transition-colors hover:bg-destructive/20"
-				onclick={() => ondelete(file)}
-			>
-				<Trash2 size={13} />
-				{i18n.t('ADMIN_NEXT.DELETE')}
-			</button>
+			{#if !readonly}
+				<button
+					class="inline-flex h-8 items-center gap-1.5 rounded-md border border-destructive/30 bg-destructive/10 px-3 text-[0.75rem] font-medium text-destructive transition-colors hover:bg-destructive/20"
+					onclick={() => ondelete(file)}
+				>
+					<Trash2 size={13} />
+					{i18n.t('ADMIN_NEXT.DELETE')}
+				</button>
+			{/if}
 		</div>
 	</div>
 </div>

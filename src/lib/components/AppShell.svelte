@@ -27,6 +27,7 @@
 	import DebugPanel from '$lib/components/debug/DebugPanel.svelte';
 	import { contextPanelStore } from '$lib/stores/contextPanels.svelte';
 	import ContextPanelHost from '$lib/components/context-panels/ContextPanelHost.svelte';
+	import DemoModeBanner from '$lib/components/DemoModeBanner.svelte';
 	import ReauthModal from '$lib/components/auth/ReauthModal.svelte';
 	import { pageEditorBar } from '$lib/stores/pageEditorBar.svelte';
 	import PresenceAvatars from '$lib/components/sync/PresenceAvatars.svelte';
@@ -470,6 +471,8 @@
 				{#if theme.isDark}<Sun size={15} />{:else}<Moon size={15} />{/if}
 			</button>
 		</header>
+
+		<DemoModeBanner />
 
 		<main class="flex-1 overflow-x-hidden overflow-y-auto">
 			<div class="h-full min-w-0">

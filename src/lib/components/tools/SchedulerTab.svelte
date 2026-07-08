@@ -9,6 +9,7 @@
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
+	import { canWrite } from '$lib/utils/permissions';
 	import CopyButton from '$lib/components/ui/CopyButton.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Save, Loader2, AlertTriangle, Info, Shield } from 'lucide-svelte';
@@ -23,6 +24,7 @@
 	let saving = $state(false);
 
 	let hasChanges = $derived(stableJson(configData) !== originalJson);
+	const canSave = $derived(canWrite('system'));
 	// Reactive validity gate: keep Save disabled while any required field is empty
 	// (admin2#34). Independent of the inline error display, which stays touch/submit-gated.
 	let requiredOk = $derived(!blueprint || !hasRequiredErrors(blueprint.fields, configData));
@@ -142,7 +144,7 @@
 
 		<!-- Save button (always visible, disabled when no changes) -->
 		<div class="flex justify-end">
-			<Button size="sm" onclick={handleSave} disabled={saving || !hasChanges || !requiredOk} class={hasChanges ? '' : 'opacity-50'}>
+			<Button size="sm" onclick={handleSave} disabled={saving || !hasChanges || !requiredOk || !canSave} class={hasChanges ? '' : 'opacity-50'}>
 				{#if saving}
 					<Loader2 size={14} class="animate-spin" />
 					{i18n.t('ADMIN_NEXT.SAVING')}

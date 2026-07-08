@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { auth } from '$lib/stores/auth.svelte';
 	import {
 		getPluginPageDefinition,
 		getPluginPageBlueprint,
@@ -133,6 +134,10 @@
 
 	async function handleSave() {
 		if (!definition?.save_endpoint) return;
+		if (auth.demoMode) {
+			toast.warning(i18n.t('ADMIN_NEXT.TOASTS.DEMO_MODE_BLOCKED'));
+			return;
+		}
 
 		// Block the save if any required field is empty (admin2#30).
 		validationErrors = blueprint ? checkRequiredOrToast(blueprint.fields, formData) : {};
@@ -243,6 +248,12 @@
 
 	async function doExecuteAction(action: PluginPageAction) {
 		if (!action.endpoint) return;
+		// Custom plugin actions hit arbitrary endpoints never covered by the demo
+		// writable allowlist. Allow read-only downloads; block anything else.
+		if (auth.demoMode && !action.download) {
+			toast.warning(i18n.t('ADMIN_NEXT.TOASTS.DEMO_MODE_BLOCKED'));
+			return;
+		}
 		const endpoint = action.endpoint;
 
 		// Download actions
@@ -469,9 +480,9 @@
 						<Button
 							size="sm"
 							onclick={() => isComponent ? executeAction(action) : handleSave()}
-							disabled={isComponent
+							disabled={auth.demoMode || (isComponent
 								? (!componentState.dirty || componentState.busy || !componentState.valid)
-								: (!hasChanges || saving || !requiredOk)}
+								: (!hasChanges || saving || !requiredOk))}
 						>
 							{#if (action.primary && (saving || componentState.busy)) || actionExecuting === action.id}
 								<Loader2 size={14} class="me-1.5 animate-spin" />

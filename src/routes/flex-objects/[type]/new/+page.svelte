@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { auth } from '$lib/stores/auth.svelte';
 	import {
 		getDirectories,
 		createObject,
@@ -179,7 +180,7 @@
 						</h1>
 					</div>
 
-					<Button size="sm" onclick={handleCreate} disabled={saving || !requiredOk}>
+					<Button size="sm" onclick={handleCreate} disabled={saving || !requiredOk || auth.demoMode}>
 						{#if saving}
 							<Loader2 size={14} class="me-1.5 animate-spin" />
 						{:else}

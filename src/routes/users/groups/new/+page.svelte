@@ -5,6 +5,7 @@
 	import { createGroup } from '$lib/api/endpoints/groups';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
+	import { canWrite } from '$lib/utils/permissions';
 	import { toast } from 'svelte-sonner';
 	import { Loader2, Save, Users } from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
@@ -14,7 +15,7 @@
 	let description = $state('');
 	let saving = $state(false);
 
-	const canSave = $derived(/^[a-zA-Z0-9_-]{1,200}$/.test(groupname));
+	const canSave = $derived(canWrite('users') && /^[a-zA-Z0-9_-]{1,200}$/.test(groupname));
 
 	async function handleCreate() {
 		if (!canSave) return;

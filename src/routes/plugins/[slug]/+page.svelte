@@ -10,6 +10,7 @@
 	import { getPluginBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
+	import { canWrite } from '$lib/utils/permissions';
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
@@ -37,6 +38,11 @@
 	const REDACTED = '********';
 
 	const slug = $derived(page.params.slug ?? '');
+	// Plugin config is written via /config/plugins/{slug}; gate on config write
+	// so demo/read-only accounts can't save (also blocked server-side).
+	const canSave = $derived(canWrite('config'));
+	// Install/remove/update are GPM writes; enable/disable is a config write.
+	const canGpm = $derived(canWrite('gpm'));
 	// Scope for blueprint-upload destination resolution (`self@:` → plugin dir).
 	setContext('blueprintScope', () => slug ? 'plugins/' + slug : '');
 	// Bus for leaf fields that defer side effects to the save commit.
@@ -175,7 +181,7 @@
 	}
 	const ovr = provideConfigOverrides({
 		scope: () => 'plugins/' + slug,
-		canWrite: () => true,
+		canWrite: () => canSave,
 		etag: () => etag,
 		applyFieldRevert: (path, value, newEtag) => {
 			handleBlueprintChange(path, value);
@@ -466,7 +472,7 @@
 						variant="outline"
 						size="sm"
 						onclick={handleUpdate}
-						disabled={updating}
+						disabled={updating || !canGpm}
 						aria-label={i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: plugin.available_version })}
 						title={i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: plugin.available_version })}
 					>
@@ -484,7 +490,7 @@
 					variant="destructive"
 					size="sm"
 					onclick={handleDelete}
-					disabled={deleting || PROTECTED_DELETE.has(plugin.slug)}
+					disabled={deleting || PROTECTED_DELETE.has(plugin.slug) || !canGpm}
 					aria-label={i18n.t('ADMIN_NEXT.REMOVE')}
 					title={i18n.t('ADMIN_NEXT.REMOVE')}
 				>
@@ -501,7 +507,7 @@
 					variant={plugin.enabled ? 'outline' : 'default'}
 					size="sm"
 					onclick={toggleEnabled}
-					disabled={toggling}
+					disabled={toggling || !canSave}
 					aria-label={plugin.enabled ? 'Disable' : 'Enable'}
 					title={plugin.enabled ? 'Disable' : 'Enable'}
 				>
@@ -534,7 +540,7 @@
 				<Button
 					size="sm"
 					onclick={handleSave}
-					disabled={!hasChanges || saving || !requiredOk}
+					disabled={!hasChanges || saving || !requiredOk || !canSave}
 					aria-label="Save"
 					title="Save"
 				>
@@ -633,7 +639,7 @@
 						<p class="mt-3 text-sm text-muted-foreground">
 							{i18n.t('ADMIN_NEXT.PLUGINS.PLUGIN_MUST_BE_ENABLED_TO_CONFIGURE')}
 						</p>
-						<Button variant="outline" size="sm" class="mt-3" onclick={toggleEnabled} disabled={toggling}>
+						<Button variant="outline" size="sm" class="mt-3" onclick={toggleEnabled} disabled={toggling || !canSave}>
 							{#if toggling}
 								<Loader2 size={14} class="me-1.5 animate-spin" />
 							{/if}

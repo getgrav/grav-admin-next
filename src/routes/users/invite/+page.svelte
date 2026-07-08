@@ -7,6 +7,7 @@
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
+	import { canWrite } from '$lib/utils/permissions';
 	import { toast } from 'svelte-sonner';
 	import { Loader2, Send, MailPlus, Copy, Check, AlertTriangle } from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
@@ -27,7 +28,7 @@
 	let copied = $state(false);
 
 	const emailValid = $derived(/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim()));
-	const canSend = $derived(emailValid && !saving);
+	const canSend = $derived(canWrite('users') && emailValid && !saving);
 
 	const expirationOptions = $derived([
 		{ value: 86400, label: i18n.t('ADMIN_NEXT.INVITATIONS.EXPIRY_1_DAY') },

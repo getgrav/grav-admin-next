@@ -7,6 +7,7 @@
 	import { getConfig, saveConfig } from '$lib/api/endpoints/config';
 	import { getAccountsConfigBlueprint, type BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
+	import { canWrite } from '$lib/utils/permissions';
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
 	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -16,6 +17,8 @@
 	import { Save, Loader2 } from 'lucide-svelte';
 
 	const isSuper = $derived(auth.isSuperAdmin);
+	// Accounts config is persisted through the config write path.
+	const canSave = $derived(canWrite('config'));
 
 	let blueprint = $state<BlueprintSchema | null>(null);
 	let configData = $state<Record<string, unknown>>({});
@@ -139,7 +142,7 @@
 								<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.ACCOUNTS_CONFIG.SUBTITLE')}</p>
 							{/if}
 						</div>
-						<Button size="sm" disabled={!hasChanges || saving || !requiredOk} onclick={handleSave}>
+						<Button size="sm" disabled={!hasChanges || saving || !requiredOk || !canSave} onclick={handleSave}>
 							{#if saving}
 								<Loader2 size={14} class="animate-spin" />
 							{:else}

@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { auth } from '$lib/stores/auth.svelte';
 	import {
 		getObject,
 		getDirectories,
@@ -315,7 +316,7 @@
 							variant="destructive"
 							size="sm"
 							onclick={() => (confirmDeleteOpen = true)}
-							disabled={deleting}
+							disabled={deleting || auth.demoMode}
 						>
 							{#if deleting}
 								<Loader2 size={14} class="me-1.5 animate-spin" />
@@ -324,7 +325,7 @@
 							{/if}
 							{i18n.t('ADMIN_NEXT.DELETE')}
 						</Button>
-						<Button size="sm" onclick={handleSave} disabled={!hasChanges || saving || !requiredOk}>
+						<Button size="sm" onclick={handleSave} disabled={!hasChanges || saving || !requiredOk || auth.demoMode}>
 							{#if saving}
 								<Loader2 size={14} class="me-1.5 animate-spin" />
 							{:else}

@@ -58,10 +58,11 @@
 	let activatingSlug = $state<string | null>(null);
 	let removingSlug = $state<string | null>(null);
 
-	// Auto-open install modal when navigating with ?install=slug
+	// Auto-open install modal when navigating with ?install=slug (only if the
+	// account can actually install — closes a URL-bypass of the gated Add button).
 	$effect(() => {
 		const slug = page.url.searchParams.get('install');
-		if (slug) {
+		if (slug && canWriteGpm) {
 			installSlug = slug;
 			addModalOpen = true;
 		}

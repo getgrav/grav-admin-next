@@ -2,6 +2,7 @@ import { auth, decodeJwtExp } from '$lib/stores/auth.svelte';
 import { authSession, type PendingRequest } from '$lib/stores/auth-session.svelte';
 import { invalidations } from '$lib/stores/invalidation.svelte';
 import { debug, parseServerTiming } from '$lib/stores/debug.svelte';
+import { i18n } from '$lib/stores/i18n.svelte';
 
 import type { ToastHint } from '$lib/utils/toast-hint';
 
@@ -16,9 +17,32 @@ export interface ApiError {
 	status: number;
 	title: string;
 	detail: string;
+	/** Stable machine-readable code, when the server supplies one (e.g. `demo_mode_write_blocked`). */
+	code?: string;
 	errors?: ValidationFieldError[];
 	/** Optional plugin-supplied toast override (message/duration/dismissible). */
 	toast?: ToastHint;
+}
+
+/** Server error code for a write blocked by demo mode (see grav-plugin-api DemoModeException). */
+const DEMO_BLOCKED_CODE = 'demo_mode_write_blocked';
+
+/**
+ * Normalize a non-OK response body into an ApiError, special-casing the demo
+ * write-block so it surfaces as a friendly, localized toast instead of the raw
+ * server string. Matches on the stable `code`, not the (localizable) title.
+ */
+function buildApiError(body: unknown, response: Response): ApiError {
+	const error: ApiError = (body as ApiError) ?? {
+		status: response.status,
+		title: response.statusText,
+		detail: `Request failed with status ${response.status}`,
+	};
+	if (response.status === 403 && error.code === DEMO_BLOCKED_CODE) {
+		error.detail = i18n.t('ADMIN_NEXT.TOASTS.DEMO_MODE_BLOCKED');
+		error.toast = { message: error.detail, type: 'warning' };
+	}
+	return error;
 }
 
 export class ApiRequestError extends Error {
@@ -308,12 +332,7 @@ class ApiClient {
 		const body = await response.json().catch(() => null);
 
 		if (!response.ok) {
-			const error: ApiError = body ?? {
-				status: response.status,
-				title: response.statusText,
-				detail: `Request failed with status ${response.status}`
-			};
-			throw new ApiRequestError(error, response);
+			throw new ApiRequestError(buildApiError(body, response), response);
 		}
 
 		return body?.data !== undefined ? body.data : body;
@@ -559,12 +578,7 @@ class ApiClient {
 		}
 		const body = await response.json().catch(() => null);
 		if (!response.ok) {
-			const error: ApiError = body ?? {
-				status: response.status,
-				title: response.statusText,
-				detail: `Request failed with status ${response.status}`
-			};
-			throw new ApiRequestError(error, response);
+			throw new ApiRequestError(buildApiError(body, response), response);
 		}
 		const data = (body?.data !== undefined ? body.data : body) as T;
 		return { data, meta: body?.meta, headers: response.headers };
@@ -620,12 +634,7 @@ class ApiClient {
 		const body = await response.json().catch(() => null);
 
 		if (!response.ok) {
-			const error: ApiError = body ?? {
-				status: response.status,
-				title: response.statusText,
-				detail: `Request failed with status ${response.status}`
-			};
-			throw new ApiRequestError(error, response);
+			throw new ApiRequestError(buildApiError(body, response), response);
 		}
 
 		return body as T;

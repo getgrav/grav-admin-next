@@ -1,5 +1,5 @@
 import { api } from './client';
-import { auth } from '$lib/stores/auth.svelte';
+import { auth, type DemoModeInfo } from '$lib/stores/auth.svelte';
 import { base } from '$app/paths';
 import type { PasswordPolicy } from '$lib/utils/passwordStrength';
 
@@ -33,6 +33,7 @@ interface UserProfile {
 	content_editor?: string;
 	grav_version?: string;
 	admin_version?: string;
+	demo_mode?: DemoModeInfo;
 }
 
 function parseJwtSubject(token: string): string {
@@ -59,6 +60,7 @@ async function finalizeLogin(data: TokenResponse, fallbackSubject: string): Prom
 			data.user.content_editor || '',
 		);
 		auth.setPermissions(data.user.super_admin ?? false, data.user.access ?? {});
+		auth.setDemoMode(data.user.demo_mode ?? { enabled: false });
 		return;
 	}
 
@@ -72,9 +74,11 @@ async function finalizeLogin(data: TokenResponse, fallbackSubject: string): Prom
 			profile.avatar_url || '',
 		);
 		auth.setPermissions(profile.super_admin ?? false, profile.access ?? {});
+		auth.setDemoMode(profile.demo_mode ?? { enabled: false });
 	} catch {
 		auth.setUser(sub, sub);
 		auth.setPermissions(false, {});
+		auth.setDemoMode({ enabled: false });
 	}
 }
 
@@ -242,6 +246,7 @@ export async function refreshMe(): Promise<void> {
 			profile.content_editor || '',
 		);
 		auth.setPermissions(profile.super_admin ?? false, profile.access ?? {});
+		auth.setDemoMode(profile.demo_mode ?? { enabled: false });
 		auth.setVersions(profile.grav_version, profile.admin_version);
 	} catch {
 		// Non-critical — keep existing permissions
