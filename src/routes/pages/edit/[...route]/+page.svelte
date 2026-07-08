@@ -2283,11 +2283,11 @@
 		<div class="flex h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
 			<!-- Header -->
 			<div class="flex shrink-0 items-center justify-between border-b border-border px-4 py-2.5">
-				<div class="flex items-center gap-3">
-					<h2 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_PREVIEW')}</h2>
-					<span class="truncate text-xs text-muted-foreground">{frontendPreviewUrl}</span>
+				<div class="flex min-w-0 flex-1 items-center gap-3">
+					<h2 class="shrink-0 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_PREVIEW')}</h2>
+					<span class="min-w-0 truncate text-xs text-muted-foreground">{frontendPreviewUrl}</span>
 				</div>
-				<div class="flex items-center gap-2">
+				<div class="flex shrink-0 items-center gap-2">
 					<a
 						href={frontendPreviewUrl}
 						target="_blank"
