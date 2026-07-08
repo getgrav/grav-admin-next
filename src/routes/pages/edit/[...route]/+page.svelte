@@ -219,6 +219,15 @@
 		return url;
 	});
 
+	// Header display URL: same as above but without the long, opaque preview_token,
+	// which is noise (and mildly sensitive) in the visible URL. The link and iframe
+	// still use the full frontendPreviewUrl so the draft renders.
+	const frontendPreviewDisplayUrl = $derived.by(() => {
+		if (!pageData) return '';
+		const sep = pageData.route.includes('?') ? '&' : '?';
+		return `${auth.serverUrl}${pageData.route}${sep}admin_preview=1`;
+	});
+
 	// Open the front-end preview. We mint the draft-preview token BEFORE showing
 	// the modal so the iframe's first (and only) load already carries it —
 	// otherwise an unpublished page would 404 in the iframe and never retry. A
@@ -2285,7 +2294,7 @@
 			<div class="flex shrink-0 items-center justify-between border-b border-border px-4 py-2.5">
 				<div class="flex min-w-0 flex-1 items-center gap-3">
 					<h2 class="shrink-0 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_PREVIEW')}</h2>
-					<span class="min-w-0 truncate text-xs text-muted-foreground">{frontendPreviewUrl}</span>
+					<span class="min-w-0 truncate text-xs text-muted-foreground">{frontendPreviewDisplayUrl}</span>
 				</div>
 				<div class="flex shrink-0 items-center gap-2">
 					<a
