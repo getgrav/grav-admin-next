@@ -16,9 +16,19 @@
 		readonly?: boolean;
 		/** Called after a successful save with the fresh metadata. */
 		onsaved?: (meta: MediaMetaResponse) => void;
+		/**
+		 * Number of files the save applies to. When >1 the form switches to batch
+		 * mode: Save is labelled "Apply to N files" and only the *changed* fields
+		 * are pushed to the whole selection via {@link saveBatch}.
+		 */
+		batchCount?: number;
+		/** Apply only the changed fields to every selected file at once. */
+		saveBatch?: (changed: MediaMetaValues) => Promise<{ successful: number; failed: number }>;
 	}
 
-	let { filename, load, save, readonly = false, onsaved }: Props = $props();
+	let { filename, load, save, readonly = false, onsaved, batchCount = 1, saveBatch }: Props = $props();
+
+	const isBatch = $derived(batchCount > 1 && !!saveBatch);
 
 	type FieldValue = string | string[];
 
@@ -50,6 +60,31 @@
 		}
 		return false;
 	});
+
+	// Just the fields the user actually edited (vs the loaded baseline). Batch
+	// mode sends only these so untouched fields on the other files are kept.
+	const changedFields = $derived.by(() => {
+		const out: MediaMetaValues = {};
+		const keys = new Set([...Object.keys(values), ...Object.keys(baseline)]);
+		for (const k of keys) {
+			if (!eqValue(values[k], baseline[k])) out[k] = values[k] ?? '';
+		}
+		return out;
+	});
+
+	// A copy of the loaded metadata with the current edits folded into its
+	// fields — used to notify the parent after a batch save (which returns only
+	// counts, not a fresh MediaMetaResponse) so the markdown snippet updates.
+	function metaWithValues(): MediaMetaResponse | null {
+		if (!meta) return null;
+		return {
+			...meta,
+			fields: meta.fields.map((f) => ({
+				...f,
+				value: values[f.key] ?? f.value,
+			})),
+		};
+	}
 
 	const extraEntries = $derived.by(() => {
 		const extra = meta?.extra ?? {};
@@ -124,9 +159,28 @@
 		}
 		saving = true;
 		try {
-			applyMeta(await save({ ...values }));
-			toast.success(i18n.t('ADMIN_NEXT.MEDIA.METADATA.SAVED'));
-			if (meta) onsaved?.(meta);
+			if (isBatch && saveBatch) {
+				const res = await saveBatch({ ...changedFields });
+				// The inspected file received the same write as the rest of the
+				// selection, so the current edit buffer is now the saved state.
+				baseline = structuredClone(values);
+				if (res.failed > 0) {
+					toast.error(
+						i18n.t('ADMIN_NEXT.MEDIA.METADATA.BATCH_PARTIAL', {
+							saved: res.successful,
+							failed: res.failed,
+						}),
+					);
+				} else {
+					toast.success(i18n.t('ADMIN_NEXT.MEDIA.METADATA.BATCH_SAVED', { n: res.successful }));
+				}
+				const updated = metaWithValues();
+				if (updated) onsaved?.(updated);
+			} else {
+				applyMeta(await save({ ...values }));
+				toast.success(i18n.t('ADMIN_NEXT.MEDIA.METADATA.SAVED'));
+				if (meta) onsaved?.(meta);
+			}
 		} catch (err) {
 			toast.error(
 				err instanceof Error ? err.message : i18n.t('ADMIN_NEXT.MEDIA.METADATA.SAVE_FAILED'),
@@ -234,9 +288,13 @@
 			{#if !readonly}
 				<div class="flex items-center gap-2 pt-1">
 					<Button size="sm" onclick={doSave} disabled={!dirty || saving}>
-						{saving
-							? i18n.t('ADMIN_NEXT.MEDIA.METADATA.SAVING')
-							: i18n.t('ADMIN_NEXT.SAVE')}
+						{#if saving}
+							{i18n.t('ADMIN_NEXT.MEDIA.METADATA.SAVING')}
+						{:else if isBatch}
+							{i18n.t('ADMIN_NEXT.MEDIA.METADATA.APPLY_TO_N', { n: batchCount })}
+						{:else}
+							{i18n.t('ADMIN_NEXT.SAVE')}
+						{/if}
 					</Button>
 					<Button variant="outline" size="sm" onclick={reset} disabled={!dirty || saving}>
 						{i18n.t('ADMIN_NEXT.MEDIA.METADATA.RESET')}

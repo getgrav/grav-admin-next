@@ -6,9 +6,12 @@ import {
 	renameSiteMedia as apiRenameSiteMedia,
 	renameFolder as apiRenameFolder,
 	setSiteMediaOrder,
+	batchSaveSiteMediaMeta,
 	type MediaItem,
 	type FolderInfo,
 	type Pagination,
+	type MediaMetaValues,
+	type BatchMetaResult,
 } from '$lib/api/endpoints/media';
 import { prefs } from './preferences.svelte';
 import type { MediaViewMode } from './preferences.svelte';
@@ -412,6 +415,19 @@ function createMediaManagerStore() {
 		async deleteFolder(folder: FolderInfo): Promise<void> {
 			await apiDeleteFolder(folder.path);
 			this.refresh();
+		},
+
+		/**
+		 * Apply the given (already changed-only) metadata fields to every
+		 * currently selected file in one request. The selection keys are the
+		 * media paths the batch endpoint expects. Refreshes so card badges pick
+		 * up new alt/title, while leaving the selection and inspector intact.
+		 */
+		async batchSaveMeta(fields: MediaMetaValues): Promise<BatchMetaResult> {
+			const files = [...selectedFiles];
+			const result = await batchSaveSiteMediaMeta(files, fields);
+			this.refresh();
+			return result;
 		},
 
 		async renameFile(file: MediaItem, newName: string): Promise<MediaItem> {

@@ -244,6 +244,34 @@ export async function clearSiteMediaMeta(filePath: string): Promise<void> {
 	return api.delete(`/media/meta?path=${encodeURIComponent(filePath)}`);
 }
 
+/** Per-file outcome of a batch metadata write. */
+export interface BatchMetaFileResult {
+	path: string;
+	status: 'success' | 'error';
+	message?: string;
+}
+
+/** Aggregate result of applying metadata to several files at once. */
+export interface BatchMetaResult {
+	results: BatchMetaFileResult[];
+	total: number;
+	successful: number;
+	failed: number;
+}
+
+/**
+ * Apply the same metadata fields to several site media files at once. Only the
+ * passed fields are written to each file; every file keeps its other sidecar
+ * values, so a batch that changes just `tags` leaves each file's own
+ * `alt`/`title` intact.
+ */
+export async function batchSaveSiteMediaMeta(
+	files: string[],
+	fields: MediaMetaValues,
+): Promise<BatchMetaResult> {
+	return api.post<BatchMetaResult>('/media/batch/meta', { files, fields });
+}
+
 // ── Blueprint files (stream-aware folder browse) ────────────────────────
 
 export interface BlueprintFilesParams {

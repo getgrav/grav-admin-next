@@ -7,6 +7,7 @@
 		mediaMarkdown,
 		type MediaItem,
 		type MediaMetaResponse,
+		type MediaMetaValues,
 	} from '$lib/api/endpoints/media';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { mediaManager } from '$lib/stores/mediaManager.svelte';
@@ -30,6 +31,15 @@
 	// Full path of the file relative to the media root, used to address its
 	// `.meta.yaml` sidecar via the metadata endpoints.
 	const filePath = $derived(file.path ? `${file.path}/${file.filename}` : file.filename);
+
+	// When more than one file is selected, the metadata form edits apply to the
+	// whole selection (changed fields only) rather than just the inspected file.
+	const selectionCount = $derived(mediaManager.selectedFiles.size);
+
+	async function handleBatchSave(fields: MediaMetaValues) {
+		const res = await mediaManager.batchSaveMeta(fields);
+		return { successful: res.successful, failed: res.failed };
+	}
 
 	let renaming = $state(false);
 	let renameValue = $state('');
@@ -245,11 +255,18 @@
 			<h4 class="mb-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground">
 				{i18n.t('ADMIN_NEXT.MEDIA.METADATA.TITLE')}
 			</h4>
+			{#if selectionCount > 1 && !readonly}
+				<div class="mb-3 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-[0.6875rem] leading-snug text-primary">
+					{i18n.t('ADMIN_NEXT.MEDIA.METADATA.BATCH_EDITING', { n: selectionCount })}
+				</div>
+			{/if}
 			<MediaMetadataForm
 				filename={filePath}
 				load={() => getSiteMediaMeta(filePath)}
 				save={(values) => saveSiteMediaMeta(filePath, values)}
 				onsaved={applySavedMeta}
+				batchCount={selectionCount}
+				saveBatch={handleBatchSave}
 				{readonly}
 			/>
 		</div>
