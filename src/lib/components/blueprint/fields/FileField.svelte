@@ -12,6 +12,7 @@
 	import { useFormCommit } from '$lib/utils/form-commit.svelte';
 	import { toast } from 'svelte-sonner';
 	import { uploadErrorMessage } from '$lib/utils/upload-error';
+	import { canWrite } from '$lib/utils/permissions';
 	import { Upload, X } from 'lucide-svelte';
 
 	interface Props {
@@ -33,6 +34,10 @@
 	}
 
 	let { field, value, onchange }: Props = $props();
+	// A file field uploads through the media endpoints, so gate it on media-write.
+	// Prevents a read-only/demo account from writing a file to disk on drop
+	// (uploads are immediate/autoProceed, independent of the form's Save button).
+	const locked = $derived(!canWrite('media'));
 	const translateLabel = i18n.tMaybe;
 	const getRoute = getContext<(() => string) | undefined>('pageRoute');
 	// Non-page media source (e.g. a flex object). When present, uploads/deletes
@@ -446,20 +451,22 @@
 						</div>
 					{/if}
 					<span class="flex-1 truncate text-sm text-foreground">{entry.name}</span>
-					<button
-						type="button"
-						class="shrink-0 text-muted-foreground transition-colors hover:text-destructive"
-						onclick={() => removeFile(key)}
-					>
-						<X size={14} />
-					</button>
+					{#if !locked}
+						<button
+							type="button"
+							class="shrink-0 text-muted-foreground transition-colors hover:text-destructive"
+							onclick={() => removeFile(key)}
+						>
+							<X size={14} />
+						</button>
+					{/if}
 				</div>
 			{/each}
 		</div>
 	{/if}
 
 	<!-- Upload zone -->
-	{#if field.multiple || fileEntries.length === 0}
+	{#if (field.multiple || fileEntries.length === 0) && !locked}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="flex cursor-pointer flex-col items-center gap-1 rounded-lg border-2 border-dashed px-4 py-4 text-center transition-colors {dragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground/40'}"

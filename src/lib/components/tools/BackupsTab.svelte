@@ -6,7 +6,10 @@
 	import type { Backup, PurgeConfig } from '$lib/api/endpoints/tools';
 	import { Button } from '$lib/components/ui/button';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+	import { canWrite } from '$lib/utils/permissions';
 	import { Download, Trash2, Plus, Loader2 } from 'lucide-svelte';
+
+	const canManageBackups = $derived(canWrite('system'));
 
 	let backups = $state<Backup[]>([]);
 	let purge = $state<PurgeConfig | null>(null);
@@ -173,7 +176,7 @@
 	<!-- Actions -->
 	<div class="flex items-center justify-between">
 		<h3 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.BACKUP_HISTORY')}</h3>
-		<Button size="sm" onclick={handleCreate} disabled={creating}>
+		<Button size="sm" onclick={handleCreate} disabled={creating || !canManageBackups}>
 			{#if creating}
 				<Loader2 size={14} class="animate-spin" />
 				{i18n.t('ADMIN_NEXT.TOOLS.BACKUPS.CREATING')}
@@ -217,13 +220,15 @@
 									>
 										<Download size={14} />
 									</a>
-									<button
-										class="inline-flex h-7 w-7 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10"
-										title={i18n.t('ADMIN_NEXT.DELETE')}
-										onclick={() => { confirmDelete = backup.filename; }}
-									>
-										<Trash2 size={14} />
-									</button>
+									{#if canManageBackups}
+										<button
+											class="inline-flex h-7 w-7 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10"
+											title={i18n.t('ADMIN_NEXT.DELETE')}
+											onclick={() => { confirmDelete = backup.filename; }}
+										>
+											<Trash2 size={14} />
+										</button>
+									{/if}
 								</div>
 							</td>
 						</tr>

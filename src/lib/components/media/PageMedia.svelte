@@ -10,6 +10,7 @@
 	import { getPageMedia, deletePageMedia, getObjectMedia, deleteObjectMedia, getPageMediaMeta, savePageMediaMeta, encodeMediaFileUrl, mediaMarkdown, type MediaItem, type MediaMetaResponse } from '$lib/api/endpoints/media';
 	import { toast } from 'svelte-sonner';
 	import { uploadErrorMessage } from '$lib/utils/upload-error';
+	import { canWrite } from '$lib/utils/permissions';
 	import { Upload, X, ImagePlus, ArrowUpDown, Info, Plus } from 'lucide-svelte';
 	import MediaMetadataModal from './MediaMetadataModal.svelte';
 
@@ -42,6 +43,12 @@
 	// True when this instance addresses a non-page source via apiBase. The
 	// `apiBase` prop being present (even if null) signals flex/object mode.
 	const objectMode = $derived(apiBase !== undefined);
+
+	// Read-only when the account can't write media (page mode), or is a demo
+	// account editing flex/object media (never in the demo writable allowlist).
+	// Uploads here are immediate (Uppy autoProceed), so the controls must be gone
+	// entirely — a disabled Save button wouldn't stop a drop-to-upload.
+	const readonly = $derived(!canWrite('media') || (objectMode && auth.demoMode));
 
 	// Manual drag-to-reorder is only meaningful in page mode, where the ordered
 	// filename list is saved to `header.media_order` and read back by core.
@@ -288,6 +295,8 @@
 		e.preventDefault();
 		dragOver = false;
 		dragCounter = 0;
+		// Uploads are immediate — never accept a drop when media isn't writable.
+		if (readonly) return;
 
 		const files = e.dataTransfer?.files;
 		if (!files || files.length === 0) return;
@@ -465,7 +474,7 @@
 			{/if}
 		</h3>
 		<div class="flex items-center gap-1">
-			{#if canReorder}
+			{#if canReorder && !readonly}
 				<button
 					type="button"
 					class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs transition-colors {reordering
@@ -481,14 +490,16 @@
 						: i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.REORDER_MODE')}
 				</button>
 			{/if}
-			<button
-				type="button"
-				class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-				onclick={() => fileInputEl?.click()}
-			>
-				<ImagePlus size={13} />
-				Add
-			</button>
+			{#if !readonly}
+				<button
+					type="button"
+					class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+					onclick={() => fileInputEl?.click()}
+				>
+					<ImagePlus size={13} />
+					Add
+				</button>
+			{/if}
 		</div>
 		<input
 			bind:this={fileInputEl}
@@ -601,7 +612,7 @@
 											<Plus size={12} />
 										</button>
 									{/if}
-									{#if canEditMeta && !inReorderMode}
+									{#if canEditMeta && !inReorderMode && !readonly}
 										<button
 											type="button"
 											class="inline-flex h-5 w-5 items-center justify-center rounded-sm text-white/80 transition-colors hover:bg-white/20 hover:text-white"
@@ -611,14 +622,16 @@
 											<Info size={12} />
 										</button>
 									{/if}
-									<button
-										type="button"
-										class="inline-flex h-5 w-5 items-center justify-center rounded-sm text-white/80 transition-colors hover:bg-red-500 hover:text-white"
-										onclick={(e) => { e.stopPropagation(); handleDelete(item); }}
-										title={i18n.t('ADMIN_NEXT.DELETE')}
-									>
-										<X size={12} />
-									</button>
+									{#if !readonly}
+										<button
+											type="button"
+											class="inline-flex h-5 w-5 items-center justify-center rounded-sm text-white/80 transition-colors hover:bg-red-500 hover:text-white"
+											onclick={(e) => { e.stopPropagation(); handleDelete(item); }}
+											title={i18n.t('ADMIN_NEXT.DELETE')}
+										>
+											<X size={12} />
+										</button>
+									{/if}
 								</div>
 							</div>
 						</div>
@@ -629,17 +642,19 @@
 			</div>
 		{/if}
 
-		<!-- Drop prompt (always visible at bottom) -->
-		<button
-			type="button"
-			class="flex w-full items-center justify-center gap-1.5 px-3 py-3 text-center"
-			onclick={() => fileInputEl?.click()}
-		>
-			<Upload size={14} class="text-muted-foreground/60" />
-			<p class="text-xs text-muted-foreground">
-				{dragOver ? 'Drop files here' : mediaItems.length > 0 ? 'Drop or click to add more' : 'Drop files or click to upload'}
-			</p>
-		</button>
+		<!-- Drop prompt (hidden when media isn't writable) -->
+		{#if !readonly}
+			<button
+				type="button"
+				class="flex w-full items-center justify-center gap-1.5 px-3 py-3 text-center"
+				onclick={() => fileInputEl?.click()}
+			>
+				<Upload size={14} class="text-muted-foreground/60" />
+				<p class="text-xs text-muted-foreground">
+					{dragOver ? 'Drop files here' : mediaItems.length > 0 ? 'Drop or click to add more' : 'Drop files or click to upload'}
+				</p>
+			</button>
+		{/if}
 	</div>
 </div>
 

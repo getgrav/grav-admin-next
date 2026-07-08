@@ -9,6 +9,7 @@
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
+	import { canWrite } from '$lib/utils/permissions';
 	import { toast } from 'svelte-sonner';
 	import {
 		FilePlus, Loader2, Save,
@@ -61,7 +62,8 @@
 	// Folder kind has no Title field (no .md, no frontmatter); page/module do
 	// and also need a template.
 	const canSave = $derived(
-		slug.trim().length > 0
+		canWrite('pages')
+		&& slug.trim().length > 0
 		&& (kind === 'folder' || (title.trim().length > 0 && template.length > 0))
 	);
 

@@ -170,7 +170,7 @@
 	</div>
 
 	<!-- Reorder toggle: turns the whole card/row into a drag-to-arrange source -->
-	{#if !mediaManager.isSearching && mediaManager.files.length > 1}
+	{#if !readonly && !mediaManager.isSearching && mediaManager.files.length > 1}
 		<button
 			class="inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs transition-colors {mediaManager.reordering
 				? 'bg-primary text-primary-foreground hover:bg-primary/90'

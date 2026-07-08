@@ -31,11 +31,14 @@
 	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { Undo2, RotateCcw } from 'lucide-svelte';
 	import { provideConfigOverrides } from '$lib/utils/config-overrides.svelte';
+	import { canWrite } from '$lib/utils/permissions';
 	import ContextPanelTriggers from '$lib/components/context-panels/ContextPanelTriggers.svelte';
 
 	const REDACTED = '********';
 
 	const slug = $derived(page.params.slug ?? '');
+	// Theme config is written via /config/themes/{slug}; gate on config write.
+	const canSave = $derived(canWrite('config'));
 	// Scope for blueprint-upload destination resolution (`self@:` → theme dir).
 	setContext('blueprintScope', () => slug ? 'themes/' + slug : '');
 	// Bus for leaf fields that defer side effects to the save commit
@@ -208,7 +211,7 @@
 	}
 	const ovr = provideConfigOverrides({
 		scope: () => 'themes/' + slug,
-		canWrite: () => true,
+		canWrite: () => canSave,
 		etag: () => etag,
 		applyFieldRevert: (path, value, newEtag) => {
 			handleBlueprintChange(path, value);
@@ -533,7 +536,7 @@
 				<Button
 					size="sm"
 					onclick={handleSave}
-					disabled={!hasChanges || saving || !requiredOk}
+					disabled={!hasChanges || saving || !requiredOk || !canSave}
 					aria-label="Save"
 					title="Save"
 				>

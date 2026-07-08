@@ -8,6 +8,7 @@
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import PasswordField from '$lib/components/ui/PasswordField.svelte';
 	import { passwordPolicy } from '$lib/stores/passwordPolicy.svelte';
+	import { canWrite } from '$lib/utils/permissions';
 	import { evaluatePassword } from '$lib/utils/passwordStrength';
 	import { toast } from 'svelte-sonner';
 	import { Loader2, Save, UserPlus } from 'lucide-svelte';
@@ -28,7 +29,7 @@
 
 	const passwordResult = $derived(evaluatePassword(password, passwordPolicy.current));
 	const canSave = $derived(
-		username.length >= 3 && email.length > 0 && passwordResult.allRulesMet,
+		canWrite('users') && username.length >= 3 && email.length > 0 && passwordResult.allRulesMet,
 	);
 
 	async function handleCreate() {

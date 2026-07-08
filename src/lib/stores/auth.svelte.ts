@@ -17,6 +17,20 @@ interface StoredAuth {
 	access?: Record<string, boolean>;
 	gravVersion?: string;
 	adminVersion?: string;
+	demoMode?: boolean;
+	demoWritable?: string[];
+	demoResetInterval?: number;
+	demoSecondsUntilReset?: number | null;
+	/** Local ms timestamp captured when demo state was last synced — anchors the countdown. */
+	demoStateFetchedAt?: number;
+}
+
+/** Per-account demo-mode block from the server (GET /me and login payloads). */
+export interface DemoModeInfo {
+	enabled: boolean;
+	writable?: string[];
+	reset_interval?: number;
+	seconds_until_reset?: number | null;
 }
 
 function loadStored(): StoredAuth | null {
@@ -85,6 +99,15 @@ function createAuthStore() {
 	let access = $state<Record<string, boolean>>(stored?.access ?? {});
 	let gravVersion = $state(stored?.gravVersion ?? '');
 	let adminVersion = $state(stored?.adminVersion ?? '');
+	// Demo mode. Seedable ON from the boot config to avoid a flash of enabled
+	// write buttons before /me resolves; only ever flipped OFF by setDemoMode()
+	// (server-driven), so a tampered boot config can pre-hint ON but never disable
+	// the restriction — and the server enforces the block regardless.
+	let demoMode = $state(stored?.demoMode ?? (gravConfig as any)?.demoMode ?? false);
+	let demoWritable = $state<string[]>(stored?.demoWritable ?? []);
+	let demoResetInterval = $state(stored?.demoResetInterval ?? 0);
+	let demoSecondsUntilReset = $state<number | null>(stored?.demoSecondsUntilReset ?? null);
+	let demoStateFetchedAt = $state(stored?.demoStateFetchedAt ?? 0);
 
 	const isAuthenticated = $derived(!!accessToken && Date.now() < expiresAt);
 	const isExpiringSoon = $derived(!!accessToken && expiresAt - Date.now() < 5 * 60 * 1000);
@@ -116,6 +139,11 @@ function createAuthStore() {
 			access,
 			gravVersion,
 			adminVersion,
+			demoMode,
+			demoWritable,
+			demoResetInterval,
+			demoSecondsUntilReset,
+			demoStateFetchedAt,
 		};
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 	}
@@ -157,6 +185,12 @@ function createAuthStore() {
 		get gravVersion() { return gravVersion; },
 		get adminVersion() { return adminVersion; },
 
+		get demoMode() { return demoMode; },
+		get demoWritable() { return demoWritable; },
+		get demoResetInterval() { return demoResetInterval; },
+		get demoSecondsUntilReset() { return demoSecondsUntilReset; },
+		get demoStateFetchedAt() { return demoStateFetchedAt; },
+
 		setTokens(access: string, refresh: string, expiresIn: number) {
 			accessToken = access;
 			refreshToken = refresh;
@@ -182,6 +216,22 @@ function createAuthStore() {
 		setPermissions(isSuperAdmin: boolean, permissions: Record<string, boolean>) {
 			superAdmin = isSuperAdmin;
 			access = permissions;
+			persist();
+		},
+
+		/**
+		 * Sync per-account demo state from a /me or login response. Call
+		 * unconditionally on every such response — passing { enabled: false }
+		 * clears any demo state left over from a previous session in the same
+		 * browser profile, so logging into a non-demo account can never inherit a
+		 * stale restriction.
+		 */
+		setDemoMode(info: DemoModeInfo) {
+			demoMode = info.enabled;
+			demoWritable = info.enabled ? (info.writable ?? []) : [];
+			demoResetInterval = info.enabled ? (info.reset_interval ?? 0) : 0;
+			demoSecondsUntilReset = info.enabled ? (info.seconds_until_reset ?? null) : null;
+			demoStateFetchedAt = Date.now();
 			persist();
 		},
 
@@ -216,6 +266,11 @@ function createAuthStore() {
 			avatarUrl = '';
 			superAdmin = false;
 			access = {};
+			demoMode = false;
+			demoWritable = [];
+			demoResetInterval = 0;
+			demoSecondsUntilReset = null;
+			demoStateFetchedAt = 0;
 			persist();
 		}
 	};

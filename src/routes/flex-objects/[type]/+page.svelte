@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { auth } from '$lib/stores/auth.svelte';
 	import {
 		getDirectories,
 		getObjects,
@@ -319,10 +320,12 @@
 								{i18n.t('ADMIN_NEXT.FLEX_OBJECTS.EXPORT')}
 							</Button>
 						{/if}
-						<Button size="sm" onclick={() => goto(`${base}/flex-objects/${type}/new`)}>
-							<Plus size={14} />
-							Add
-						</Button>
+						{#if !auth.demoMode}
+							<Button size="sm" onclick={() => goto(`${base}/flex-objects/${type}/new`)}>
+								<Plus size={14} />
+								Add
+							</Button>
+						{/if}
 					</div>
 				</div>
 			</div>
@@ -458,14 +461,16 @@
 									>
 										<Pencil size={14} />
 									</button>
-									<button
-										type="button"
-										class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-										title={i18n.t('ADMIN_NEXT.DELETE')}
-										onclick={() => confirmDelete(obj)}
-									>
-										<Trash2 size={14} />
-									</button>
+									{#if !auth.demoMode}
+										<button
+											type="button"
+											class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+											title={i18n.t('ADMIN_NEXT.DELETE')}
+											onclick={() => confirmDelete(obj)}
+										>
+											<Trash2 size={14} />
+										</button>
+									{/if}
 								</div>
 							</td>
 						</tr>

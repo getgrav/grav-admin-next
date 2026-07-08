@@ -10,12 +10,18 @@
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { toast } from 'svelte-sonner';
 	import { Loader2, Trash2, KeyRound, Copy, Check, AlertTriangle } from 'lucide-svelte';
+	import { canWrite } from '$lib/utils/permissions';
 
 	interface Props {
 		username: string;
 	}
 
 	let { username }: Props = $props();
+
+	// Generating/revoking a key is a user-write action — issuing a real, working
+	// credential. Gate the controls so a read-only/demo account can't attempt it
+	// (the server hard-blocks it too, but the buttons shouldn't invite the click).
+	const canManageKeys = $derived(canWrite('users'));
 
 	let keys = $state<ApiKeyInfo[]>([]);
 	let loadingKeys = $state(true);
@@ -151,6 +157,7 @@
 								<td class="py-2.5 pe-4 text-muted-foreground">{formatDate(key.expires)}</td>
 								<td class="py-2.5 pe-4 text-muted-foreground">{formatDate(key.last_used)}</td>
 								<td class="py-2.5">
+									{#if canManageKeys}
 									<button
 										type="button"
 										class="inline-flex h-7 w-7 items-center justify-center rounded-md text-destructive/70 transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
@@ -160,6 +167,7 @@
 									>
 										<Trash2 size={14} />
 									</button>
+									{/if}
 								</td>
 							</tr>
 						{/each}
@@ -194,6 +202,7 @@
 		{/if}
 
 		<!-- Generate form -->
+		{#if canManageKeys}
 		<div class="mt-4 flex flex-wrap items-end gap-3 border-t border-border/50 pt-4">
 			<div class="min-w-0 flex-1">
 				<label class="text-xs font-medium text-muted-foreground" for="api-key-name">{i18n.t('ADMIN_NEXT.API_KEYS_FIELD.KEY_NAME')}</label>
@@ -229,6 +238,7 @@
 				{/if}
 			</Button>
 		</div>
+		{/if}
 	</div>
 </div>
 

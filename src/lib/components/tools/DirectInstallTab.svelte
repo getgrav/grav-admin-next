@@ -3,14 +3,17 @@
 	import { toast } from 'svelte-sonner';
 	import { directInstallUrl, directInstallFile } from '$lib/api/endpoints/tools';
 	import { Button } from '$lib/components/ui/button';
+	import { canWrite } from '$lib/utils/permissions';
 	import { Upload, Link, Loader2, Package } from 'lucide-svelte';
 
 	let url = $state('');
 	let installing = $state(false);
 	let dragOver = $state(false);
+	// Direct install writes a package to disk — gate on GPM write.
+	const canInstall = $derived(canWrite('gpm'));
 
 	async function handleUrlInstall() {
-		if (!url.trim()) return;
+		if (!url.trim() || !canInstall) return;
 		installing = true;
 		try {
 			await directInstallUrl(url.trim());
@@ -24,6 +27,7 @@
 	}
 
 	async function handleFileInstall(file: File) {
+		if (!canInstall) return;
 		if (!file.name.endsWith('.zip')) {
 			toast.error(i18n.t('ADMIN_NEXT.TOOLS.DIRECT_INSTALL.ONLY_ZIP_FILES_ARE_SUPPORTED'));
 			return;
@@ -78,7 +82,7 @@
 				<p class="text-sm font-medium text-foreground">{i18n.t('ADMIN_NEXT.TOOLS.DIRECT_INSTALL.DROP_A_ZIP_FILE_HERE_OR_CLICK_TO_BROWSE')}</p>
 				<p class="mt-1 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.DIRECT_INSTALL.SUPPORTS_GRAV_PLUGIN_AND_THEME_PACKAGES')}</p>
 			{/if}
-			<input type="file" accept=".zip" class="hidden" onchange={handleFileInput} disabled={installing} />
+			<input type="file" accept=".zip" class="hidden" onchange={handleFileInput} disabled={installing || !canInstall} />
 		</label>
 	</div>
 
@@ -94,10 +98,10 @@
 				class="flex h-9 flex-1 rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 				placeholder="https://example.com/plugin-package.zip"
 				bind:value={url}
-				disabled={installing}
+				disabled={installing || !canInstall}
 				onkeydown={(e) => { if (e.key === 'Enter') handleUrlInstall(); }}
 			/>
-			<Button size="sm" onclick={handleUrlInstall} disabled={installing || !url.trim()}>
+			<Button size="sm" onclick={handleUrlInstall} disabled={installing || !url.trim() || !canInstall}>
 				{#if installing}
 					<Loader2 size={14} class="animate-spin" />
 				{:else}
