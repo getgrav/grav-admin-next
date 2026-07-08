@@ -123,6 +123,8 @@ export interface UserColumn {
 	/** Key into each user's `extra` map. */
 	field: string;
 	formatter: ColumnFormatter;
+	/** Optional label key for link formatter; falls back to `field`. */
+	labelField?: string;
 	/** Client-side sort, current page only (data is page-scoped). */
 	sortable?: boolean;
 	priority?: number;

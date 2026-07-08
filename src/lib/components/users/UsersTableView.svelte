@@ -228,7 +228,11 @@
 					</td>
 					{#each columns as column (column.id)}
 						<td class="px-4 py-2 text-sm">
-							<UserColumnCell value={user.extra?.[column.field]} formatter={column.formatter} />
+							<UserColumnCell
+								value={user.extra?.[column.field]}
+								formatter={column.formatter}
+								label={column.labelField ? user.extra?.[column.labelField] : undefined}
+							/>
 						</td>
 					{/each}
 					<td class="px-4 py-2 text-end">

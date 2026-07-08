@@ -6,11 +6,12 @@
 	interface Props {
 		value: string | number | boolean | null | undefined;
 		formatter: ColumnFormatter;
+		label?: string | number | boolean | null | undefined;
 	}
 
-	let { value, formatter }: Props = $props();
+	let { value, formatter, label }: Props = $props();
 
-	const cell = $derived(formatColumnValue(value, formatter));
+	const cell = $derived(formatColumnValue(value, formatter, label));
 </script>
 
 {#if cell.kind === 'boolean'}
