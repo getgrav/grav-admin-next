@@ -219,13 +219,12 @@
 		return url;
 	});
 
-	// Header display URL: same as above but without the long, opaque preview_token,
-	// which is noise (and mildly sensitive) in the visible URL. The link and iframe
-	// still use the full frontendPreviewUrl so the draft renders.
+	// Header display URL: the clean page URL only, without the internal preview
+	// params (admin_preview / the long, mildly sensitive preview_token). The link
+	// and iframe still use the full frontendPreviewUrl so the draft renders.
 	const frontendPreviewDisplayUrl = $derived.by(() => {
 		if (!pageData) return '';
-		const sep = pageData.route.includes('?') ? '&' : '?';
-		return `${auth.serverUrl}${pageData.route}${sep}admin_preview=1`;
+		return `${auth.serverUrl}${pageData.route}`;
 	});
 
 	// Open the front-end preview. We mint the draft-preview token BEFORE showing
