@@ -13,6 +13,9 @@
 	import PagesTreeView from '$lib/components/pages/PagesTreeView.svelte';
 	import PagesListView from '$lib/components/pages/PagesListView.svelte';
 	import PagesMillerView from '$lib/components/pages/PagesMillerView.svelte';
+	import PagesFilterBar from '$lib/components/pages/PagesFilterBar.svelte';
+	import { emptyPageFilters, type PageFilters } from '$lib/utils/pageFilters';
+	import { getPageTypes, type PageType } from '$lib/api/endpoints/blueprints';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import LanguageSwitcher from '$lib/components/ui/LanguageSwitcher.svelte';
@@ -26,6 +29,14 @@
 
 	let searchQuery = $state('');
 	let reorderMode = $state(false);
+	let filters = $state<PageFilters>(emptyPageFilters());
+
+	// Template list for the filter dropdown. Non-modular page types are enough
+	// for filtering; loaded once and shared across all three views.
+	let templates = $state<PageType[]>([]);
+	onMount(() => {
+		getPageTypes().then((t) => { templates = t; }).catch(() => { /* filter still works without the list */ });
+	});
 	let confirmDeleteOpen = $state(false);
 	let pendingDeletePage = $state<PageSummary | null>(null);
 	let stats = $state<DashboardStats['pages'] | null>(null);
@@ -236,6 +247,10 @@
 		<div class="flex flex-1 items-center gap-3 max-sm:group-has-[input:focus]:hidden">
 			<div class="flex-1"></div>
 
+			<!-- Filter: published / visible / routable / template. Applies to all
+				 three views via server-side query params. -->
+			<PagesFilterBar {filters} onchange={(f) => filters = f} {templates} />
+
 			<!-- Language switcher -->
 			{#if contentLang.enabled}
 				<LanguageSwitcher onchange={() => { loadStats(); }} />
@@ -297,11 +312,11 @@
 		<!-- View content -->
 	<div class="overflow-hidden rounded-lg border border-border bg-card">
 		{#if prefs.pagesViewMode === 'tree'}
-			<PagesTreeView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} onCopy={canEditPages ? handleCopy : undefined} onTogglePublished={canEditPages ? handleTogglePublished : undefined} {copyingRoutes} />
+			<PagesTreeView {searchQuery} {filters} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} onCopy={canEditPages ? handleCopy : undefined} onTogglePublished={canEditPages ? handleTogglePublished : undefined} {copyingRoutes} />
 		{:else if prefs.pagesViewMode === 'list'}
-			<PagesListView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} onCopy={canEditPages ? handleCopy : undefined} onTogglePublished={canEditPages ? handleTogglePublished : undefined} {copyingRoutes} />
+			<PagesListView {searchQuery} {filters} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} onCopy={canEditPages ? handleCopy : undefined} onTogglePublished={canEditPages ? handleTogglePublished : undefined} {copyingRoutes} />
 		{:else if prefs.pagesViewMode === 'miller'}
-			<PagesMillerView {searchQuery} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} onCopy={canEditPages ? handleCopy : undefined} onTogglePublished={canEditPages ? handleTogglePublished : undefined} {copyingRoutes} />
+			<PagesMillerView {searchQuery} {filters} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} onCopy={canEditPages ? handleCopy : undefined} onTogglePublished={canEditPages ? handleTogglePublished : undefined} {copyingRoutes} />
 		{/if}
 
 		<!-- Footer stats -->

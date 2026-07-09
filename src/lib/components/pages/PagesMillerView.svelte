@@ -17,11 +17,13 @@
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { pagesChunks, streamKey, type StreamConfig } from '$lib/stores/pagesChunks.svelte';
+	import { emptyPageFilters, pageFilterStreamFields, type PageFilters } from '$lib/utils/pageFilters';
 
 	type SortField = 'default' | 'order' | 'title' | 'modified' | 'date';
 
 	interface Props {
 		searchQuery?: string;
+		filters?: PageFilters;
 		reorderMode?: boolean;
 		lang?: string;
 		onEdit: (route: string) => void;
@@ -36,7 +38,20 @@
 		copyingRoutes?: Set<string>;
 	}
 
-	let { searchQuery = '', reorderMode = false, lang, onEdit, onDelete, onCopy, onTogglePublished, copyingRoutes }: Props = $props();
+	let { searchQuery = '', filters = emptyPageFilters(), reorderMode = false, lang, onEdit, onDelete, onCopy, onTogglePublished, copyingRoutes }: Props = $props();
+
+	// Stable key over the active filters. Changing a filter re-points every open
+	// column at a fresh, unloaded stream (the stream key already includes the
+	// filter fields), so re-bootstrap each open column under the new query.
+	const filterKey = $derived(JSON.stringify(pageFilterStreamFields(filters)));
+	let prevFilterKey = filterKey;
+	$effect(() => {
+		if (filterKey === prevFilterKey) return;
+		prevFilterKey = filterKey;
+		untrack(() => {
+			for (const col of columns) bootstrapColumn(col.parentRoute);
+		});
+	});
 
 	// Drag state for Miller columns
 	let dragPage = $state<PageSummary | null>(null);
@@ -125,6 +140,7 @@
 			order: sortOrder,
 			lang: lang || undefined,
 			translations: lang ? true : undefined,
+			...pageFilterStreamFields(filters),
 		};
 	}
 

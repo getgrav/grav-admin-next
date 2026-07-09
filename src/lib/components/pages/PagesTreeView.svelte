@@ -15,11 +15,13 @@
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { pagesChunks, streamKey, type StreamConfig } from '$lib/stores/pagesChunks.svelte';
+	import { emptyPageFilters, pageFilterStreamFields, type PageFilters } from '$lib/utils/pageFilters';
 
 	type SortField = 'default' | 'order' | 'title' | 'modified' | 'date' | 'slug';
 
 	interface Props {
 		searchQuery?: string;
+		filters?: PageFilters;
 		reorderMode?: boolean;
 		lang?: string;
 		onEdit: (route: string) => void;
@@ -29,7 +31,13 @@
 		copyingRoutes?: Set<string>;
 	}
 
-	let { searchQuery = '', reorderMode = false, lang, onEdit, onDelete, onCopy, onTogglePublished, copyingRoutes }: Props = $props();
+	let { searchQuery = '', filters = emptyPageFilters(), reorderMode = false, lang, onEdit, onDelete, onCopy, onTogglePublished, copyingRoutes }: Props = $props();
+
+	// Stable key over the active filters. The root/expanded bootstrap effect
+	// reads this so changing a filter while the tree is open re-fetches every
+	// open folder under the new query (the stream key already includes filters,
+	// so a change points every folder at a fresh, unloaded stream).
+	const filterKey = $derived(JSON.stringify(pageFilterStreamFields(filters)));
 
 	// Persist expanded-node state across remounts (navigating into a page
 	// and back shouldn't collapse the tree the user just opened). Matches
@@ -85,6 +93,7 @@
 			order: sortOrder,
 			lang: lang || undefined,
 			translations: lang ? true : undefined,
+			...pageFilterStreamFields(filters),
 		};
 	}
 
@@ -195,6 +204,8 @@
 		if (lang !== prevLang) {
 			prevLang = lang;
 		}
+		// Track filter changes too, so toggling a filter re-bootstraps the tree.
+		void filterKey;
 		rootLoading = true;
 		untrack(() => {
 			const initialExpanded = Array.from(expandedRoutes).filter(r => r !== '/');

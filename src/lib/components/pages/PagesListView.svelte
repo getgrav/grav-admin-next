@@ -13,9 +13,11 @@
 	} from 'lucide-svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { pagesChunks, streamKey, type StreamConfig } from '$lib/stores/pagesChunks.svelte';
+	import { emptyPageFilters, matchesPageFilters, pageFilterStreamFields, type PageFilters } from '$lib/utils/pageFilters';
 
 	interface Props {
 		searchQuery?: string;
+		filters?: PageFilters;
 		reorderMode?: boolean;
 		lang?: string;
 		onEdit: (route: string) => void;
@@ -25,7 +27,7 @@
 		copyingRoutes?: Set<string>;
 	}
 
-	let { searchQuery = '', reorderMode = false, lang, onEdit, onDelete, onCopy, onTogglePublished, copyingRoutes }: Props = $props();
+	let { searchQuery = '', filters = emptyPageFilters(), reorderMode = false, lang, onEdit, onDelete, onCopy, onTogglePublished, copyingRoutes }: Props = $props();
 
 	let sortField = $state<PageListParams['sort']>('order');
 	let sortOrder = $state<'asc' | 'desc'>('asc');
@@ -41,6 +43,11 @@
 	let searchResults = $state<PageSummary[]>([]);
 	let searchLoading = $state(false);
 
+	// The search endpoint returns a flat, fully-loaded array, so the active
+	// filters are applied client-side here to keep search + filter consistent
+	// with the browse mode (which filters server-side through streamConfig).
+	const filteredSearchResults = $derived(searchResults.filter((p) => matchesPageFilters(p, filters)));
+
 	// ── Chunked listing ──────────────────────────────────────────────────────
 
 	const chunkSize = $derived(prefs.pagesChunkSize);
@@ -49,6 +56,7 @@
 		order: sortOrder,
 		lang: lang || undefined,
 		translations: lang ? true : undefined,
+		...pageFilterStreamFields(filters),
 	});
 	const skey = $derived(streamKey(streamConfig, chunkSize));
 	const total = $derived(pagesChunks.getTotal(skey));
@@ -519,12 +527,12 @@
 			<Loader2 size={16} class="mx-auto mb-2 animate-spin" />
 			{i18n.t('ADMIN_NEXT.PAGES.LOADING')}
 		</div>
-	{:else if searchResults.length === 0}
+	{:else if filteredSearchResults.length === 0}
 		<div class="py-12 text-center text-sm text-muted-foreground">
 			{i18n.t('ADMIN_NEXT.PAGES.NO_MATCH')}
 		</div>
 	{:else}
-		{#each searchResults as page, index (page.route)}
+		{#each filteredSearchResults as page, index (page.route)}
 			{@render pageRow(page, index)}
 		{/each}
 	{/if}
