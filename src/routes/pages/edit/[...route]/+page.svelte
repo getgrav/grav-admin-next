@@ -2086,7 +2086,7 @@
 								{i18n.t('ADMIN_NEXT.PAGES.PUBLISHED')}
 							</dt>
 							<dd class="font-medium {pageData.published ? 'text-emerald-500' : 'text-muted-foreground'}">
-								{pageData.published ? 'Yes' : 'No'}
+								{pageData.published ? i18n.t('ADMIN_NEXT.YES') : i18n.t('ADMIN_NEXT.NO')}
 							</dd>
 						</div>
 						<div class="flex justify-between">
@@ -2099,14 +2099,14 @@
 								{i18n.t('ADMIN_NEXT.PAGES.INFO_VISIBLE')}
 							</dt>
 							<dd class="font-medium {pageData.visible ? 'text-primary' : 'text-muted-foreground'}">
-								{pageData.visible ? 'Yes' : 'No'}
+								{pageData.visible ? i18n.t('ADMIN_NEXT.YES') : i18n.t('ADMIN_NEXT.NO')}
 							</dd>
 						</div>
 						{#if pageData.routable !== undefined}
 							<div class="flex justify-between">
 								<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.INFO_ROUTABLE')}</dt>
 								<dd class="font-medium {pageData.routable ? 'text-foreground' : 'text-muted-foreground'}">
-									{pageData.routable ? 'Yes' : 'No'}
+									{pageData.routable ? i18n.t('ADMIN_NEXT.YES') : i18n.t('ADMIN_NEXT.NO')}
 								</dd>
 							</div>
 						{/if}
