@@ -11,7 +11,8 @@
 	import AddThemeModal from '$lib/components/AddThemeModal.svelte';
 	import GravUpdateBanner from '$lib/components/GravUpdateBanner.svelte';
 	import { toast } from 'svelte-sonner';
-	import { Search, Palette, ExternalLink, ArrowUpCircle, Loader2, Plus, RefreshCw, BadgeCheck, Check, CornerDownRight, LayoutGrid, Table as TableIcon, Trash2, FileText } from 'lucide-svelte';
+	import { Search, Palette, ExternalLink, ArrowUpCircle, Loader2, Plus, RefreshCw, BadgeCheck, Check, CornerDownRight, LayoutGrid, Table as TableIcon, Trash2, FileText, Book, Bug } from 'lucide-svelte';
+	import { hostname } from '$lib/utils/url';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText } from '$lib/utils/gpm';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -628,6 +629,16 @@
 							<button type="button" class="inline-flex items-center gap-1 hover:text-foreground" onclick={() => selectedTheme && showChangelog(selectedTheme)}>
 								<FileText size={12} /> {i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}
 							</button>
+							{#if selectedTheme.docs}
+								<a href={selectedTheme.docs} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
+									<Book size={12} /> {i18n.t('ADMIN_NEXT.DOCUMENTATION')} <ExternalLink size={10} />
+								</a>
+							{/if}
+							{#if selectedTheme.bugs}
+								<a href={selectedTheme.bugs} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
+									<Bug size={12} /> {i18n.t('ADMIN_NEXT.REPORT_ISSUE')} <ExternalLink size={10} />
+								</a>
+							{/if}
 						</div>
 
 						<!-- Metadata grid -->
@@ -653,7 +664,7 @@
 									<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.HOMEPAGE')}</dt>
 									<dd class="mt-0.5 text-sm">
 										<a href={selectedTheme.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
-											Visit
+											{hostname(selectedTheme.homepage)}
 											<ExternalLink size={10} class="inline" />
 										</a>
 									</dd>

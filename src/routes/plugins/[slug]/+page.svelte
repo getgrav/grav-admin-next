@@ -10,6 +10,7 @@
 	import { getPluginBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
+	import ExtensionMetaLinks from '$lib/components/extensions/ExtensionMetaLinks.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
@@ -19,7 +20,7 @@
 	import { toast } from 'svelte-sonner';
 	import {
 		Save, Loader2, AlertCircle, Trash2, BadgeCheck,
-		Puzzle, ExternalLink, Power, PowerOff, BookOpen, FileText, ArrowUpCircle, CornerDownRight
+		Puzzle, Power, PowerOff, ArrowUpCircle, CornerDownRight
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
@@ -593,26 +594,12 @@
 									<p class="text-sm leading-relaxed text-muted-foreground">{plugin.description}</p>
 								{/if}
 							{/if}
-							<div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-								{#if plugin.homepage}
-									<a href={plugin.homepage} target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-primary hover:underline">
-										{i18n.t('ADMIN_NEXT.HOMEPAGE')} <ExternalLink size={10} />
-									</a>
-								{/if}
-								{#if plugin.author?.url}
-									<a href={plugin.author.url} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
-										{plugin.author.name} <ExternalLink size={10} />
-									</a>
-								{:else if plugin.author?.name}
-									<span>{plugin.author.name}</span>
-								{/if}
-								<button type="button" class="inline-flex items-center gap-1 hover:text-foreground" onclick={showReadme}>
-									<BookOpen size={10} /> README
-								</button>
-								<button type="button" class="inline-flex items-center gap-1 hover:text-foreground" onclick={showChangelog}>
-									<FileText size={10} /> {i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}
-								</button>
-							</div>
+							<ExtensionMetaLinks
+								extension={plugin}
+								changelogLabel={i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}
+								onReadme={showReadme}
+								onChangelog={showChangelog}
+							/>
 							{#if parseKeywords(plugin.keywords).length}
 								<div class="mt-2 flex flex-wrap gap-1">
 									{#each parseKeywords(plugin.keywords) as kw}

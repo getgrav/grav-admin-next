@@ -18,6 +18,10 @@ export interface PluginInfo {
 	description_html?: string | null;
 	author: PackageAuthor | null;
 	homepage: string | null;
+	/** Blueprint `docs` — documentation URL. Absent when the blueprint omits it. */
+	docs?: string | null;
+	/** Blueprint `bugs` — issue tracker URL. Absent when the blueprint omits it. */
+	bugs?: string | null;
 	enabled: boolean;
 	available_version?: string;
 	updatable?: boolean;
@@ -223,6 +227,10 @@ export interface ThemeInfo {
 	description_html?: string | null;
 	author: PackageAuthor | null;
 	homepage: string | null;
+	/** Blueprint `docs` — documentation URL. Absent when the blueprint omits it. */
+	docs?: string | null;
+	/** Blueprint `bugs` — issue tracker URL. Absent when the blueprint omits it. */
+	bugs?: string | null;
 	enabled: boolean;
 	available_version?: string;
 	updatable?: boolean;

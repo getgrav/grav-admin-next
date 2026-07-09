@@ -5,6 +5,7 @@
 	import { toast } from 'svelte-sonner';
 	import { canWrite } from '$lib/utils/permissions';
 	import { Search, X, Puzzle, ExternalLink, Download, Loader2, Check, ShoppingCart, BadgeCheck } from 'lucide-svelte';
+	import { hostname } from '$lib/utils/url';
 
 	const canInstall = $derived(canWrite('gpm'));
 	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText } from '$lib/utils/gpm';
@@ -338,7 +339,7 @@
 											<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.HOMEPAGE')}</dt>
 											<dd class="mt-0.5 text-sm">
 												<a href={selectedPlugin.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
-													Visit
+													{hostname(selectedPlugin.homepage)}
 													<ExternalLink size={10} class="inline" />
 												</a>
 											</dd>
