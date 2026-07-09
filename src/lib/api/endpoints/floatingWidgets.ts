@@ -9,6 +9,14 @@ export interface FloatingWidget {
 	priority?: number;
 	autoLoad?: boolean;
 	showFab?: boolean;
+	/**
+	 * Admin-internal SPA routes this widget applies to (e.g. ["/users"]). When
+	 * present, an autoLoad widget's script is only loaded on a matching route
+	 * instead of everywhere (getgrav/grav-plugin-admin2#116). Omitted = load on
+	 * every route (previous behaviour). Scopes script loading only — never a
+	 * permission boundary.
+	 */
+	routes?: string[];
 	/** FAB/header gradient (CSS gradient). Defaults to indigo/purple. */
 	gradient?: string;
 	/** Panel width in pixels. Defaults to 420. */

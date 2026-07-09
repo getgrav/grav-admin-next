@@ -147,6 +147,60 @@ export async function getUserColumns(): Promise<UserColumn[]> {
 }
 
 /**
+ * A plugin-declared per-user action button for the Users list
+ * (onApiUserListRowActions, getgrav/grav-plugin-admin2#115). Admin owns the
+ * table and the row identity; the plugin only describes the button. No HTML or
+ * renderer function crosses the wire — the server strips anything but this
+ * descriptor. Invoked via executeUserRowAction(), which re-authorizes the
+ * action against the target username server-side.
+ */
+export interface UserRowAction {
+	id: string;
+	plugin: string;
+	label: string;
+	/** Font Awesome icon class (e.g. "fa-user-secret" or "user-secret"). */
+	icon?: string;
+	/** Verb the server passes back to the handler; opaque to the client. */
+	action?: string;
+	/** Optional confirmation prompt shown before the action runs. */
+	confirm?: string;
+	priority?: number;
+}
+
+/** The fixed result shape returned by POST /users/{username}/row-action. */
+export interface UserRowActionResult {
+	status: 'success' | 'error';
+	message?: string;
+	/** Safe same-origin redirect the client opens in a new tab (server-validated). */
+	url?: string;
+}
+
+/**
+ * Fetch the plugin-declared row actions for the Users list. Requires
+ * api.users.read. Tolerant of an API plugin that predates the row-actions
+ * contract (404 / no `actions` key) by returning an empty list.
+ */
+export async function getUserRowActions(): Promise<UserRowAction[]> {
+	try {
+		const res = await api.get<{ actions?: UserRowAction[] } | UserRowAction[]>('/users/row-actions');
+		if (Array.isArray(res)) return res;
+		return res.actions ?? [];
+	} catch {
+		return [];
+	}
+}
+
+/**
+ * Execute a plugin-declared row action against one user. The server re-checks
+ * the action's `authorize` and the plugin handler re-authorizes against the
+ * target username, so this is safe even though the button's visibility was a
+ * client-side hint.
+ */
+export async function executeUserRowAction(username: string, id: string): Promise<UserRowActionResult> {
+	return api.post<UserRowActionResult>(`/users/${username}/row-action`, { id });
+}
+
+/**
  * Get paginated list of users. Uses getFullBody to preserve pagination meta.
  *
  * Search and the access/group filters are applied server-side so they span the

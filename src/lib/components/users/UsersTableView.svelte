@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import type { UserInfo, UserColumn } from '$lib/api/endpoints/users';
+	import type { UserInfo, UserColumn, UserRowAction } from '$lib/api/endpoints/users';
 	import type { FlexDetailConfig } from '$lib/api/endpoints/flexObjects';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
 	import { Pencil, Trash2, Shield, ShieldCheck, ArrowUp, ArrowDown, Loader2, ChevronDown, ChevronRight } from 'lucide-svelte';
@@ -14,15 +14,20 @@
 		detail?: FlexDetailConfig | null;
 		/** Plugin-declared extra columns (onApiUserListColumns). */
 		columns?: UserColumn[];
+		/** Plugin-declared per-user action buttons (onApiUserListRowActions). */
+		rowActions?: UserRowAction[];
 		togglingUsername?: string | null;
+		/** Key `${username}:${actionId}` of the row action currently executing. */
+		runningRowAction?: string | null;
 		onEdit: (username: string) => void;
 		onDelete?: (username: string) => void;
 		onToggleState?: (user: UserInfo) => void;
+		onRowAction?: (action: UserRowAction, user: UserInfo) => void;
 		/** Apply a permission filter when a permission chip is clicked. */
 		onFilterPermission?: (permission: string) => void;
 	}
 
-	let { users, canEdit, detail, columns = [], togglingUsername, onEdit, onDelete, onToggleState, onFilterPermission }: Props = $props();
+	let { users, canEdit, detail, columns = [], rowActions = [], togglingUsername, runningRowAction, onEdit, onDelete, onToggleState, onRowAction, onFilterPermission }: Props = $props();
 
 	// How many permission chips to show before collapsing into a "+N" count.
 	const MAX_CHIPS = 3;
@@ -237,6 +242,22 @@
 					{/each}
 					<td class="px-4 py-2 text-end">
 						<div class="inline-flex items-center gap-1">
+							{#each rowActions as action (action.id)}
+								{@const running = runningRowAction === `${user.username}:${action.id}`}
+								<button
+									class="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
+									aria-label={action.label}
+									title={action.label}
+									disabled={running || !onRowAction}
+									onclick={() => onRowAction?.(action, user)}
+								>
+									{#if running}
+										<Loader2 size={14} class="animate-spin" />
+									{:else}
+										<i class="{iconClass(action.icon)} text-[0.8125rem] leading-none"></i>
+									{/if}
+								</button>
+							{/each}
 							{#if canEdit}
 								<button
 									class="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"

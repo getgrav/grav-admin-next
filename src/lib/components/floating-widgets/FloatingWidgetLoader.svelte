@@ -3,6 +3,9 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api/client';
 	import { floatingWidgetStore } from '$lib/stores/floatingWidgets.svelte';
+	import type { FloatingWidget } from '$lib/api/endpoints/floatingWidgets';
+	import { page } from '$app/state';
+	import { base } from '$app/paths';
 	import { Plus } from 'lucide-svelte';
 
 	const DEFAULT_GRADIENT = 'linear-gradient(135deg, #6366f1, #8b5cf6)';
@@ -143,14 +146,37 @@
 		if (container) container.innerHTML = '';
 	}
 
+	// The current admin-internal SPA route (e.g. "/users"), derived by stripping
+	// the configurable admin base from the pathname and normalizing — same shape
+	// as the `routes` a widget declares. Matching happens against this router
+	// state, never a raw browser pathname, so it's immune to the admin prefix.
+	const currentAdminRoute = $derived(normalizeRoute(page.url.pathname.replace(base, '')));
+
+	function normalizeRoute(path: string): string {
+		if (!path || path === '/') return '/';
+		const withLead = path.startsWith('/') ? path : '/' + path;
+		const trimmed = withLead.replace(/\/+$/, '');
+		return trimmed === '' ? '/' : trimmed;
+	}
+
+	// A widget with no declared routes loads everywhere (backward compatible);
+	// otherwise it only loads on an exact route match (#116, v1 is exact-only).
+	function widgetMatchesRoute(w: FloatingWidget, route: string): boolean {
+		if (!w.routes || w.routes.length === 0) return true;
+		return w.routes.includes(route);
+	}
+
 	// Auto-load scripts for widgets with autoLoad: true (e.g., ai-translate injects
 	// translate buttons into fields without waiting for the FAB to be clicked).
-	// Use a plain Set (non-reactive) to guard against double-loading.
+	// Use a plain Set (non-reactive) to guard against double-loading. Reading
+	// currentAdminRoute makes this re-run on navigation, so a route-scoped widget
+	// loads the moment its route is first visited — and never on other routes.
 	const autoLoaded = new Set<string>();
 	$effect(() => {
 		if (!floatingWidgetStore.loaded) return;
+		const route = currentAdminRoute;
 		for (const w of floatingWidgetStore.items) {
-			if (w.autoLoad && !autoLoaded.has(w.id)) {
+			if (w.autoLoad && !autoLoaded.has(w.id) && widgetMatchesRoute(w, route)) {
 				autoLoaded.add(w.id);
 				loadWidgetScript(w.id, w.plugin);
 			}

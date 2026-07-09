@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
-	import { getUsers, getUserFilters, getUserColumns, type UserInfo, type UsersPage, type UserFilterTab, type UserColumn } from '$lib/api/endpoints/users';
+	import { getUsers, getUserFilters, getUserColumns, getUserRowActions, executeUserRowAction, type UserInfo, type UsersPage, type UserFilterTab, type UserColumn, type UserRowAction } from '$lib/api/endpoints/users';
 	import { getDirectoryMetadata, type FlexDetailConfig } from '$lib/api/endpoints/flexObjects';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
@@ -11,6 +11,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import { toast } from 'svelte-sonner';
+	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import {
 		Search, User, Plus, Loader2,
 		Mail, MailPlus, Shield, ShieldCheck, ShieldOff, BadgeCheck,
@@ -64,6 +65,12 @@
 	// Plugin-declared extra columns (onApiUserListColumns). Their per-user values
 	// arrive inside each UserInfo.extra on the list response — no extra fetch.
 	let userColumns = $state<UserColumn[]>([]);
+	// Plugin-declared per-user action buttons (onApiUserListRowActions). Rendered
+	// in the table's Actions cell; each executes server-side via POST.
+	let userRowActions = $state<UserRowAction[]>([]);
+	// Key `${username}:${actionId}` of the row action currently running, so only
+	// that one button shows a spinner.
+	let runningRowAction = $state<string | null>(null);
 	const perPage = 20;
 
 	// Filter sources for the type-ahead controls (loaded once).
@@ -141,6 +148,45 @@
 		// Tolerant of an API plugin that predates the columns contract — returns
 		// []. No columns simply means the table renders exactly as before.
 		userColumns = await getUserColumns();
+	}
+
+	async function loadUserRowActions() {
+		// Tolerant of an API plugin that predates the row-actions contract —
+		// returns []. No actions means the Actions cell renders as before.
+		userRowActions = await getUserRowActions();
+	}
+
+	// Execute a plugin-declared row action against one user. The button's
+	// visibility is only a hint — the server re-authorizes the action and its
+	// handler re-checks the target — so we just fire and reflect the result:
+	// a toast for the message, a new-tab (noopener) open for any safe url the
+	// server returned, then a list refresh in case the action changed state.
+	async function handleRowAction(action: UserRowAction, user: UserInfo) {
+		if (action.confirm) {
+			const ok = await dialogs.confirm({
+				message: action.confirm,
+				confirmLabel: action.label,
+			});
+			if (!ok) return;
+		}
+
+		const key = `${user.username}:${action.id}`;
+		runningRowAction = key;
+		try {
+			const result = await executeUserRowAction(user.username, action.id);
+			if (result.message) {
+				(result.status === 'error' ? toast.error : toast.success)(result.message);
+			}
+			if (result.url) {
+				window.open(result.url, '_blank', 'noopener');
+			}
+			// Reflect any state the action changed (e.g. enable/disable, metadata).
+			loadUsers(currentPage);
+		} catch {
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.USER_ROW_ACTION_FAILED', { label: action.label }));
+		} finally {
+			if (runningRowAction === key) runningRowAction = null;
+		}
 	}
 
 	async function loadUsersDetailMetadata() {
@@ -280,6 +326,7 @@
 		loadFilterOptions();
 		loadFilterTabs();
 		loadUserColumns();
+		loadUserRowActions();
 		loadUsersDetailMetadata();
 		const unsubUsers = invalidations.subscribe('users:*', () => loadUsers(currentPage));
 		const unsubFocus = invalidations.subscribe('*:focus', () => loadUsers(currentPage));
@@ -419,10 +466,13 @@
 					canEdit={canEditUsers}
 					detail={usersDetail}
 					columns={userColumns}
+					rowActions={userRowActions}
 					{togglingUsername}
+					{runningRowAction}
 					onEdit={openUserEdit}
 					onDelete={canEditUsers ? requestDelete : undefined}
 					onToggleState={canEditUsers ? handleToggleState : undefined}
+					onRowAction={handleRowAction}
 					onFilterPermission={(perm) => { accessFilter = perm; groupFilter = null; }}
 				/>
 				{#if data.totalPages > 1}
