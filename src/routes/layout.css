@@ -363,3 +363,37 @@
 		80% { transform: translateX(2px); }
 	}
 }
+
+/* ============================================
+   Focus rings on buttons & action controls
+   --------------------------------------------
+   The browser's outline / the shadcn focus-visible ring
+   pops up around buttons after a click, and lights up
+   whenever the browser flips into keyboard modality — e.g.
+   the moment you press a screenshot hotkey — leaving an
+   ugly ring in every capture. It adds visual noise without
+   real usability here, so suppress it on interactive
+   "action" elements. Form inputs (switch / checkbox /
+   radio / text / select / textarea) are intentionally left
+   alone so they keep their focus indication.
+
+   Not layered, and !important, so it wins over Tailwind's
+   ring utilities regardless of cascade-layer order. Only
+   the ring segments of the composed box-shadow are zeroed
+   (--tw-ring-*), so a button keeps its own drop shadow.
+   ============================================ */
+button:focus,
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+[role="button"]:focus-visible,
+[role="menuitem"]:focus-visible,
+[role="menuitemradio"]:focus-visible,
+[role="menuitemcheckbox"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="option"]:focus-visible {
+	outline: none !important;
+	--tw-ring-shadow: 0 0 #0000 !important;
+	--tw-ring-offset-shadow: 0 0 #0000 !important;
+	--tw-inset-ring-shadow: 0 0 #0000 !important;
+}
