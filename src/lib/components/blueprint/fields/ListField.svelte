@@ -19,7 +19,15 @@
 	const translateLabel = i18n.tMaybe;
 
 	const childFields = $derived(field.fields ?? []);
-	const isCollapsible = $derived(childFields.length > 1 && field.collapsible !== false);
+	// An explicit `collapsible: true` opts a list into the per-item collapse
+	// toggle even when each item has a single sub-field; otherwise keep the
+	// classic default (collapsible only with more than one sub-field, unless
+	// disabled). Without the explicit opt-in, a single-field list rendered no
+	// toggle yet still honoured `collapsed`, so items got stuck open or hidden
+	// with no way to toggle them (admin2#126).
+	const isCollapsible = $derived(
+		field.collapsible === true || (childFields.length > 1 && field.collapsible !== false)
+	);
 	const sortable = $derived(field.sort !== false);
 	const btnLabel = $derived(field.btnLabel ? translateLabel(field.btnLabel) : 'Add item');
 	const isCompact = $derived((field.classes ?? '').includes('compact'));
@@ -61,7 +69,7 @@
 				data: (typeof item === 'object' && item !== null && !Array.isArray(item))
 					? (item as Record<string, unknown>)
 					: wrapScalar(item),
-				collapsed: !!field.collapsed
+				collapsed: isCollapsible && !!field.collapsed
 			}));
 		}
 
@@ -72,7 +80,7 @@
 				data: (typeof v === 'object' && v !== null && !Array.isArray(v))
 					? (v as Record<string, unknown>)
 					: wrapScalar(v),
-				collapsed: !!field.collapsed
+				collapsed: isCollapsible && !!field.collapsed
 			}));
 		}
 
@@ -170,6 +178,47 @@
 			const updated = { ...it };
 			setItemFieldValue(updated, fieldDef, val);
 			return updated;
+		});
+		emitChange();
+	}
+
+	// Container fields (section, fieldset, columns, conditional, tabs …) don't use
+	// the item-scoped `value`/`onchange` props — they navigate the form by the
+	// child's absolute blueprint path via getValue/onFieldChange. Pointed at the
+	// GLOBAL form data those absolute paths (e.g. `hero.slides.headline.text`)
+	// collapse every list item onto one shared key, so a list of section-bearing
+	// items saved as a single flattened object instead of an array (api#15).
+	// Scoping the accessors to each item's own `data` — with this list field's
+	// own name prefix stripped — keeps every item's nested values separate.
+	const listPrefix = $derived(field.name ? field.name + '.' : '');
+
+	function itemRelParts(path: string): string[] {
+		const rel = listPrefix && path.startsWith(listPrefix) ? path.slice(listPrefix.length) : path;
+		return rel ? rel.split('.') : [];
+	}
+
+	function scopedGetValue(item: ListItem, path: string): unknown {
+		let current: unknown = item.data;
+		for (const part of itemRelParts(path)) {
+			if (current === null || current === undefined || typeof current !== 'object') return undefined;
+			current = (current as Record<string, unknown>)[part];
+		}
+		return current;
+	}
+
+	function scopedFieldChange(item: ListItem, path: string, val: unknown) {
+		const parts = itemRelParts(path);
+		if (parts.length === 0) return;
+		items = items.map((it) => {
+			if (it.id !== item.id) return it;
+			const newData: Record<string, unknown> = { ...it.data };
+			let current = newData;
+			for (let i = 0; i < parts.length - 1; i++) {
+				current[parts[i]] = { ...((current[parts[i]] as Record<string, unknown> | undefined) ?? {}) };
+				current = current[parts[i]] as Record<string, unknown>;
+			}
+			current[parts[parts.length - 1]] = val;
+			return { ...it, data: newData };
 		});
 		emitChange();
 	}
@@ -313,8 +362,8 @@
 									value={getItemFieldValue(item, childField)}
 									onchange={(val) => handleItemFieldChange(item, childField, val)}
 									oncommit={onFieldCommit ? (val: unknown, old?: unknown) => onFieldCommit(childField.name, val, old) : undefined}
-									{getValue}
-									{onFieldChange}
+									getValue={(path) => scopedGetValue(item, path)}
+									onFieldChange={(path, val) => scopedFieldChange(item, path, val)}
 									{onFieldCommit}
 								/>
 							{/each}
