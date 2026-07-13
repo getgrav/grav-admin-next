@@ -23,6 +23,20 @@
 
 	const isYaml = !!field.yaml;
 
+	// In YAML mode a mapping/sequence value must be serialised to YAML text for
+	// display; scalars keep their plain String() form so simple values render
+	// exactly as before. Without this an object value was String()-coerced to
+	// "[object Object]" in the editor (admin2#123).
+	function toDisplay(v: unknown): string {
+		if (v === null || v === undefined) return '';
+		if (typeof v === 'object') {
+			const isEmpty = Array.isArray(v) ? v.length === 0 : Object.keys(v as object).length === 0;
+			if (isEmpty) return '';
+			return jsyaml.dump(v, { indent: 2, lineWidth: -1, noRefs: true }).trimEnd();
+		}
+		return String(v);
+	}
+
 	// --- Plain textarea (non-YAML) ---
 	const textValue = $derived(String(value ?? field.default ?? ''));
 
@@ -64,7 +78,7 @@
 		if (view) view.destroy();
 
 		const state = EditorState.create({
-			doc: String(value ?? field.default ?? ''),
+			doc: toDisplay(value ?? field.default),
 			extensions: [
 				yamlLang(),
 				history(),
@@ -79,12 +93,16 @@
 						internalEdit = true;
 						const text = update.state.doc.toString();
 						try {
-							jsyaml.load(text);
+							const parsed = jsyaml.load(text);
 							yamlError = '';
+							// Emit the parsed structure for mappings/sequences so the value
+							// round-trips as structured data; keep scalars as raw text so
+							// simple values save exactly as before (admin2#123).
+							onchange(parsed !== null && typeof parsed === 'object' ? parsed : text);
 						} catch (e) {
 							yamlError = e instanceof Error ? e.message.split('\n')[0] : 'Invalid YAML';
+							onchange(text);
 						}
-						onchange(text);
 					}
 				}),
 				EditorView.lineWrapping,
@@ -114,19 +132,24 @@
 		});
 	}
 
-	// Sync external value changes for CodeMirror
-	let lastExternalValue = $state(String(value ?? ''));
+	// Sync external value changes for CodeMirror. Track via JSON.stringify, not
+	// String(): once we emit a parsed object, String(object) is always
+	// "[object Object]" and can no longer detect changes (matches MultilevelField).
+	let lastExternalValue = $state(JSON.stringify(value ?? null));
 	$effect(() => {
 		if (!isYaml || !view) return;
-		const current = String(value ?? '');
+		const current = JSON.stringify(value ?? null);
 		if (current !== lastExternalValue) {
 			lastExternalValue = current;
 			if (internalEdit) {
 				internalEdit = false;
-			} else if (current !== view.state.doc.toString()) {
-				view.dispatch({
-					changes: { from: 0, to: view.state.doc.length, insert: current }
-				});
+			} else {
+				const text = toDisplay(value ?? field.default);
+				if (text !== view.state.doc.toString()) {
+					view.dispatch({
+						changes: { from: 0, to: view.state.doc.length, insert: text }
+					});
+				}
 			}
 		}
 	});
