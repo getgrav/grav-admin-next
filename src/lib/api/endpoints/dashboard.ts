@@ -22,7 +22,7 @@ export interface DashboardStats {
 	pages: { total: number; published: number };
 	users: { total: number };
 	plugins: { total: number; active: number; updatable?: number };
-	themes: { total: number; updatable?: number };
+	themes: { total: number; updatable?: number; active_updatable?: boolean };
 	grav?: { updatable: boolean };
 	media: { total: number };
 	theme: string;

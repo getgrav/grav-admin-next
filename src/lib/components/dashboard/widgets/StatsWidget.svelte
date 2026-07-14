@@ -11,10 +11,12 @@
 	const data = getDashboardData();
 	const stats = $derived(data().stats);
 	const animated = $derived(data().animated);
-	// Per-type update counts, so plugin and theme updates are reported on their
-	// own cards instead of both being lumped onto the Plugins card.
+	// Per-type update signals, so plugin and theme updates aren't both lumped
+	// onto the Plugins card. The Themes card names the ACTIVE theme, so it only
+	// flags an update when that specific theme is outdated — updates for other
+	// installed themes show in the sidebar badge and the Updates widget instead.
 	const pluginUpdates = $derived(stats?.plugins.updatable ?? 0);
-	const themeUpdates = $derived(stats?.themes.updatable ?? 0);
+	const activeThemeUpdatable = $derived(stats?.themes.active_updatable ?? false);
 
 	let displayPages = $state(0);
 	let displayUsers = $state(0);
@@ -89,8 +91,8 @@
 			<div class="min-w-0 flex-1">
 				<div class="flex items-center gap-2">
 					<span class="truncate text-lg font-semibold leading-tight text-foreground">{stats.theme}</span>
-					{#if themeUpdates > 0}
-						<Badge variant="warning">{i18n.t('ADMIN_NEXT.STATS_WIDGET.UPDATE_COUNT', { n: themeUpdates })}</Badge>
+					{#if activeThemeUpdatable}
+						<Badge variant="warning">{i18n.t('ADMIN_NEXT.STATS_WIDGET.UPDATE_COUNT', { n: 1 })}</Badge>
 					{/if}
 				</div>
 				<div class="text-[0.75rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.STATS_WIDGET.ACTIVE_THEME')}</div>
