@@ -10,9 +10,11 @@
 
 	const data = getDashboardData();
 	const stats = $derived(data().stats);
-	const updates = $derived(data().updates);
 	const animated = $derived(data().animated);
-	const totalUpdates = $derived(updates?.total ?? 0);
+	// Per-type update counts, so plugin and theme updates are reported on their
+	// own cards instead of both being lumped onto the Plugins card.
+	const pluginUpdates = $derived(stats?.plugins.updatable ?? 0);
+	const themeUpdates = $derived(stats?.themes.updatable ?? 0);
 
 	let displayPages = $state(0);
 	let displayUsers = $state(0);
@@ -72,8 +74,8 @@
 			<div class="min-w-0 flex-1">
 				<div class="flex items-center gap-2">
 					<span class="text-3xl font-semibold tabular-nums leading-tight text-foreground">{displayPlugins}</span>
-					{#if totalUpdates > 0}
-						<Badge variant="default">{i18n.t('ADMIN_NEXT.STATS_WIDGET.UPDATE_COUNT', { n: totalUpdates })}</Badge>
+					{#if pluginUpdates > 0}
+						<Badge variant="warning">{i18n.t('ADMIN_NEXT.STATS_WIDGET.UPDATE_COUNT', { n: pluginUpdates })}</Badge>
 					{/if}
 				</div>
 				<div class="text-[0.75rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.NAV.PLUGINS')} <span class="text-foreground/50">{i18n.t('ADMIN_NEXT.STATS_WIDGET.ACTIVE_COUNT', { n: stats.plugins.active })}</span></div>
@@ -84,8 +86,13 @@
 			<div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
 				<Palette size={36} />
 			</div>
-			<div class="min-w-0">
-				<div class="text-lg font-semibold leading-tight text-foreground">{stats.theme}</div>
+			<div class="min-w-0 flex-1">
+				<div class="flex items-center gap-2">
+					<span class="truncate text-lg font-semibold leading-tight text-foreground">{stats.theme}</span>
+					{#if themeUpdates > 0}
+						<Badge variant="warning">{i18n.t('ADMIN_NEXT.STATS_WIDGET.UPDATE_COUNT', { n: themeUpdates })}</Badge>
+					{/if}
+				</div>
 				<div class="text-[0.75rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.STATS_WIDGET.ACTIVE_THEME')}</div>
 			</div>
 		</a>
