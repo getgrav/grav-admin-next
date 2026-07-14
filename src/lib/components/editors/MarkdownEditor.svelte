@@ -4,10 +4,23 @@
 	// insert button). Without routing, EVERY mounted editor reacts to that window
 	// event, so on a page with more than one markdown field (the main content plus
 	// a `description` field, say) the same image is inserted into all of them.
-	// We remember the last-focused editor and only let that one consume the event.
+	//
+	// The target is resolved dynamically in this priority order:
+	//   1. the last-focused editor (what the user was just typing in),
+	//   2. the editor marked `primary` (the page's main content editor),
+	//   3. the first still-mounted editor as a last resort.
+	// Each candidate is checked against `liveEditorIds`, so an id left over from
+	// an unmounted editor is simply skipped — no manual handoff needed.
 	let activeEditorId = 0;
+	let primaryEditorId = 0;
 	let editorIdCounter = 0;
 	const liveEditorIds = new Set<number>();
+
+	function resolveInsertTargetId(): number {
+		if (activeEditorId && liveEditorIds.has(activeEditorId)) return activeEditorId;
+		if (primaryEditorId && liveEditorIds.has(primaryEditorId)) return primaryEditorId;
+		return liveEditorIds.values().next().value ?? 0;
+	}
 </script>
 
 <script lang="ts">
@@ -72,6 +85,13 @@
 		 * where plugin buttons would be noise.
 		 */
 		pluginButtons?: boolean;
+		/**
+		 * Marks this as the page's main content editor. When nothing is focused,
+		 * a globally-broadcast insert (Page Media, AI chat, …) is routed here
+		 * rather than to whichever markdown field happened to mount first. Only
+		 * the main content editor should set this; auxiliary fields leave it off.
+		 */
+		primary?: boolean;
 	}
 
 	let {
@@ -86,6 +106,7 @@
 		yText = null,
 		yAwareness = null,
 		pluginButtons = true,
+		primary = false,
 	}: Props = $props();
 
 	let showPreview = $state(false);
@@ -674,11 +695,11 @@
 	onMount(() => {
 		checkDarkMode();
 
-		// Register for active-editor routing (see module script). The first editor
-		// to mount becomes the default target until one gains focus, so a media
-		// insert with nothing focused still lands in the main content editor.
+		// Register for active-editor routing (see module script). A `primary`
+		// editor claims the default insert target so a media insert with nothing
+		// focused lands in the main content editor regardless of mount order.
 		liveEditorIds.add(editorId);
-		if (activeEditorId === 0) activeEditorId = editorId;
+		if (primary) primaryEditorId = editorId;
 
 		// Watch for class changes on <html> to detect theme toggle
 		const observer = new MutationObserver(() => checkDarkMode());
@@ -698,10 +719,11 @@
 		// Listen for content changes from floating widgets (e.g., AI chat)
 		function handleEditorInsert(e: CustomEvent) {
 			if (!view || !e.detail?.content) return;
-			// This event is broadcast to every mounted editor; only the last-focused
-			// one should consume it, otherwise the same content is inserted into
-			// every markdown field on the page (e.g. content + description).
-			if (activeEditorId !== editorId) return;
+			// This event is broadcast to every mounted editor; only the resolved
+			// target (focused → primary → first-live) should consume it, otherwise
+			// the same content is inserted into every markdown field on the page
+			// (e.g. content + description).
+			if (resolveInsertTargetId() !== editorId) return;
 			const { content: text, mode } = e.detail;
 			if (mode === 'replace') {
 				view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
@@ -720,11 +742,11 @@
 			view?.destroy();
 			window.removeEventListener('grav:editor:insert-content', handleEditorInsert as EventListener);
 			liveEditorIds.delete(editorId);
-			if (activeEditorId === editorId) {
-				// Hand the target to another live editor (typically the main content)
-				// so inserts keep working after this one unmounts.
-				activeEditorId = liveEditorIds.values().next().value ?? 0;
-			}
+			// No manual handoff needed: resolveInsertTargetId() checks liveEditorIds
+			// membership, so a stale focused/primary id just falls through to the
+			// next candidate. Clear our slots so they can't linger.
+			if (activeEditorId === editorId) activeEditorId = 0;
+			if (primaryEditorId === editorId) primaryEditorId = 0;
 		};
 	});
 

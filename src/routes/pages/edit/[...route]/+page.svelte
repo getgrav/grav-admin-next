@@ -1929,6 +1929,7 @@
 									readonly={!!editorLock}
 									yText={editorCollab?.yText ?? null}
 									yAwareness={editorCollab?.awareness ?? null}
+									primary
 								/>
 							{/if}
 						</div>
@@ -2062,6 +2063,7 @@
 							readonly={!!editorLock}
 							yText={editorCollab?.yText ?? null}
 							yAwareness={editorCollab?.awareness ?? null}
+							primary
 						/>
 					{/if}
 				{/if}
