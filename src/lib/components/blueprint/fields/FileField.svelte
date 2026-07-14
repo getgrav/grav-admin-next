@@ -31,6 +31,10 @@
 		type: string;
 		size: number;
 		path: string;
+		// Public URL for the file, when the server returns one (blueprint /
+		// destination uploads live outside the object's media collection, so a
+		// preview can't be resolved from `pageMediaItems` — we keep the URL here).
+		url?: string;
 	}
 
 	let { field, value, onchange }: Props = $props();
@@ -58,14 +62,31 @@
 	// via formCommit.register() when the containing form saves.
 	const pendingDeletes = new Set<string>();
 
+	// Filenames uploaded in this session. The "auto-remove dangling entries"
+	// effect reconciles the field value against the object's media list, but
+	// that list refreshes asynchronously after an upload — without this guard a
+	// freshly uploaded file would be pruned before the media list catches up
+	// (the reported "first upload isn't recorded, Save stays disabled").
+	const uploadedNames = new Set<string>();
+
 	// `destination` on the blueprint field routes uploads through the
 	// destination-aware endpoint; absent, we fall back to the legacy
 	// page-media endpoint (which requires a page route).
 	const destination = $derived(field.destination ?? '');
-	const useBlueprintUpload = $derived(destination !== '');
 	// Resolved relative API base for a non-page source (e.g. flex object).
 	const mediaSource = $derived(getMediaSource?.());
 	const mediaApiBase = $derived(mediaSource?.apiBase ?? null);
+	// `self@` means "this object's own media folder". For a flex object that's
+	// exactly what the object media endpoint (mediaApiBase) targets — and the
+	// generic blueprint-upload path can't resolve `self@` without page/plugin/
+	// theme/user scope context (it throws "scope '' is not a supported owner").
+	// So when an object media source is present, treat self@ as object-local and
+	// upload straight to the object endpoint instead of /blueprint-upload.
+	const isSelfDestination = $derived(
+		['self@', 'self@:', '@self', '@self@'].includes(destination.replace(/\/+$/, '')),
+	);
+	const useObjectMediaForSelf = $derived(isSelfDestination && !!mediaApiBase);
+	const useBlueprintUpload = $derived(destination !== '' && !useObjectMediaForSelf);
 
 	let uploading = $state(false);
 	let uploadProgress = $state(0);
@@ -234,11 +255,21 @@
 			// Grav-root-relative path; use it directly so deletes can round-
 			// trip. For page-media uploads, fall back to the heuristic path.
 			let path = buildPath(file.name);
+			let url: string | undefined;
 			if (useBlueprintUpload) {
-				const body = response?.body as { data?: Array<{ path?: string; name?: string }> } | undefined;
+				const body = response?.body as
+					| { data?: Array<{ path?: string; name?: string; url?: string }> }
+					| undefined;
 				const saved = body?.data?.find((d) => d.name === file.name) ?? body?.data?.[0];
 				if (saved?.path) path = saved.path;
+				// Keep the server URL so the preview resolves even though a
+				// destination upload lives outside the object's media list.
+				if (saved?.url) url = saved.url;
 			}
+
+			// Protect this file from the async "auto-remove dangling entries"
+			// reconciliation until the media list refreshes (see uploadedNames).
+			uploadedNames.add(file.name);
 
 			const newEntry = {
 				key: path,
@@ -247,6 +278,7 @@
 					type: file.type ?? 'application/octet-stream',
 					size: file.size ?? 0,
 					path,
+					...(url ? { url } : {}),
 				},
 			};
 
@@ -311,6 +343,28 @@
 		const url = encodeMediaFileUrl(item.url);
 		if (url.startsWith('http')) return url;
 		return url.startsWith('/') ? url : `${auth.serverUrl}/${url}`;
+	}
+
+	const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif', 'bmp', 'ico'];
+
+	function isImageEntry(entry: FileEntry): boolean {
+		if (entry.type?.startsWith('image/')) return true;
+		const ext = entry.name.split('.').pop()?.toLowerCase() ?? '';
+		return IMAGE_EXTENSIONS.includes(ext);
+	}
+
+	// Resolve a preview image URL for an entry, or null to fall back to the
+	// extension badge. Prefers the object media list (thumbnails), then a
+	// server-provided URL kept on the entry (destination/media:// uploads that
+	// never appear in the object media list).
+	function getEntryImageUrl(entry: FileEntry): string | null {
+		const item = findMediaItem(entry.name);
+		if (item && item.type.startsWith('image/')) return getThumbnailUrl(item);
+		if (entry.url && isImageEntry(entry)) {
+			if (entry.url.startsWith('http')) return entry.url;
+			return entry.url.startsWith('/') ? `${auth.serverUrl}${entry.url}` : `${auth.serverUrl}/${entry.url}`;
+		}
+		return null;
 	}
 
 	function addFiles(fileList: File[]) {
@@ -385,12 +439,21 @@
 		});
 	});
 
-	// Auto-remove entries whose files no longer exist in media
+	// Auto-remove entries whose files no longer exist in media.
+	//
+	// This only makes sense for object-local media — a `destination` field
+	// (e.g. media://) stores its files outside the object's media collection,
+	// so reconciling against that collection would wrongly wipe every value on
+	// reopen (the reported "media:// images vanish"). Freshly uploaded files are
+	// also protected until the media list refreshes (uploadedNames).
 	$effect(() => {
+		if (useBlueprintUpload) return;
 		const items = mediaCtx?.items;
 		if (!items || items.length === 0 || fileEntries.length === 0) return;
 		const mediaNames = new Set(items.map((m) => m.filename));
-		const surviving = fileEntries.filter((e) => mediaNames.has(e.entry.name));
+		const surviving = fileEntries.filter(
+			(e) => mediaNames.has(e.entry.name) || uploadedNames.has(e.entry.name),
+		);
 		if (surviving.length !== fileEntries.length) {
 			if (surviving.length === 0) {
 				onchange({});
@@ -437,11 +500,11 @@
 	{#if fileEntries.length > 0}
 		<div class="space-y-1">
 			{#each fileEntries as { key, entry } (key)}
-				{@const mediaItem = findMediaItem(entry.name)}
+				{@const thumbUrl = getEntryImageUrl(entry)}
 				<div class="flex items-center gap-2.5 rounded-md border border-border bg-muted/30 px-2 py-1.5">
-					{#if mediaItem && mediaItem.type.startsWith('image/')}
+					{#if thumbUrl}
 						<img
-							src={getThumbnailUrl(mediaItem)}
+							src={thumbUrl}
 							alt={entry.name}
 							class="h-8 w-8 shrink-0 rounded border border-border object-cover"
 						/>

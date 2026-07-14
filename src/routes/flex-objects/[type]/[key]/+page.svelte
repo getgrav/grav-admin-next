@@ -40,9 +40,13 @@
 	// without this they default to /pages//media and 405 (flex-objects#216).
 	setContext('mediaSource', (): MediaSource => ({
 		apiBase: type && key ? `flex-objects/${type}/${key}` : null,
-		invalidationKeys: type && key
-			? [`flex-objects:${type}:media:${key}`, `flex-objects:${type}:update:${key}`]
-			: [],
+		// Media-only channel. Deliberately NOT the object's `:update:` channel —
+		// a file upload/delete writes alongside item.json, not to it, so emitting
+		// `:update:` made this edit page treat its own upload as an external
+		// modification (reload wiped the pending value / spurious "changed
+		// elsewhere" toast). The list route's `flex-objects:${type}:*` subscriber
+		// still catches the media channel, so directory badges stay fresh.
+		invalidationKeys: type && key ? [`flex-objects:${type}:media:${key}`] : [],
 	}));
 
 	// Shared reactive media list — PageMedia writes it, File/FilePicker fields read it.
