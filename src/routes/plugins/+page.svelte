@@ -199,6 +199,8 @@
 			const result = await checkUpdates(true);
 			toast.success(i18n.t('ADMIN_NEXT.TOASTS.GPM_REFRESHED', { n: result.total }));
 			await loadPlugins();
+			// A flush check can uncover new updates; refresh the sidebar badges.
+			invalidations.emit('gpm:update');
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.PLUGINS.FAILED_TO_CHECK_FOR_UPDATES'));
 		} finally {

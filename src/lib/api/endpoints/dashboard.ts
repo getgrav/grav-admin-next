@@ -21,8 +21,9 @@ export interface Notification {
 export interface DashboardStats {
 	pages: { total: number; published: number };
 	users: { total: number };
-	plugins: { total: number; active: number };
-	themes: { total: number };
+	plugins: { total: number; active: number; updatable?: number };
+	themes: { total: number; updatable?: number };
+	grav?: { updatable: boolean };
 	media: { total: number };
 	theme: string;
 	grav_version: string;

@@ -5,6 +5,7 @@
 	import { page } from '$app/state';
 	import { getInstalledThemes, checkUpdates, updatePackage, updateAllPackages, setActiveTheme, removeTheme, getThemeChangelog, type ThemeInfo } from '$lib/api/endpoints/gpm';
 	import { reloadIfAdminUpdated, formatChangelog } from '$lib/utils/gpm';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
@@ -171,6 +172,8 @@
 			const result = await checkUpdates(true);
 			toast.success(i18n.t('ADMIN_NEXT.TOASTS.GPM_REFRESHED', { n: result.total }));
 			await loadThemes();
+			// A flush check can uncover new updates; refresh the sidebar badges.
+			invalidations.emit('gpm:update');
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.THEMES.FAILED_TO_CHECK_FOR_UPDATES'));
 		} finally {
