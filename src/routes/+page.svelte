@@ -238,7 +238,9 @@
 		const toastId = toast.loading(`Updating ${n} package${n !== 1 ? 's' : ''}…`);
 		try {
 			const result = await updateAllPackages();
-			const okCount = result.updated.length;
+			// Cascaded deps that were themselves updatable land in `skipped`, not
+			// `updated` — count them too so the toast matches what the user asked for.
+			const okCount = result.updated.length + result.skipped.length;
 			const bad = result.failed.length;
 			if (bad === 0) {
 				toast.success(i18n.t('ADMIN_NEXT.TOASTS.PACKAGES_UPDATED', { n: okCount }), { id: toastId });
