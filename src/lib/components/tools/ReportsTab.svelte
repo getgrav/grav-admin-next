@@ -92,6 +92,8 @@
 										{#if item.error}
 											<span class="shrink-0 text-destructive">{item.error}</span>
 										{/if}
+									{:else if 'message' in item}
+										<span class="font-medium text-foreground truncate">{item.message}</span>
 									{:else}
 										<span class="text-foreground">{JSON.stringify(item)}</span>
 									{/if}
