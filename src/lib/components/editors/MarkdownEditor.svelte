@@ -1,3 +1,15 @@
+<script module lang="ts">
+	// Which markdown editor should consume a globally-broadcast insert
+	// (`grav:editor:insert-content`, dispatched by e.g. the Page Media panel's
+	// insert button). Without routing, EVERY mounted editor reacts to that window
+	// event, so on a page with more than one markdown field (the main content plus
+	// a `description` field, say) the same image is inserted into all of them.
+	// We remember the last-focused editor and only let that one consume the event.
+	let activeEditorId = 0;
+	let editorIdCounter = 0;
+	const liveEditorIds = new Set<number>();
+</script>
+
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount, getContext, untrack } from 'svelte';
@@ -133,6 +145,10 @@
 	let editorContainer: HTMLDivElement;
 	let view: EditorView | undefined;
 	let isDark = $state(false);
+
+	// Unique id so the shared active-editor tracking (see module script) can route
+	// a globally-broadcast insert to just this editor when it is the focused one.
+	const editorId = ++editorIdCounter;
 	// Y.UndoManager attached to the shared Y.Text when collab is active.
 	// Held here so toolbar undo/redo can drive it directly. Recreated each
 	// time the editor view is rebuilt (e.g. dark-mode toggle).
@@ -309,6 +325,11 @@
 			EditorView.updateListener.of((update: ViewUpdate) => {
 				if (update.docChanged) {
 					onchange?.(update.state.doc.toString());
+				}
+				// Remember the last-focused editor so a globally-broadcast insert
+				// (Page Media, etc.) lands only here and not in every markdown field.
+				if (update.focusChanged && update.view.hasFocus) {
+					activeEditorId = editorId;
 				}
 			}),
 
@@ -653,6 +674,12 @@
 	onMount(() => {
 		checkDarkMode();
 
+		// Register for active-editor routing (see module script). The first editor
+		// to mount becomes the default target until one gains focus, so a media
+		// insert with nothing focused still lands in the main content editor.
+		liveEditorIds.add(editorId);
+		if (activeEditorId === 0) activeEditorId = editorId;
+
 		// Watch for class changes on <html> to detect theme toggle
 		const observer = new MutationObserver(() => checkDarkMode());
 		observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
@@ -671,6 +698,10 @@
 		// Listen for content changes from floating widgets (e.g., AI chat)
 		function handleEditorInsert(e: CustomEvent) {
 			if (!view || !e.detail?.content) return;
+			// This event is broadcast to every mounted editor; only the last-focused
+			// one should consume it, otherwise the same content is inserted into
+			// every markdown field on the page (e.g. content + description).
+			if (activeEditorId !== editorId) return;
 			const { content: text, mode } = e.detail;
 			if (mode === 'replace') {
 				view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
@@ -688,6 +719,12 @@
 			observer.disconnect();
 			view?.destroy();
 			window.removeEventListener('grav:editor:insert-content', handleEditorInsert as EventListener);
+			liveEditorIds.delete(editorId);
+			if (activeEditorId === editorId) {
+				// Hand the target to another live editor (typically the main content)
+				// so inserts keep working after this one unmounts.
+				activeEditorId = liveEditorIds.values().next().value ?? 0;
+			}
 		};
 	});
 
