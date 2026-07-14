@@ -80,13 +80,23 @@
 
 	/**
 	 * Render edit title from the directory's edit.title.template config.
+	 *
+	 * This is a deliberately small subset of Twig: `{{ object.field ?? 'fallback' }}`
+	 * with an optional filter chain (`|tu`, `|t`, ...). The fallback runs through
+	 * i18n.tMaybe(), so a lang-key fallback (e.g. 'PLUGIN_NEWS.CREATE_NEWS') is
+	 * translated/humanized the way `|tu` would in classic admin, and a plain string
+	 * passes through untouched. Anything beyond this subset is not rendered.
 	 */
 	const editTitle = $derived.by(() => {
 		const template = directory?.edit?.title?.template;
 		if (!template || !object) return directory?.title ?? type;
 		return template.replace(
-			/\{\{\s*object\.(\w+)\s*(?:\?\?\s*'([^']*)')?\s*\}\}/g,
-			(_, field: string, fallback: string) => String(object![field] ?? fallback ?? ''),
+			/\{\{\s*object\.(\w+)\s*(?:\?\?\s*'([^']*)')?\s*(?:\|\s*\w+)*\s*\}\}/g,
+			(_, field: string, fallback: string) => {
+				const val = object![field];
+				if (val != null && val !== '') return String(val);
+				return fallback ? i18n.tMaybe(fallback) : '';
+			},
 		);
 	});
 
