@@ -13,6 +13,7 @@
 	import type { BlueprintSchema, BlueprintField } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
+	import { renderFlexTitle } from '$lib/utils/flex-title';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import { toast } from 'svelte-sonner';
@@ -35,6 +36,19 @@
 
 	// Read save-redirect from the custom field value
 	const afterSave = $derived((configData._post_entries_save as string) ?? 'edit');
+
+	// Title for the create screen, from the directory's edit.title.template.
+	// Rendered against a null object so every `?? 'fallback'` branch is taken —
+	// that branch exists chiefly for this screen (an existing object's field
+	// normally has a value, making the fallback unreachable). A template with no
+	// usable fallbacks renders to nothing, so we drop back to "New {Type}".
+	const newTitle = $derived.by(() => {
+		const template = directory?.edit?.title?.template;
+		const fallbackTitle = `New ${directory?.title ?? type}`;
+		if (!template) return fallbackTitle;
+		const rendered = renderFlexTitle(template, null).trim();
+		return rendered || fallbackTitle;
+	});
 
 	/**
 	 * Extract default values from blueprint fields recursively.
@@ -149,7 +163,7 @@
 </script>
 
 <svelte:head>
-	<title>New {directory?.title ?? type} — Grav Admin</title>
+	<title>{newTitle} — Grav Admin</title>
 </svelte:head>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -176,7 +190,7 @@
 							</div>
 						{/if}
 						<h1 class="font-semibold text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-lg'}">
-							New {directory?.title ?? type}
+							{newTitle}
 						</h1>
 					</div>
 
