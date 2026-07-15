@@ -16,24 +16,29 @@ export function hasUnsavedChanges(): boolean {
 	return false;
 }
 
+/** The object `createUnsavedGuard()` returns. Accepted by `<UnsavedChangesModal />`. */
+export interface UnsavedGuard {
+	readonly showModal: boolean;
+	bypass(): void;
+	confirm(): void;
+	cancel(): void;
+}
+
 /**
  * Creates a navigation guard that shows a custom confirm modal
  * instead of the browser's native confirm() dialog.
  *
- * Usage:
+ * Pair it with `<UnsavedChangesModal />`, which owns the prompt's wording:
+ *
  *   const guard = createUnsavedGuard(() => hasChanges);
  *
- *   <ConfirmModal
- *     open={guard.showModal}
- *     title={i18n.t('ADMIN_NEXT.UNSAVED_CHANGES')}
- *     message="You have unsaved changes. Leave anyway?"
- *     confirmLabel="Leave"
- *     cancelLabel="Stay"
- *     onconfirm={guard.confirm}
- *     oncancel={guard.cancel}
- *   />
+ *   <UnsavedChangesModal {guard} />
+ *
+ * Don't hand-roll the ConfirmModal — the example here used to spell one out
+ * with literal "Leave"/"Stay" labels, and seven call sites copied it verbatim,
+ * which is how the prompt stayed untranslated everywhere it appeared.
  */
-export function createUnsavedGuard(isDirty: () => boolean) {
+export function createUnsavedGuard(isDirty: () => boolean): UnsavedGuard {
 	let showModal = $state(false);
 	let pendingUrl = $state<string | null>(null);
 	let bypassing = false;

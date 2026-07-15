@@ -33,6 +33,7 @@
 	import PageMedia from '$lib/components/media/PageMedia.svelte';
 	import yaml from 'js-yaml';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+	import UnsavedChangesModal from '$lib/components/ui/UnsavedChangesModal.svelte';
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import Tabs from '$lib/components/ui/Tabs.svelte';
@@ -2253,15 +2254,7 @@
 	oncancel={() => { confirmDeleteOpen = false; }}
 />
 
-<ConfirmModal
-	open={guard.showModal}
-	title={i18n.t('ADMIN_NEXT.UNSAVED_CHANGES')}
-	message="You have unsaved changes. Leave anyway?"
-	confirmLabel="Leave"
-	cancelLabel="Stay"
-	onconfirm={guard.confirm}
-	oncancel={guard.cancel}
-/>
+<UnsavedChangesModal {guard} />
 
 <ConfirmModal
 	open={confirmSyncOpen}
@@ -2276,8 +2269,8 @@
 <ConfirmModal
 	open={confirmLangSwitchOpen}
 	title={i18n.t('ADMIN_NEXT.UNSAVED_CHANGES')}
-	message="You have unsaved changes. Switch language anyway?"
-	confirmLabel="Switch"
+	message={i18n.t('ADMIN_NEXT.UNSAVED_CHANGES_DIALOG.SWITCH_LANGUAGE_MESSAGE')}
+	confirmLabel={i18n.t('ADMIN_NEXT.UNSAVED_CHANGES_DIALOG.SWITCH_LANGUAGE')}
 	onconfirm={() => { confirmLangSwitchOpen = false; doLanguageSwitch(pendingLangSwitch); }}
 	oncancel={() => { confirmLangSwitchOpen = false; }}
 />

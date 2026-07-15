@@ -15,6 +15,7 @@
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+	import UnsavedChangesModal from '$lib/components/ui/UnsavedChangesModal.svelte';
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
@@ -657,15 +658,7 @@
 	oncancel={() => { confirmDeleteOpen = false; }}
 />
 
-<ConfirmModal
-	open={guard.showModal}
-	title={i18n.t('ADMIN_NEXT.UNSAVED_CHANGES')}
-	message="You have unsaved changes. Leave anyway?"
-	confirmLabel="Leave"
-	cancelLabel="Stay"
-	onconfirm={guard.confirm}
-	oncancel={guard.cancel}
-/>
+<UnsavedChangesModal {guard} />
 
 <ConfirmModal
 	open={ovr.showResetModal}

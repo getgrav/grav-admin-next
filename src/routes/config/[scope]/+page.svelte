@@ -3,6 +3,7 @@
 	import { setContext } from 'svelte';
 	import { provideFormCommit } from '$lib/utils/form-commit.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
+	import UnsavedChangesModal from '$lib/components/ui/UnsavedChangesModal.svelte';
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import { getConfig, saveConfig, getConfigSections, revertConfig } from '$lib/api/endpoints/config';
@@ -495,15 +496,7 @@
 	</div>
 </div>
 
-<ConfirmModal
-	open={guard.showModal}
-	title={i18n.t('ADMIN_NEXT.UNSAVED_CHANGES')}
-	message="You have unsaved changes. Leave anyway?"
-	confirmLabel="Leave"
-	cancelLabel="Stay"
-	onconfirm={guard.confirm}
-	oncancel={guard.cancel}
-/>
+<UnsavedChangesModal {guard} />
 
 <ConfirmModal
 	open={showResetModal}
