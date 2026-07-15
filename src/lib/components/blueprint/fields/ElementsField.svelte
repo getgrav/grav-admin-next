@@ -22,10 +22,21 @@
 		(field.fields ?? []).filter((f) => f.type === 'element')
 	);
 
+	// An element's key as the select dropdown reports it. The API serializes a
+	// nested field's `name` as its full dotted path (`header.links.external`),
+	// but the select value is always the bare element key (`external`), so we
+	// compare the leaf segment — admin-classic's `plain_name` semantics, which
+	// keep these keys bare at any depth. At top level the two are identical;
+	// only nesting (e.g. `elements` inside a `list`) diverges (admin2#130).
+	// Names may also be numeric (from YAML integer keys), hence the String().
+	const elementKey = (f: BlueprintField): string => {
+		const name = String(f.name);
+		return name.split('.').pop() ?? name;
+	};
+
 	// The active element's child fields (shown based on select value).
-	// Element names may be numeric (from YAML integer keys) while select values are strings.
 	const activeElement = $derived(
-		elementFields.find((f) => String(f.name) === currentValue)
+		elementFields.find((f) => elementKey(f) === currentValue)
 	);
 </script>
 
