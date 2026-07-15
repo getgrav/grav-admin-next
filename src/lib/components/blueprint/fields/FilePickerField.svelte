@@ -364,7 +364,7 @@
 			<div class="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
 				{#if streamLoading}
 					<div class="px-3 py-4 text-center text-sm text-muted-foreground">
-						{i18n.t('ADMIN_NEXT.COMMON.LOADING') || 'Loading…'}
+						{i18n.t('ADMIN_NEXT.LOADING')}
 					</div>
 				{:else if streamError}
 					<div class="px-3 py-4 text-center text-sm text-destructive">

@@ -18,7 +18,18 @@ export interface ConfirmOptions {
 	variant?: 'destructive' | 'default';
 }
 
-interface PendingDialog extends Required<Omit<ConfirmOptions, 'variant'>> {
+/**
+ * Note the optional title/confirmLabel/cancelLabel: they are deliberately left
+ * `undefined` when the caller omits them, so ConfirmModal's own `i18n.t(...)`
+ * prop defaults apply. Filling in English here instead ('Are you sure?',
+ * 'Confirm', 'Cancel') made those defaults unreachable — GlobalDialogs passes
+ * every prop through explicitly, so a value was always present — which left the
+ * three most common dialog labels permanently untranslated, including for
+ * plugin authors calling window.__GRAV_DIALOGS.confirm().
+ */
+interface PendingDialog extends Omit<ConfirmOptions, 'variant'> {
+	message: string;
+	items: string[];
 	variant: 'destructive' | 'default';
 	resolve: (value: boolean) => void;
 }
@@ -37,11 +48,11 @@ export const dialogs = {
 				current.resolve(false);
 			}
 			current = {
-				title: options.title ?? 'Are you sure?',
+				title: options.title,
 				message: options.message,
 				items: options.items ?? [],
-				confirmLabel: options.confirmLabel ?? 'Confirm',
-				cancelLabel: options.cancelLabel ?? 'Cancel',
+				confirmLabel: options.confirmLabel,
+				cancelLabel: options.cancelLabel,
 				variant: options.variant ?? 'default',
 				resolve,
 			};
