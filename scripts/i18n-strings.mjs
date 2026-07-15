@@ -43,8 +43,10 @@ import yaml from 'js-yaml';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
 const SRC_DIR = join(REPO_ROOT, 'src');
-const ADMIN2_LANG_PATH = resolve(REPO_ROOT, '..', 'grav-plugin-admin2', 'languages', 'en.yaml');
-const ADMIN2_LANG_REL = '../grav-plugin-admin2/languages/en.yaml';
+// Renamed to BCP 47 in db3a0339 — `--fix` was writing to a path that no longer
+// exists, which would have created a stray en.yaml nothing reads.
+const ADMIN2_LANG_PATH = resolve(REPO_ROOT, '..', 'grav-plugin-admin2', 'languages', 'en-US.yaml');
+const ADMIN2_LANG_REL = '../grav-plugin-admin2/languages/en-US.yaml';
 
 const args = process.argv.slice(2);
 const FLAG_JSON = args.includes('--json');
@@ -104,9 +106,20 @@ function looksLikeUiString(s) {
 
 	// camelCase identifier
 	if (/^[a-z][a-zA-Z0-9]*$/.test(t)) return false;
-	if (/^[A-Z][a-zA-Z0-9]*$/.test(t) && t.length < 6) return false;
 
-	// SCREAMING_SNAKE_CASE — likely a translation key already missed
+	// NOTE: there used to be a `/^[A-Z][a-zA-Z0-9]*$/ && length < 6` rule here,
+	// meant to skip PascalCase identifiers. It instead skipped every capitalized
+	// word shorter than 6 characters — i.e. most button labels in the admin.
+	// "Add", "Save", "Edit" and "New" were silently dropped while "Create" and
+	// "Cancel" (exactly 6) were reported, which is why the scan looked clean and
+	// bitstarr found the gaps by hand instead. Short capitalized words are the
+	// single most likely thing to be a real UI string, so they must be reported.
+	// PascalCase identifiers aren't at risk here anyway: the scanners only read
+	// text nodes, a fixed set of attributes, and toast() arguments — never bare
+	// code identifiers.
+
+	// SCREAMING_SNAKE_CASE — likely a translation key already missed.
+	// Also covers acronym labels (PDF, CSV, API).
 	if (/^[A-Z][A-Z0-9_]*$/.test(t)) return false;
 
 	// Translation key shape (PLUGIN_X.Y.Z) — already a key

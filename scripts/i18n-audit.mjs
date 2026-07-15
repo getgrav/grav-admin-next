@@ -10,11 +10,18 @@
  *   orphans — keys defined but never referenced
  *   maybe   — i18n.tMaybe() call sites (might be plain text, can't tell statically)
  *
+ * A gap is a real bug: it's defined in no language at all, not even English, so
+ * it humanizes ("ADMIN_NEXT.CACHE_CLEAR_BUTTON.LABEL" -> "Label"). Translation
+ * *drift* — defined in English, missing in de-DE — is a different problem, and
+ * `--parity` reports that one.
+ *
  * Usage:
  *   node scripts/i18n-audit.mjs                  # default report
+ *   node scripts/i18n-audit.mjs --parity         # en-US vs every other admin2 language
+ *   node scripts/i18n-audit.mjs --parity --json  # ... machine-readable
  *   node scripts/i18n-audit.mjs --json           # machine-readable
  *   node scripts/i18n-audit.mjs --api https://...  # pull dict from a running API
- *   node scripts/i18n-audit.mjs --update         # append @@TODO entries to admin2/languages/en.yaml
+ *   node scripts/i18n-audit.mjs --update         # append @@TODO entries to admin2/languages/en-US.yaml
  */
 
 import { readFileSync, readdirSync, statSync, writeFileSync, existsSync } from 'node:fs';
@@ -25,13 +32,24 @@ import yaml from 'js-yaml';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
 const SRC_DIR = join(REPO_ROOT, 'src');
-const ADMIN2_LANG = resolve(REPO_ROOT, '..', 'grav-plugin-admin2', 'languages', 'en.yaml');
+// admin2 renamed its lang files to BCP 47 (`en.yaml` -> `en-US.yaml`) in db3a0339.
+// The other two repos genuinely still use `en.yaml` — don't "fix" those.
+const ADMIN2_LANG = resolve(REPO_ROOT, '..', 'grav-plugin-admin2', 'languages', 'en-US.yaml');
+const ADMIN2_LANG_DIR = resolve(REPO_ROOT, '..', 'grav-plugin-admin2', 'languages');
 const ADMIN_CLASSIC_LANG = resolve(REPO_ROOT, '..', 'grav-plugin-admin', 'languages', 'en.yaml');
 const API_PLUGIN_LANG = resolve(REPO_ROOT, '..', 'grav-plugin-api', 'languages', 'en.yaml');
+
+// admin2 owns every ADMIN_NEXT.* string, so without it the audit compares code
+// against an empty dictionary and reports every key as a gap. That's not a
+// degraded run, it's a meaningless one — fail instead of quietly lying. The
+// other two only contribute shared PLUGIN_ADMIN.* / PLUGIN_API.* vocabulary and
+// are genuinely optional.
+const REQUIRED_SOURCES = new Set([ADMIN2_LANG]);
 
 const args = process.argv.slice(2);
 const FLAG_JSON = args.includes('--json');
 const FLAG_UPDATE = args.includes('--update');
+const FLAG_PARITY = args.includes('--parity');
 const apiIdx = args.indexOf('--api');
 const FLAG_API = apiIdx >= 0 ? args[apiIdx + 1] : null;
 
@@ -107,6 +125,12 @@ function loadYamlDict(path) {
 		const doc = yaml.load(readFileSync(path, 'utf8'));
 		return flattenYaml(doc);
 	} catch (e) {
+		// An unparseable required dictionary is as bad as a missing one — it would
+		// silently turn every key into a gap.
+		if (REQUIRED_SOURCES.has(path)) {
+			console.error(`i18n-audit: failed to parse required dictionary ${path}:\n  ${e.message}`);
+			process.exit(1);
+		}
 		console.error(`Warning: failed to parse ${path}: ${e.message}`);
 		return {};
 	}
@@ -127,11 +151,20 @@ async function loadDict() {
 	const dict = {};
 	const PROJECTS_ROOT = resolve(REPO_ROOT, '..');
 	for (const path of [ADMIN_CLASSIC_LANG, API_PLUGIN_LANG, ADMIN2_LANG]) {
-		if (existsSync(path)) {
-			Object.assign(dict, loadYamlDict(path));
-			const display = path.startsWith(PROJECTS_ROOT) ? path.slice(PROJECTS_ROOT.length + 1) : path;
-			sources.push(display);
+		if (!existsSync(path)) {
+			if (REQUIRED_SOURCES.has(path)) {
+				console.error(`i18n-audit: required dictionary not found:\n  ${path}\n`);
+				console.error('Every ADMIN_NEXT.* string is defined there, so without it this audit');
+				console.error('would report every referenced key as a gap. Refusing to run.\n');
+				console.error('Check out grav-plugin-admin2 next to this repo, or pass --api <url>');
+				console.error('to audit against a running site instead.');
+				process.exit(1);
+			}
+			continue;
 		}
+		Object.assign(dict, loadYamlDict(path));
+		const display = path.startsWith(PROJECTS_ROOT) ? path.slice(PROJECTS_ROOT.length + 1) : path;
+		sources.push(display);
 	}
 	return { dict, sources };
 }
@@ -141,6 +174,99 @@ async function loadDict() {
 function isDefined(key, dict) {
 	// Admin-next prefers ICU.<key> first, then <key>.
 	return ('ICU.' + key) in dict || key in dict;
+}
+
+// --- Parity mode ---
+
+/**
+ * Compare every admin2 `languages/<lang>.yaml` against `en-US.yaml`.
+ *
+ * Nothing compared these until now, which is how ~100 keys drifted across 20+
+ * locales without a single failing check. The api plugin backfills English at
+ * runtime so a gap no longer renders as a humanized key name, but it still means
+ * that string shows up in English for those users — translation debt, not a
+ * crash. Report it; don't fail on it.
+ *
+ * `extra` keys (present in a locale, absent from en-US) usually mean the English
+ * key was renamed or removed and the locale wasn't cleaned up — dead weight in
+ * the payload we now merge, so they're worth surfacing too.
+ */
+function parityReport() {
+	const enDict = loadYamlDict(ADMIN2_LANG);
+	const enKeys = Object.keys(enDict).filter((k) => k.startsWith('ICU.'));
+	const enSet = new Set(enKeys);
+
+	const langs = readdirSync(ADMIN2_LANG_DIR)
+		.filter((f) => f.endsWith('.yaml') && f !== 'en-US.yaml')
+		.map((f) => f.slice(0, -'.yaml'.length))
+		.sort();
+
+	const rows = [];
+	for (const lang of langs) {
+		const dict = loadYamlDict(join(ADMIN2_LANG_DIR, `${lang}.yaml`));
+		const keys = new Set(Object.keys(dict).filter((k) => k.startsWith('ICU.')));
+		const missing = enKeys.filter((k) => !keys.has(k));
+		const extra = [...keys].filter((k) => !enSet.has(k));
+		rows.push({
+			lang,
+			defined: keys.size,
+			missing,
+			extra,
+			coverage: enKeys.length ? (enKeys.length - missing.length) / enKeys.length : 1,
+		});
+	}
+	return { enTotal: enKeys.length, rows };
+}
+
+function printParity() {
+	const { enTotal, rows } = parityReport();
+
+	if (FLAG_JSON) {
+		console.log(JSON.stringify({
+			base: 'en-US',
+			baseKeys: enTotal,
+			languages: rows.map((r) => ({
+				lang: r.lang,
+				defined: r.defined,
+				coverage: Math.round(r.coverage * 1000) / 10,
+				missing: r.missing,
+				extra: r.extra,
+			})),
+		}, null, 2));
+		return;
+	}
+
+	console.log('=== i18n parity (admin2 languages/ vs en-US.yaml) ===');
+	console.log(`Base: en-US — ${enTotal} ICU keys`);
+	console.log('');
+	console.log('  lang        defined   missing   extra   coverage');
+	for (const r of rows) {
+		const pct = (r.coverage * 100).toFixed(1) + '%';
+		const flag = r.missing.length === 0 ? ' ✓' : '';
+		console.log(
+			`  ${r.lang.padEnd(10)} ${String(r.defined).padStart(7)} ${String(r.missing.length).padStart(9)} ` +
+			`${String(r.extra.length).padStart(7)} ${pct.padStart(10)}${flag}`
+		);
+	}
+	console.log('');
+
+	const worst = rows.filter((r) => r.missing.length > 0).sort((a, b) => b.missing.length - a.missing.length);
+	if (worst.length === 0) {
+		console.log('✓ Every language is at full parity with en-US.');
+		return;
+	}
+	console.log(`${worst.length}/${rows.length} languages have gaps. These render in English (api plugin backfills them).`);
+	console.log('');
+	// Keys missing from the most languages are the highest-leverage to translate.
+	const byKey = new Map();
+	for (const r of rows) {
+		for (const k of r.missing) byKey.set(k, (byKey.get(k) ?? 0) + 1);
+	}
+	const ranked = [...byKey.entries()].sort((a, b) => b[1] - a[1]).slice(0, 20);
+	console.log(`Most-missed keys (of ${byKey.size} keys missing from at least one language):`);
+	for (const [key, n] of ranked) {
+		console.log(`  missing in ${String(n).padStart(2)}/${rows.length} × ${key.slice('ICU.'.length)}`);
+	}
 }
 
 // --- Update mode ---
@@ -164,6 +290,11 @@ function appendTodos(gaps) {
 // --- Main ---
 
 (async () => {
+	if (FLAG_PARITY) {
+		printParity();
+		return;
+	}
+
 	const { refs, maybeOnly } = extractReferences();
 	const { dict, sources } = await loadDict();
 
