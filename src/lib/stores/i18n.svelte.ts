@@ -136,9 +136,21 @@ function createI18nStore() {
 	 *
 	 * Lookup order:
 	 *   1. `ICU.<key>` — formatted via ICU MessageFormat (placeholders, plurals, select)
+	 *   1b. `PLUGIN_ADMIN.*` aliased onto `ICU.ADMIN_NEXT.*` (see below)
 	 *   2. `<key>` — returned raw (legacy / Grav 1-compatible strings)
 	 *   3. Uppercase variant of `<key>`
 	 *   4. Humanized fallback derived from the key itself
+	 *
+	 * English fallback happens *before* this function sees the dictionary: the api
+	 * plugin merges the English strings underneath the requested language, so a key
+	 * the active language hasn't translated still resolves at step 1 — in English —
+	 * rather than humanizing. Do NOT re-add a client-side en-US fetch/merge; the
+	 * dictionary we hold is already backfilled, and a second source would only
+	 * reintroduce the ordering bug it was meant to fix.
+	 *
+	 * Humanizing is therefore a true last resort and means the key is defined
+	 * *nowhere*, not even in English — i.e. a genuine bug. `scripts/i18n-audit.mjs`
+	 * catches those before they ship.
 	 *
 	 * Plugins targeting both Grav 1 and Grav 2 should ship two parallel blocks
 	 * in their language YAML: top-level keys for Grav 1 / classic admin, and an
