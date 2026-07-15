@@ -651,7 +651,11 @@
 			>
 				<Upload size={14} class="text-muted-foreground/60" />
 				<p class="text-xs text-muted-foreground">
-					{dragOver ? 'Drop files here' : mediaItems.length > 0 ? 'Drop or click to add more' : 'Drop files or click to upload'}
+					{dragOver
+						? i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.DROP_FILES_HERE')
+						: mediaItems.length > 0
+							? i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.DROP_OR_CLICK_TO_ADD_MORE')
+							: i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.DROP_FILES_OR_CLICK_TO_UPLOAD')}
 				</p>
 			</button>
 		{/if}

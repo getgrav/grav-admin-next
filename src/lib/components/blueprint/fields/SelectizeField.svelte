@@ -232,7 +232,9 @@
 				type="text"
 				class="min-w-[80px] flex-1 border-0 bg-transparent py-0.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
 				value={inputValue}
-				placeholder={tags.length === 0 ? (translateLabel(field.placeholder) || 'Type and press Enter...') : ''}
+				placeholder={tags.length === 0
+					? translateLabel(field.placeholder) || i18n.t('ADMIN_NEXT.FIELDS.SELECTIZE_PLACEHOLDER')
+					: ''}
 				oninput={handleInput}
 				onkeydown={handleKeydown}
 				onfocus={handleFocus}

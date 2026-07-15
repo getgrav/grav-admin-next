@@ -29,7 +29,9 @@
 		field.collapsible === true || (childFields.length > 1 && field.collapsible !== false)
 	);
 	const sortable = $derived(field.sort !== false);
-	const btnLabel = $derived(field.btnLabel ? translateLabel(field.btnLabel) : 'Add item');
+	const btnLabel = $derived(
+		field.btnLabel ? translateLabel(field.btnLabel) : i18n.t('ADMIN_NEXT.FIELDS.ADD_ITEM')
+	);
 	const isCompact = $derived((field.classes ?? '').includes('compact'));
 
 	// Detect if this list uses key-value pairs (has a field with type 'key')

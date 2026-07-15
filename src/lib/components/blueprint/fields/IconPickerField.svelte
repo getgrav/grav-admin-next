@@ -88,7 +88,7 @@
 					class="flex h-10 flex-1 items-center px-3 text-sm text-muted-foreground"
 					onclick={() => { open = !open; }}
 				>
-					{currentValue ? `fa-${normalizedValue}` : 'Select an icon...'}
+					{currentValue ? `fa-${normalizedValue}` : i18n.t('ADMIN_NEXT.FIELDS.SELECT_AN_ICON')}
 				</button>
 			{/if}
 			<button

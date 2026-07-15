@@ -323,7 +323,7 @@
 						{#if !auth.demoMode}
 							<Button size="sm" onclick={() => goto(`${base}/flex-objects/${type}/new`)}>
 								<Plus size={14} />
-								Add
+								{i18n.t('ADMIN_NEXT.FLEX_OBJECTS.ADD')}
 							</Button>
 						{/if}
 					</div>

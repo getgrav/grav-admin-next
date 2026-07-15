@@ -174,7 +174,7 @@
 			onclick={handleOpen}
 		>
 			<span class={selectedRoute ? 'text-foreground' : 'text-muted-foreground'}>
-				{selectedRoute ? selectedLabel() : 'Select a page...'}
+				{selectedRoute ? selectedLabel() : i18n.t('ADMIN_NEXT.FIELDS.SELECT_A_PAGE')}
 			</span>
 			<ChevronsUpDown size={14} class="shrink-0 text-muted-foreground" />
 		</button>

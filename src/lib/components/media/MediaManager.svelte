@@ -319,12 +319,14 @@
 					</div>
 					<div>
 						<p class="text-sm font-medium text-foreground">
-							{mediaManager.isSearching ? 'No results found' : 'This folder is empty'}
+							{mediaManager.isSearching
+								? i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.NO_RESULTS_FOUND')
+								: i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.FOLDER_IS_EMPTY')}
 						</p>
 						<p class="mt-1 text-xs text-muted-foreground">
 							{mediaManager.isSearching
-								? 'Try a different search term'
-								: 'Drop files here or click Upload to get started'}
+								? i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.TRY_A_DIFFERENT_SEARCH_TERM')
+								: i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.DROP_FILES_OR_CLICK_UPLOAD')}
 						</p>
 					</div>
 					{#if !mediaManager.isSearching}
@@ -378,10 +380,16 @@
 			<div class="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
 				<div class="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-primary/50 bg-primary/5 px-12 py-8">
 					<Upload size={32} class="text-primary" />
+					<!-- One sentence, not "Drop files to upload" + "to" + a path: the
+					     fragments can't be reordered by a translator. tHtml renders the
+					     **{path}** emphasis from markdown. -->
 					<p class="text-sm font-medium text-primary">
-						Drop files to upload
 						{#if mediaManager.currentPath}
-							to <span class="font-semibold">{mediaManager.currentPath}</span>
+							{@html i18n.tHtml('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.DROP_FILES_TO_UPLOAD_TO_PATH', {
+								path: mediaManager.currentPath,
+							})}
+						{:else}
+							{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.DROP_FILES_TO_UPLOAD')}
 						{/if}
 					</p>
 				</div>
