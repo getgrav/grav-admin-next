@@ -40,6 +40,8 @@
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldMatches } from '$lib/utils/field-filter';
+	import ToggleableCheckbox from './ToggleableCheckbox.svelte';
+	import { isToggleOn, displayValue, toggleValue } from '$lib/utils/toggleable';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { getContext } from 'svelte';
 	import EditorLockNotice from '$lib/components/sync/EditorLockNotice.svelte';
@@ -189,24 +191,37 @@
 	<!-- Filtered out -->
 
 {:else if useTwoColumn}
-	<!-- 2-column layout: label left, field right -->
+	<!-- 2-column layout: label left, field right.
+		 This branch owns the label for any leaf field a section isn't rendering
+		 directly — chiefly fields nested inside `columns`/`column` or a list item.
+		 It therefore also owns the `toggleable` checkbox for those fields, which
+		 was previously only drawn by SectionField for its direct children and so
+		 was silently dropped once nested (admin2#131). SectionField strips
+		 label/help off its own children, so they never reach this branch and the
+		 checkbox can't double up. -->
+	{@const toggled = isToggleOn(field, value)}
 	<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_2fr] lg:items-start lg:gap-x-6">
-		<div class="lg:pt-2.5">
-			{#if field.label}
-				<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">
-					{translateLabel(field.label)}
-					{#if field.validate?.required}<span class="text-red-500">*</span>{/if}
-					<FieldOverrideIndicator path={field.name} />
-				</span>
+		<div class="flex items-start gap-2 lg:pt-2.5">
+			{#if field.toggleable}
+				<ToggleableCheckbox {toggled} onToggle={() => onchange(toggleValue(field, toggled))} />
 			{/if}
-			{#if field.help}
-				<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
-			{/if}
+			<div>
+				{#if field.label}
+					<span class="inline-flex items-center gap-1.5 text-sm font-semibold {toggled ? 'text-foreground' : 'text-muted-foreground'}">
+						{translateLabel(field.label)}
+						{#if field.validate?.required}<span class="text-red-500">*</span>{/if}
+						<FieldOverrideIndicator path={field.name} />
+					</span>
+				{/if}
+				{#if field.help}
+					<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
+				{/if}
+			</div>
 		</div>
-		<div>
+		<div class="transition-opacity {field.toggleable && !toggled ? 'pointer-events-none opacity-50' : ''}">
 			<svelte:self
 				field={{ ...field, label: undefined, help: undefined }}
-				{value}
+				value={displayValue(field, value, toggled)}
 				{onchange}
 				{oncommit}
 				{getValue}

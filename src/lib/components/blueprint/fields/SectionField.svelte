@@ -8,6 +8,12 @@
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldMatches, fieldMatchesSelf } from '$lib/utils/field-filter';
+	import ToggleableCheckbox from '../ToggleableCheckbox.svelte';
+	import {
+		isToggleOn as toggleOn,
+		displayValue as toggleDisplayValue,
+		toggleValue,
+	} from '$lib/utils/toggleable';
 
 	interface Props {
 		field: BlueprintField;
@@ -62,63 +68,17 @@
 		return f.style === 'vertical' || fullWidthTypes.has(f.type) || selfLabeledTypes.has(f.type);
 	}
 
-	// Toggle state is derived from the field's value — a null/undefined
-	// value means the field is disabled. Deriving (rather than tracking
-	// separately) means remote collaboration updates that null-out a
-	// field also collapse its UI automatically.
+	// Toggleable state model is shared with FieldRenderer — see $lib/utils/toggleable.
 	function isToggleOn(f: BlueprintField): boolean {
-		if (!f.toggleable) return true;
-		const val = getValue(f.name);
-		return val !== null && val !== undefined;
+		return toggleOn(f, getValue(f.name));
 	}
 
-	// The value a field takes when its toggleable wrapper is switched ON.
-	// An explicit blueprint default always wins. For a toggle/switch we commit
-	// the option the control visually highlights (its `highlight`, else the
-	// first option) so the saved data matches what the user sees — otherwise an
-	// enabled toggle persists '' which Grav reads as "off", e.g. dropping a page
-	// from navigation (getgrav/grav#4153). Other field types keep the prior ''.
-	function resolveOnValue(f: BlueprintField): unknown {
-		if (f.default !== undefined && f.default !== null) return f.default;
-
-		if (f.type === 'toggle' || f.type === 'switch') {
-			const isBool = f.validate?.type === 'bool';
-			const optionValues = f.options?.length
-				? f.options.map(o => o.value)
-				: (isBool ? ['1', '0'] : []);
-			const chosen = f.highlight !== undefined && f.highlight !== null
-				? String(f.highlight)
-				: (optionValues.length ? String(optionValues[0]) : undefined);
-			if (chosen !== undefined) {
-				if (isBool) return chosen === '1' || chosen === 'true';
-				const num = Number(chosen);
-				return Number.isNaN(num) ? chosen : num;
-			}
-		}
-
-		return '';
-	}
-
-	// When a toggleable field is OFF, the actual page value is null —
-	// but we want the inner field to render its blueprint default so the
-	// user can see what they'd be inheriting (matches classic admin's
-	// "ghosted default" affordance). Bypassed once the toggle flips on,
-	// where the real value (which `toggleField` initialised to the
-	// default) is authoritative again.
 	function displayValue(f: BlueprintField, toggled: boolean): unknown {
-		if (f.toggleable && !toggled) return resolveOnValue(f) ?? null;
-		return getValue(f.name);
+		return toggleDisplayValue(f, getValue(f.name), toggled);
 	}
 
 	function toggleField(name: string, fieldDef: BlueprintField) {
-		if (isToggleOn(fieldDef)) {
-			// Toggling OFF — send null so JSON.stringify preserves it
-			// (undefined would be stripped, leaving the value on the server).
-			onFieldChange(name, null);
-		} else {
-			// Toggling ON — adopt the field's effective on-value.
-			onFieldChange(name, resolveOnValue(fieldDef));
-		}
+		onFieldChange(name, toggleValue(fieldDef, isToggleOn(fieldDef)));
 	}
 
 	function highlight(text: string): string {
@@ -127,21 +87,6 @@
 		return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="bg-yellow-400/40 text-inherit rounded-sm">$1</mark>');
 	}
 </script>
-
-{#snippet toggleCheckbox(fieldDef: BlueprintField, toggled: boolean)}
-	<button
-		type="button"
-		class="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border transition-colors
-			{toggled
-				? 'border-primary bg-primary'
-				: 'border-input bg-muted/50'}"
-		onclick={() => toggleField(fieldDef.name, fieldDef)}
-	>
-		{#if toggled}
-			<svg class="h-3 w-3 text-white" viewBox="0 0 16 16" fill="currentColor"><path d="M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z"/></svg>
-		{/if}
-	</button>
-{/snippet}
 
 {#if !filter || visibleFields.length > 0}
 <div class="rounded-xl border border-border bg-muted/30">
@@ -210,7 +155,7 @@
 					<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_2fr] lg:items-start lg:gap-x-6">
 						<div class="flex items-start gap-2 lg:pt-2.5">
 							{#if childField.toggleable}
-								{@render toggleCheckbox(childField, toggled)}
+								<ToggleableCheckbox {toggled} onToggle={() => toggleField(childField.name, childField)} />
 							{/if}
 							<div>
 								{#if childField.label}
