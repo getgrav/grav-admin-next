@@ -9,6 +9,14 @@ export interface PageSummary {
 	 * public URL and is only meant for display or for matching visible state.
 	 */
 	raw_route?: string;
+	/**
+	 * Structural route of the page's parent, from the real hierarchy — `/` for a
+	 * genuine top-level page. Use this (not a string-split of the public `route`)
+	 * when moving/reparenting: under home.hide_in_urls a home child's public
+	 * route drops the home segment, so deriving the parent from it yields `/` and
+	 * relocates the page to the site root (admin2#132).
+	 */
+	parent_route?: string;
 	title: string;
 	menu: string;
 	template: string;
