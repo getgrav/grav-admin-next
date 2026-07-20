@@ -2173,15 +2173,19 @@
 							<dd class="font-medium text-foreground">{new Date(pageData.modified).toLocaleString()}</dd>
 						</div>
 						{#if pageData.header?.publish_date}
+							{@const publishDate = new Date(pageData.header.publish_date as string)}
 							<div class="flex justify-between">
 								<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.PUBLISH_ON')}</dt>
-								<dd class="font-medium text-emerald-500">{new Date(pageData.header.publish_date as string).toLocaleString()}</dd>
+								<!-- Fall back to the raw stored value if it isn't parseable (e.g. legacy day-first d-m-Y — see admin2#134) rather than rendering "Invalid Date". -->
+								<dd class="font-medium text-emerald-500">{isNaN(publishDate.getTime()) ? pageData.header.publish_date : publishDate.toLocaleString()}</dd>
 							</div>
 						{/if}
 						{#if pageData.header?.unpublish_date}
+							{@const unpublishDate = new Date(pageData.header.unpublish_date as string)}
 							<div class="flex justify-between">
 								<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.UNPUBLISH_ON')}</dt>
-								<dd class="font-medium text-amber-500">{new Date(pageData.header.unpublish_date as string).toLocaleString()}</dd>
+								<!-- Fall back to the raw stored value if it isn't parseable (e.g. legacy day-first d-m-Y — see admin2#134) rather than rendering "Invalid Date". -->
+								<dd class="font-medium text-amber-500">{isNaN(unpublishDate.getTime()) ? pageData.header.unpublish_date : unpublishDate.toLocaleString()}</dd>
 							</div>
 						{/if}
 					</dl>
