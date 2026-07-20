@@ -2,7 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { deletePage, duplicatePage, updatePage } from '$lib/api/endpoints/pages';
+	import { deletePage, duplicatePage, updatePage, pageApiRoute } from '$lib/api/endpoints/pages';
 	import type { PageSummary, PageDetail } from '$lib/api/endpoints/pages';
 	import { getStats, type DashboardStats } from '$lib/api/endpoints/dashboard';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
@@ -108,7 +108,11 @@
 		pendingDeletePage = null;
 		if (!pg) return;
 		try {
-			await deletePage(pg.route, { children: true });
+			// Address the page by its structural route (raw_route): a hidden-home
+			// child's public route has the home segment stripped, so pg.route can
+			// point at the wrong page — or nowhere. Matches the editor's delete,
+			// which already uses the raw_route-based URL (admin2#132).
+			await deletePage(pageApiRoute(pg), { children: true });
 			toast.success(i18n.t('ADMIN_NEXT.TOASTS.ITEM_DELETED', { name: pg.title }));
 			loadStats();
 			// Child list views subscribe to `pages:*` invalidations and refetch

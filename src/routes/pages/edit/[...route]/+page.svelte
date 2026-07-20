@@ -696,6 +696,17 @@
 	}
 
 	/**
+	 * Structural parent route of a page. Prefers the server-provided
+	 * `parent_route` (resolved from the real hierarchy) and only string-splits
+	 * the public route as a fallback. Under home.hide_in_urls a home child's
+	 * public route drops the home segment, so deriveParent() would return `/`
+	 * and a subsequent /move would relocate the page to the site root (admin2#132).
+	 */
+	function pageParentRoute(page: { route: string; slug: string; parent_route?: string }): string {
+		return page.parent_route ?? deriveParent(page.route, page.slug);
+	}
+
+	/**
 	 * Whether a page's folder carries a numeric ordering prefix (e.g. `01.`).
 	 * The API mirrors Grav's `order()`, which returns `false` for an unprefixed
 	 * folder and a prefix string like `"01."` otherwise. A naive
@@ -778,7 +789,7 @@
 		expertFrontmatter = yaml.dump(currentHeader, { lineWidth: -1, noRefs: true }).trimEnd();
 		if (pageData) {
 			expertSlug = pageData.slug.replace(/^\.+/, '');
-			expertParent = deriveParent(pageData.route, pageData.slug);
+			expertParent = pageParentRoute(pageData);
 		}
 		expertTab = 'content';
 		prefs.editorMode = 'expert';
@@ -850,7 +861,7 @@
 			(prefs.editorMode === 'expert'
 				? expertFrontmatter !== expertFrontmatterOriginal ||
 				  expertSlug !== pageData.slug ||
-				  expertParent !== deriveParent(pageData.route, pageData.slug)
+				  expertParent !== pageParentRoute(pageData)
 				: title !== pageData.title || Object.keys(headerChanges).length > 0 || normalMoveDirty)
 		)
 	);
@@ -972,7 +983,7 @@
 			title = data.title;
 			content = data.content ?? '';
 			template = data.template;
-			const initialParent = deriveParent(data.route, data.slug);
+			const initialParent = pageParentRoute(data);
 			const initialOrdering = hasNumericPrefix(data.order);
 			headerData = {
 				header: { ...data.header ?? {}, title: data.title },
@@ -1005,7 +1016,7 @@
 
 			// Initialize expert advanced state (strip any leading periods from slug)
 			expertSlug = data.slug.replace(/^\.+/, '');
-			expertParent = deriveParent(data.route, data.slug);
+			expertParent = pageParentRoute(data);
 			expertTab = 'content';
 
 			// Load blueprint for the page template (falls back to default on API side)
@@ -1162,7 +1173,7 @@
 			originalContent = refreshed.content ?? '';
 			originalTemplate = refreshed.template;
 			originalFolder = refreshed.slug;
-			originalParent = deriveParent(refreshed.route, refreshed.slug);
+			originalParent = pageParentRoute(refreshed);
 			originalOrdering = refreshed.order !== null && refreshed.order !== '';
 			originalOrder = refreshed.order;
 
@@ -1268,7 +1279,7 @@
 			// Check if a move is also needed (expert mode: slug or parent changed)
 			const expertNeedsMove = prefs.editorMode === 'expert' && pageData && (
 				expertSlug !== pageData.slug ||
-				expertParent !== deriveParent(pageData.route, pageData.slug)
+				expertParent !== pageParentRoute(pageData)
 			);
 
 			// Normal mode: detect Settings panel changes (folder / parent /
@@ -1304,7 +1315,7 @@
 				title = updated.title;
 				content = updated.content ?? content;
 				template = updated.template;
-				const refreshedParent = deriveParent(updated.route, updated.slug);
+				const refreshedParent = pageParentRoute(updated);
 				const refreshedOrdering = updated.order !== null && updated.order !== '';
 				headerData = {
 					header: { ...updated.header ?? {}, title: updated.title },
@@ -1358,7 +1369,7 @@
 				content = moved.content ?? content;
 				template = moved.template ?? template;
 				expertSlug = moved.slug;
-				expertParent = deriveParent(moved.route, moved.slug);
+				expertParent = pageParentRoute(moved);
 				expertFrontmatterOriginal = expertFrontmatter;
 				headerChanges = {};
 				hasLocalEdits = false;
@@ -1401,7 +1412,7 @@
 
 				const moved = await movePage(route, moveBody);
 
-				const movedParent = deriveParent(moved.route, moved.slug);
+				const movedParent = pageParentRoute(moved);
 				const movedOrdering = hasNumericPrefix(moved.order);
 				pageData = moved;
 				title = moved.title ?? title;
@@ -1978,7 +1989,7 @@
 												expertParent = v as string;
 												hasLocalEdits = true;
 												if (prefs.autoSaveEnabled && pageData) {
-													const orig = deriveParent(pageData.route, pageData.slug);
+													const orig = pageParentRoute(pageData);
 													if (v !== orig) autoSave.oncommit('expertParent', v, orig);
 												}
 											}}
@@ -2162,15 +2173,19 @@
 							<dd class="font-medium text-foreground">{new Date(pageData.modified).toLocaleString()}</dd>
 						</div>
 						{#if pageData.header?.publish_date}
+							{@const publishDate = new Date(pageData.header.publish_date as string)}
 							<div class="flex justify-between">
 								<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.PUBLISH_ON')}</dt>
-								<dd class="font-medium text-emerald-500">{new Date(pageData.header.publish_date as string).toLocaleString()}</dd>
+								<!-- Fall back to the raw stored value if it isn't parseable (e.g. legacy day-first d-m-Y — see admin2#134) rather than rendering "Invalid Date". -->
+								<dd class="font-medium text-emerald-500">{isNaN(publishDate.getTime()) ? pageData.header.publish_date : publishDate.toLocaleString()}</dd>
 							</div>
 						{/if}
 						{#if pageData.header?.unpublish_date}
+							{@const unpublishDate = new Date(pageData.header.unpublish_date as string)}
 							<div class="flex justify-between">
 								<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.UNPUBLISH_ON')}</dt>
-								<dd class="font-medium text-amber-500">{new Date(pageData.header.unpublish_date as string).toLocaleString()}</dd>
+								<!-- Fall back to the raw stored value if it isn't parseable (e.g. legacy day-first d-m-Y — see admin2#134) rather than rendering "Invalid Date". -->
+								<dd class="font-medium text-amber-500">{isNaN(unpublishDate.getTime()) ? pageData.header.unpublish_date : unpublishDate.toLocaleString()}</dd>
 							</div>
 						{/if}
 					</dl>

@@ -129,7 +129,14 @@
 		return toCalendar(d);
 	}
 
-	/** Format CalendarDateTime to d-m-Y H:i for Grav storage (matches old admin format) */
+	/**
+	 * Format CalendarDateTime to ISO-8601 Y-m-d H:i for Grav storage.
+	 *
+	 * The old admin wrote day-first d-m-Y, but that is ambiguous to JS
+	 * `new Date()` (e.g. `03-04-2026` reads as March 4th, not April 3rd),
+	 * so the Page Information sidebar rendered "Invalid Date" reading it back.
+	 * ISO is unambiguous and parses everywhere. See admin2#134.
+	 */
 	function formatForStorage(date: DateValue | undefined): string {
 		if (!date) return '';
 		const d = String(date.day).padStart(2, '0');
@@ -139,9 +146,9 @@
 			const dt = date as CalendarDateTime;
 			const h = String(dt.hour).padStart(2, '0');
 			const min = String(dt.minute).padStart(2, '0');
-			return `${d}-${m}-${y} ${h}:${min}`;
+			return `${y}-${m}-${d} ${h}:${min}`;
 		}
-		return `${d}-${m}-${y}`;
+		return `${y}-${m}-${d}`;
 	}
 
 	let dateValue = $derived(parseValue(value));
