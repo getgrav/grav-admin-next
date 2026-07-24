@@ -15,7 +15,19 @@
 
 	let { field, value, onchange, getValue, onFieldChange, onFieldCommit }: Props = $props();
 
-	const currentValue = $derived(typeof value === 'string' ? value : (field.default as string) ?? '');
+	// Element keys are compared as strings, but a saved value arrives from YAML
+	// with its native type — `enabled: 1` deserializes to the number 1, and a
+	// `validate: type: bool` field can arrive as a boolean. Every scalar is
+	// normalized rather than discarded, otherwise a page that has the feature
+	// turned on falls back to the field default and renders as off, hiding all
+	// of the element's child fields (getgrav/grav-premium-issues#609).
+	const toKey = (v: unknown): string | null => {
+		if (v === null || v === undefined || typeof v === 'object') return null;
+		if (typeof v === 'boolean') return v ? '1' : '0';
+		return String(v);
+	};
+
+	const currentValue = $derived(toKey(value) ?? toKey(field.default) ?? '');
 
 	// The child fields that are type: element — each one maps to a select option
 	const elementFields = $derived(
