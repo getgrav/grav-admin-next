@@ -54,13 +54,11 @@
 
 	function updateType(type: string, tags: unknown) {
 		const arr = Array.isArray(tags) ? tags.filter(Boolean) : [];
-		const next = { ...taxonomyValue };
-		if (arr.length > 0) {
-			next[type] = arr as string[];
-		} else {
-			delete next[type];
-		}
-		onchange(Object.keys(next).length > 0 ? next : undefined);
+		// Send the cleared type as an explicit empty array so the server's
+		// list-aware merge overwrites the stored values; emitting `undefined`
+		// was read as "unchanged" and the old value came back (admin2#140).
+		const next = { ...taxonomyValue, [type]: arr as string[] };
+		onchange(next);
 	}
 
 	/** Build a pseudo-BlueprintField for each taxonomy type's SelectizeField */

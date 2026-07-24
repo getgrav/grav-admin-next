@@ -11,6 +11,8 @@
 const en: Record<string, string> = {
 	'ICU.ADMIN_NEXT.LOADING': 'Loading...',
 	'ICU.ADMIN_NEXT.SIGN_OUT': 'Sign out',
+	'ICU.ADMIN_NEXT.INVITATIONS.ACCEPT_HEADING': 'Accept invitation',
+	'ICU.ADMIN_NEXT.INVITATIONS.ACCEPT_SUBHEADING': 'Set up your account to get started.',
 	'ICU.ADMIN_NEXT.BOOT.TRANSLATIONS_FAILED': 'Translations could not be loaded. Some labels may show as keys.',
 	'ICU.ADMIN_NEXT.BOOT.OFFLINE': 'Cannot reach the server.',
 };

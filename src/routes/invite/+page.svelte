@@ -32,6 +32,22 @@
 	let passwordInvalid = $state(false);
 	let confirmInvalid = $state(false);
 
+	// Public (unauthenticated) page: neither the layout's session load
+	// (auth-gated) nor the login page's pre-auth load runs here, so without this
+	// the invite screen only ever shows whatever was cached from a prior visit —
+	// or, on a cold cache, humanized keys like "Accept Heading" (admin2#139).
+	// Fetch the dictionary once per visit: a small prefixed fetch fills the
+	// heading fast, then a full background sync re-checks the server checksum so
+	// operator edits to the language YAML take effect here too.
+	let i18nSynced = false;
+	$effect(() => {
+		if (i18nSynced) return;
+		i18nSynced = true;
+		i18n.loadPrefix('ADMIN_NEXT.INVITATIONS').then(() => {
+			i18n.loadAllInBackground();
+		});
+	});
+
 	$effect(() => {
 		passwordPolicy.load().catch(() => {});
 	});
