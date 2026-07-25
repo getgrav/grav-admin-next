@@ -247,7 +247,7 @@
 		{collapsed ? 'w-[52px]' : 'w-56'}
 		{mobileOpen ? 'translate-x-0' : 'max-lg:-translate-x-full max-lg:rtl:translate-x-full lg:translate-x-0'}">
 
-		<div class="flex h-12 items-center border-b border-sidebar-border px-3">
+		<div class="flex h-12 items-center border-b border-sidebar-border {collapsed ? 'justify-center px-2' : 'px-3'}">
 			<BrandLogo size="sidebar" showLabel={!collapsed} />
 		</div>
 
@@ -335,7 +335,7 @@
 					<img
 						src={avatarSrc}
 						alt={auth.fullname || auth.username}
-						class="h-7 w-7 rounded-full object-cover"
+						class="h-7 w-7 max-w-none shrink-0 rounded-full object-cover"
 						onerror={handleAvatarError}
 					/>
 				</a>
