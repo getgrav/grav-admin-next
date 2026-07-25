@@ -17,7 +17,8 @@
 	 *
 	 * The permissions tree structure will come from an API endpoint (future).
 	 * For now, we render the flat access object as an editable list with
-	 * three-state toggles: Allowed (true), Denied (false), Not Set (removed).
+	 * three-state toggles: Allowed (true), Denied (false), Not Set (null, which
+	 * the API strips out before writing the saved header).
 	 */
 
 	interface PermEntry {
@@ -37,7 +38,12 @@
 	function updateEntry(key: string, state: 'allowed' | 'denied' | 'unset') {
 		const obj = { ...(value as Record<string, unknown> ?? {}) };
 		if (state === 'unset') {
-			delete obj[key];
+			// Emit an explicit null rather than dropping the key. The save merges
+			// the incoming header over the stored one, so an omitted key reads as
+			// "unchanged" and the cleared rule reappears on the next load; null is
+			// the API's remove-this-key signal and is stripped before the
+			// frontmatter is written (admin2#142).
+			obj[key] = null;
 		} else {
 			obj[key] = state === 'allowed';
 		}
