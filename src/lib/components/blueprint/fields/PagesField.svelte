@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
-	import { getChildren } from '$lib/api/endpoints/pages';
+	import { getChildren, pageApiRoute } from '$lib/api/endpoints/pages';
 	import type { PageSummary } from '$lib/api/endpoints/pages';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import {
@@ -38,11 +38,19 @@
 
 	const selectedRoute = $derived(typeof value === 'string' ? value : '');
 
+	// Address every page by its *structural* route (raw_route), never its public
+	// one. With `system.home.alias: /blog` the blog page's route() is `/` while
+	// its rawRoute() is `/blog`, so picking it off the public route would store
+	// `/` — and a page saved with that parent gets moved to the pages root
+	// (getgrav/grav-plugin-admin2#143, #18). The same value also has to be used
+	// for expansion/caching keys, or expanding the aliased page would ask the API
+	// for the children of `/` and list the top-level pages under itself.
+
 	// Find the display label for a selected page
 	function findPageTitle(pages: PageSummary[], route: string): string | null {
 		for (const p of pages) {
-			if (p.route === route) return p.title;
-			const cached = childrenCache[p.route];
+			if (pageApiRoute(p) === route) return p.title;
+			const cached = childrenCache[pageApiRoute(p)];
 			if (cached) {
 				const found = findPageTitle(cached, route);
 				if (found) return found;
@@ -131,6 +139,7 @@
 		return pages.filter(p =>
 			p.title.toLowerCase().includes(q) ||
 			p.route.toLowerCase().includes(q) ||
+			pageApiRoute(p).toLowerCase().includes(q) ||
 			p.slug.toLowerCase().includes(q)
 		);
 	}
@@ -225,7 +234,7 @@
 								{/if}
 							</button>
 						{/if}
-						{#each filterPages(rootPages) as page (page.route)}
+						{#each filterPages(rootPages) as page (pageApiRoute(page))}
 							{#if shouldShow(page)}
 								{@render pageNode(page, 0)}
 							{/if}
@@ -244,10 +253,11 @@
 </div>
 
 {#snippet pageNode(page: PageSummary, depth: number)}
-	{@const isExpanded = expandedRoutes.has(page.route)}
-	{@const isLoading = loadingRoutes.has(page.route)}
-	{@const isSelected = selectedRoute === page.route}
-	{@const children = childrenCache[page.route]}
+	{@const apiRoute = pageApiRoute(page)}
+	{@const isExpanded = expandedRoutes.has(apiRoute)}
+	{@const isLoading = loadingRoutes.has(apiRoute)}
+	{@const isSelected = selectedRoute === apiRoute}
+	{@const children = childrenCache[apiRoute]}
 	{@const filtered = children ? filterPages(children).filter(shouldShow) : []}
 
 	<div style="padding-left: {depth * 16}px">
@@ -255,14 +265,14 @@
 			type="button"
 			class="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
 				{isSelected ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'}"
-			onclick={() => selectPage(page.route)}
+			onclick={() => selectPage(apiRoute)}
 		>
 			<!-- Expand toggle -->
 			{#if page.has_children}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<span
 					class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
-					onclick={(e) => toggleExpand(page.route, e)}
+					onclick={(e) => toggleExpand(apiRoute, e)}
 					role="button"
 					tabindex="-1"
 				>
@@ -305,7 +315,7 @@
 
 	<!-- Children -->
 	{#if isExpanded && children}
-		{#each filtered as child (child.route)}
+		{#each filtered as child (pageApiRoute(child))}
 			{@render pageNode(child, depth + 1)}
 		{/each}
 	{/if}

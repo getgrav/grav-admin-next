@@ -154,7 +154,7 @@
 	function findPageTitle(pages: PageSummary[], route: string): string | null {
 		for (const p of pages) {
 			if (pageApiRoute(p) === route) return p.title;
-			const cached = childrenCache[p.route];
+			const cached = childrenCache[pageApiRoute(p)];
 			if (cached) {
 				const found = findPageTitle(cached, route);
 				if (found) return found;
@@ -527,7 +527,7 @@
 												{/if}
 											</button>
 
-											{#each filterPages(rootPages) as pg (pg.route)}
+											{#each filterPages(rootPages) as pg (pageApiRoute(pg))}
 												{@render parentNode(pg, 0)}
 											{/each}
 
@@ -632,10 +632,10 @@
 
 {#snippet parentNode(pg: PageSummary, depth: number)}
 	{@const apiRoute = pageApiRoute(pg)}
-	{@const isExpanded = expandedRoutes.has(pg.route)}
-	{@const isLoading = loadingRoutes.has(pg.route)}
+	{@const isExpanded = expandedRoutes.has(apiRoute)}
+	{@const isLoading = loadingRoutes.has(apiRoute)}
 	{@const isSelected = parentRoute === apiRoute}
-	{@const children = childrenCache[pg.route]}
+	{@const children = childrenCache[apiRoute]}
 	{@const filtered = children ? filterPages(children) : []}
 
 	<div style="padding-left: {depth * 16}px">
@@ -649,7 +649,7 @@
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<span
 					class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
-					onclick={(e) => toggleExpand(pg.route, e)}
+					onclick={(e) => toggleExpand(apiRoute, e)}
 					role="button"
 					tabindex="-1"
 				>
@@ -687,7 +687,7 @@
 	</div>
 
 	{#if isExpanded && children}
-		{#each filtered as child (child.route)}
+		{#each filtered as child (pageApiRoute(child))}
 			{@render parentNode(child, depth + 1)}
 		{/each}
 	{/if}
