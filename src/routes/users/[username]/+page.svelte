@@ -157,18 +157,36 @@
 	});
 
 	function populateForm(u: UserInfo) {
-		// Build config data from user properties for blueprint fields.
-		// twofa_enabled is managed by the dedicated 2FA enroll/disable
-		// endpoints — not the user PATCH — so we intentionally omit it
-		// to keep dirty tracking accurate.
+		// Start from whatever the API returned so a site's own account fields —
+		// added by extending user/blueprints/user/account.yaml — reach the form
+		// instead of redrawing empty after every save (admin2#138). The built-in
+		// fields are then normalized explicitly below.
+		//
+		// Dropped here: `access` has its own permissions editor, twofa_enabled is
+		// managed by the dedicated 2FA enroll/disable endpoints rather than the
+		// user PATCH (omitting it keeps dirty tracking accurate), and the rest are
+		// read-only server metadata that no blueprint field binds to.
+		const {
+			access: _access,
+			avatar_url: _avatarUrl,
+			twofa_enabled: _twofaEnabled,
+			twofa_secret: _twofaSecret,
+			twofa_global_enabled: _twofaGlobalEnabled,
+			created: _created,
+			modified: _modified,
+			extra: _extra,
+			...custom
+		} = u as unknown as Record<string, unknown>;
+
 		configData = {
+			...custom,
 			username: u.username,
 			email: u.email ?? '',
 			fullname: u.fullname ?? '',
 			title: u.title ?? '',
 			state: u.state,
-			language: (u as unknown as Record<string, unknown>).language ?? '',
-			content_editor: (u as unknown as Record<string, unknown>).content_editor ?? '',
+			language: custom.language ?? '',
+			content_editor: custom.content_editor ?? '',
 			// Group membership (admin.super governance field). Stored as an array
 			// of group keys — matches classic admin's on-disk `groups: [key]`.
 			groups: u.groups ?? [],

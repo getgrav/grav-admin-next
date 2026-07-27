@@ -2,6 +2,13 @@ import { api } from '../client';
 import { extractEtag } from '$lib/utils/etag';
 import type { IconSpec } from '$lib/utils/icon-spec';
 
+/**
+ * The built-in account fields the API always returns. A site can extend the
+ * account blueprint (user/blueprints/user/account.yaml) with fields of its own
+ * and the API returns those alongside these (admin2#138); they're read through
+ * a cast rather than an index signature, so typos on the fields below still get
+ * caught.
+ */
 export interface UserInfo {
 	username: string;
 	email: string | null;
@@ -10,6 +17,10 @@ export interface UserInfo {
 	state: 'enabled' | 'disabled';
 	access: Record<string, unknown>;
 	groups: string[];
+	/** Admin UI language, '' when the user hasn't picked one. */
+	language: string;
+	/** Preferred content editor, '' when the user hasn't picked one. */
+	content_editor: string;
 	avatar_url: string | null;
 	twofa_enabled: boolean;
 	twofa_secret: boolean;
