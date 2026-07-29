@@ -151,12 +151,21 @@
 	// (e.g. `/blog`). Selecting on the public route would (a) make the home
 	// page and `<root>` both look selected, and (b) cause creates to land in
 	// /pages root instead of inside the aliased folder.
-	function findPageTitle(pages: PageSummary[], route: string): string | null {
+	// `seen` keeps the walk from re-entering a list it is already inside: if a
+	// row's route ever matches a cache key that holds one of its own ancestors —
+	// as the home page's public `/` did against the root list before we switched
+	// to raw_route — the walk would otherwise recurse until the stack blew, and
+	// the "too much recursion" exception would kill the click handler
+	// mid-selection (getgrav/grav-plugin-admin2#145).
+	function findPageTitle(pages: PageSummary[], route: string, seen = new Set<string>()): string | null {
 		for (const p of pages) {
-			if (pageApiRoute(p) === route) return p.title;
-			const cached = childrenCache[pageApiRoute(p)];
+			const apiRoute = pageApiRoute(p);
+			if (apiRoute === route) return p.title;
+			if (seen.has(apiRoute)) continue;
+			seen.add(apiRoute);
+			const cached = childrenCache[apiRoute];
 			if (cached) {
-				const found = findPageTitle(cached, route);
+				const found = findPageTitle(cached, route, seen);
 				if (found) return found;
 			}
 		}
