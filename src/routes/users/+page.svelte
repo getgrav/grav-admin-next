@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
+	import { isModifiedClick } from '$lib/utils/navLink';
 	import { getUsers, getUserFilters, getUserColumns, getUserRowActions, executeUserRowAction, type UserInfo, type UsersPage, type UserFilterTab, type UserColumn, type UserRowAction } from '$lib/api/endpoints/users';
 	import { getDirectoryMetadata, type FlexDetailConfig } from '$lib/api/endpoints/flexObjects';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
@@ -560,15 +561,20 @@
 							{/if}
 
 							{#if canEditUsers}
-								<button
-									type="button"
+								<a
 									class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-									onclick={(e) => { e.stopPropagation(); openUserEdit(user.username); }}
+									href="{base}/users/{user.username}"
+									onclick={(e) => {
+										e.stopPropagation();
+										if (isModifiedClick(e)) return;
+										e.preventDefault();
+										openUserEdit(user.username);
+									}}
 									aria-label={i18n.t('ADMIN_NEXT.USERS_TABLE.EDIT')}
 									title={i18n.t('ADMIN_NEXT.USERS_TABLE.EDIT')}
 								>
 									<Pencil size={12} />
-								</button>
+								</a>
 								<button
 									type="button"
 									class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"

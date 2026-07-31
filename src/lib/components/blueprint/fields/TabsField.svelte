@@ -4,6 +4,7 @@
 	import FieldRenderer from '../FieldRenderer.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldMatches } from '$lib/utils/field-filter';
+	import { recallTab, rememberTab } from '$lib/utils/tabMemory';
 	import { dragScroll } from '$lib/utils/dragScroll';
 
 	interface Props {
@@ -49,23 +50,38 @@
 	// Check if this is a nested tab (URL already has a hash from a parent tab context)
 	function getHashParts(): string[] {
 		if (typeof window === 'undefined') return [];
-		return window.location.hash.slice(1).split('--').map(s => s.toLowerCase());
+		// Drop empty segments so a top-level tab writes `#options`, not `#--options`
+		return window.location.hash.slice(1).split('--').map(s => s.toLowerCase()).filter(Boolean);
 	}
 
-	// Resolve initial tab from URL hash (supports nested hashes like #scheduler--jobs_tab)
+	// Identity of this tab group for the tab-memory store: the tab names, so
+	// every form sharing a tab layout shares a memory slot (the page blueprint
+	// across all pages, a plugin's config across visits, and so on).
+	function groupKey(): string {
+		return tabs.map((t) => t.name).join(',');
+	}
+
+	// Resolve initial tab from URL hash (supports nested hashes like #scheduler--jobs_tab),
+	// falling back to whichever tab this group was last left on.
 	function getInitialIndex(): number {
-		const hashParts = getHashParts();
-		if (hashParts.length === 0) return 0;
+		// An explicit hash wins, so deep links land where they point.
 		// Try matching the last segment, then any segment
-		for (const part of [...hashParts].reverse()) {
+		for (const part of [...getHashParts()].reverse()) {
 			const idx = tabs.findIndex((t) => t.name.toLowerCase() === part);
+			if (idx >= 0) return idx;
+		}
+		// No hash: reopen on the remembered tab so working the same field
+		// across many pages doesn't mean re-picking the tab every time.
+		const remembered = recallTab(groupKey());
+		if (remembered) {
+			const idx = tabs.findIndex((t) => t.name.toLowerCase() === remembered);
 			if (idx >= 0) return idx;
 		}
 		return 0;
 	}
 
 	let activeIndex = $state(getInitialIndex());
-	const tabKey = $derived(tabs.map((t) => t.name).join(','));
+	const tabKey = $derived(groupKey());
 	let prevTabKey = $state(tabKey);
 
 	// Track the tab strip's height so descendants that pin themselves below
@@ -123,6 +139,7 @@
 			// Preserve parent hash segments, replace/append this level
 			const hashParts = getHashParts();
 			const tabName = tab.name.toLowerCase();
+			rememberTab(groupKey(), tabName);
 			// Check if any existing part matches a tab in this group
 			const myTabNames = new Set(tabs.map(t => t.name.toLowerCase()));
 			const parentParts = hashParts.filter(p => !myTabNames.has(p));

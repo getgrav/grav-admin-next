@@ -12,6 +12,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { linkClick } from '$lib/utils/navLink';
 	import { toast } from 'svelte-sonner';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import {
@@ -256,7 +257,7 @@
 	{:else}
 		<div class="overflow-x-auto">
 			<table class="w-full text-sm">
-				<thead class="border-b border-border bg-background/80 text-xs uppercase tracking-wide text-muted-foreground">
+				<thead class="border-b border-border bg-background/80 text-xs tracking-wide text-muted-foreground">
 					<tr>
 						{#each columns as col}
 							<th
@@ -339,15 +340,15 @@
 								<td class="px-4 py-2 text-end">
 									<div class="inline-flex items-center gap-1">
 										{#if canEdit}
-											<button
-												type="button"
+											<a
 												class="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
 												aria-label={i18n.t('ADMIN_NEXT.EDIT')}
 												title={i18n.t('ADMIN_NEXT.EDIT')}
-												onclick={() => editObject(obj.key)}
+												href="{base}/flex-objects/{detail.relation.type}/{obj.key}"
+												onclick={linkClick(() => editObject(obj.key))}
 											>
 												<Pencil size={14} />
-											</button>
+											</a>
 										{/if}
 										{#if canDelete}
 											<button

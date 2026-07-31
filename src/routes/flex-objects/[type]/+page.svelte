@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { linkClick } from '$lib/utils/navLink';
 	import { auth } from '$lib/stores/auth.svelte';
 	import {
 		getDirectories,
@@ -408,13 +409,13 @@
 											<CircleX size={16} class="text-red-400" />
 										{/if}
 									{:else if col.link === 'edit'}
-										<button
-											type="button"
+										<a
 											class="font-medium text-primary hover:underline"
-											onclick={() => openEdit(obj.key)}
+											href="{base}/flex-objects/{type}/{obj.key}"
+											onclick={linkClick(() => openEdit(obj.key))}
 										>
 											{renderCell(obj, col.name)}
-										</button>
+										</a>
 									{:else if DATE_TYPES.has(col.type)}
 										{formatDateCell(obj[col.name], col.type !== 'date')}
 									{:else if Array.isArray(obj[col.name])}

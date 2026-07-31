@@ -269,14 +269,14 @@
 									{@const total = navBadges.counts[item.badgeKey]}
 									{@const upd = navBadges.updates[item.badgeKey] ?? 0}
 									{#if total != null || upd > 0}
-										<!-- Joined capsule: green update count (left) fused to the muted
-										     total count (right). Collapses to just the total when there are
+										<!-- Joined capsule: update count (left) fused to the muted total
+										     count (right). Collapses to just the total when there are
 										     no updates, matching the classic admin sidebar badges. -->
 										<span class="ms-auto inline-flex items-center overflow-hidden rounded-full text-[0.625rem] font-semibold">
 											{#if upd > 0}
-												<!-- Amber, not green: "out of date" is an attention signal, and it
-												     matches the update widgets / Update All button elsewhere. -->
-												<span class="bg-warning px-1.5 py-0.5 text-warning-foreground" title={i18n.t('ADMIN_NEXT.NAV.UPDATES_AVAILABLE', { count: upd })}>{upd}</span>
+												<!-- Accent, not amber: an available update is an invitation to act,
+												     not a problem, so it uses the same colour as the action buttons. -->
+												<span class="bg-primary px-1.5 py-0.5 text-primary-foreground" title={i18n.t('ADMIN_NEXT.NAV.UPDATES_AVAILABLE', { count: upd })}>{upd}</span>
 											{/if}
 											{#if total != null}
 												<span class="bg-sidebar-accent px-1.5 py-0.5 text-sidebar-foreground">{total}</span>

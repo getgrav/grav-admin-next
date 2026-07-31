@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { base } from '$app/paths';
+	import { isModifiedClick, linkClick } from '$lib/utils/navLink';
 	import { getPage, getPagesList, reorganizePages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
 	import type { PageSummary, PageDetail, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -964,11 +966,13 @@
 											<GripVertical size={12} />
 										</span>
 									{/if}
-									<button
+									<a
 										class="flex min-w-0 flex-1 items-center gap-2 text-start"
-										onmousedown={(e) => { if (e.detail > 1) e.preventDefault(); }}
-										onclick={() => selectPage(colIndex, page)}
+										href="{base}/pages/edit{pageApiRoute(page)}"
+										onmousedown={(e) => { if (e.detail > 1 && !isModifiedClick(e)) e.preventDefault(); }}
+										onclick={linkClick(() => selectPage(colIndex, page))}
 										ondblclick={() => { window.getSelection()?.removeAllRanges(); onEdit(pageApiRoute(page)); }}
+										draggable={!reorderMode}
 									>
 										{#if page.has_children}
 											<Folder size={14} class="shrink-0 {isActive ? 'text-primary-foreground/80' : (page.visible ? 'text-primary' : 'text-muted-foreground')}" />
@@ -998,7 +1002,7 @@
 										{#if page.has_children}
 											<DirectionalIcon name="chevron-forward" size={12} class="shrink-0 {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground/50'}" />
 										{/if}
-									</button>
+									</a>
 								</div>
 							{/each}
 						{:else}

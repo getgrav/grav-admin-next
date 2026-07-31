@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { base } from '$app/paths';
+	import { linkClick } from '$lib/utils/navLink';
 	import { reorganizePages, searchPages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
 	import type { PageSummary, PageDetail, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
@@ -603,7 +605,7 @@
 
 {#snippet sortHeader(label: string, field: SortField, align: string = 'left')}
 	<button
-		class="flex items-center gap-1 text-[0.6875rem] font-medium uppercase tracking-wider transition-colors
+		class="flex items-center gap-1 text-[0.6875rem] font-medium tracking-wider transition-colors
 			{sortField === field ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}
 			{align === 'right' ? 'ml-auto' : ''}"
 		onclick={() => toggleSort(field)}
@@ -622,15 +624,15 @@
 <!-- Sortable header -->
 <div class="flex items-center gap-2 border-b border-border px-2 py-2 sm:px-4">
 	{#if reorderMode}<div class="w-6"></div>{/if}
-	<div class="min-w-0 flex-1">{@render sortHeader('Title', 'title')}</div>
+	<div class="min-w-0 flex-1">{@render sortHeader(i18n.t('ADMIN_NEXT.PAGES.HEADER_TITLE'), 'title')}</div>
 	{#if !reorderMode}
 		<div class="hidden w-20 text-center md:block">
-			<span class="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_TEMPLATE')}</span>
+			<span class="text-[0.6875rem] font-medium tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_TEMPLATE')}</span>
 		</div>
 		<div class="w-6 text-center" title={i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')}>
-			<span class="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">·</span>
+			<span class="text-[0.6875rem] font-medium tracking-wider text-muted-foreground">·</span>
 		</div>
-		<div class="hidden w-20 text-end sm:block">{@render sortHeader('Modified', 'modified', 'right')}</div>
+		<div class="hidden w-20 text-end sm:block">{@render sortHeader(i18n.t('ADMIN_NEXT.PAGES.HEADER_MODIFIED'), 'modified', 'right')}</div>
 		{#if onCopy || onDelete}
 			<div class="w-14"></div>
 		{/if}
@@ -720,7 +722,12 @@
 						<File size={14} class="shrink-0 {page.visible ? 'text-primary/70' : 'text-muted-foreground'}" />
 					{/if}
 
-					<button class="min-w-0 flex-1 text-start ps-1" onclick={() => onEdit(pageApiRoute(page))}>
+					<a
+						class="min-w-0 flex-1 text-start ps-1"
+						href="{base}/pages/edit{pageApiRoute(page)}"
+						onclick={linkClick(() => onEdit(pageApiRoute(page)))}
+						draggable={!reorderMode}
+					>
 						<div class="flex min-w-0 items-center gap-1.5">
 							<span class="min-w-0 truncate text-sm font-medium group-hover:text-primary
 								{isUntranslated ? 'text-muted-foreground italic' : 'text-foreground'}">{page.title}</span>
@@ -734,7 +741,7 @@
 							{/if}
 						</div>
 						<div class="truncate text-[0.6875rem] text-muted-foreground">{page.route}</div>
-					</button>
+					</a>
 				</div>
 
 				{#if !reorderMode}

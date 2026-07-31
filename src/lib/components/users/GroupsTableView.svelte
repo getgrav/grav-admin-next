@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { base } from '$app/paths';
+	import { linkClick } from '$lib/utils/navLink';
 	import type { GroupInfo } from '$lib/api/endpoints/groups';
 	import { Pencil, Trash2, ArrowUp, ArrowDown } from 'lucide-svelte';
 
@@ -39,7 +41,7 @@
 
 <div class="overflow-x-auto">
 	<table class="w-full text-sm">
-		<thead class="border-b border-border bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
+		<thead class="border-b border-border bg-muted/30 text-xs tracking-wide text-muted-foreground">
 			<tr>
 				<th class="px-4 py-2 text-start font-medium">
 					<button class="inline-flex items-center gap-1 hover:text-foreground" onclick={() => toggleSort('groupname')}>
@@ -72,9 +74,13 @@
 			{#each sorted as group (group.groupname)}
 				<tr class="border-b border-border transition-colors hover:bg-muted/30">
 					<td class="px-4 py-2">
-						<button class="font-medium text-primary hover:underline" onclick={() => onEdit(group.groupname)}>
+						<a
+							class="font-medium text-primary hover:underline"
+							href="{base}/users/groups/{group.groupname}"
+							onclick={linkClick(() => onEdit(group.groupname))}
+						>
 							{group.groupname}
-						</button>
+						</a>
 					</td>
 					<td class="px-4 py-2">{group.readableName || '—'}</td>
 					<td class="px-4 py-2 text-muted-foreground">{group.description || '—'}</td>

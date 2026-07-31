@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { base } from '$app/paths';
+	import { linkClick } from '$lib/utils/navLink';
 	import type { PluginInfo } from '$lib/api/endpoints/gpm';
 	import { faIconClass, isFirstParty } from '$lib/utils/gpm';
 	import { Puzzle, ArrowUpCircle, BadgeCheck, Loader2, CornerDownRight, ArrowUp, ArrowDown, Settings, Trash2, FileText } from 'lucide-svelte';
@@ -64,7 +66,7 @@
 
 <div class="overflow-x-auto">
 	<table class="w-full text-sm">
-		<thead class="border-b border-border bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
+		<thead class="border-b border-border bg-muted/30 text-xs tracking-wide text-muted-foreground">
 			<tr>
 				<th class="px-4 py-2 text-start font-medium">
 					<button class="inline-flex items-center gap-1 hover:text-foreground" onclick={() => toggleSort('name')}>
@@ -97,7 +99,11 @@
 			{#each sorted as plugin (plugin.slug)}
 				<tr class="border-b border-border transition-colors hover:bg-muted/30">
 					<td class="px-4 py-2">
-						<button class="inline-flex items-center gap-2 text-start text-primary hover:underline" onclick={() => onConfigure(plugin.slug)}>
+						<a
+							class="inline-flex items-center gap-2 text-start text-primary hover:underline"
+							href="{base}/plugins/{plugin.slug}"
+							onclick={linkClick(() => onConfigure(plugin.slug))}
+						>
 							<span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md {plugin.enabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}">
 								{#if plugin.icon}
 									<i class="{faIconClass(plugin.icon)} text-xs"></i>
@@ -115,7 +121,7 @@
 							{#if plugin.is_symlink}
 								<CornerDownRight size={12} class="text-muted-foreground/60" />
 							{/if}
-						</button>
+						</a>
 					</td>
 					<td class="px-4 py-2 text-muted-foreground">{plugin.author?.name ?? '—'}</td>
 					<td class="px-4 py-2 font-mono text-xs">

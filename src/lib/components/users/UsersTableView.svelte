@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { base } from '$app/paths';
+	import { linkClick } from '$lib/utils/navLink';
 	import type { UserInfo, UserColumn, UserRowAction } from '$lib/api/endpoints/users';
 	import type { FlexDetailConfig } from '$lib/api/endpoints/flexObjects';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
@@ -82,7 +84,7 @@
 
 <div class="overflow-x-auto">
 	<table class="w-full text-sm">
-		<thead class="border-b border-border bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
+		<thead class="border-b border-border bg-muted/30 text-xs tracking-wide text-muted-foreground">
 			<tr>
 				{#if detail?.enabled}
 					<th class="w-10 px-2 py-2 text-center font-medium" data-flex-detail-cell></th>
@@ -156,7 +158,11 @@
 						</td>
 					{/if}
 					<td class="px-4 py-2">
-						<button class="inline-flex items-center gap-2 text-primary hover:underline" onclick={() => onEdit(user.username)}>
+						<a
+							class="inline-flex items-center gap-2 text-primary hover:underline"
+							href="{base}/users/{user.username}"
+							onclick={linkClick(() => onEdit(user.username))}
+						>
 							<img
 								src={resolveAvatarUrl(user.avatar_url, user.email, user.fullname, user.username)}
 								alt={user.fullname ?? user.username}
@@ -172,7 +178,7 @@
 									<Shield size={12} class="text-sky-500" />
 								</span>
 							{/if}
-						</button>
+						</a>
 					</td>
 					<td class="px-4 py-2 text-muted-foreground">{user.email ?? '—'}</td>
 					<td class="px-4 py-2">{user.fullname ?? '—'}</td>

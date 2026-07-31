@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { base } from '$app/paths';
+	import { linkClick } from '$lib/utils/navLink';
 	import type { ThemeInfo } from '$lib/api/endpoints/gpm';
 	import { faIconClass, isFirstParty } from '$lib/utils/gpm';
 	import { Palette, ArrowUpCircle, BadgeCheck, Loader2, CornerDownRight, ArrowUp, ArrowDown, Settings, Check, Trash2, FileText } from 'lucide-svelte';
@@ -64,7 +66,7 @@
 
 <div class="overflow-x-auto">
 	<table class="w-full text-sm">
-		<thead class="border-b border-border bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
+		<thead class="border-b border-border bg-muted/30 text-xs tracking-wide text-muted-foreground">
 			<tr>
 				<th class="px-4 py-2 text-start font-medium">
 					<button class="inline-flex items-center gap-1 hover:text-foreground" onclick={() => toggleSort('name')}>
@@ -97,7 +99,11 @@
 			{#each sorted as theme (theme.slug)}
 				<tr class="border-b border-border transition-colors hover:bg-muted/30">
 					<td class="px-4 py-2">
-						<button class="inline-flex items-center gap-2 text-start text-primary hover:underline" onclick={() => onConfigure(theme.slug)}>
+						<a
+							class="inline-flex items-center gap-2 text-start text-primary hover:underline"
+							href="{base}/themes/{theme.slug}"
+							onclick={linkClick(() => onConfigure(theme.slug))}
+						>
 							<span class="flex h-8 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted">
 								{#if resolveUrl(theme.thumbnail)}
 									<img src={resolveUrl(theme.thumbnail)} alt={theme.name} class="h-full w-full object-cover" />
@@ -117,7 +123,7 @@
 							{#if theme.is_symlink}
 								<CornerDownRight size={12} class="text-muted-foreground/60" />
 							{/if}
-						</button>
+						</a>
 					</td>
 					<td class="px-4 py-2 text-muted-foreground">{theme.author?.name ?? '—'}</td>
 					<td class="px-4 py-2 font-mono text-xs">
