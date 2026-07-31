@@ -225,11 +225,24 @@
 		emitChange();
 	}
 
-	// Drag reorder
+	// Drag reorder. The drag starts from the grip handle, never from the row
+	// itself: Firefox refuses to place a click-positioned caret in an <input>
+	// or <textarea> that sits inside a `draggable="true"` ancestor, so a
+	// row-wide draggable made every text sub-field un-editable by mouse in
+	// Firefox while behaving fine in Chrome (admin2#146).
+	// See https://bugzilla.mozilla.org/show_bug.cgi?id=739071
 	let dragIndex = $state<number | null>(null);
 	let dragOverIndex = $state<number | null>(null);
 
-	function handleDragStart(index: number) { dragIndex = index; }
+	function handleDragStart(e: DragEvent, index: number) {
+		dragIndex = index;
+		// Drag the whole row, not just the little grip icon.
+		const row = (e.currentTarget as HTMLElement).closest('[data-list-row]');
+		if (row && e.dataTransfer) {
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setDragImage(row, 16, 16);
+		}
+	}
 	function handleDragOver(e: DragEvent, index: number) { e.preventDefault(); dragOverIndex = index; }
 	function handleDrop(index: number) {
 		if (dragIndex !== null && dragIndex !== index) {
@@ -292,18 +305,21 @@
 				{@const expanded = !item.collapsed || isFiltering}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
+					data-list-row
 					class="rounded-lg border border-border bg-card transition-colors
 						{dragOverIndex === index && dragIndex !== index ? 'border-primary' : ''}"
-					draggable={sortable && !isFiltering}
-					ondragstart={() => handleDragStart(index)}
 					ondragover={(e) => handleDragOver(e, index)}
 					ondrop={() => handleDrop(index)}
-					ondragend={handleDragEnd}
 				>
 					<!-- Item header -->
 					<div class="flex items-center gap-1.5 px-3 py-2">
 						{#if sortable}
-							<span class="flex shrink-0 cursor-grab items-center text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing">
+							<span
+								class="flex shrink-0 cursor-grab items-center text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing"
+								draggable={!isFiltering}
+								ondragstart={(e) => handleDragStart(e, index)}
+								ondragend={handleDragEnd}
+							>
 								<GripVertical size={14} />
 							</span>
 						{/if}

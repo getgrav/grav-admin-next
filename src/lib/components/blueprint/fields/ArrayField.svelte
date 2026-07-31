@@ -132,12 +132,23 @@
 		emitChange();
 	}
 
-	// Drag & drop reordering
+	// Drag & drop reordering. The drag starts from the grip handle, never from
+	// the row itself: Firefox refuses to place a click-positioned caret in an
+	// <input> that sits inside a `draggable="true"` ancestor, so a row-wide
+	// draggable made the key and value inputs un-editable by mouse in Firefox
+	// while behaving fine in Chrome (admin2#146).
+	// See https://bugzilla.mozilla.org/show_bug.cgi?id=739071
 	let dragIndex = $state<number | null>(null);
 	let dragOverIndex = $state<number | null>(null);
 
-	function handleDragStart(index: number) {
+	function handleDragStart(e: DragEvent, index: number) {
 		dragIndex = index;
+		// Drag the whole row, not just the little grip icon.
+		const row = (e.currentTarget as HTMLElement).closest('[data-array-row]');
+		if (row && e.dataTransfer) {
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setDragImage(row, 16, 16);
+		}
 	}
 
 	function handleDragOver(e: DragEvent, index: number) {
@@ -181,17 +192,18 @@
 		{#each entries as entry, index (entry.id)}
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
+				data-array-row
 				class="group flex items-center gap-1.5 rounded-lg transition-colors
 					{dragOverIndex === index && dragIndex !== index ? 'border-t-2 border-primary' : ''}"
-				draggable="true"
-				ondragstart={() => handleDragStart(index)}
 				ondragover={(e) => handleDragOver(e, index)}
 				ondrop={() => handleDrop(index)}
-				ondragend={handleDragEnd}
 			>
 				<!-- Drag handle -->
 				<span
 					class="flex shrink-0 cursor-grab items-center text-muted-foreground/40 transition-colors group-hover:text-muted-foreground active:cursor-grabbing"
+					draggable="true"
+					ondragstart={(e) => handleDragStart(e, index)}
+					ondragend={handleDragEnd}
 				>
 					<GripVertical size={14} />
 				</span>
