@@ -76,6 +76,7 @@
 		'group.update': 'Group updated',
 		'group.delete': 'Group deleted',
 		'config.update': 'Config updated',
+		'system.log.clear': 'Log cleared',
 		'gpm.install': 'Package installed',
 		'gpm.update': 'Package updated',
 		'gpm.remove': 'Package removed',

@@ -144,6 +144,20 @@ export async function getLogs(params: {
 	return api.getFullBody<LogsResponse>('/system/logs', qp);
 }
 
+export interface ClearLogResult {
+	file: string;
+	cleared_bytes: number;
+	message: string;
+}
+
+/**
+ * Empty out a log file. Super-admin only on the server; the viewer hides the
+ * button for everyone else.
+ */
+export async function clearLog(file: string): Promise<ClearLogResult> {
+	return api.delete<ClearLogResult>('/system/logs', { file });
+}
+
 // ── System Info ──
 
 export interface SystemInfoData {

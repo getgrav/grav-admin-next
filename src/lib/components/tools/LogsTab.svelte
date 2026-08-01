@@ -2,11 +2,13 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { getLogs, getLogFiles } from '$lib/api/endpoints/tools';
+	import { getLogs, getLogFiles, clearLog } from '$lib/api/endpoints/tools';
 	import type { LogEntry, LogFile } from '$lib/api/endpoints/tools';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { usePoll } from '$lib/utils/poll.svelte';
-	import { RefreshCw, Search, X } from 'lucide-svelte';
+	import { RefreshCw, Search, Trash2, X } from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	let entries = $state<LogEntry[]>([]);
@@ -29,6 +31,14 @@
 	let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 	let autoRefresh = $state(false);
 	const poller = usePoll(() => load(), 5000, { runImmediately: false });
+
+	// Clearing a log is super-admin-only on the server (DELETE /system/logs);
+	// hide the button rather than let anyone else hit a 403.
+	const canClear = $derived(auth.isSuperAdmin);
+	let confirmClear = $state(false);
+	let clearing = $state(false);
+
+	const selectedLabel = $derived(files.find((f) => f.file === selectedFile)?.label ?? selectedFile);
 
 	function persistPrefs() {
 		localStorage.setItem('grav_logs_prefs', JSON.stringify({ level, perPage: Number(perPage), file: selectedFile }));
@@ -101,6 +111,26 @@
 			toast.error(i18n.t('ADMIN_NEXT.TOOLS.LOGS.FAILED_TO_LOAD_LOGS'));
 		} finally {
 			loading = false;
+		}
+	}
+
+	async function handleClear() {
+		confirmClear = false;
+		clearing = true;
+		// Live polling would race the clear and re-render the old page of
+		// entries; stop it and let the caller turn it back on deliberately.
+		const wasLive = autoRefresh;
+		if (wasLive) toggleAutoRefresh();
+		try {
+			await clearLog(selectedFile);
+			toast.success(i18n.t('ADMIN_NEXT.TOOLS.LOGS.LOG_CLEARED', { file: selectedLabel }));
+			page = 1;
+			expandedRows = new Set();
+			await load();
+		} catch {
+			toast.error(i18n.t('ADMIN_NEXT.TOOLS.LOGS.FAILED_TO_CLEAR_LOG'));
+		} finally {
+			clearing = false;
 		}
 	}
 
@@ -237,6 +267,19 @@
 			Live
 		</button>
 
+		{#if canClear}
+			<Button
+				size="sm"
+				variant="outline"
+				class="text-destructive hover:bg-destructive/10 hover:text-destructive"
+				disabled={clearing}
+				onclick={() => (confirmClear = true)}
+			>
+				<Trash2 size={14} />
+				{i18n.t('ADMIN_NEXT.TOOLS.LOGS.CLEAR_LOG')}
+			</Button>
+		{/if}
+
 		<span class="ms-auto text-xs text-muted-foreground">
 			{total.toLocaleString()} entries{search ? ` matching "${search}"` : ''}
 		</span>
@@ -315,3 +358,14 @@
 		</div>
 	{/if}
 </div>
+
+<ConfirmModal
+	open={confirmClear}
+	title={i18n.t('ADMIN_NEXT.TOOLS.LOGS.CLEAR_LOG')}
+	message={i18n.t('ADMIN_NEXT.TOOLS.LOGS.CLEAR_LOG_CONFIRM', { file: selectedLabel })}
+	confirmLabel={i18n.t('ADMIN_NEXT.TOOLS.LOGS.CLEAR_LOG')}
+	cancelLabel={i18n.t('ADMIN_NEXT.CANCEL')}
+	variant="destructive"
+	onconfirm={handleClear}
+	oncancel={() => { confirmClear = false; }}
+/>
