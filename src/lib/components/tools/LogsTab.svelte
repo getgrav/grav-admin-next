@@ -268,10 +268,14 @@
 		</button>
 
 		{#if canClear}
+			<!-- Red pair rather than `text-destructive`: that token is a dark fill
+			     meant to sit behind white text, so as a text colour it reads as
+			     near-black against the dark background. These are the same shades the
+			     log-level badges use, legible in both themes. -->
 			<Button
 				size="sm"
 				variant="outline"
-				class="text-destructive hover:bg-destructive/10 hover:text-destructive"
+				class="border-red-600/30 text-red-700 hover:border-red-600/50 hover:bg-red-600/10 hover:text-red-800 dark:border-red-500/30 dark:text-red-300 dark:hover:border-red-500/50 dark:hover:bg-red-500/15 dark:hover:text-red-200"
 				disabled={clearing}
 				onclick={() => (confirmClear = true)}
 			>
