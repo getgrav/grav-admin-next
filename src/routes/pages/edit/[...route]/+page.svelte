@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { setContext } from 'svelte';
-	import { getPage, updatePage, deletePage, movePage, duplicatePage, getChildren, getPagePreviewToken } from '$lib/api/endpoints/pages';
+	import { getPage, updatePage, deletePage, movePage, duplicatePage, getChildren, getPagePreviewToken, pageApiRoute } from '$lib/api/endpoints/pages';
 	import { createTranslation, syncTranslation, adoptPageLanguage } from '$lib/api/endpoints/languages';
 	import { getPageBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { PageDetail } from '$lib/api/endpoints/pages';
@@ -698,12 +698,16 @@
 	/**
 	 * Structural parent route of a page. Prefers the server-provided
 	 * `parent_route` (resolved from the real hierarchy) and only string-splits
-	 * the public route as a fallback. Under home.hide_in_urls a home child's
-	 * public route drops the home segment, so deriveParent() would return `/`
-	 * and a subsequent /move would relocate the page to the site root (admin2#132).
+	 * a route as a fallback — and then the *structural* `raw_route`, never the
+	 * public one. Under home.hide_in_urls a home child's public route drops the
+	 * home segment, so splitting it returns `/`: the Parent picker then shows
+	 * the site root for a page that actually lives under home, and a subsequent
+	 * /move relocates the page out to the site root (admin2#132, #143).
+	 * `raw_route` keeps the home segment, so the fallback stays correct even
+	 * against an API plugin too old to send `parent_route`.
 	 */
-	function pageParentRoute(page: { route: string; slug: string; parent_route?: string }): string {
-		return page.parent_route ?? deriveParent(page.route, page.slug);
+	function pageParentRoute(page: { route: string; slug: string; raw_route?: string | null; parent_route?: string }): string {
+		return page.parent_route ?? deriveParent(pageApiRoute(page), page.slug);
 	}
 
 	/**
