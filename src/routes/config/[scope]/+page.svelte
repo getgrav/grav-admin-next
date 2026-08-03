@@ -12,7 +12,7 @@
 	import { getConfigBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson } from '$lib/utils/blueprint-validation';
 	import ConfigNav from '$lib/components/config/ConfigNav.svelte';
 	import TwigContentProfile from '$lib/components/config/TwigContentProfile.svelte';
 	import ConfigInfoPage from '$lib/components/config/ConfigInfoPage.svelte';
@@ -60,9 +60,6 @@
 	let accessDenied = $state(false);
 	let hasChanges = $derived(stableJson(configData) !== originalJson);
 	const canSave = $derived(canWrite('config'));
-	// Reactive validity gate: keep Save disabled while any required field is empty
-	// (admin2#34). Independent of the inline error display, which stays touch/submit-gated.
-	let requiredOk = $derived(!blueprint || !hasRequiredErrors(blueprint.fields, configData));
 	let filter = $state('');
 	let headerHeight = $state(0);
 
@@ -410,7 +407,7 @@
 								<RefreshCw size={14} />
 								{i18n.t('ADMIN_NEXT.CONFIG.RELOAD')}
 							</Button>
-							<Button size="sm" onclick={handleSave} disabled={saving || loading || !hasChanges || !canSave || !requiredOk}>
+							<Button size="sm" onclick={handleSave} disabled={saving || loading || !hasChanges || !canSave}>
 								{#if saving}
 									<Loader2 size={14} class="animate-spin" />
 									{i18n.t('ADMIN_NEXT.SAVING')}

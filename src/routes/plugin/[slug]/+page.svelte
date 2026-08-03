@@ -19,7 +19,7 @@
 	import { ApiRequestError } from '$lib/api/client';
 	import { extractToastHint, showToastHint } from '$lib/utils/toast-hint';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson } from '$lib/utils/blueprint-validation';
 	import PluginPageComponent from '$lib/components/plugin-page/PluginPageComponent.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
@@ -51,9 +51,6 @@
 	let openDropdown = $state<string | null>(null);
 
 	let hasChanges = $derived(stableJson(formData) !== originalJson);
-	// Reactive validity gate: keep Save disabled while any required field is empty
-	// (admin2#34). Independent of the inline error display, which stays touch/submit-gated.
-	let requiredOk = $derived(!blueprint || !hasRequiredErrors(blueprint.fields, formData));
 
 	// Component-mode pages have no blueprint form, so `hasChanges` can never reflect
 	// their internal state. Instead the page web component reports its own state via
@@ -483,7 +480,7 @@
 							onclick={() => isComponent ? executeAction(action) : handleSave()}
 							disabled={auth.demoMode || (isComponent
 								? (!componentState.dirty || componentState.busy || !componentState.valid)
-								: (!hasChanges || saving || !requiredOk))}
+								: (!hasChanges || saving))}
 						>
 							{#if (action.primary && (saving || componentState.busy)) || actionExecuting === action.id}
 								<Loader2 size={14} class="me-1.5 animate-spin" />

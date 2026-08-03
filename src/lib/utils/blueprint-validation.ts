@@ -141,9 +141,16 @@ export function validateFieldAt(
 }
 
 /**
- * True when any required field is currently empty. A cheap reactive gate for
- * the Save button: keep it disabled while the form can't legally be saved
- * (getgrav/grav-plugin-admin2#34, #35).
+ * True when any required field is currently empty.
+ *
+ * No longer gates the Save button. Disabling Save on this left forms that ship
+ * empty required defaults permanently unsaveable, with nothing on screen saying
+ * why — the email plugin ships `from`/`to` as null and both are required, so its
+ * config could never be saved at all (grav-plugin-email#194). Save is now enabled
+ * whenever the form is dirty and `checkRequiredOrToast()` reports the problem on
+ * click, which is what admin-classic did.
+ *
+ * Kept for callers that need the predicate itself rather than a save gate.
  */
 export function hasRequiredErrors(
 	fields: BlueprintField[],

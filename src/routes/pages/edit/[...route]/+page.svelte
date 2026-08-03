@@ -12,7 +12,7 @@
 	import type { MediaItem } from '$lib/api/endpoints/media';
 	import type { PageMediaContext } from '$lib/components/media/types';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt } from '$lib/utils/blueprint-validation';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import LanguageSwitcher from '$lib/components/ui/LanguageSwitcher.svelte';
@@ -877,13 +877,6 @@
 			hasLocalEdits = false;
 		}
 	});
-
-	// Reactive validity gate: keep Save disabled while a required header field is empty
-	// (admin2#34). Skipped in Expert mode, which edits raw YAML rather than the
-	// blueprint form — its field paths aren't in play (mirrors handleSave's #30 check).
-	let requiredOk = $derived(
-		prefs.editorMode === 'expert' || !blueprint || !hasRequiredErrors(blueprint.fields, headerData)
-	);
 
 	const guard = createUnsavedGuard(() => {
 		// In collab mode hasChanges is a net diff vs the last GET — it can
@@ -1810,7 +1803,7 @@
 			<!-- Save button with Save As dropdown -->
 			{#if canEditPages}
 			<div class="relative flex">
-				<Button size="sm" class="px-2 lg:px-3 {(hasChanges || canCreateTranslation) ? '' : 'opacity-50 pointer-events-none'} {saveAsLanguages.length > 0 ? 'rounded-e-none' : ''}" title={saving ? i18n.t('ADMIN_NEXT.SAVING') : canCreateTranslation ? i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVE_AS_LANGUAGE', { language: contentLang.getLanguageName(contentLang.activeLang) }) : i18n.t('ADMIN_NEXT.SAVE')} onclick={triggerSave} disabled={saving || loading || !requiredOk}>
+				<Button size="sm" class="px-2 lg:px-3 {(hasChanges || canCreateTranslation) ? '' : 'opacity-50 pointer-events-none'} {saveAsLanguages.length > 0 ? 'rounded-e-none' : ''}" title={saving ? i18n.t('ADMIN_NEXT.SAVING') : canCreateTranslation ? i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVE_AS_LANGUAGE', { language: contentLang.getLanguageName(contentLang.activeLang) }) : i18n.t('ADMIN_NEXT.SAVE')} onclick={triggerSave} disabled={saving || loading}>
 					{#if saving}
 						<Loader2 size={14} class="animate-spin" />
 						<span class="hidden lg:inline">{i18n.t('ADMIN_NEXT.SAVING')}</span>

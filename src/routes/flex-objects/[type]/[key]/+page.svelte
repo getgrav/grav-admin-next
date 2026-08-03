@@ -15,7 +15,7 @@
 	} from '$lib/api/endpoints/flexObjects';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson } from '$lib/utils/blueprint-validation';
 	import { renderFlexTitle } from '$lib/utils/flex-title';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import UnsavedChangesModal from '$lib/components/ui/UnsavedChangesModal.svelte';
@@ -73,9 +73,6 @@
 	let originalJson = $state('{}');
 
 	const hasChanges = $derived(stableJson(configData) !== originalJson);
-	// Reactive validity gate: keep Save disabled while any required field is empty
-	// (admin2#34). Independent of the inline error display, which stays touch/submit-gated.
-	let requiredOk = $derived(!blueprint || !hasRequiredErrors(blueprint.fields, configData));
 
 	// Read save-redirect from the custom field value
 	const afterSave = $derived((configData._post_entries_save as string) ?? 'edit');
@@ -326,7 +323,7 @@
 							{/if}
 							{i18n.t('ADMIN_NEXT.DELETE')}
 						</Button>
-						<Button size="sm" onclick={handleSave} disabled={!hasChanges || saving || !requiredOk || auth.demoMode}>
+						<Button size="sm" onclick={handleSave} disabled={!hasChanges || saving || auth.demoMode}>
 							{#if saving}
 								<Loader2 size={14} class="me-1.5 animate-spin" />
 							{:else}

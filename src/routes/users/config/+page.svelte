@@ -8,7 +8,7 @@
 	import { getAccountsConfigBlueprint, type BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import { canWrite } from '$lib/utils/permissions';
-	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson } from '$lib/utils/blueprint-validation';
 	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
@@ -30,9 +30,6 @@
 	let accessDenied = $state(false);
 
 	const hasChanges = $derived(stableJson(configData) !== originalJson);
-	// Reactive validity gate: keep Save disabled while any required field is empty
-	// (admin2#34). Independent of the inline error display, which stays touch/submit-gated.
-	let requiredOk = $derived(!blueprint || !hasRequiredErrors(blueprint.fields, configData));
 
 	async function load() {
 		loading = true;
@@ -142,7 +139,7 @@
 								<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.ACCOUNTS_CONFIG.SUBTITLE')}</p>
 							{/if}
 						</div>
-						<Button size="sm" disabled={!hasChanges || saving || !requiredOk || !canSave} onclick={handleSave}>
+						<Button size="sm" disabled={!hasChanges || saving || !canSave} onclick={handleSave}>
 							{#if saving}
 								<Loader2 size={14} class="animate-spin" />
 							{:else}

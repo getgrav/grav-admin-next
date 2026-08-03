@@ -12,7 +12,7 @@
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import ExtensionMetaLinks from '$lib/components/extensions/ExtensionMetaLinks.svelte';
-	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson } from '$lib/utils/blueprint-validation';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import UnsavedChangesModal from '$lib/components/ui/UnsavedChangesModal.svelte';
@@ -61,9 +61,6 @@
 	let error = $state('');
 
 	let hasChanges = $derived(stableJson(configData) !== originalJson);
-	// Reactive validity gate: keep Save disabled while any required field is empty
-	// (admin2#34). Independent of the inline error display, which stays touch/submit-gated.
-	let requiredOk = $derived(!blueprint || !hasRequiredErrors(blueprint.fields, configData));
 
 	// Modal state for README / Changelog
 	let modalOpen = $state(false);
@@ -538,7 +535,7 @@
 				<Button
 					size="sm"
 					onclick={handleSave}
-					disabled={!hasChanges || saving || !requiredOk || !canSave}
+					disabled={!hasChanges || saving || !canSave}
 					aria-label="Save"
 					title="Save"
 				>
