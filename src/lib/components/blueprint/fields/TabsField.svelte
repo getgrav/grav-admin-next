@@ -182,6 +182,7 @@
 								{i === activeIndex
 									? 'bg-primary/10 text-primary'
 									: 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'}"
+							type="button"
 							onclick={() => setActiveTab(i)}
 						>
 							{translateLabel(tab.title || tab.label || tab.name)}
@@ -241,6 +242,7 @@
 							{i === activeIndex
 								? 'border-primary text-primary'
 								: 'border-transparent text-muted-foreground hover:text-foreground'}"
+						type="button"
 						onclick={() => setActiveTab(i)}
 					>
 						{translateLabel(tab.title || tab.label || tab.name)}

@@ -39,6 +39,24 @@ export interface PageSummary {
 	has_default_file?: boolean;
 	/** Language codes that have an explicit `{template}.{lang}.md` file on disk. Languages in `translated_languages` but NOT in this list are served by the implicit `default.md` fallback. */
 	explicit_language_files?: string[];
+	/**
+	 * What THIS user may do to THIS page, after the page's own
+	 * `header.permissions` rules are applied on top of their account
+	 * permissions (admin2#150). Absent on older API versions — treat a missing
+	 * value as "fall back to the account-wide check", which is what
+	 * `pageCan()` in `$lib/utils/permissions` does.
+	 */
+	permissions?: PagePermissions;
+}
+
+/** Per-page capabilities, as resolved by the API for the current user. */
+export interface PagePermissions {
+	create: boolean;
+	read: boolean;
+	update: boolean;
+	delete: boolean;
+	publish: boolean;
+	list: boolean;
 }
 
 /**

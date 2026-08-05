@@ -10,7 +10,7 @@
 	import { getUserBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson, pruneEmpty } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson, pruneEmpty } from '$lib/utils/blueprint-validation';
 	import { resolveInheritedAccess, toAccessRecord } from '$lib/utils/user-access';
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
 	import TwoFactorField from '$lib/components/TwoFactorField.svelte';
@@ -120,9 +120,6 @@
 			fields: filterFields(blueprint.fields),
 		};
 	});
-	// Reactive validity gate: keep Save disabled while any required field is empty
-	// (admin2#34). Independent of the inline error display, which stays touch/submit-gated.
-	let requiredOk = $derived(!filteredBlueprint || !hasRequiredErrors(filteredBlueprint.fields, configData));
 
 	// The account blueprint nests `groups` inside the `security` section, which
 	// we suppress wholesale (its other child, `access`, is rendered by the
@@ -494,7 +491,7 @@
 							<Button
 								size="sm"
 								onclick={handleSave}
-								disabled={!hasChanges || saving || !requiredOk}
+								disabled={!hasChanges || saving}
 								aria-label="Save"
 								title="Save"
 							>

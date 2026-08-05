@@ -100,7 +100,15 @@
 	}
 </script>
 
-<div class="space-y-4">
+<!--
+	A real <form>, even though nothing is ever submitted through it. Blueprints can
+	declare password fields (SMTP credentials, account passwords, API tokens), and a
+	password input outside a form is a field browsers and password managers cannot
+	reason about — Chrome says so in the console, and managers mis-associate or skip
+	it. Submission stays with the Save button; the handler below just stops the
+	browser from ever navigating.
+-->
+<form class="space-y-4" onsubmit={(e) => e.preventDefault()}>
 	{#each normalizedFields as field (field.name)}
 		<FieldRenderer
 			{field}
@@ -113,4 +121,4 @@
 			{filter}
 		/>
 	{/each}
-</div>
+</form>

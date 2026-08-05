@@ -13,7 +13,18 @@
 		class?: string;
 	}
 
-	let { variant = 'default', size = 'default', children, class: className, ...rest }: Props = $props();
+	// Default to `button`, not the HTML default of `submit`. Blueprint forms are
+	// real <form> elements (so browsers and password managers treat their password
+	// fields properly), and a bare <button> inside one would be activated by
+	// implicit submission the moment someone pressed Enter in a text field.
+	let {
+		variant = 'default',
+		size = 'default',
+		type = 'button',
+		children,
+		class: className,
+		...rest
+	}: Props = $props();
 
 	const variants: Record<Variant, string> = {
 		default: 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90',
@@ -39,6 +50,7 @@
 		sizes[size],
 		className
 	)}
+	{type}
 	{...rest}
 >
 	{#if children}{@render children()}{/if}

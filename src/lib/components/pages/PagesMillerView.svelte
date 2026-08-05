@@ -2,6 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { base } from '$app/paths';
 	import { isModifiedClick, linkClick } from '$lib/utils/navLink';
+	import { pageCan } from '$lib/utils/permissions';
 	import { getPage, getPagesList, reorganizePages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
 	import type { PageSummary, PageDetail, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -1068,9 +1069,9 @@
 						{#if previewPage.has_children}
 							<Badge variant="secondary">{i18n.t('ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.HAS_CHILDREN')}</Badge>
 						{/if}
-						{#if onCopy || onDelete || onTogglePublished}
+						{#if (onCopy && pageCan(previewPage, 'update')) || (onDelete && pageCan(previewPage, 'delete')) || (onTogglePublished && pageCan(previewPage, 'publish'))}
 							<div class="ms-auto inline-flex items-center gap-1">
-								{#if onTogglePublished}
+								{#if onTogglePublished && pageCan(previewPage, 'publish')}
 									<button
 										type="button"
 										class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -1085,7 +1086,7 @@
 										{/if}
 									</button>
 								{/if}
-								{#if onCopy}
+								{#if onCopy && pageCan(previewPage, 'update')}
 									<button
 										type="button"
 										class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
@@ -1101,7 +1102,7 @@
 										{/if}
 									</button>
 								{/if}
-								{#if onDelete}
+								{#if onDelete && pageCan(previewPage, 'delete')}
 									<button
 										type="button"
 										class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"

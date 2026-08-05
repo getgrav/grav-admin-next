@@ -9,7 +9,7 @@
 	import { getGroup, updateGroup, deleteGroup, type GroupInfo } from '$lib/api/endpoints/groups';
 	import { getGroupBlueprint, type BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, hasRequiredErrors, stableJson, pruneEmpty } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson, pruneEmpty } from '$lib/utils/blueprint-validation';
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
 	import { toAccessRecord } from '$lib/utils/user-access';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
@@ -55,9 +55,6 @@
 		if (!blueprint) return null;
 		return { ...blueprint, fields: filterFields(blueprint.fields) };
 	});
-	// Reactive validity gate: keep Save disabled while any required field is empty
-	// (admin2#34). Independent of the inline error display, which stays touch/submit-gated.
-	let requiredOk = $derived(!filteredBlueprint || !hasRequiredErrors(filteredBlueprint.fields, configData));
 
 	function populateForm(g: GroupInfo) {
 		configData = {
@@ -206,7 +203,7 @@
 								<Trash2 size={14} />
 								{i18n.t('ADMIN_NEXT.DELETE')}
 							</Button>
-							<Button size="sm" disabled={!hasChanges || saving || !requiredOk} onclick={handleSave}>
+							<Button size="sm" disabled={!hasChanges || saving} onclick={handleSave}>
 								{#if saving}
 									<Loader2 size={14} class="animate-spin" />
 								{:else}
