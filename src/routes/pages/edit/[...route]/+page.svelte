@@ -43,7 +43,7 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
 	import ContextPanelTriggers from '$lib/components/context-panels/ContextPanelTriggers.svelte';
-	import { canWrite } from '$lib/utils/permissions';
+	import { pageCan } from '$lib/utils/permissions';
 	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
 	import { PollingProvider } from '$lib/sync/PollingProvider';
 	import { MercureProvider } from '$lib/sync/MercureProvider';
@@ -60,7 +60,6 @@
 	import EditorLockNotice from '$lib/components/sync/EditorLockNotice.svelte';
 	import TwigContentBanner from '$lib/components/pages/TwigContentBanner.svelte';
 
-	const canEditPages = $derived(canWrite('pages'));
 	let accessDenied = $state(false);
 
 	const route = $derived('/' + (page.params.route || ''));
@@ -182,6 +181,14 @@
 	});
 
 	let pageData = $state<PageDetail | null>(null);
+
+	// What this user may do to THIS page. A page can grant or deny update/delete
+	// in its own `header.permissions` frontmatter, which the API resolves and
+	// returns on the page record (admin2#150); until it loads these fall back to
+	// the account-wide answer. Copy is gated on `update`, matching how Grav's
+	// own page listing treats copy/move.
+	const canUpdatePage = $derived(pageCan(pageData, 'update'));
+	const canDeletePage = $derived(pageCan(pageData, 'delete'));
 	let blueprint = $state<BlueprintSchema | null>(null);
 	let loading = $state(true);
 	let saving = $state(false);
@@ -1621,7 +1628,7 @@
 	let copying = $state(false);
 
 	async function handleCopy() {
-		if (!pageData || !canEditPages || copying) return;
+		if (!pageData || !canUpdatePage || copying) return;
 		copying = true;
 		try {
 			const newPage = await duplicatePage(pageData);
@@ -1789,7 +1796,7 @@
 			<Button variant="outline" size="icon" class="h-8 w-8" title={i18n.t('ADMIN_NEXT.PAGES.EDIT.PREVIEW_PAGE')} onclick={openFrontendPreview} disabled={loading || previewLoading || !pageData}>
 				<Eye size={14} />
 			</Button>
-			{#if canEditPages}
+			{#if canUpdatePage}
 				<Button variant="outline" size="icon" class="h-8 w-8" title={i18n.t('ADMIN_NEXT.PAGES.EDIT.COPY_PAGE')} onclick={handleCopy} disabled={loading || copying || !pageData}>
 					{#if copying}
 						<Loader2 size={14} class="animate-spin" />
@@ -1797,6 +1804,8 @@
 						<CopyIcon size={14} />
 					{/if}
 				</Button>
+			{/if}
+			{#if canDeletePage}
 				<Button variant="destructive" size="icon" class="h-8 w-8" title={i18n.t('ADMIN_NEXT.PAGES.EDIT.DELETE_PAGE')} onclick={handleDelete} disabled={loading}>
 					<Trash2 size={14} />
 				</Button>
@@ -1805,7 +1814,7 @@
 				<LanguageSwitcher compact translatedLangs={pageData?.translated_languages ? Object.keys(pageData.translated_languages) : undefined} onchange={handleLanguageSwitch} />
 			{/if}
 			<!-- Save button with Save As dropdown -->
-			{#if canEditPages}
+			{#if canUpdatePage}
 			<div class="relative flex">
 				<Button size="sm" class="px-2 lg:px-3 {(hasChanges || canCreateTranslation) ? '' : 'opacity-50 pointer-events-none'} {saveAsLanguages.length > 0 ? 'rounded-e-none' : ''}" title={saving ? i18n.t('ADMIN_NEXT.SAVING') : canCreateTranslation ? i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVE_AS_LANGUAGE', { language: contentLang.getLanguageName(contentLang.activeLang) }) : i18n.t('ADMIN_NEXT.SAVE')} onclick={triggerSave} disabled={saving || loading}>
 					{#if saving}

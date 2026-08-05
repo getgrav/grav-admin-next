@@ -2,6 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { base } from '$app/paths';
 	import { linkClick } from '$lib/utils/navLink';
+	import { pageCan } from '$lib/utils/permissions';
 	import { reorganizePages, searchPages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
 	import type { PageSummary, PageDetail, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
@@ -750,7 +751,7 @@
 					</div>
 
 					<div class="flex w-6 justify-center">
-						{#if onTogglePublished}
+						{#if onTogglePublished && pageCan(page, 'publish')}
 							<button
 								type="button"
 								class="inline-flex h-6 w-6 items-center justify-center rounded transition-colors hover:bg-accent"
@@ -779,10 +780,10 @@
 						{formatDate(page.modified)}
 					</div>
 
-					{#if onCopy || onDelete}
+					{#if (onCopy && pageCan(page, 'update')) || (onDelete && pageCan(page, 'delete'))}
 						{@const copying = copyingRoutes?.has(page.route) ?? false}
 						<div class="flex w-14 shrink-0 items-center justify-end gap-1">
-							{#if onCopy}
+							{#if onCopy && pageCan(page, 'update')}
 								<button
 									class="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
 									onclick={(e) => { e.stopPropagation(); onCopy(page); }}
@@ -796,7 +797,7 @@
 									{/if}
 								</button>
 							{/if}
-							{#if onDelete}
+							{#if onDelete && pageCan(page, 'delete')}
 								<button
 									class="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
 									onclick={(e) => { e.stopPropagation(); onDelete(page); }}

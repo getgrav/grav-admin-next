@@ -1,4 +1,5 @@
 import { auth } from '$lib/stores/auth.svelte';
+import type { PagePermissions } from '$lib/api/endpoints/pages';
 
 /**
  * Check if the current user has a specific permission.
@@ -36,4 +37,36 @@ export function canWrite(section: 'config' | 'pages' | 'users' | 'media' | 'gpm'
 	if (!can(permission)) return false;
 	if (auth.demoMode && !auth.demoWritable.includes(permission)) return false;
 	return true;
+}
+
+/**
+ * Whether the user may perform a CRUD action on ONE specific page.
+ *
+ * A page can carry its own rules in `header.permissions`, which the API
+ * resolves per user and returns as `page.permissions` (admin2#150). Those rules
+ * override the account-wide permission in both directions — they can grant
+ * update/delete on a page to someone without `api.pages.write`, and deny it to
+ * someone who has it — so a page-level answer always wins when present.
+ *
+ * `page` may be undefined (still loading) or come from an older API that
+ * doesn't send `permissions`; both fall back to the account-wide check, which
+ * is exactly how the admin behaved before per-page rules were enforced.
+ */
+export function pageCan(
+	page: { permissions?: PagePermissions } | null | undefined,
+	action: keyof PagePermissions,
+): boolean {
+	const isRead = action === 'read' || action === 'list';
+	const permissions = page?.permissions;
+
+	if (!permissions || typeof permissions[action] !== 'boolean') {
+		return isRead ? can('api.pages.read') : canWrite('pages');
+	}
+
+	// Demo mode still wins over a page grant — the server caps it the same way.
+	if (permissions[action] && !isRead && auth.demoMode && !auth.demoWritable.includes('api.pages.write')) {
+		return false;
+	}
+
+	return permissions[action];
 }
