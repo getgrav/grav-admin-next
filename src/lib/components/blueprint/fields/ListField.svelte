@@ -139,11 +139,36 @@
 		item.data = { ...item.data, [leafName]: val };
 	}
 
+	/**
+	 * Seed a new row with its children's blueprint defaults.
+	 *
+	 * The field components render `value ?? field.default` as a fallback, so a
+	 * default shows on screen whether or not it exists in the row's data. Left
+	 * unseeded, a value the user could see but never touched was not saved, and
+	 * the form ended up submitting something different from what it displayed.
+	 *
+	 * Row data is keyed by leaf name, matching getItemFieldValue. Nested lists
+	 * seed their own rows, and a `key` child holds the row key, not data.
+	 */
+	function newItemData(): Record<string, unknown> {
+		const data: Record<string, unknown> = {};
+		for (const child of childFields) {
+			if (child.default === undefined || child.type === 'key' || child.type === 'list') {
+				continue;
+			}
+			const leafName = child.name.split('.').pop() || child.name;
+			if (leafName) {
+				data[leafName] = child.default;
+			}
+		}
+		return data;
+	}
+
 	function addItem() {
 		const newItem: ListItem = {
 			id: nextId++,
 			key: '',
-			data: {},
+			data: newItemData(),
 			collapsed: false
 		};
 		items = [...items, newItem];
