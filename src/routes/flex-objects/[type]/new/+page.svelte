@@ -48,19 +48,50 @@
 	});
 
 	/**
-	 * Extract default values from blueprint fields recursively.
+	 * Write a value at a dotted path, creating the intermediate objects.
+	 */
+	function setAtPath(target: Record<string, unknown>, path: string, value: unknown): void {
+		const parts = path.split('.');
+		const last = parts.pop();
+		if (!last) return;
+
+		let node = target;
+		for (const part of parts) {
+			const existing = node[part];
+			if (typeof existing !== 'object' || existing === null || Array.isArray(existing)) {
+				node[part] = {};
+			}
+			node = node[part] as Record<string, unknown>;
+		}
+		node[last] = value;
+	}
+
+	/**
+	 * Collect blueprint defaults into the nested shape the form and the API use.
+	 *
+	 * Field names arrive as full dotted paths, so a default has to be written at
+	 * its path rather than under the last segment alone. Keying by the last
+	 * segment let a nested field overwrite a top-level one of the same name, and
+	 * scattered every nested name across the top level of the record.
+	 *
+	 * Children of a `list` are skipped: their defaults belong to rows the user
+	 * adds later, not to an empty collection. ListField seeds those itself.
 	 */
 	function extractDefaults(fields: BlueprintField[]): Record<string, unknown> {
 		const defaults: Record<string, unknown> = {};
-		for (const field of fields) {
-			if (field.default !== undefined) {
-				const name = field.name.includes('.') ? field.name.split('.').pop()! : field.name;
-				defaults[name] = field.default;
-			}
-			if (field.fields) {
-				Object.assign(defaults, extractDefaults(field.fields));
+
+		function walk(list: BlueprintField[]): void {
+			for (const field of list) {
+				if (field.default !== undefined) {
+					setAtPath(defaults, field.name, field.default);
+				}
+				if (field.fields && field.type !== 'list') {
+					walk(field.fields);
+				}
 			}
 		}
+
+		walk(fields);
 		return defaults;
 	}
 
