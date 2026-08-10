@@ -27,7 +27,14 @@
 	async function load() {
 		loading = true;
 		try {
-			[status, jobs] = await Promise.all([getSchedulerStatus(), getSchedulerJobs()]);
+			// Settle these independently: the jobs list is the useful half, and a host
+			// that cannot report its cron status must not lose it (#16).
+			const [statusResult, jobsResult] = await Promise.all([
+				getSchedulerStatus().catch(() => null),
+				getSchedulerJobs().catch(() => [] as SchedulerJob[]),
+			]);
+			status = statusResult;
+			jobs = jobsResult;
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.FAILED_TO_LOAD_SCHEDULER_STATUS'));
 		} finally {
@@ -85,7 +92,7 @@
 		<div class="rounded-lg border border-border bg-card">
 			<div class="flex items-center justify-between border-b border-border px-4 py-3">
 				<h3 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.SCHEDULER_STATUS')}</h3>
-				<Button size="sm" variant="outline" onclick={handleRun} disabled={running}>
+				<Button size="sm" variant="outline" onclick={handleRun} disabled={running || status?.process_available === false}>
 					{#if running}
 						<Loader2 size={14} class="animate-spin" />
 						{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.RUNNING')}
@@ -95,6 +102,13 @@
 					{/if}
 				</Button>
 			</div>
+
+			{#if status?.process_available === false}
+				<div class="flex items-start gap-2 border-b border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
+					<AlertTriangle size={14} class="mt-0.5 shrink-0" />
+					<span>{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.PROCESS_UNAVAILABLE')}</span>
+				</div>
+			{/if}
 
 			{#if jobs.length === 0}
 				<div class="p-6 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.NO_SCHEDULED_JOBS_REGISTERED')}</div>

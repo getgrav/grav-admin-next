@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { marked } from 'marked';
+	import { renderMarkdown } from '$lib/utils/markdown';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { i18n } from '$lib/stores/i18n.svelte';
 
@@ -31,7 +31,7 @@
 		{#if text}
 			<div class="text-sm text-muted-foreground {field.title ? 'mt-1' : ''}">
 				{#if field.markdown}
-					{@html marked.parse(text)}
+					{@html renderMarkdown(text)}
 				{:else}
 					{@html text}
 				{/if}

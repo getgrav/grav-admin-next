@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
 	import { ChevronDown } from 'lucide-svelte';
-	import { marked } from 'marked';
+	import { renderMarkdownInline } from '$lib/utils/markdown';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import FieldRenderer from '../FieldRenderer.svelte';
 	import FieldOverrideIndicator from '../FieldOverrideIndicator.svelte';
@@ -108,7 +108,7 @@
 			{#if field.text || field.description}
 				{@const desc = translateLabel(field.text || field.description)}
 				{#if field.markdown}
-					<p class="mt-1 text-sm text-muted-foreground">{@html marked.parseInline(desc)}</p>
+					<p class="mt-1 text-sm text-muted-foreground">{@html renderMarkdownInline(desc)}</p>
 				{:else}
 					<p class="mt-1 text-sm text-muted-foreground">{@html desc}</p>
 				{/if}

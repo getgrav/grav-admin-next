@@ -1,5 +1,5 @@
 import { IntlMessageFormat } from 'intl-messageformat';
-import { marked } from 'marked';
+import { escapeMarkdownParam, renderMarkdownInline } from '$lib/utils/markdown';
 import { getTranslations } from '$lib/api/endpoints/translations';
 import { DEFAULT_LANG, getLocalStrings, normalizeLang } from '$lib/i18n';
 import { scopedKey } from '$lib/utils/scopedStorage';
@@ -213,16 +213,30 @@ function createI18nStore() {
 	 *
 	 * Translators write `**bold**`, `*italic*`, `` `code` ``, `[text](url)`
 	 * etc. ICU placeholders run first, so `{name}` etc. work the same as in
-	 * `t()`. HTML in the original value is escaped by `marked` — the only
-	 * markup that ends up in the DOM comes from the markdown syntax.
+	 * `t()`. Every string param is escaped on the way in and the result is
+	 * sanitized, so the only markup that reaches the DOM comes from the markdown
+	 * in the translation string itself — `marked` does not escape raw HTML, so a
+	 * value such as a username or a `?user=` query param cannot inject markup
+	 * (GHSA-96xm-c5hr-59rx).
 	 *
 	 * Usage:
 	 *   {@html i18n.tHtml('ADMIN_NEXT.SCHEDULER.CRON_INSTRUCTIONS', { user })}
 	 */
 	function tHtml(key: string | undefined, params?: TranslateParams): string {
-		const text = t(key, params);
+		// Numbers, booleans and dates pick ICU plural/select branches and cannot carry
+		// markup, so they reach the formatter untouched; only strings are escaped.
+		const safe = params
+			? (Object.fromEntries(
+					Object.entries(params).map(([k, v]) => [
+						k,
+						typeof v === 'string' ? escapeMarkdownParam(v) : v
+					])
+				) as TranslateParams)
+			: params;
+
+		const text = t(key, safe);
 		try {
-			return marked.parseInline(text, { async: false }) as string;
+			return renderMarkdownInline(text);
 		} catch (err) {
 			console.warn(`[i18n] tHtml render failed for "${key}":`, err);
 			return text;

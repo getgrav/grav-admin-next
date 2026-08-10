@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { marked } from 'marked';
+	import { renderMarkdown } from '$lib/utils/markdown';
 	import { X } from 'lucide-svelte';
 
 	interface Props {
@@ -11,7 +11,7 @@
 
 	let { open, title, content, onclose }: Props = $props();
 
-	const html = $derived(content ? marked.parse(content, { async: false }) as string : '');
+	const html = $derived(content ? renderMarkdown(content) : '');
 
 	function handleBackdrop(e: MouseEvent) {
 		if (e.target === e.currentTarget) onclose();

@@ -25,13 +25,14 @@ export function formatNumber(n: number): string {
 }
 
 import { marked } from 'marked';
+import { renderMarkdownInline } from '$lib/utils/markdown';
 
 const inlineRenderer = new marked.Renderer();
 inlineRenderer.link = ({ href, title, text }) =>
 	`<a href="${href}" target="_blank" rel="noopener noreferrer"${title ? ` title="${title}"` : ''}>${text}</a>`;
 
 // Render a short message string as inline HTML (bold/italic/code/link only — no block tags).
+// Sanitized via the shared helper; the raw href above is defused by DOMPurify there.
 export function renderInlineMarkdown(text: string): string {
-	if (!text) return '';
-	return marked.parseInline(text, { async: false, renderer: inlineRenderer }) as string;
+	return renderMarkdownInline(text, inlineRenderer);
 }
