@@ -29,8 +29,10 @@
 	async function load() {
 		loading = true;
 		try {
+			// Status is cosmetic; a host that cannot report it must still get an editable
+			// jobs list, so it must not take the rest of the page with it (#16).
 			const [statusResult, bp, cfg] = await Promise.all([
-				getSchedulerStatus(),
+				getSchedulerStatus().catch(() => null),
 				getConfigBlueprint('scheduler').catch(() => null),
 				getConfig('scheduler'),
 			]);
@@ -99,13 +101,39 @@
 <div class="space-y-4">
 	{#if loading}
 		<div class="p-8 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.LOADING_SCHEDULER')}</div>
-	{:else if status}
+	{:else}
 
-		<!-- Cron Status Notice -->
-		{#if status.crontab_status !== 'installed'}
+		{#if !status}
+			<div class="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+				<AlertTriangle size={16} class="mt-0.5 shrink-0" />
+				<span>{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.STATUS_UNAVAILABLE')}</span>
+			</div>
+		{/if}
+
+		{#if status && !status.process_available}
+			<div class="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+				<AlertTriangle size={16} class="mt-0.5 shrink-0" />
+				<span>{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.PROCESS_UNAVAILABLE')}</span>
+			</div>
+		{/if}
+
+		<!-- Cron Status Notice. Only shown when we could actually determine it. -->
+		{#if status && status.crontab_status === 'not_installed'}
 			<div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
 				<AlertTriangle size={16} />
 				{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.NOT_ENABLED_FOR_USER')} <strong>{status.whoami}</strong>
+			</div>
+		{:else if status && status.crontab_status === 'unknown'}
+			<div class="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+				<Info size={16} class="mt-0.5 shrink-0" />
+				<span>{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.CRON_UNDETERMINED')}</span>
+			</div>
+		{/if}
+
+		{#if status?.last_run}
+			<div class="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+				<Info size={16} class="mt-0.5 shrink-0" />
+				<span>{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.LAST_TRIGGERED')} {new Date(status.last_run).toLocaleString()}</span>
 			</div>
 		{/if}
 
@@ -116,7 +144,7 @@
 		</div>
 
 		<!-- Cron Command -->
-		{#if status.cron_command}
+		{#if status?.cron_command && status.crontab_status !== 'installed'}
 			<div class="rounded-lg border border-border bg-card p-4">
 				<div class="flex items-start gap-2">
 					<code class="block flex-1 overflow-x-auto rounded-md bg-muted px-3 py-2.5 font-mono text-xs text-foreground">{status.cron_command}</code>

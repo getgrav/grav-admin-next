@@ -61,7 +61,10 @@ export interface SchedulerHealth {
 }
 
 export interface SchedulerStatus {
-	crontab_status: 'not_installed' | 'installed' | 'error';
+	crontab_status: 'not_installed' | 'installed' | 'unknown';
+	cron_detection: 'last-run' | 'crontab' | 'unavailable';
+	process_available: boolean;
+	last_run: string | null;
 	cron_command: string;
 	scheduler_command: string;
 	whoami: string;
