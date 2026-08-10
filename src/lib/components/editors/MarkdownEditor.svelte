@@ -51,7 +51,7 @@
 		List, ListOrdered, Quote, Minus, Link, Image, Undo2, Redo2, WrapText,
 		Eye, PenLine
 	} from 'lucide-svelte';
-	import { marked } from 'marked';
+	import { renderMarkdown } from '$lib/utils/markdown';
 	import { modals } from '$lib/stores/modals.svelte';
 	import { getEditorButtons, type EditorToolbarButton } from '$lib/api/endpoints/editorButtons';
 	import { ensureKeymapLoaded, keymapExtension } from './keymap';
@@ -161,7 +161,7 @@
 		});
 	}
 
-	const previewHtml = $derived(showPreview ? marked.parse(resolveImagePaths(value || ''), { async: false }) as string : '');
+	const previewHtml = $derived(showPreview ? renderMarkdown(resolveImagePaths(value || '')) : '');
 
 	let editorContainer: HTMLDivElement;
 	let view: EditorView | undefined;

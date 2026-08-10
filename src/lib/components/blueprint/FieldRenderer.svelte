@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
-	import { marked } from 'marked';
+	import { renderMarkdown } from '$lib/utils/markdown';
 	import TabsField from './fields/TabsField.svelte';
 	import SectionField from './fields/SectionField.svelte';
 	import SpacerField from './fields/SpacerField.svelte';
@@ -354,7 +354,7 @@
 	{#if field.content || field.text || field.description}
 		{@const displayText = translateLabel(field.content || field.text || field.description)}
 		{#if field.markdown}
-			<div class="prose prose-sm dark:prose-invert max-w-none text-muted-foreground">{@html marked.parse(displayText)}</div>
+			<div class="prose prose-sm dark:prose-invert max-w-none text-muted-foreground">{@html renderMarkdown(displayText)}</div>
 		{:else}
 			<div class="text-sm text-muted-foreground">{@html displayText}</div>
 		{/if}

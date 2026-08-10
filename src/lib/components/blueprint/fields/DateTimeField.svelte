@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { marked } from 'marked';
+	import { renderMarkdownInline } from '$lib/utils/markdown';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { DatePicker } from 'bits-ui';
@@ -299,7 +299,7 @@
 	{#if field.description}
 		{@const desc = translateLabel(field.description)}
 		{#if field.markdown}
-			<p class="text-xs text-muted-foreground">{@html marked.parseInline(desc)}</p>
+			<p class="text-xs text-muted-foreground">{@html renderMarkdownInline(desc)}</p>
 		{:else}
 			<p class="text-xs text-muted-foreground">{desc}</p>
 		{/if}
