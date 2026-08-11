@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { goto } from '$app/navigation';
+	import { slugify, sanitizeSlugInput } from '$lib/utils/slug';
 	import { page as pageStore } from '$app/state';
 	import { base } from '$app/paths';
 	import { createPage } from '$lib/api/endpoints/pages';
@@ -36,7 +37,7 @@
 	// "custom page creation modal" cookbook recipe.
 	const initialParams = pageStore.url.searchParams;
 	let title = $state(initialParams.get('title') ?? '');
-	let slug = $state(initialParams.get('title') ? slugify(initialParams.get('title') as string) : '');
+	let slug = $state(initialParams.get('title') ? slugify(initialParams.get('title') as string, i18n.lang) : '');
 	let slugManuallyEdited = $state(false);
 	let parentRoute = $state(initialParams.get('parent') || '/');
 	let template = $state(initialParams.get('template') || 'default');
@@ -111,36 +112,21 @@
 	}
 
 	// ── Slugify ─────────────────────────────────────────────────────
-	function slugify(str: string): string {
-		return str
-			.toString()
-			.normalize('NFD')
-			.replace(/[\u0300-\u036f]/g, '')
-			.toLowerCase()
-			.trim()
-			.replace(/[''\u2019]/g, '')
-			.replace(/[^a-z0-9\s_-]/g, '')
-			.replace(/[\s_]+/g, '-')
-			.replace(/-+/g, '-')
-			.replace(/^-|-$/g, '');
-	}
 
 	function handleTitleInput(e: Event) {
 		title = (e.target as HTMLInputElement).value;
 		if (!slugManuallyEdited) {
-			slug = slugify(title);
+			slug = slugify(title, i18n.lang);
 		}
 	}
 
 	function handleSlugInput(e: Event) {
-		let val = (e.target as HTMLInputElement).value;
-		val = val.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9_-]/g, '');
-		slug = val;
+		slug = sanitizeSlugInput((e.target as HTMLInputElement).value);
 		slugManuallyEdited = true;
 	}
 
 	function regenerateSlug() {
-		slug = slugify(title);
+		slug = slugify(title, i18n.lang);
 		slugManuallyEdited = false;
 	}
 

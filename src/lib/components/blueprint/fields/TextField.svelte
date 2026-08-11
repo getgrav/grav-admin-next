@@ -3,6 +3,7 @@
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldSizeClass } from '$lib/utils/field-size';
+	import { numericConstraint, lengthConstraint } from '$lib/utils/field-constraints';
 
 	interface Props {
 		field: BlueprintField;
@@ -15,6 +16,23 @@
 	const translateLabel = i18n.tMaybe;
 
 	const inputType = field.type === 'number' ? 'number' : field.type === 'color' ? 'color' : field.type === 'range' ? 'range' : field.type === 'password' ? 'password' : field.type === 'email' ? 'email' : field.type === 'url' ? 'url' : field.type === 'date' ? 'date' : field.type === 'datetime' ? 'datetime-local' : field.type === 'time' ? 'time' : 'text';
+
+	// Grav writes a constraint either as a top-level field prop or nested under
+	// `validate:`, and `validate:` is the form it validates against on save.
+	// Numeric bounds apply to number/range; on text-like inputs validate.min/max
+	// are character counts and map to minlength/maxlength; date-like inputs take
+	// min/max as date strings, so those pass through raw. (admin2#155)
+	const isNumeric = $derived(field.type === 'number' || field.type === 'range');
+	const isDateLike = $derived(['date', 'datetime', 'time', 'month', 'week'].includes(field.type));
+	const minAttr = $derived(
+		isNumeric ? numericConstraint(field, 'min') : isDateLike ? (field.min ?? field.validate?.min) : undefined
+	);
+	const maxAttr = $derived(
+		isNumeric ? numericConstraint(field, 'max') : isDateLike ? (field.max ?? field.validate?.max) : undefined
+	);
+	const stepAttr = $derived(isNumeric || isDateLike ? numericConstraint(field, 'step') : undefined);
+	const minLengthAttr = $derived(isNumeric || isDateLike ? undefined : lengthConstraint(field, 'minlength'));
+	const maxLengthAttr = $derived(isNumeric || isDateLike ? undefined : lengthConstraint(field, 'maxlength'));
 
 	function handleInput(e: Event) {
 		const target = e.target as HTMLInputElement;
@@ -56,9 +74,11 @@
 					placeholder={translateLabel(field.placeholder)}
 					disabled={field.disabled}
 					readonly={field.readonly}
-					min={field.min}
-					max={field.max}
-					step={field.step}
+					min={minAttr}
+					max={maxAttr}
+					step={stepAttr}
+					minlength={minLengthAttr}
+					maxlength={maxLengthAttr}
 					oninput={handleInput}
 				/>
 				{#if field.append}
@@ -75,9 +95,11 @@
 				placeholder={translateLabel(field.placeholder)}
 				disabled={field.disabled}
 				readonly={field.readonly}
-				min={field.min}
-				max={field.max}
-				step={field.step}
+				min={minAttr}
+				max={maxAttr}
+				step={stepAttr}
+				minlength={minLengthAttr}
+				maxlength={maxLengthAttr}
 				oninput={handleInput}
 			/>
 		{/if}

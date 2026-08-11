@@ -34,8 +34,15 @@ export interface BlueprintField {
 		type?: string;
 		required?: boolean;
 		pattern?: string;
-		min?: number;
-		max?: number;
+		/**
+		 * Numeric bound on number/range, character count on text/textarea, date
+		 * string on date/datetime. This is the canonical place Grav reads these
+		 * from on save, so the field components must honour it as well as the
+		 * top-level props (admin2#155).
+		 */
+		min?: number | string;
+		max?: number | string;
+		step?: number;
 		/** Custom validation message from the blueprint, shown instead of the generic required text. */
 		message?: string;
 	};

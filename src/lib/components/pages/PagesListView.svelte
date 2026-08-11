@@ -540,7 +540,7 @@
 			{i18n.t('ADMIN_NEXT.PAGES.NO_MATCH')}
 		</div>
 	{:else}
-		{#each filteredSearchResults as page, index (page.route)}
+		{#each filteredSearchResults as page, index (pageApiRoute(page))}
 			{@render pageRow(page, index)}
 		{/each}
 	{/if}
@@ -563,7 +563,10 @@
 	{/if}
 	{#each chunkBlocks as block (block.page)}
 		{#if block.loaded}
-			{#each block.rows as page, i (page.route)}
+			<!-- Key on the structural route (raw_route), which is unique by construction.
+			     Two siblings can share a public route when one declares an explicit `slug:`
+			     in its frontmatter, and a duplicate key aborts the whole listing (admin2#154). -->
+			{#each block.rows as page, i (pageApiRoute(page))}
 				{@render pageRow(page, block.startIndex + i)}
 			{/each}
 		{:else}

@@ -2,6 +2,7 @@
 	import { renderMarkdownInline } from '$lib/utils/markdown';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { slugify, sanitizeSlugInput } from '$lib/utils/slug';
 	import { RefreshCw } from 'lucide-svelte';
 
 	interface Props {
@@ -16,25 +17,10 @@
 
 	let highlight = $state(false);
 
-	/** Convert a string to a URL-safe slug */
-	function slugify(str: string): string {
-		return str
-			.toString()
-			.normalize('NFD')
-			.replace(/[\u0300-\u036f]/g, '') // strip diacritics
-			.toLowerCase()
-			.trim()
-			.replace(/[''\u2019]/g, '')       // remove apostrophes
-			.replace(/[^a-z0-9\s_-]/g, '')    // remove non-alphanumeric
-			.replace(/[\s_]+/g, '-')           // spaces/underscores to hyphens
-			.replace(/-+/g, '-')               // collapse multiple hyphens
-			.replace(/^-|-$/g, '');            // trim leading/trailing hyphens
-	}
-
 	function regenerateFromTitle() {
 		const title = getValue('header.title');
 		if (typeof title === 'string' && title.trim()) {
-			const slug = slugify(title);
+			const slug = slugify(title, i18n.lang);
 			onchange(slug);
 			highlight = true;
 			setTimeout(() => { highlight = false; }, 600);
@@ -42,10 +28,8 @@
 	}
 
 	function handleInput(e: Event) {
-		let val = (e.target as HTMLInputElement).value;
 		// Enforce slug characters as you type
-		val = val.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9_-]/g, '');
-		onchange(val);
+		onchange(sanitizeSlugInput((e.target as HTMLInputElement).value));
 	}
 </script>
 

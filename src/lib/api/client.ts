@@ -1,3 +1,4 @@
+import { untrack } from 'svelte';
 import { auth, decodeJwtExp } from '$lib/stores/auth.svelte';
 import { authSession, type PendingRequest } from '$lib/stores/auth-session.svelte';
 import { invalidations } from '$lib/stores/invalidation.svelte';
@@ -231,9 +232,23 @@ function writeScriptCache(url: string, entry: CachedScript): void {
 class ApiClient {
 	private refreshPromise: Promise<boolean> | null = null;
 
+	/**
+	 * Every read of the auth store in this client goes through `untrack()`.
+	 *
+	 * Callers routinely start a request from inside an `$effect`: the page
+	 * editor's load effect calls `loadPage()`, which reaches `request()` and
+	 * `ensureFreshToken()` synchronously, before the first `await`. Everything
+	 * read on that synchronous path becomes a dependency of the caller's
+	 * effect. That made the hourly JWT refresh — which swaps `accessToken` —
+	 * re-run those effects and refetch the record from disk on top of the
+	 * user's unsaved edits, with no prompt and no way back (admin2#156).
+	 *
+	 * The client's auth state is transport plumbing, not reactive UI input, so
+	 * nothing that reads it here should ever create a UI dependency.
+	 */
 	get baseUrl(): string {
-		const url = auth.serverUrl;
-		const prefix = auth.apiPrefix || '/api/v1';
+		const url = untrack(() => auth.serverUrl);
+		const prefix = untrack(() => auth.apiPrefix) || '/api/v1';
 		return `${url}${prefix}`;
 	}
 
@@ -247,7 +262,7 @@ class ApiClient {
 		// CGI setups (notably MAMP) silently strip the Authorization header
 		// before it reaches PHP; any X-* header passes through cleanly. The
 		// server also accepts Authorization: Bearer for external clients.
-		const token = auth.accessToken;
+		const token = untrack(() => auth.accessToken);
 		if (token) {
 			h['X-API-Token'] = token;
 		}
@@ -259,7 +274,7 @@ class ApiClient {
 
 	private get authHeaders(): Record<string, string> {
 		const h: Record<string, string> = { Accept: 'application/json' };
-		const token = auth.accessToken;
+		const token = untrack(() => auth.accessToken);
 		if (token) h['X-API-Token'] = token;
 		this.applyEnvironmentHeaders(h);
 		return h;
@@ -279,7 +294,7 @@ class ApiClient {
 	 *     the `default` sentinel back to a base (user/config) write.
 	 */
 	private applyEnvironmentHeaders(h: Record<string, string>): void {
-		const headerEnv = auth.gravEnvironment;
+		const headerEnv = untrack(() => auth.gravEnvironment);
 		h['X-Grav-Environment'] = headerEnv;
 		h['X-Config-Environment'] = headerEnv;
 	}
@@ -307,10 +322,10 @@ class ApiClient {
 	private async ensureFreshToken(path: string): Promise<void> {
 		// Don't pre-check on auth endpoints (login/refresh/revoke).
 		if (path.startsWith('/auth/')) return;
-		const token = auth.accessToken;
+		const token = untrack(() => auth.accessToken);
 		if (!token) return;
 
-		const jwtExp = decodeJwtExp(token) ?? auth.expiresAt;
+		const jwtExp = decodeJwtExp(token) ?? untrack(() => auth.expiresAt);
 		if (!jwtExp) return;
 
 		const msUntilExpiry = jwtExp - Date.now();
@@ -647,9 +662,9 @@ class ApiClient {
 	 * a valid Bearer token.
 	 */
 	async ensureAuth(): Promise<boolean> {
-		if (!auth.accessToken) return false;
+		if (!untrack(() => auth.accessToken)) return false;
 		await this.ensureFreshToken('/ensure-auth');
-		return !!auth.accessToken;
+		return !!untrack(() => auth.accessToken);
 	}
 
 	async get<T>(path: string, params?: Record<string, string>): Promise<T> {

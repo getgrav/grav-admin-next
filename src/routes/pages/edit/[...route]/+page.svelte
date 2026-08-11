@@ -36,6 +36,7 @@
 	import UnsavedChangesModal from '$lib/components/ui/UnsavedChangesModal.svelte';
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
+	import { sanitizeSlugInput } from '$lib/utils/slug';
 	import Tabs from '$lib/components/ui/Tabs.svelte';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import PagesField from '$lib/components/blueprint/fields/PagesField.svelte';
@@ -206,6 +207,26 @@
 	// reindexes, and we already have authoritative data from the move
 	// response — so we suppress that next load.
 	let suppressLoadForRoute = $state<string | null>(null);
+
+	// Route + content language currently loaded into the editor.
+	//
+	// The load `$effect` below re-runs whenever ANY state it read synchronously
+	// changes, and `loadPage()` reaches into the API client before its first
+	// `await`, so the effect can fire for reasons that have nothing to do with
+	// which page is open — the hourly token refresh used to do exactly that and
+	// silently replaced the editor buffer with the copy on disk (admin2#156).
+	// Comparing identities makes such a re-run a no-op.
+	//
+	// Deliberately NOT a dirty check: once the leave guard is confirmed, `route`
+	// changes while the outgoing page is still dirty, and the incoming page must
+	// still load.
+	let loadedIdentity: string | null = null;
+
+	/** Route + language key identifying the page this effect should be showing. */
+	function pageIdentity(lang?: string): string {
+		const active = lang ?? (contentLang.enabled ? contentLang.activeLang : '');
+		return `${route}::${active ?? ''}`;
+	}
 
 	// Preview
 	let showFrontendPreview = $state(false);
@@ -978,6 +999,9 @@
 				}
 			}
 			const activeLang = lang ?? (contentLang.enabled ? contentLang.activeLang : undefined);
+			// Record what we are loading so the effect can tell a genuine
+			// route/language change from an incidental re-run (admin2#156).
+			loadedIdentity = `${route}::${activeLang ?? ''}`;
 			const data = await getPage(route, { render: false, translations: true, lang: activeLang });
 
 			// Stale load — a newer loadPage() was triggered while this one was in flight
@@ -1682,6 +1706,11 @@
 		// deadlocks.
 		if (!contentLang.loaded) return;
 
+		// Nothing about the page we should be showing has changed, so this is an
+		// incidental re-run (see `loadedIdentity`). Leave the editor, its buffer
+		// and its undo stack exactly as the user left them (admin2#156).
+		if (pageIdentity() === loadedIdentity) return;
+
 		autoSave.reset();
 		// One-shot suppression after a self-initiated move-with-rename: the
 		// $effect refires because `route` changed (loadPage reads it
@@ -1689,6 +1718,9 @@
 		// response and the API may briefly fail on the new path.
 		if (suppressLoadForRoute !== null && suppressLoadForRoute === route) {
 			suppressLoadForRoute = null;
+			// We already hold authoritative data for this route from the move
+			// response, so mark it loaded or a later re-run would "correct" it.
+			loadedIdentity = pageIdentity();
 			return;
 		}
 		suppressLoadForRoute = null;
@@ -1973,7 +2005,7 @@
 											type="text"
 											class="flex h-10 w-full rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 											value={expertSlug}
-											oninput={(e) => { expertSlug = (e.target as HTMLInputElement).value.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9_\-]/g, ''); hasLocalEdits = true; }}
+											oninput={(e) => { expertSlug = sanitizeSlugInput((e.target as HTMLInputElement).value); hasLocalEdits = true; }}
 											onfocusout={() => {
 												if (prefs.autoSaveEnabled && expertSlug && expertSlug !== pageData?.slug) {
 													autoSave.oncommit('expertSlug', expertSlug, pageData?.slug);

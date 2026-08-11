@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { lengthConstraint } from '$lib/utils/field-constraints';
 	import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view';
 	import { EditorState } from '@codemirror/state';
 	import { yaml as yamlLang } from '@codemirror/lang-yaml';
@@ -188,6 +189,8 @@
 		<textarea
 			class="flex min-h-[80px] w-full rounded-lg border bg-muted/50 px-3 py-2.5 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring {error ? 'border-destructive ring-1 ring-destructive' : 'border-input'}"
 			rows={field.rows ?? 4}
+			minlength={lengthConstraint(field, 'minlength')}
+			maxlength={lengthConstraint(field, 'maxlength')}
 			value={textValue}
 			placeholder={translateLabel(field.placeholder)}
 			disabled={field.disabled}

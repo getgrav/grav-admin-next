@@ -42,6 +42,7 @@
 	import { fieldMatches } from '$lib/utils/field-filter';
 	import ToggleableCheckbox from './ToggleableCheckbox.svelte';
 	import { isToggleOn, displayValue, toggleValue } from '$lib/utils/toggleable';
+	import { numericConstraint, toNumber, clampToRange } from '$lib/utils/field-constraints';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { getContext } from 'svelte';
 	import EditorLockNotice from '$lib/components/sync/EditorLockNotice.svelte';
@@ -361,6 +362,10 @@
 	{/if}
 
 {:else if field.type === 'range'}
+	{@const rangeMin = numericConstraint(field, 'min') ?? 0}
+	{@const rangeMax = numericConstraint(field, 'max') ?? 100}
+	{@const rangeStep = numericConstraint(field, 'step') ?? 1}
+	{@const rangeValue = clampToRange(toNumber(value) ?? toNumber(field.default) ?? rangeMin, rangeMin, rangeMax)}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="space-y-2" onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}
 		onfocusout={oncommit ? () => { oncommit(value, blurOldValue); hasBlurBaseline = false; blurOldValue = undefined; } : undefined}>
@@ -378,13 +383,13 @@
 			<input
 				type="range"
 				class="h-2 flex-1 cursor-pointer appearance-none rounded-full bg-muted accent-primary"
-				value={value ?? field.default ?? 50}
-				min={field.min ?? 0}
-				max={field.max ?? 100}
-				step={field.step ?? 1}
+				value={rangeValue}
+				min={rangeMin}
+				max={rangeMax}
+				step={rangeStep}
 				oninput={(e) => onchange(Number((e.target as HTMLInputElement).value))}
 			/>
-			<span class="w-10 text-end font-mono text-sm font-medium text-foreground">{value ?? field.default ?? 50}</span>
+			<span class="w-10 text-end font-mono text-sm font-medium text-foreground">{rangeValue}</span>
 			{#if field.append}
 				<span class="text-sm text-muted-foreground">{translateLabel(field.append)}</span>
 			{/if}

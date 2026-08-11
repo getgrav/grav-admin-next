@@ -931,7 +931,10 @@
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					{#each colBlocks as block (block.page)}
 						{#if block.loaded}
-							{#each filterColumn(block.rows) as page (page.route)}
+							<!-- Key on the structural route (raw_route), which is unique by construction.
+							     Two siblings can share a public route when one declares an explicit `slug:`
+							     in its frontmatter, and a duplicate key aborts the whole listing (admin2#154). -->
+							{#each filterColumn(block.rows) as page (pageApiRoute(page))}
 								{@const isSelected = col.selectedRoute === pageApiRoute(page)}
 								{@const isActive = isSelected && colIndex === activeColumnIndex}
 								{@const isPath = isSelected && colIndex !== activeColumnIndex}

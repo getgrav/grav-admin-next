@@ -814,7 +814,7 @@
 			{#if !searchActive && page.has_children && expandedRoutes.has(apiRoute)}
 				{#each chunkBlocksFor(apiRoute) as block (block.page)}
 					{#if block.loaded}
-						{#each block.rows as child, childOffset (child.route)}
+						{#each block.rows as child, childOffset (pageApiRoute(child))}
 							{@render treeRow(child, depth + 1, apiRoute, block.startIndex + childOffset)}
 						{/each}
 					{:else}
@@ -840,7 +840,7 @@
 				{i18n.t('ADMIN_NEXT.PAGES.PAGES_TREE_VIEW.NO_PAGES_MATCH', { query: searchQuery })}
 			</div>
 		{:else}
-			{#each searchResults as page (page.route)}
+			{#each searchResults as page (pageApiRoute(page))}
 				{@render treeRow(page, 0, '/', -1)}
 			{/each}
 			<div class="px-4 py-2 text-[0.6875rem] text-muted-foreground">
@@ -852,7 +852,10 @@
 		{@const rootTotal = totalChildren('/')}
 		{#each rootBlocks as block (block.page)}
 			{#if block.loaded}
-				{#each block.rows as page, offset (page.route)}
+				<!-- Key on the structural route (raw_route), which is unique by construction.
+				     Two siblings can share a public route when one declares an explicit `slug:`
+				     in its frontmatter, and a duplicate key aborts the whole listing (admin2#154). -->
+				{#each block.rows as page, offset (pageApiRoute(page))}
 					{@render treeRow(page, 0, '/', block.startIndex + offset)}
 				{/each}
 			{:else}
