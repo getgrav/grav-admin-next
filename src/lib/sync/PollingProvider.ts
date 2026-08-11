@@ -34,6 +34,12 @@ type PushResponse = { ok: boolean; offset: number; bytes: number };
 
 type PresenceResponse = { peers: Peer[] };
 
+/** Debounce window for pushing local awareness (cursor/selection) changes
+ *  as soon as they happen, instead of waiting for the next presence
+ *  heartbeat. Short enough to feel live, long enough to coalesce the
+ *  burst of updates a single keystroke/selection drag can produce. */
+const AWARENESS_DEBOUNCE_MS = 50;
+
 function b64ToBytes(b64: string): Uint8Array {
 	const bin = atob(b64);
 	const out = new Uint8Array(bin.length);
@@ -79,6 +85,12 @@ export class PollingProvider implements SyncProvider {
 	 * read from this Awareness to render remote carets.
 	 */
 	private awareness: Awareness | null = null;
+	// Fires an immediate (debounced) presence push whenever our own local
+	// awareness state changes (cursor/selection), rather than waiting up to
+	// presenceIntervalMs for the next heartbeat. Kept so it can be detached
+	// from the Awareness instance on disconnect/reassignment.
+	private awarenessUpdateHandler: ((changes: { added: number[]; updated: number[]; removed: number[] }) => void) | null = null;
+	private awarenessDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 	private remoteUpdateHandlers = new Set<RemoteUpdateHandler>();
 	private peerHandlers = new Set<PeersHandler>();
@@ -146,6 +158,7 @@ export class PollingProvider implements SyncProvider {
 		if (this.pullTimer) clearTimeout(this.pullTimer);
 		if (this.presenceTimer) clearTimeout(this.presenceTimer);
 		this.pullTimer = this.presenceTimer = null;
+		this.detachAwarenessListener();
 		this.uninstallUnloadHandler();
 		// Best-effort leave; ignore errors.
 		try {
@@ -210,7 +223,9 @@ export class PollingProvider implements SyncProvider {
 
 	updateAwareness(meta: Record<string, unknown> | null): void {
 		this.awarenessMeta = meta;
-		// Don't spam presence on every cursor move; heartbeat cadence handles it.
+		// This plain meta (e.g. editorType) still rides the regular heartbeat
+		// cadence; it's not chatty. Cursor/selection changes on the attached
+		// y-protocols Awareness (see setAwareness) get their own fast path.
 	}
 
 	/**
@@ -218,9 +233,63 @@ export class PollingProvider implements SyncProvider {
 	 * to peers and incoming peer awareness updates flow back into it.
 	 * Call once after creating the provider — it can be set after `connect()`
 	 * since editor bindings are typically wired post-seed.
+	 *
+	 * Also wires a debounced fast path: local cursor/selection changes push
+	 * a presence update within AWARENESS_DEBOUNCE_MS instead of waiting for
+	 * the next scheduled heartbeat (up to presenceIntervalMs later), which
+	 * is what made remote cursors visibly lag behind document text — Y.Doc
+	 * updates push on every transaction with no debounce at all.
 	 */
 	setAwareness(awareness: Awareness): void {
+		this.detachAwarenessListener();
 		this.awareness = awareness;
+		this.awarenessUpdateHandler = (changes) => {
+			const touched = [...changes.added, ...changes.updated, ...changes.removed];
+			if (!touched.includes(awareness.clientID)) return;
+			// No point racing a cursor update out when nobody else is in the
+			// room to see it — the next periodic heartbeat (see hasOtherPeers,
+			// already driving pull/presence cadence) still carries our latest
+			// state once a peer does join.
+			if (!this.hasOtherPeers()) return;
+			this.scheduleAwarenessPush();
+		};
+		awareness.on('update', this.awarenessUpdateHandler);
+	}
+
+	private detachAwarenessListener(): void {
+		if (this.awareness && this.awarenessUpdateHandler) {
+			this.awareness.off('update', this.awarenessUpdateHandler);
+		}
+		this.awarenessUpdateHandler = null;
+		if (this.awarenessDebounceTimer) {
+			clearTimeout(this.awarenessDebounceTimer);
+			this.awarenessDebounceTimer = null;
+		}
+	}
+
+	/** Coalesces a burst of local awareness changes into one send, fired
+	 *  AWARENESS_DEBOUNCE_MS after the last change instead of on every
+	 *  keystroke/mouse-move that touches the cursor. */
+	private scheduleAwarenessPush(): void {
+		if (this.disposed || this.awarenessDebounceTimer) return;
+		this.awarenessDebounceTimer = setTimeout(() => {
+			this.awarenessDebounceTimer = null;
+			void this.flushAwarenessNow();
+		}, AWARENESS_DEBOUNCE_MS);
+	}
+
+	private async flushAwarenessNow(): Promise<void> {
+		if (this.disposed) return;
+		try {
+			await this.heartbeatOnce();
+			this.setStatus('connected');
+		} catch (e) {
+			if (this.standDownIfUnavailable(e)) return;
+			this.setStatus('error', (e as Error).message);
+		}
+		// Re-arm the periodic heartbeat from now so it doesn't fire again
+		// moments after this out-of-band send.
+		this.schedulePresence();
 	}
 
 	onRemoteUpdate(handler: RemoteUpdateHandler): void {
