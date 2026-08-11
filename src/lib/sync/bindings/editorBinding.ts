@@ -60,10 +60,10 @@ export function exposeSharedYjs(): void {}
  * cursor color across reconnects. Keep in sync with PresenceAvatars for
  * a consistent visual identity.
  */
-export function clientColor(clientId: string): string {
+export function clientColor(clientId: string, opacity: number = 1): string {
 	let h = 0;
 	for (let i = 0; i < clientId.length; i++) h = (h * 31 + clientId.charCodeAt(i)) | 0;
-	return `hsl(${((h % 360) + 360) % 360} 65% 45%)`;
+	return `hsl(${((h % 360) + 360) % 360} 65% 45% / ${opacity})`;
 }
 
 export interface CreateEditorBindingOptions {
@@ -93,7 +93,7 @@ export function createEditorBinding(opts: CreateEditorBindingOptions): EditorBin
 	const { doc, clientId, userName, contentText, fragmentKey = 'content:xml' } = opts;
 	const fragment = doc.getXmlFragment(fragmentKey);
 	const awareness = new Awareness(doc);
-	awareness.setLocalStateField('user', { name: userName, color: clientColor(clientId) });
+	awareness.setLocalStateField('user', { name: userName, color: clientColor(clientId), colorLight: clientColor(clientId, .3) });
 
 	return {
 		collab: {
