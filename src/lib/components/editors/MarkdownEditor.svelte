@@ -938,22 +938,17 @@
 		position: relative;
 		margin-left: -1px;
 		margin-right: -1px;
-		border-left-width: 2px;
+		border-left-width: 1px;
 		border-left-style: solid;
 		box-sizing: border-box;
 	}
 	.markdown-editor-cm :global(.cm-ySelectionCaretDot) {
-		position: absolute;
-		top: -3px;
-		left: -4px;
-		width: 6px;
-		height: 6px;
-		border-radius: 50%;
+		display: none;
 	}
 	.markdown-editor-cm :global(.cm-ySelectionInfo) {
 		position: absolute;
-		top: -1.4em;
-		left: -2px;
+		top: -1.7em;
+		left: -1px;
 		font-size: 0.6875rem;
 		font-weight: 500;
 		font-family: ui-sans-serif, system-ui, sans-serif;
@@ -967,6 +962,14 @@
 		opacity: 1;
 		transition: opacity 200ms ease;
 	}
+
+  .markdown-editor-cm :global(.cm-yLineSelection) {
+		margin: 0;
+	}
+
+  .markdown-editor-cm :global(.cm-widgetBuffer) {
+      display: none;
+  }
 
 	/* Markdown-specific syntax coloring */
 	.markdown-editor-cm :global(.cm-header-1) { font-size: 1.4em; font-weight: 700; }
