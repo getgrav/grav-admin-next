@@ -3,7 +3,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { setContext } from 'svelte';
+	import { setContext, untrack } from 'svelte';
 	import { getPage, updatePage, deletePage, movePage, duplicatePage, getChildren, getPagePreviewToken, pageApiRoute } from '$lib/api/endpoints/pages';
 	import { createTranslation, syncTranslation, adoptPageLanguage } from '$lib/api/endpoints/languages';
 	import { getPageBlueprint } from '$lib/api/endpoints/blueprints';
@@ -410,7 +410,11 @@
 	// loaded. Teardown on route change / disable / unmount.
 	$effect(() => {
 		const enabled = prefs.collabEnabled;
-		const loaded = !loading && pageData !== null;
+		// `pageData` is read via untrack() to avoid rebuilding the whole
+		// Yjs room (new Y.Doc, new provider, new Awareness) on every save,
+		// flipping collabPending back on, unmounting MarkdownEditor and losing
+		// peer cursor state until the room reconnects.
+		const loaded = !loading && untrack(() => pageData !== null);
 		const currentRoute = route;
 		const currentLang = contentLang.enabled ? contentLang.activeLang : null;
 		const currentTemplate = template || 'default';
