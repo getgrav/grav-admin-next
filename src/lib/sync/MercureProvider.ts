@@ -166,6 +166,15 @@ export class MercureProvider implements SyncProvider {
 		this.presenceTimer = null;
 		if (this.tokenRefreshTimer) clearTimeout(this.tokenRefreshTimer);
 		this.tokenRefreshTimer = null;
+		// Flush whatever our current local awareness state is (already null
+		// if editorBoundary.dispose()'s awareness.destroy() ran just before
+		// this) so peers drop our cursor now instead of waiting out their own
+		// ~30s y-protocols GC. Must happen before detachAwarenessListener()
+		// below, which would otherwise cancel a debounced push already
+		// scheduled for this exact purpose.
+		if (this.awareness) {
+			try { await this.heartbeatOnce(); } catch { /* best-effort */ }
+		}
 		this.detachAwarenessListener();
 		this.uninstallUnloadHandler();
 		try {
@@ -174,11 +183,37 @@ export class MercureProvider implements SyncProvider {
 		this.setStatus('idle');
 	}
 
-	/** See PollingProvider.installUnloadHandler — same shape. */
+	/** See PollingProvider.installUnloadHandler — same shape, plus a final
+	 *  awareness-null broadcast (see the comment inside) before the leave
+	 *  beacon. */
 	private installUnloadHandler(): void {
 		if (typeof window === 'undefined' || this.unloadHandler) return;
 		const handler = () => {
 			if (this.disposed) return;
+			// Per y-protocols/awareness's own contract ("before a client
+			// disconnects, it should propagate a null state with an updated
+			// clock"): broadcast that null state before the leave beacon below.
+			// Without this, a hard refresh/tab-close never calls
+			// awareness.destroy() at all (the JS context is gone), so peers
+			// only learn our cursor is stale via their own ~30s local GC — the
+			// new page load gets a fresh random awareness clientID and starts
+			// broadcasting immediately under it, so the old one lingers as a
+			// visible duplicate cursor for that whole window. Piggybacking on
+			// the presence endpoint also fires the server's onSyncAwareness
+			// event, so still-connected peers get this over the live `aw` SSE
+			// channel almost instantly rather than waiting on their next poll.
+			if (this.awareness) {
+				try {
+					this.awareness.setLocalState(null);
+					const bytes = encodeAwarenessUpdate(this.awareness, [this.awareness.clientID]);
+					api.beaconPost(this.presencePath(), {
+						clientId: this.clientId,
+						user: this.user,
+						meta: { awarenessUpdate: bytesToB64(bytes), awarenessClientId: this.awareness.clientID },
+						lang: this.lang,
+					});
+				} catch { /* best-effort */ }
+			}
 			api.beaconPost(this.presencePath(), {
 				clientId: this.clientId,
 				leave: true,
