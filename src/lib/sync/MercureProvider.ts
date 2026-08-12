@@ -65,9 +65,16 @@ function bytesToB64(bytes: Uint8Array): string {
 	return btoa(bin);
 }
 
-/** Presence cadence (slower than the polling provider's because the
- *  awareness updates flow live via Mercure between heartbeats). */
+/** Presence cadence — the periodic heartbeat that refreshes the "who's
+ *  here" peer list and re-sends our full awareness state as a fallback.
+ *  Local cursor moves no longer wait for this: see AWARENESS_DEBOUNCE_MS. */
 const PRESENCE_INTERVAL_MS = 10_000;
+
+/** Debounce window for pushing local awareness (cursor/selection) changes
+ *  as soon as they happen, instead of waiting for the next presence
+ *  heartbeat. Short enough to feel live, long enough to coalesce the
+ *  burst of updates a single keystroke/selection drag can produce. */
+const AWARENESS_DEBOUNCE_MS = 50;
 
 export class MercureProvider implements SyncProvider {
 	readonly roomId: string;
@@ -95,6 +102,13 @@ export class MercureProvider implements SyncProvider {
 	private tokenRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 	private refreshingToken = false;
 	private disposed = false;
+
+	// Fires an immediate (debounced) presence push whenever our own local
+	// awareness state changes (cursor/selection), rather than waiting up to
+	// PRESENCE_INTERVAL_MS for the next heartbeat. Kept so it can be
+	// detached from the Awareness instance on disconnect/reassignment.
+	private awarenessUpdateHandler: ((changes: { added: number[]; updated: number[]; removed: number[] }) => void) | null = null;
+	private awarenessDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 	private remoteUpdateHandlers = new Set<RemoteUpdateHandler>();
 	private peerHandlers = new Set<PeersHandler>();
@@ -152,6 +166,16 @@ export class MercureProvider implements SyncProvider {
 		this.presenceTimer = null;
 		if (this.tokenRefreshTimer) clearTimeout(this.tokenRefreshTimer);
 		this.tokenRefreshTimer = null;
+		// Flush whatever our current local awareness state is (already null
+		// if editorBoundary.dispose()'s awareness.destroy() ran just before
+		// this) so peers drop our cursor now instead of waiting out their own
+		// ~30s y-protocols GC. Must happen before detachAwarenessListener()
+		// below, which would otherwise cancel a debounced push already
+		// scheduled for this exact purpose.
+		if (this.awareness) {
+			try { await this.heartbeatOnce(); } catch { /* best-effort */ }
+		}
+		this.detachAwarenessListener();
 		this.uninstallUnloadHandler();
 		try {
 			await api.post(this.presencePath(), { clientId: this.clientId, leave: true, lang: this.lang });
@@ -159,11 +183,37 @@ export class MercureProvider implements SyncProvider {
 		this.setStatus('idle');
 	}
 
-	/** See PollingProvider.installUnloadHandler — same shape. */
+	/** See PollingProvider.installUnloadHandler — same shape, plus a final
+	 *  awareness-null broadcast (see the comment inside) before the leave
+	 *  beacon. */
 	private installUnloadHandler(): void {
 		if (typeof window === 'undefined' || this.unloadHandler) return;
 		const handler = () => {
 			if (this.disposed) return;
+			// Per y-protocols/awareness's own contract ("before a client
+			// disconnects, it should propagate a null state with an updated
+			// clock"): broadcast that null state before the leave beacon below.
+			// Without this, a hard refresh/tab-close never calls
+			// awareness.destroy() at all (the JS context is gone), so peers
+			// only learn our cursor is stale via their own ~30s local GC — the
+			// new page load gets a fresh random awareness clientID and starts
+			// broadcasting immediately under it, so the old one lingers as a
+			// visible duplicate cursor for that whole window. Piggybacking on
+			// the presence endpoint also fires the server's onSyncAwareness
+			// event, so still-connected peers get this over the live `aw` SSE
+			// channel almost instantly rather than waiting on their next poll.
+			if (this.awareness) {
+				try {
+					this.awareness.setLocalState(null);
+					const bytes = encodeAwarenessUpdate(this.awareness, [this.awareness.clientID]);
+					api.beaconPost(this.presencePath(), {
+						clientId: this.clientId,
+						user: this.user,
+						meta: { awarenessUpdate: bytesToB64(bytes), awarenessClientId: this.awareness.clientID },
+						lang: this.lang,
+					});
+				} catch { /* best-effort */ }
+			}
 			api.beaconPost(this.presencePath(), {
 				clientId: this.clientId,
 				leave: true,
@@ -200,6 +250,7 @@ export class MercureProvider implements SyncProvider {
 	}
 
 	setAwareness(awareness: Awareness): void {
+		this.detachAwarenessListener();
 		this.awareness = awareness;
 		// Drain anything that arrived on the `aw` stream before now.
 		if (this.pendingAwUpdates.length) {
@@ -208,6 +259,56 @@ export class MercureProvider implements SyncProvider {
 			}
 			this.pendingAwUpdates = [];
 		}
+		// Push our own cursor/selection changes as soon as they happen
+		// instead of waiting for the next presence heartbeat
+		this.awarenessUpdateHandler = (changes) => {
+			const touched = [...changes.added, ...changes.updated, ...changes.removed];
+			if (!touched.includes(awareness.clientID)) return;
+			// No point racing a cursor update out when nobody else is in the
+			// room to see it — the next periodic heartbeat still carries our
+			// latest state once a peer does join.
+			if (!this.hasOtherPeers()) return;
+			this.scheduleAwarenessPush();
+		};
+		awareness.on('update', this.awarenessUpdateHandler);
+	}
+
+	private hasOtherPeers(): boolean {
+		return this.peers.some((p) => p.clientId !== this.clientId);
+	}
+
+	private detachAwarenessListener(): void {
+		if (this.awareness && this.awarenessUpdateHandler) {
+			this.awareness.off('update', this.awarenessUpdateHandler);
+		}
+		this.awarenessUpdateHandler = null;
+		if (this.awarenessDebounceTimer) {
+			clearTimeout(this.awarenessDebounceTimer);
+			this.awarenessDebounceTimer = null;
+		}
+	}
+
+	/** Coalesces a burst of local awareness changes into one send, fired
+	 *  AWARENESS_DEBOUNCE_MS after the last change instead of on every
+	 *  keystroke/mouse-move that touches the cursor. */
+	private scheduleAwarenessPush(): void {
+		if (this.disposed || this.awarenessDebounceTimer) return;
+		this.awarenessDebounceTimer = setTimeout(() => {
+			this.awarenessDebounceTimer = null;
+			void this.flushAwarenessNow();
+		}, AWARENESS_DEBOUNCE_MS);
+	}
+
+	private async flushAwarenessNow(): Promise<void> {
+		if (this.disposed) return;
+		try {
+			await this.heartbeatOnce();
+		} catch (e) {
+			this.setStatus('error', (e as Error).message);
+		}
+		// Re-arm the periodic heartbeat from now so it doesn't fire again
+		// moments after this out-of-band send.
+		this.schedulePresence();
 	}
 
 	onRemoteUpdate(handler: RemoteUpdateHandler): void {
