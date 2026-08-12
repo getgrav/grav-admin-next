@@ -302,6 +302,47 @@ export async function scanTwigContent(): Promise<TwigContentScan> {
 	return api.get('/reports/twig-content/scan');
 }
 
+/** One flat sandbox list broken into its code defaults, user additions, denials and effective set. */
+export interface SandboxFlatList {
+	defaults: string[];
+	added: string[];
+	denied: string[];
+	effective: string[];
+}
+
+/** A per-class method/property list: class name → member names. */
+export type SandboxClassMap = Record<string, string[]>;
+
+export interface SandboxClassList {
+	defaults: SandboxClassMap;
+	added: SandboxClassMap;
+	denied: SandboxClassMap;
+	effective: SandboxClassMap;
+}
+
+export interface SandboxPolicy {
+	enabled: boolean;
+	config_access: boolean;
+	lists: {
+		tags: SandboxFlatList;
+		filters: SandboxFlatList;
+		functions: SandboxFlatList;
+		methods: SandboxClassList;
+		properties: SandboxClassList;
+	};
+	config_denied_paths: { defaults: string[]; added: string[]; effective: string[] };
+}
+
+/**
+ * The effective Twig-sandbox policy: for each list, the built-in code defaults,
+ * the site's additive entries, its denials, and the resulting effective set.
+ * Read-only — explains what page-content Twig may do now that the default
+ * baseline lives in code rather than in the editable security.yaml.
+ */
+export async function fetchSandboxPolicy(): Promise<SandboxPolicy> {
+	return api.get('/reports/twig-content/sandbox-policy');
+}
+
 // ── Direct Install ──
 
 export async function directInstallUrl(url: string): Promise<{ message: string }> {

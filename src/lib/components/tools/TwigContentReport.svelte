@@ -8,6 +8,7 @@
 		addTwigAllowlist,
 		clearTwigContentEvents,
 		scanTwigContent,
+		fetchSandboxPolicy,
 		type ReportItem,
 		type TwigContentMeta,
 		type TwigContentItem,
@@ -15,6 +16,7 @@
 		type TwigContentEventItem,
 		type TwigAllowlistTarget,
 		type TwigContentScan,
+		type SandboxPolicy,
 	} from '$lib/api/endpoints/tools';
 	import {
 		CheckCircle2,
@@ -28,6 +30,7 @@
 		Trash2,
 		Loader2,
 		ScanSearch,
+		ListChecks,
 	} from 'lucide-svelte';
 
 	let { report, onChanged }: { report: ReportItem; onChanged: () => void | Promise<void> } = $props();
@@ -161,6 +164,54 @@
 			toast.error(i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.SCAN_FAILED'));
 		} finally {
 			scanning = false;
+		}
+	}
+
+	let policy = $state<SandboxPolicy | null>(null);
+	let loadingPolicy = $state(false);
+
+	// Flat lists (tags/filters/functions) and class-keyed lists (methods/
+	// properties), each summarised as effective size + the user's delta.
+	const policyFlatRows = $derived(
+		policy
+			? ([
+					['POLICY_TAGS', policy.lists.tags],
+					['POLICY_FILTERS', policy.lists.filters],
+					['POLICY_FUNCTIONS', policy.lists.functions],
+				] as const).map(([label, l]) => ({
+					label,
+					effective: l.effective.length,
+					added: l.added.length,
+					denied: l.denied.length,
+				}))
+			: [],
+	);
+	const policyClassRows = $derived(
+		policy
+			? ([
+					['POLICY_METHODS', policy.lists.methods],
+					['POLICY_PROPERTIES', policy.lists.properties],
+				] as const).map(([label, l]) => ({
+					label,
+					effective: Object.keys(l.effective).length,
+					added: Object.keys(l.added).length,
+					denied: Object.keys(l.denied).length,
+				}))
+			: [],
+	);
+
+	async function togglePolicy() {
+		if (policy) {
+			policy = null;
+			return;
+		}
+		loadingPolicy = true;
+		try {
+			policy = await fetchSandboxPolicy();
+		} catch {
+			toast.error(i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.POLICY_FAILED'));
+		} finally {
+			loadingPolicy = false;
 		}
 	}
 </script>
@@ -345,6 +396,58 @@
 							</span>
 						{/each}
 					</div>
+				</div>
+			{/each}
+		</div>
+	{/if}
+
+	<!-- Effective sandbox policy: code defaults + this site's additions/denials -->
+	<div class="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
+		<span class="text-xs text-muted-foreground">
+			{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.POLICY_INTRO')}
+		</span>
+		<Button variant="outline" size="sm" class="shrink-0" onclick={togglePolicy} disabled={loadingPolicy}>
+			{#if loadingPolicy}
+				<Loader2 size={13} class="me-1.5 animate-spin" />
+			{:else}
+				<ListChecks size={13} class="me-1.5" />
+			{/if}
+			{policy
+				? i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.POLICY_HIDE')
+				: i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.POLICY_VIEW')}
+		</Button>
+	</div>
+
+	{#if policy}
+		<div class="grid grid-cols-1 gap-2 px-4 pb-4 sm:grid-cols-2">
+			{#each [...policyFlatRows, ...policyClassRows] as row (row.label)}
+				{@const isClass = row.label === 'POLICY_METHODS' || row.label === 'POLICY_PROPERTIES'}
+				<div class="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
+					<span class="text-sm font-medium text-foreground">
+						{i18n.t(`ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.${row.label}`)}
+					</span>
+					<span class="flex items-center gap-1.5 text-xs">
+						<span class="text-muted-foreground">
+							{isClass
+								? i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.POLICY_CLASS_COUNT', { count: row.effective })
+								: i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.POLICY_EFFECTIVE_COUNT', { count: row.effective })}
+						</span>
+						{#if row.added > 0}
+							<span class="rounded bg-emerald-500/10 px-1.5 py-0.5 text-emerald-700 dark:text-emerald-400">
+								{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.POLICY_ADDED', { count: row.added })}
+							</span>
+						{/if}
+						{#if row.denied > 0}
+							<span class="rounded bg-red-500/10 px-1.5 py-0.5 text-red-700 dark:text-red-400">
+								{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.POLICY_DENIED', { count: row.denied })}
+							</span>
+						{/if}
+						{#if row.added === 0 && row.denied === 0}
+							<span class="text-muted-foreground/70">
+								{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.POLICY_ALL_DEFAULTS')}
+							</span>
+						{/if}
+					</span>
 				</div>
 			{/each}
 		</div>
