@@ -18,6 +18,7 @@
  * Usage:
  *   node scripts/i18n-audit.mjs                  # default report
  *   node scripts/i18n-audit.mjs --parity         # en-US vs every other admin2 language
+ *   node scripts/i18n-audit.mjs --icu            # compile+render every ICU message in every language
  *   node scripts/i18n-audit.mjs --parity --json  # ... machine-readable
  *   node scripts/i18n-audit.mjs --json           # machine-readable
  *   node scripts/i18n-audit.mjs --api https://...  # pull dict from a running API
@@ -28,6 +29,7 @@ import { readFileSync, readdirSync, statSync, writeFileSync, existsSync } from '
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
+import { IntlMessageFormat } from 'intl-messageformat';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
@@ -50,6 +52,7 @@ const args = process.argv.slice(2);
 const FLAG_JSON = args.includes('--json');
 const FLAG_UPDATE = args.includes('--update');
 const FLAG_PARITY = args.includes('--parity');
+const FLAG_ICU = args.includes('--icu');
 const apiIdx = args.indexOf('--api');
 const FLAG_API = apiIdx >= 0 ? args[apiIdx + 1] : null;
 
@@ -269,6 +272,94 @@ function printParity() {
 	}
 }
 
+// --- ICU mode ---
+
+/**
+ * Compile and render every ICU message in every admin2 language file.
+ *
+ * Two failure modes, both of which reach the user as visible nonsense and
+ * neither of which the gap/parity checks can see, because the key exists and is
+ * translated — it just doesn't say what it should:
+ *
+ *   literal  — an apostrophe directly before `{` or `}` opens an ICU quoted
+ *              literal, so "Group '{name}' created" renders as "Group {name}
+ *              created" (getgrav/grav-plugin-admin2#159). The escape for a
+ *              literal apostrophe is `''`. Typographic quotes („" « » ‘ ’) are
+ *              not ICU syntax and need no escaping, which is why most locales
+ *              were unaffected.
+ *   compile  — the message is not valid ICU, usually because a translator
+ *              translated the syntax keywords themselves (`plural` → `pluriel`,
+ *              `one` → `un`). The store logs a warning and falls back to
+ *              printing the raw ICU source.
+ *
+ * Detection runs on parsed values, never raw lines: in a single-quoted YAML
+ * scalar the outer apostrophes belong to YAML, not to the message.
+ */
+function icuReport() {
+	const files = readdirSync(ADMIN2_LANG_DIR).filter((f) => f.endsWith('.yaml')).sort();
+	const problems = [];
+	let checked = 0;
+
+	for (const file of files) {
+		const lang = file.slice(0, -'.yaml'.length);
+		const dict = loadYamlDict(join(ADMIN2_LANG_DIR, file));
+
+		for (const [key, msg] of Object.entries(dict)) {
+			if (!key.startsWith('ICU.') || typeof msg !== 'string') continue;
+			const names = [...msg.matchAll(/\{\s*(\w+)\s*[,}]/g)].map((m) => m[1]);
+			if (names.length === 0) continue;
+			checked++;
+
+			// Numeric-looking params get numbers so plural/selectordinal arms resolve.
+			const params = Object.fromEntries(
+				names.map((n) => [n, /^(n|count|total|minutes|seconds|days)$/.test(n) ? 2 : `«${n}»`])
+			);
+
+			let rendered;
+			try {
+				rendered = String(new IntlMessageFormat(msg, lang).format(params));
+			} catch (e) {
+				problems.push({ file, key, msg, kind: 'compile', detail: e.message.split('\n')[0] });
+				continue;
+			}
+
+			const literal = names.find((n) => rendered.includes(`{${n}}`));
+			if (literal) {
+				problems.push({ file, key, msg, kind: 'literal', detail: `{${literal}} survived into "${rendered}"` });
+			}
+		}
+	}
+	return { checked, files: files.length, problems };
+}
+
+function printIcu() {
+	const { checked, files, problems } = icuReport();
+
+	if (FLAG_JSON) {
+		console.log(JSON.stringify({ checked, files, problems }, null, 2));
+		return problems.length;
+	}
+
+	console.log('=== i18n ICU check (admin2 languages/) ===');
+	console.log(`Compiled ${checked} messages with placeholders across ${files} language files`);
+	console.log('');
+
+	if (problems.length === 0) {
+		console.log('✓ Every placeholder resolves and every message compiles.');
+		return 0;
+	}
+
+	for (const p of problems) {
+		console.log(`✗ [${p.kind}] ${p.file} ${p.key.slice('ICU.'.length)}`);
+		console.log(`      ${p.msg}`);
+		console.log(`      ${p.detail}`);
+	}
+	console.log('');
+	console.log(`${problems.length} broken message(s). Escape a literal apostrophe as '' , and never translate`);
+	console.log('the ICU keywords themselves (plural / select / one / other stay English).');
+	return problems.length;
+}
+
 // --- Update mode ---
 
 function appendTodos(gaps) {
@@ -290,6 +381,11 @@ function appendTodos(gaps) {
 // --- Main ---
 
 (async () => {
+	if (FLAG_ICU) {
+		process.exitCode = printIcu() > 0 ? 1 : 0;
+		return;
+	}
+
 	if (FLAG_PARITY) {
 		printParity();
 		return;
