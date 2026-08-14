@@ -35,7 +35,7 @@
 	import type { Snippet } from 'svelte';
 	import {
 		LayoutDashboard, FileText, Image, Users, Puzzle, Palette,
-		Settings, Wrench, SlidersHorizontal,
+		Settings, Wrench, SlidersHorizontal, Languages,
 		Sun, Moon, Menu, Code
 	} from 'lucide-svelte';
 
@@ -188,6 +188,7 @@
 		{ href: `${base}/media`, labelKey: 'ADMIN_NEXT.NAV.MEDIA', icon: Image, badgeKey: 'media', permission: 'api.media.read' },
 		{ href: `${base}/plugins`, labelKey: 'ADMIN_NEXT.NAV.PLUGINS', icon: Puzzle, badgeKey: 'plugins', permission: 'api.gpm.read' },
 		{ href: `${base}/themes`, labelKey: 'ADMIN_NEXT.NAV.THEMES', icon: Palette, badgeKey: 'themes', permission: 'api.gpm.read' },
+		{ href: `${base}/translations`, labelKey: 'ADMIN_NEXT.NAV.TRANSLATIONS', icon: Languages, permission: 'api.translations.read' },
 		{ href: `${base}/tools`, labelKey: 'ADMIN_NEXT.NAV.TOOLS', icon: Wrench, permission: 'api.system.read' },
 	];
 

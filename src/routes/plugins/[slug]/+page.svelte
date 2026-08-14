@@ -10,6 +10,7 @@
 	import { getPluginBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
+	import TranslationStringsSupersededBanner from '$lib/components/translations/TranslationStringsSupersededBanner.svelte';
 	import ExtensionMetaLinks from '$lib/components/extensions/ExtensionMetaLinks.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson } from '$lib/utils/blueprint-validation';
@@ -608,6 +609,12 @@
 						</div>
 					</div>
 				</div>
+
+				<!--
+					translation-strings is superseded on Grav 2.0 by the built-in
+					Translations section, so say so where its users actually are.
+				-->
+				<TranslationStringsSupersededBanner {slug} />
 
 				<!-- Configuration form -->
 				{#if plugin.enabled && blueprint}

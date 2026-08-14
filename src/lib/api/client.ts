@@ -679,6 +679,11 @@ class ApiClient {
 		return this.request<T>('PATCH', path, { body });
 	}
 
+	/** Full replacement, as opposed to `patch`'s partial merge. */
+	async put<T>(path: string, body?: unknown): Promise<T> {
+		return this.request<T>('PUT', path, { body });
+	}
+
 	async delete<T>(path: string, body?: unknown): Promise<T> {
 		return this.request<T>('DELETE', path, { body });
 	}

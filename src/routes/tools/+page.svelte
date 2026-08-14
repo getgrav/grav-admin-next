@@ -2,6 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { getAuditStatus } from '$lib/api/endpoints/audit';
@@ -38,6 +39,15 @@
 	]);
 
 	const validIds = $derived(new Set(tabs.map(t => t.id)));
+
+	// Translations used to be a tab here before it earned its own top-level
+	// section. Forward the old hash rather than silently dropping anyone
+	// arriving from a bookmark or from the docs.
+	$effect(() => {
+		if (page.url.hash.replace('#', '').split('--')[0] === 'translations') {
+			goto(`${base}/translations`, { replaceState: true });
+		}
+	});
 
 	// Read active tab from URL hash, default to 'backups'
 	// Supports nested hashes like #scheduler--jobs_tab (first segment is the tools tab)
