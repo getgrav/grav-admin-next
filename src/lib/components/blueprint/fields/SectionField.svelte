@@ -4,7 +4,8 @@
 	import { renderMarkdownInline } from '$lib/utils/markdown';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import FieldRenderer from '../FieldRenderer.svelte';
-	import FieldOverrideIndicator from '../FieldOverrideIndicator.svelte';
+	import FieldLabel from '../FieldLabel.svelte';
+	import FieldDescription from '../FieldDescription.svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldMatches, fieldMatchesSelf } from '$lib/utils/field-filter';
@@ -66,6 +67,13 @@
 
 	function isVertical(f: BlueprintField): boolean {
 		return f.style === 'vertical' || fullWidthTypes.has(f.type) || selfLabeledTypes.has(f.type);
+	}
+
+	// Draw the left-hand label column for this child? Mirrors admin-classic's
+	// field.html.twig `show_label`, so `display_label: false` drops the column
+	// while the field itself still renders (admin-next#18).
+	function showLabelColumn(f: BlueprintField): boolean {
+		return f.display_label !== false && !!(f.label || f.help || f.sublabel);
 	}
 
 	// Toggleable state model is shared with FieldRenderer — see $lib/utils/toggleable.
@@ -152,41 +160,21 @@
 						/>
 					</div>
 				{:else}
-					<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_2fr] lg:items-start lg:gap-x-6">
-						<div class="flex items-start gap-2 lg:pt-2.5">
-							{#if childField.toggleable}
-								<ToggleableCheckbox {toggled} onToggle={() => toggleField(childField.name, childField)} />
-							{/if}
-							<div>
-								{#if childField.label}
-									<span class="inline-flex items-center gap-1.5">
-										<span class="text-sm font-semibold {toggled ? 'text-foreground' : 'text-muted-foreground'}">
-											{#if filter}
-												{@html highlight(translateLabel(childField.label))}
-											{:else}
-												{translateLabel(childField.label)}
-											{/if}
-											{#if childField.validate?.required}
-												<span class="text-red-500">*</span>
-											{/if}
-										</span>
-										<FieldOverrideIndicator path={childField.name} />
-									</span>
+					{@const labelled = showLabelColumn(childField)}
+					<div class="{labelled ? 'grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_2fr] lg:items-start lg:gap-x-6' : ''} {childField.outerclasses ?? ''}">
+						{#if labelled}
+							<div class="flex items-start gap-2 lg:pt-2.5">
+								{#if childField.toggleable}
+									<ToggleableCheckbox {toggled} onToggle={() => toggleField(childField.name, childField)} />
 								{/if}
-								{#if childField.help}
-									<p class="mt-0.5 text-xs text-muted-foreground">
-										{#if filter}
-											{@html highlight(translateLabel(childField.help))}
-										{:else}
-											{@html translateLabel(childField.help)}
-										{/if}
-									</p>
-								{/if}
+								<div>
+									<FieldLabel field={childField} {toggled} highlight={filter ? highlight : undefined} />
+								</div>
 							</div>
-						</div>
+						{/if}
 						<div class="transition-opacity {childField.toggleable && !toggled ? 'pointer-events-none opacity-50' : ''}">
 							<FieldRenderer
-								field={{ ...childField, label: undefined, help: undefined }}
+								field={{ ...childField, label: undefined, help: undefined, sublabel: undefined, description: undefined }}
 								value={displayValue(childField, toggled)}
 								onchange={(val) => onFieldChange(childField.name, val)}
 								oncommit={onFieldCommit ? (val: unknown, old?: unknown) => onFieldCommit(childField.name, val, old) : undefined}
@@ -194,6 +182,7 @@
 								{onFieldChange}
 								{onFieldCommit}
 							/>
+							<FieldDescription field={childField} />
 						</div>
 					</div>
 				{/if}

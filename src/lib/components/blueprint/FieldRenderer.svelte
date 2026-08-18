@@ -35,6 +35,8 @@
 	import WebhookExamplesField from './fields/WebhookExamplesField.svelte';
 	import CustomFieldWrapper from './fields/CustomFieldWrapper.svelte';
 	import FieldOverrideIndicator from './FieldOverrideIndicator.svelte';
+	import FieldLabel from './FieldLabel.svelte';
+	import FieldDescription from './FieldDescription.svelte';
 	import PageExistsField from './fields/PageExistsField.svelte';
 	import ColorPickerField from './fields/ColorPickerField.svelte';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
@@ -132,17 +134,28 @@
 	// template, so this is admin-next-only and the YAML stays untouched.
 	const selfLabeledTypes = new Set(['save-redirect']);
 
-	// Should this field use the 2-column (label left, field right) layout?
-	// Only for non-container leaf fields that have a label and aren't explicitly vertical
-	const useTwoColumn = $derived(
+	// Is this a leaf field whose chrome (label column, description) this
+	// component owns, rather than a container that lays itself out?
+	const isChromeLeaf = $derived(
 		!externalLabel &&
 		!containerTypes.has(field.type) &&
 		!selfLabeledTypes.has(field.type) &&
 		field.type !== 'spacer' &&
 		field.type !== 'display' &&
-		field.style !== 'vertical' &&
-		!!(field.label || field.help)
+		field.style !== 'vertical'
 	);
+
+	// Draw the left-hand label column? Mirrors admin-classic's field.html.twig:
+	//   show_label = field.display_label is not same as(false)
+	// `display_label: false` keeps the field but drops its whole label column.
+	const showLabelColumn = $derived(
+		field.display_label !== false && !!(field.label || field.help || field.sublabel)
+	);
+
+	// Should this field use the 2-column (label left, field right) layout?
+	// A label-less field carrying a description claims it too, so the shared
+	// chrome stays the one place a description is rendered.
+	const useTwoColumn = $derived(isChromeLeaf && (showLabelColumn || !!field.description));
 
 	// Fields suppressed in admin-next (handled by the UI directly)
 	// - order fields: reordering is via drag-and-drop in listing views
@@ -193,35 +206,30 @@
 
 {:else if useTwoColumn}
 	<!-- 2-column layout: label left, field right.
-		 This branch owns the label for any leaf field a section isn't rendering
-		 directly — chiefly fields nested inside `columns`/`column` or a list item.
-		 It therefore also owns the `toggleable` checkbox for those fields, which
-		 was previously only drawn by SectionField for its direct children and so
-		 was silently dropped once nested (admin2#131). SectionField strips
-		 label/help off its own children, so they never reach this branch and the
-		 checkbox can't double up. -->
+		 This branch owns the label layer for any leaf field a section isn't
+		 rendering directly — chiefly fields nested inside `columns`/`column` or a
+		 list item. It therefore also owns the `toggleable` checkbox for those
+		 fields, which was previously only drawn by SectionField for its direct
+		 children and so was silently dropped once nested (admin2#131), and it
+		 owns `description` so every field type gets one without each component
+		 re-implementing it (admin-next#18). SectionField strips the same props
+		 off its own children, so they never reach this branch and can't double
+		 up. -->
 	{@const toggled = isToggleOn(field, value)}
-	<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_2fr] lg:items-start lg:gap-x-6">
-		<div class="flex items-start gap-2 lg:pt-2.5">
-			{#if field.toggleable}
-				<ToggleableCheckbox {toggled} onToggle={() => onchange(toggleValue(field, toggled))} />
-			{/if}
-			<div>
-				{#if field.label}
-					<span class="inline-flex items-center gap-1.5 text-sm font-semibold {toggled ? 'text-foreground' : 'text-muted-foreground'}">
-						{translateLabel(field.label)}
-						{#if field.validate?.required}<span class="text-red-500">*</span>{/if}
-						<FieldOverrideIndicator path={field.name} />
-					</span>
+	<div class="{showLabelColumn ? 'grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_2fr] lg:items-start lg:gap-x-6' : ''} {field.outerclasses ?? ''}">
+		{#if showLabelColumn}
+			<div class="flex items-start gap-2 lg:pt-2.5">
+				{#if field.toggleable}
+					<ToggleableCheckbox {toggled} onToggle={() => onchange(toggleValue(field, toggled))} />
 				{/if}
-				{#if field.help}
-					<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
-				{/if}
+				<div>
+					<FieldLabel {field} {toggled} />
+				</div>
 			</div>
-		</div>
+		{/if}
 		<div class="transition-opacity {field.toggleable && !toggled ? 'pointer-events-none opacity-50' : ''}">
 			<svelte:self
-				field={{ ...field, label: undefined, help: undefined }}
+				field={{ ...field, label: undefined, help: undefined, sublabel: undefined, description: undefined }}
 				value={displayValue(field, value, toggled)}
 				{onchange}
 				{oncommit}
@@ -231,6 +239,7 @@
 				{filter}
 				externalLabel={true}
 			/>
+			<FieldDescription {field} />
 		</div>
 	</div>
 

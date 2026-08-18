@@ -28,7 +28,7 @@
 	import { onMount, getContext, untrack } from 'svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
-	import { EditorView, keymap, placeholder as cmPlaceholder, drawSelection, type ViewUpdate } from '@codemirror/view';
+	import { EditorView, keymap, placeholder as cmPlaceholder, drawSelection, type KeyBinding, type ViewUpdate } from '@codemirror/view';
 	import { EditorState, type Extension } from '@codemirror/state';
 	import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 	import { languages } from '@codemirror/language-data';
@@ -39,7 +39,7 @@
 	import * as Y from 'yjs';
 	import {
 		syntaxHighlighting, defaultHighlightStyle,
-		indentOnInput, bracketMatching
+		indentOnInput, bracketMatching, syntaxTree
 	} from '@codemirror/language';
 	import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
 	import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
@@ -333,6 +333,14 @@
 			dark ? shadcnDarkTheme : shadcnLightTheme,
 			dark ? oneDark : [],
 
+			// Toolbar shortcuts (admin2#163). Placed BEFORE the base keymap so
+			// `Mod-i` reaches Italic instead of defaultKeymap's `selectParentSyntax`
+			// — the same array-order precedence the vim keymap above relies on.
+			// The bindings are derived from the `shortcut` strings the tooltips
+			// already display, so a tooltip can never advertise a key that isn't
+			// actually bound.
+			keymap.of(toolbarKeymap()),
+
 			// Keymaps
 			keymap.of([
 				...closeBracketsKeymap,
@@ -474,36 +482,147 @@
 		(view.dom as unknown as { __cmView?: EditorView }).__cmView = view;
 	}
 
-	// Toolbar actions — wrap/insert markdown syntax
+	// Which Lezer inline node each wrap marker produces. The editor is configured
+	// with `markdownLanguage` (CommonMark + GFM), so Strikethrough is parsed too.
+	// Used to spot an existing mark around the selection so a second click removes
+	// it instead of nesting another pair (admin2#161).
+	const inlineNodes: Record<string, { node: string; mark: string }> = {
+		'**': { node: 'StrongEmphasis', mark: 'EmphasisMark' },
+		'_': { node: 'Emphasis', mark: 'EmphasisMark' },
+		'~~': { node: 'Strikethrough', mark: 'StrikethroughMark' },
+		'`': { node: 'InlineCode', mark: 'CodeMark' },
+	};
+
+	// Nearest ancestor of the given node type that fully contains [from, to).
+	function enclosingInlineNode(name: string, from: number, to: number) {
+		if (!view) return null;
+		let node = syntaxTree(view.state).resolveInner(from, 1);
+		for (;;) {
+			if (node.name === name && node.from <= from && node.to >= to) return node;
+			const parent = node.parent;
+			if (!parent) return null;
+			node = parent;
+		}
+	}
+
+	// Toolbar actions — toggle the inline markdown syntax around the selection.
 	function wrapSelection(before: string, after?: string) {
 		if (!view) return;
-		const { from, to } = view.state.selection.main;
-		const selected = view.state.sliceDoc(from, to);
+		const { state } = view;
+		const { from, to } = state.selection.main;
+		const selected = state.sliceDoc(from, to);
 		const suffix = after ?? before;
-		const wrapped = `${before}${selected}${suffix}`;
+
+		// 1. The markers are inside the selection ("**hello**" selected) — strip them.
+		if (
+			selected.length >= before.length + suffix.length &&
+			selected.startsWith(before) && selected.endsWith(suffix)
+		) {
+			const inner = selected.slice(before.length, selected.length - suffix.length);
+			view.dispatch({
+				changes: { from, to, insert: inner },
+				selection: { anchor: from, head: from + inner.length },
+			});
+			view.focus();
+			return;
+		}
+
+		// 2. The selection sits inside an existing mark — drop that mark's delimiters.
+		//    The syntax tree is consulted rather than just the characters either side
+		//    so nesting unwraps the right layer: on `***hi***` Italic removes one `*`
+		//    per side and leaves the bold alone, and `*hi*` is recognised by the
+		//    Italic button even though the button itself writes `_`.
+		const target = inlineNodes[before];
+		if (target) {
+			const node = enclosingInlineNode(target.node, from, to);
+			const marks = node?.getChildren(target.mark) ?? [];
+			if (marks.length === 2) {
+				const markLength = marks[0].to - marks[0].from;
+				view.dispatch({
+					changes: [
+						{ from: marks[0].from, to: marks[0].to, insert: '' },
+						{ from: marks[1].from, to: marks[1].to, insert: '' },
+					],
+					selection: { anchor: marks[0].from, head: marks[1].from - markLength },
+				});
+				view.focus();
+				return;
+			}
+		}
+
+		// 3. Fall back to the characters either side of the selection. Covers a spot
+		//    the incremental parser hasn't reached yet, and markers that were typed
+		//    by hand and not re-parsed.
+		if (
+			from >= before.length &&
+			state.sliceDoc(from - before.length, from) === before &&
+			state.sliceDoc(to, to + suffix.length) === suffix
+		) {
+			view.dispatch({
+				changes: [
+					{ from: from - before.length, to: from, insert: '' },
+					{ from: to, to: to + suffix.length, insert: '' },
+				],
+				selection: {
+					anchor: from - before.length,
+					head: from - before.length + selected.length,
+				},
+			});
+			view.focus();
+			return;
+		}
+
+		// 4. Nothing to remove — wrap.
 		view.dispatch({
-			changes: { from, to, insert: wrapped },
+			changes: { from, to, insert: `${before}${selected}${suffix}` },
 			selection: { anchor: from + before.length, head: from + before.length + selected.length },
 		});
 		view.focus();
 	}
 
-	function insertAtLineStart(prefix: string) {
+	// Line-prefix actions (lists, blockquote). Applies to EVERY line the selection
+	// touches, so marking up a block of existing text takes one click (admin2#162).
+	// Headings deliberately stay single-line — they have their own insertHeading()
+	// below and are untouched by this.
+	//
+	// `prefix` is a function for ordered lists so the numbering runs 1. 2. 3.
+	// rather than repeating `1.`; `pattern` matches whatever already counts as
+	// this prefix, so `* item` and `3. item` are recognised as well as what we
+	// write ourselves.
+	function insertAtLineStart(prefix: string | ((index: number) => string), pattern?: RegExp) {
 		if (!view) return;
-		const { from } = view.state.selection.main;
-		const line = view.state.doc.lineAt(from);
-		const lineText = line.text;
+		const { doc } = view.state;
+		const { from, to } = view.state.selection.main;
+		const firstLine = doc.lineAt(from);
+		let lastLine = doc.lineAt(to);
 
-		// If the line already starts with this prefix, remove it (toggle)
-		if (lineText.startsWith(prefix)) {
-			view.dispatch({
-				changes: { from: line.from, to: line.from + prefix.length, insert: '' },
-			});
-		} else {
-			view.dispatch({
-				changes: { from: line.from, insert: prefix },
-			});
+		// A selection dragged to the start of the following line (what triple-click
+		// and shift-down give you) shouldn't mark up that empty trailing line.
+		if (lastLine.number > firstLine.number && to === lastLine.from) {
+			lastLine = doc.line(lastLine.number - 1);
 		}
+
+		const lines = Array.from(
+			{ length: lastLine.number - firstLine.number + 1 },
+			(_, i) => doc.line(firstLine.number + i),
+		);
+
+		const existingLength = (text: string) => {
+			if (pattern) return text.match(pattern)?.[0].length ?? 0;
+			return text.startsWith(prefix as string) ? (prefix as string).length : 0;
+		};
+
+		// Toggle off only when EVERY line already carries the prefix, so a partly
+		// marked-up selection completes rather than clears.
+		const allPrefixed = lines.every((line) => existingLength(line.text) > 0);
+
+		view.dispatch({
+			changes: lines.map((line, index) => ({
+				from: line.from,
+				to: line.from + existingLength(line.text),
+				insert: allPrefixed ? '' : typeof prefix === 'function' ? prefix(index) : prefix,
+			})),
+		});
 		view.focus();
 	}
 
@@ -777,8 +896,8 @@
 		],
 		'separator',
 		[
-			{ icon: List, label: 'Bullet List', action: () => insertAtLineStart('- ') },
-			{ icon: ListOrdered, label: 'Ordered List', action: () => insertAtLineStart('1. ') },
+			{ icon: List, label: 'Bullet List', action: () => insertAtLineStart('- ', /^[-*+]\s/) },
+			{ icon: ListOrdered, label: 'Ordered List', action: () => insertAtLineStart((n) => `${n + 1}. `, /^\d+\.\s/) },
 			{ icon: Quote, label: 'Blockquote', action: () => insertAtLineStart('> ') },
 		],
 		'separator',
@@ -792,6 +911,33 @@
 			{ icon: Eye, label: 'Toggle Preview', action: () => showPreview = !showPreview },
 		],
 	];
+
+	// A toolbar `shortcut` label in CodeMirror key syntax: 'Mod+Shift+Z' becomes
+	// 'Mod-Shift-z'. Single-character keys are lower-cased to match how CodeMirror
+	// (and defaultKeymap) name them.
+	function toCodeMirrorKey(shortcut: string): string {
+		const parts = shortcut.split('+');
+		const key = parts.pop() ?? '';
+		return [...parts, key.length === 1 ? key.toLowerCase() : key].join('-');
+	}
+
+	// Keybindings for every toolbar button that advertises a shortcut (admin2#163).
+	// Derived from the toolbar definition itself so the tooltip and the binding
+	// cannot drift apart — adding `shortcut:` to a button is all it takes.
+	function toolbarKeymap(): KeyBinding[] {
+		return toolbarGroups
+			.flatMap((group) => (group === 'separator' ? [] : group))
+			.filter((item) => !!item.shortcut)
+			.map((item) => ({
+				key: toCodeMirrorKey(item.shortcut as string),
+				preventDefault: true,
+				run: () => {
+					if (disabled || isReadonly) return false;
+					item.action();
+					return true;
+				},
+			}));
+	}
 </script>
 
 <div class={cn('rounded-md border border-input', stickyToolbar ? '' : 'overflow-hidden', className)}>

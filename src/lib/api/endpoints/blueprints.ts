@@ -8,6 +8,16 @@ export interface BlueprintField {
 	placeholder?: string;
 	default?: unknown;
 	description?: string;
+	/** Secondary label line, rendered under the label (admin-classic parity). */
+	sublabel?: string;
+	/** `false` hides the label column entirely. */
+	display_label?: boolean;
+	/** Extra CSS classes on the field label. */
+	labelclasses?: string;
+	/** Extra CSS classes on the field sublabel. */
+	sublabelclasses?: string;
+	/** Extra CSS classes on the wrapper holding both the label and the input. */
+	outerclasses?: string;
 	title?: string;
 	text?: string;
 	size?: string;
@@ -61,6 +71,7 @@ export interface BlueprintField {
 	style?: string;
 	classes?: string;
 	wrapper_classes?: string;
+	autocomplete?: string;
 	use?: string;
 	key?: string;
 	controls?: string;

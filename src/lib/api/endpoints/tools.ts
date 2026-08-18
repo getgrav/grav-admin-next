@@ -218,7 +218,6 @@ export async function getReports(): Promise<ReportItem[]> {
 export interface TwigContentMeta {
 	gate: boolean;
 	sandbox: boolean;
-	xss_scan: boolean;
 	editor_enabled: boolean;
 	leak_count: number;
 	event_count: number;

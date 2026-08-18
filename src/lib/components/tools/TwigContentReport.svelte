@@ -80,8 +80,6 @@
 		switch (type) {
 			case 'gate_blocked':
 				return i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.EVENT_GATE_BLOCKED');
-			case 'xss_blanked':
-				return i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.EVENT_XSS_BLANKED');
 			case 'sandbox_tag':
 				return i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.EVENT_SANDBOX_TAG');
 			case 'sandbox_filter':
@@ -252,16 +250,6 @@
 			{meta.sandbox
 				? i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.SANDBOX_ON')
 				: i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.SANDBOX_OFF')}
-		</span>
-		<span
-			class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium {meta.xss_scan
-				? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-				: 'bg-muted text-muted-foreground'}"
-		>
-			<svelte:component this={meta.xss_scan ? ShieldCheck : ShieldOff} size={13} />
-			{meta.xss_scan
-				? i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.XSS_SCAN_ON')
-				: i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.XSS_SCAN_OFF')}
 		</span>
 	</div>
 
