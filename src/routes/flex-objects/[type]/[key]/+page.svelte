@@ -24,7 +24,7 @@
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import ObjectInfoButton from '$lib/components/flex-objects/ObjectInfoButton.svelte';
 	import { toast } from 'svelte-sonner';
-	import { prefs } from '$lib/stores/preferences.svelte';
+	import { prefs, type FlexAfterSave } from '$lib/stores/preferences.svelte';
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
@@ -72,10 +72,22 @@
 	let validationErrors = $state<Record<string, string>>({});
 	let originalJson = $state('{}');
 
-	const hasChanges = $derived(stableJson(configData) !== originalJson);
+	// `_post_entries_save` is a UI choice, not object data - it is stripped before
+	// the object is sent to the API. Keeping it out of the dirty comparison stops
+	// merely picking an After Save option from marking the record modified and,
+	// with auto-save on, saving it (admin2#160).
+	function objectData(data: Record<string, unknown>): Record<string, unknown> {
+		const { _post_entries_save: _uiOnly, ...rest } = data;
+		return rest;
+	}
 
-	// Read save-redirect from the custom field value
-	const afterSave = $derived((configData._post_entries_save as string) ?? 'edit');
+	const hasChanges = $derived(stableJson(objectData(configData)) !== originalJson);
+
+	// Read save-redirect from the custom field value, then the user's remembered
+	// choice, then "stay on this screen".
+	const afterSave = $derived(
+		(configData._post_entries_save as string) || prefs.flexAfterSave || 'edit'
+	);
 
 	// Edit title from the directory's edit.title.template config.
 	const editTitle = $derived.by(() => {
@@ -89,7 +101,10 @@
 		// of the editable/saved object data (__meta only feeds the info panel).
 		const { key: _key, __meta: _meta, ...rest } = obj;
 		configData = structuredClone(rest) as Record<string, unknown>;
-		originalJson = stableJson(configData);
+		originalJson = stableJson(objectData(configData));
+		if (prefs.flexAfterSave) {
+			configData._post_entries_save = prefs.flexAfterSave;
+		}
 	}
 
 	async function loadData() {
@@ -141,6 +156,13 @@
 		current[parts[parts.length - 1]] = value;
 		configData = newData;
 
+		// Remember the After Save choice for next time. It is a UI preference
+		// rather than object data, so it rides the preferences store.
+		if (path === '_post_entries_save' && typeof value === 'string') {
+			prefs.flexAfterSave = value as FlexAfterSave;
+			return;
+		}
+
 		// Re-check this field now it's been touched: flag it if a required field was
 		// cleared, clear the flag once it's filled again (admin2#34).
 		const err = blueprint ? validateFieldAt(blueprint.fields, path, newData) : null;
@@ -170,7 +192,10 @@
 			populateForm(result.object);
 			toast.success(i18n.t('ADMIN_NEXT.TOASTS.SAVED'));
 
-			if (afterSave === 'list') {
+			if (afterSave === 'create-new') {
+				// "Save and start another" - previously a no-op on this screen.
+				goto(`${base}/flex-objects/${type}/new`);
+			} else if (afterSave === 'list') {
 				goto(`${base}/flex-objects/${type}`);
 			}
 		} catch (err: unknown) {
@@ -364,7 +389,10 @@
 					fields={blueprint.fields}
 					data={configData}
 					onchange={handleBlueprintChange}
-					oncommit={autoSave.oncommit}
+					oncommit={(path: string, value: unknown, oldValue: unknown) => {
+						if (path === '_post_entries_save') return;
+						autoSave.oncommit(path, value, oldValue);
+					}}
 					errors={validationErrors}
 				/>
 			</div>

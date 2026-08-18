@@ -11,6 +11,8 @@ export type LogoVariant = 'light' | 'dark';
 export type BrandingVariant = 'light' | 'dark' | 'favicon';
 export type PagesViewMode = 'tree' | 'list' | 'miller';
 export type AccountsViewMode = 'cards' | 'table';
+/** Where the admin goes after saving a Flex object. '' = follow the blueprint. */
+export type FlexAfterSave = '' | 'create-new' | 'edit' | 'list';
 
 export interface MenubarLink {
 	label: string;
@@ -58,6 +60,7 @@ export interface PreferenceValues {
 	groupsViewMode: AccountsViewMode;
 	pluginsViewMode: AccountsViewMode;
 	themesViewMode: AccountsViewMode;
+	flexAfterSave: FlexAfterSave;
 }
 
 /** Tier A2 — site-only behavioral settings (not per-user). */

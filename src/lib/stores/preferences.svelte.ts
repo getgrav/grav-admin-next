@@ -7,6 +7,7 @@ import {
 	resetUserPreferences as apiResetUserPreferences,
 	type AccountsViewMode,
 	type EffectivePreferences,
+	type FlexAfterSave,
 	type FontFamily,
 	type FontSize,
 	type EditorMode,
@@ -24,6 +25,7 @@ export type {
 	ColorMode,
 	EditorMode,
 	EditorKeymap,
+	FlexAfterSave,
 	FontFamily,
 	FontSize,
 	LogoMode,
@@ -136,6 +138,7 @@ const BUILTIN_DEFAULTS: EffectivePreferences = {
 	groupsViewMode: 'cards',
 	pluginsViewMode: 'cards',
 	themesViewMode: 'cards',
+	flexAfterSave: '',
 	// Tier A2 (site-only behavioral)
 	autoSaveEnabled: false,
 	autoSaveToolbarUndo: true,
@@ -162,6 +165,7 @@ function createPreferencesStore() {
 	let groupsViewMode = $state<AccountsViewMode>(BUILTIN_DEFAULTS.groupsViewMode);
 	let pluginsViewMode = $state<AccountsViewMode>(BUILTIN_DEFAULTS.pluginsViewMode);
 	let themesViewMode = $state<AccountsViewMode>(BUILTIN_DEFAULTS.themesViewMode);
+	let flexAfterSave = $state<FlexAfterSave>(BUILTIN_DEFAULTS.flexAfterSave);
 
 	// ── Tier A2: site-only behavioral — read-only mirrors of `effective` ──
 	// No setters; admins modify these via the Site Defaults editor.
@@ -213,6 +217,7 @@ function createPreferencesStore() {
 		groupsViewMode = eff.groupsViewMode;
 		pluginsViewMode = eff.pluginsViewMode;
 		themesViewMode = eff.themesViewMode;
+		flexAfterSave = eff.flexAfterSave;
 		// Tier A2
 		autoSaveEnabled = eff.autoSaveEnabled;
 		autoSaveToolbarUndo = eff.autoSaveToolbarUndo;
@@ -283,6 +288,7 @@ function createPreferencesStore() {
 			case 'groupsViewMode': groupsViewMode = fallback as AccountsViewMode; break;
 			case 'pluginsViewMode': pluginsViewMode = fallback as AccountsViewMode; break;
 			case 'themesViewMode': themesViewMode = fallback as AccountsViewMode; break;
+			case 'flexAfterSave': flexAfterSave = fallback as FlexAfterSave; break;
 			// colorMode / accentHue / accentSaturation live in the theme store.
 			default: break;
 		}
@@ -343,6 +349,9 @@ function createPreferencesStore() {
 
 		get themesViewMode() { return themesViewMode; },
 		set themesViewMode(v: AccountsViewMode) { themesViewMode = v; patchUser('themesViewMode', v); },
+
+		get flexAfterSave() { return flexAfterSave; },
+		set flexAfterSave(v: FlexAfterSave) { flexAfterSave = v; patchUser('flexAfterSave', v); },
 
 		// ── Tier A2: site-only — read-only ─────────────────────────────────
 		get autoSaveEnabled() { return autoSaveEnabled; },

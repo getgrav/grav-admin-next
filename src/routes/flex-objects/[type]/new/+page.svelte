@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { prefs, type FlexAfterSave } from '$lib/stores/preferences.svelte';
 	import {
 		getDirectories,
 		createObject,
@@ -32,7 +33,14 @@
 	let validationErrors = $state<Record<string, string>>({});
 
 	// Read save-redirect from the custom field value
-	const afterSave = $derived((configData._post_entries_save as string) ?? 'edit');
+	const afterSave = $derived((configData._post_entries_save as string) || 'edit');
+
+	/** Blueprint defaults, with the user's remembered After Save choice layered on. */
+	function seedForm(fields: BlueprintField[]): Record<string, unknown> {
+		const data = extractDefaults(fields);
+		if (prefs.flexAfterSave) data._post_entries_save = prefs.flexAfterSave;
+		return data;
+	}
 
 	// Title for the create screen, from the directory's edit.title.template.
 	// Rendered against a null object so every `?? 'fallback'` branch is taken —
@@ -106,7 +114,7 @@
 
 			blueprint = blueprintResult;
 			directory = dirs.find((d) => d.type === type) ?? null;
-			configData = extractDefaults(blueprintResult.fields);
+			configData = seedForm(blueprintResult.fields);
 		} catch {
 			error = `Failed to load blueprint for '${type}'.`;
 		} finally {
@@ -130,6 +138,12 @@
 		}
 		current[parts[parts.length - 1]] = value;
 		configData = newData;
+
+		// Remember the After Save choice for next time (admin2#160).
+		if (path === '_post_entries_save' && typeof value === 'string') {
+			prefs.flexAfterSave = value as FlexAfterSave;
+			return;
+		}
 
 		// Re-check this field now it's been touched: flag it if a required field was
 		// cleared, clear the flag once it's filled again (admin2#34).
@@ -159,7 +173,7 @@
 
 			if (afterSave === 'create-new') {
 				// Reset form for another new item
-				configData = blueprint ? extractDefaults(blueprint.fields) : {};
+				configData = blueprint ? seedForm(blueprint.fields) : {};
 			} else if (afterSave === 'list') {
 				goto(`${base}/flex-objects/${type}`);
 			} else {
