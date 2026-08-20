@@ -3,7 +3,7 @@
 	import { portal } from '$lib/utils/portal';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { X, ImageOff } from 'lucide-svelte';
-	import { encodeMediaFileUrl, mediaMarkdown, type MediaItem } from '$lib/api/endpoints/media';
+	import { encodeMediaFileUrl, mdDestination, mediaMarkdown, type MediaItem } from '$lib/api/endpoints/media';
 	import MediaBrowser from '$lib/components/media/MediaBrowser.svelte';
 	import type { MediaPickResult } from '$lib/stores/mediaPicker.svelte';
 
@@ -40,7 +40,7 @@
 	});
 
 	function pickSite(result: MediaPickResult) {
-		oninsert(`![${result.alt}](${result.url})`);
+		oninsert(`![${result.alt}](${mdDestination(result.url)})`);
 	}
 
 	function thumb(item: MediaItem): string {
@@ -56,7 +56,7 @@
 	function insertUrl() {
 		const src = url.trim();
 		if (!src) return;
-		oninsert(`![${alt.trim()}](${src})`);
+		oninsert(`![${alt.trim()}](${mdDestination(src)})`);
 	}
 
 	function handleBackdrop(e: MouseEvent) {

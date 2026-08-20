@@ -28,6 +28,7 @@
 	import { onMount, getContext, untrack } from 'svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
+	import { mdDestination } from '$lib/api/endpoints/media';
 	import { EditorView, keymap, placeholder as cmPlaceholder, drawSelection, type KeyBinding, type ViewUpdate } from '@codemirror/view';
 	import { EditorState, type Extension } from '@codemirror/state';
 	import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
@@ -135,7 +136,10 @@
 		// Build the page media base path (e.g. /user/pages/01.home/)
 		const cleanRoute = pageRoute.startsWith('/') ? pageRoute.slice(1) : pageRoute;
 
-		return md.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, src) => {
+		return md.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, rawSrc) => {
+			// Unwrap a CommonMark `<My image.jpg>` destination before resolving;
+			// re-wrap on the way out so `marked` accepts the space in the preview.
+			const src = rawSrc.startsWith('<') && rawSrc.endsWith('>') ? rawSrc.slice(1, -1) : rawSrc;
 			let resolved = src;
 
 			if (src.startsWith('media://')) {
@@ -157,7 +161,7 @@
 				}
 			}
 
-			return `![${alt}](${resolved})`;
+			return `![${alt}](${mdDestination(resolved)})`;
 		});
 	}
 
@@ -420,7 +424,7 @@
 					event.preventDefault();
 
 					const pos = view?.posAtCoords({ x: event.clientX, y: event.clientY }) ?? view?.state.doc.length ?? 0;
-					const insertions = imageFiles.map(f => `![${f.name}](${f.name})`).join('\n');
+					const insertions = imageFiles.map(f => `![${f.name}](${mdDestination(f.name)})`).join('\n');
 
 					view?.dispatch({
 						changes: { from: pos, insert: insertions },
@@ -438,7 +442,7 @@
 					event.preventDefault();
 
 					const pos = view?.state.selection.main.head ?? 0;
-					const insertions = imageFiles.map(f => `![${f.name || 'image'}](${f.name || 'pasted-image'})`).join('\n');
+					const insertions = imageFiles.map(f => `![${f.name || 'image'}](${mdDestination(f.name || 'pasted-image')})`).join('\n');
 
 					view?.dispatch({
 						changes: { from: pos, insert: insertions },
@@ -462,6 +466,24 @@
 		}
 
 		return extensions;
+	}
+
+	// Clicks that land in the editor box but outside CodeMirror's contentDOM
+	// (CM only listens there) still focus the editor and place the cursor at
+	// the nearest position, so no part of the box is ever dead (admin2#61).
+	function focusFromDeadZone(e: MouseEvent) {
+		if (!view || e.button !== 0 || disabled) return;
+		const target = e.target as Node;
+		if (view.contentDOM.contains(target)) return; // CM handles it
+		// Leave the scroller's own scrollbar alone.
+		if (target === view.scrollDOM) {
+			const r = view.scrollDOM.getBoundingClientRect();
+			if (e.clientX > r.left + view.scrollDOM.clientWidth || e.clientY > r.top + view.scrollDOM.clientHeight) return;
+		}
+		e.preventDefault();
+		const pos = view.posAtCoords({ x: e.clientX, y: e.clientY }, false) ?? view.state.doc.length;
+		view.dispatch({ selection: { anchor: pos } });
+		view.focus();
 	}
 
 	function createEditor() {
@@ -1033,6 +1055,8 @@
 		bind:this={editorContainer}
 		class={cn('markdown-editor-cm', stickyToolbar && 'rounded-b-md')}
 		dir="ltr"
+		role="presentation"
+		onmousedown={focusFromDeadZone}
 		style:min-height={effectiveMaxHeight || minHeight}
 		style:--cm-max-h={effectiveMaxHeight || 'none'}
 		style:display={showPreview ? 'none' : ''}
@@ -1048,19 +1072,20 @@
 />
 
 <style>
-	/* Ensure the CodeMirror editor fills its container. The wrapper is a flex
-	   column and the editor flex-grows so it occupies the full `min-height`
-	   even when the document is short — without this the .cm-editor collapses
-	   to its content height, leaving the empty area below it dead to clicks so
-	   only the text itself could focus the editor (admin2#61). CM6 then makes
-	   .cm-scroller / .cm-content fill that height, so a click anywhere places
-	   the cursor. */
+	/* Ensure the CodeMirror editor fills its container (admin2#61). The wrapper
+	   is a single-row grid so the .cm-editor's height is *definite* even though
+	   the wrapper only has a `min-height`; CM6's own `.cm-scroller { height:
+	   100% }` and `.cm-content { min-height: 100% }` then resolve and the whole
+	   box is clickable. A flex column with flex-grow is NOT enough: a flexed
+	   size inside a min-height-only container is indefinite per spec, so the
+	   percentage heights collapse and the empty area below the last line is
+	   dead to clicks (CM only listens on contentDOM). */
 	.markdown-editor-cm {
-		display: flex;
-		flex-direction: column;
+		display: grid;
+		grid-template-rows: minmax(0, 1fr);
 	}
 	.markdown-editor-cm :global(.cm-editor) {
-		flex: 1 1 auto;
+		min-height: 0;
 		/* When a fixed height is set (admin2#37), cap the editor here — the
 		   CodeMirror-recommended spot — so `.cm-scroller` scrolls internally
 		   instead of the whole page growing. `none` = auto-grow. */
