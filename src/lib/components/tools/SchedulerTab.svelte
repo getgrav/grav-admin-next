@@ -137,6 +137,20 @@
 			</div>
 		{/if}
 
+		<!-- Cron runs under a different environment than the site: overrides never load (grav#4248) -->
+		{#if status?.environment_has_overrides && status.last_run_environment && status.last_run_environment !== status.environment}
+			<div class="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+				<AlertTriangle size={16} class="mt-0.5 shrink-0" />
+				<div class="min-w-0 flex-1 space-y-2">
+					<p>{@html i18n.tHtml('ADMIN_NEXT.TOOLS.SCHEDULER.ENVIRONMENT_MISMATCH', { current: status.environment, last: status.last_run_environment })}</p>
+					<div class="flex items-start gap-2">
+						<code class="block flex-1 overflow-x-auto rounded-md bg-muted px-3 py-2 font-mono text-xs text-foreground">{status.scheduler_command}</code>
+						<CopyButton text={status.scheduler_command} />
+					</div>
+				</div>
+			</div>
+		{/if}
+
 		<!-- Info Banner -->
 		<div class="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-300">
 			<Info size={16} class="mt-0.5 shrink-0" />

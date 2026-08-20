@@ -65,6 +65,12 @@ export interface SchedulerStatus {
 	cron_detection: 'last-run' | 'crontab' | 'unavailable';
 	process_available: boolean;
 	last_run: string | null;
+	/** Environment the admin request booted with (e.g. the hostname). */
+	environment?: string | null;
+	/** True when that environment has its own user/env/<env>/config overrides. */
+	environment_has_overrides?: boolean;
+	/** Environment the scheduler last ran under ('cli' for an unpinned crontab). */
+	last_run_environment?: string | null;
 	cron_command: string;
 	scheduler_command: string;
 	whoami: string;
