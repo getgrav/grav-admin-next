@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { base } from '$app/paths';
-	import { forgotPassword } from '$lib/api/auth';
+	import { forgotPassword, getCaptchaConfig, CAPTCHA_DISABLED, type CaptchaConfig } from '$lib/api/auth';
+	import LoginCaptcha from '$lib/components/auth/LoginCaptcha.svelte';
 	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
 	import { Sun, Moon, Mail, Loader2 } from 'lucide-svelte';
@@ -13,6 +15,18 @@
 	let loading = $state(false);
 	let submitted = $state(false);
 	let emailInvalid = $state(false);
+
+	// This endpoint sends mail, so it's a more attractive bot target than login
+	// itself — the server gates it separately.
+	let captchaConfig = $state<CaptchaConfig>(CAPTCHA_DISABLED);
+	let captchaReady = $state(true);
+	let captcha: { token: () => Promise<string>; reset: () => void } | null = $state(null);
+
+	onMount(() => {
+		getCaptchaConfig()
+			.then((config) => { captchaConfig = config; })
+			.catch(() => { /* no-op — no challenge if unavailable */ });
+	});
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
@@ -26,7 +40,15 @@
 
 		loading = true;
 		try {
-			const result = await forgotPassword(trimmed);
+			let captchaToken = '';
+			try {
+				captchaToken = (await captcha?.token()) ?? '';
+			} catch (err) {
+				toast.error(err instanceof Error ? err.message : i18n.t('ADMIN_NEXT.LOGIN.CAPTCHA_NOT_COMPLETED'));
+				return;
+			}
+
+			const result = await forgotPassword(trimmed, captchaToken);
 			submitted = true;
 			toast.success(result.message ?? 'Reset email sent');
 		} catch (err: unknown) {
@@ -42,6 +64,7 @@
 			}
 		} finally {
 			loading = false;
+			captcha?.reset();
 		}
 	}
 </script>
@@ -105,7 +128,14 @@
 						{/if}
 					</div>
 
-					<Button type="submit" class="w-full" disabled={loading}>
+					<LoginCaptcha
+						bind:this={captcha}
+						bind:ready={captchaReady}
+						config={captchaConfig}
+						flow={captchaConfig.flows.forgotPassword}
+					/>
+
+					<Button type="submit" class="w-full" disabled={loading || !captchaReady}>
 						{#if loading}
 							<Loader2 size={15} class="animate-spin" />
 							{i18n.t('ADMIN_NEXT.FORGOT.SENDING')}

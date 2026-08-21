@@ -5,7 +5,17 @@
 	import { page } from '$app/state';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { login, verify2fa, getSetupStatus, getSsoProviders, type SsoProvider } from '$lib/api/auth';
+	import {
+		login,
+		verify2fa,
+		getSetupStatus,
+		getSsoProviders,
+		getCaptchaConfig,
+		CAPTCHA_DISABLED,
+		type SsoProvider,
+		type CaptchaConfig,
+	} from '$lib/api/auth';
+	import LoginCaptcha from '$lib/components/auth/LoginCaptcha.svelte';
 	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
 	import { Sun, Moon, LogIn, Server, Globe, ChevronDown, Loader2, ShieldCheck } from 'lucide-svelte';
@@ -50,6 +60,11 @@
 	let ssoProviders = $state<SsoProvider[]>([]);
 	let ssoLoaded = $state(false);
 
+	let captchaConfig = $state<CaptchaConfig>(CAPTCHA_DISABLED);
+	let captchaLoaded = $state(false);
+	let captchaReady = $state(true);
+	let captcha: { token: () => Promise<string>; reset: () => void } | null = $state(null);
+
 	const usernameInvalid = $derived(attempted && stage === 'credentials' && !username.trim());
 	const passwordInvalid = $derived(attempted && stage === 'credentials' && !password.trim());
 
@@ -84,6 +99,17 @@
 			getSsoProviders()
 				.then((list) => { ssoProviders = list; })
 				.catch(() => { /* no-op — no buttons if unavailable */ });
+		}
+	});
+
+	// Ask whether a captcha guards the login, the same best-effort way as the SSO
+	// providers above and gated identically.
+	$effect(() => {
+		if ((auth.hasGravConfig || auth.serverUrl) && !captchaLoaded) {
+			captchaLoaded = true;
+			getCaptchaConfig()
+				.then((config) => { captchaConfig = config; })
+				.catch(() => { /* no-op — no challenge if unavailable */ });
 		}
 	});
 
@@ -139,7 +165,16 @@
 		loading = true;
 		try {
 			auth.setServer(serverUrl, environment);
-			const result = await login(username, password);
+
+			let captchaToken = '';
+			try {
+				captchaToken = (await captcha?.token()) ?? '';
+			} catch (err) {
+				toast.error(err instanceof Error ? err.message : i18n.t('ADMIN_NEXT.LOGIN.CAPTCHA_NOT_COMPLETED'));
+				return;
+			}
+
+			const result = await login(username, password, captchaToken);
 			if (result.requires2fa && result.challengeToken) {
 				stage = '2fa';
 				challengeToken = result.challengeToken;
@@ -163,6 +198,9 @@
 			}
 		} finally {
 			loading = false;
+			// The server consumes the captcha token on every attempt, right or
+			// wrong, so the next try needs a freshly solved one.
+			captcha?.reset();
 		}
 	}
 
@@ -324,7 +362,14 @@
 						</div>
 					</div>
 
-					<Button type="submit" class="w-full" disabled={loading}>
+					<LoginCaptcha
+						bind:this={captcha}
+						bind:ready={captchaReady}
+						config={captchaConfig}
+						flow={captchaConfig.flows.login}
+					/>
+
+					<Button type="submit" class="w-full" disabled={loading || !captchaReady}>
 						{#if loading}
 							<Loader2 size={15} class="animate-spin" />
 							{i18n.t('ADMIN_NEXT.LOGIN.SIGNING_IN')}

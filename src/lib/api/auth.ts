@@ -82,10 +82,15 @@ async function finalizeLogin(data: TokenResponse, fallbackSubject: string): Prom
 	}
 }
 
-export async function login(username: string, password: string): Promise<LoginResult> {
+export async function login(
+	username: string,
+	password: string,
+	captchaToken?: string,
+): Promise<LoginResult> {
 	const data = await api.post<TokenResponse | ChallengeResponse>('/auth/token', {
 		username,
 		password,
+		...(captchaToken ? { captcha_token: captchaToken } : {}),
 	});
 
 	if ('requires_2fa' in data && data.requires_2fa) {
@@ -94,6 +99,70 @@ export async function login(username: string, password: string): Promise<LoginRe
 
 	await finalizeLogin(data as TokenResponse, username);
 	return { requires2fa: false };
+}
+
+export type CaptchaProvider = 'cap' | 'turnstile' | 'recaptcha';
+
+export interface CaptchaConfig {
+	enabled: boolean;
+	provider: CaptchaProvider | null;
+	mode: 'invisible' | 'checkbox';
+	/** Body field the solved token goes in. */
+	tokenField: string;
+	/** Which unauthenticated flows the server gates. */
+	flows: { login: boolean; forgotPassword: boolean; setup: boolean };
+	/** Public widget key — turnstile and recaptcha only. */
+	siteKey: string;
+	/** Configured reCAPTCHA version, e.g. '2-checkbox' or '3'. */
+	version: string;
+}
+
+export const CAPTCHA_DISABLED: CaptchaConfig = {
+	enabled: false,
+	provider: null,
+	mode: 'invisible',
+	tokenField: 'captcha_token',
+	flows: { login: false, forgotPassword: false, setup: false },
+	siteKey: '',
+	version: '',
+};
+
+/**
+ * Ask the server which captcha (if any) guards the unauthenticated auth
+ * endpoints. Best-effort, like getSsoProviders(): if this can't be reached we
+ * render no challenge. That's not a hole — the server still rejects a login
+ * with no token, so the failure is visible rather than silent.
+ */
+export async function getCaptchaConfig(): Promise<CaptchaConfig> {
+	try {
+		const data = await api.get<{
+			enabled?: boolean;
+			provider?: string | null;
+			mode?: string;
+			token_field?: string;
+			flows?: { login?: boolean; forgot_password?: boolean; setup?: boolean };
+			site_key?: string;
+			version?: string;
+		}>('/auth/captcha');
+
+		if (!data?.enabled || !data.provider) return CAPTCHA_DISABLED;
+
+		return {
+			enabled: true,
+			provider: data.provider as CaptchaProvider,
+			mode: data.mode === 'checkbox' ? 'checkbox' : 'invisible',
+			tokenField: data.token_field || 'captcha_token',
+			flows: {
+				login: Boolean(data.flows?.login),
+				forgotPassword: Boolean(data.flows?.forgot_password),
+				setup: Boolean(data.flows?.setup),
+			},
+			siteKey: data.site_key ?? '',
+			version: data.version ?? '',
+		};
+	} catch {
+		return CAPTCHA_DISABLED;
+	}
 }
 
 export interface SsoProvider {
@@ -156,8 +225,11 @@ export interface SetupData {
 	fullname?: string;
 }
 
-export async function setupFirstUser(input: SetupData): Promise<void> {
-	const data = await api.post<TokenResponse>('/auth/setup', input);
+export async function setupFirstUser(input: SetupData, captchaToken?: string): Promise<void> {
+	const data = await api.post<TokenResponse>('/auth/setup', {
+		...input,
+		...(captchaToken ? { captcha_token: captchaToken } : {}),
+	});
 	await finalizeLogin(data, input.username);
 }
 
@@ -169,7 +241,10 @@ export async function verify2fa(challengeToken: string, code: string): Promise<v
 	await finalizeLogin(data, '');
 }
 
-export async function forgotPassword(email: string): Promise<{ message: string }> {
+export async function forgotPassword(
+	email: string,
+	captchaToken?: string,
+): Promise<{ message: string }> {
 	// Send the admin-next origin + base path so the backend can build a
 	// reset link that points back into this admin UI (not the Grav frontend
 	// login plugin's /reset_password page, and not wherever the API happens
@@ -178,6 +253,7 @@ export async function forgotPassword(email: string): Promise<{ message: string }
 		typeof window !== 'undefined' ? window.location.origin + base : undefined;
 	const body: Record<string, string> = { email };
 	if (adminBaseUrl) body.admin_base_url = adminBaseUrl;
+	if (captchaToken) body.captcha_token = captchaToken;
 	return api.post<{ message: string }>('/auth/forgot-password', body);
 }
 

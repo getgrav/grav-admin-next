@@ -3,7 +3,14 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { getSetupStatus, setupFirstUser } from '$lib/api/auth';
+	import {
+		getSetupStatus,
+		setupFirstUser,
+		getCaptchaConfig,
+		CAPTCHA_DISABLED,
+		type CaptchaConfig,
+	} from '$lib/api/auth';
+	import LoginCaptcha from '$lib/components/auth/LoginCaptcha.svelte';
 	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
 	import { Sun, Moon, Server, Globe, ChevronDown, Loader2, UserPlus } from 'lucide-svelte';
@@ -43,6 +50,11 @@
 	let checking = $state(true);
 	let attempted = $state(false);
 
+	let captchaConfig = $state<CaptchaConfig>(CAPTCHA_DISABLED);
+	let captchaLoaded = $state(false);
+	let captchaReady = $state(true);
+	let captcha: { token: () => Promise<string>; reset: () => void } | null = $state(null);
+
 	// Mirror the server rules (Grav core User::isValidUsername + 3-64 length):
 	// letters, numbers, periods, hyphens, underscores; no leading dot, no `..`,
 	// and no filesystem-dangerous chars \ / ? * : ; { } or newlines.
@@ -75,6 +87,17 @@
 			});
 	});
 
+	// Setup normally runs once on a brand-new site, so the server gates it only
+	// if the operator asked for it.
+	$effect(() => {
+		if (auth.serverUrl && !captchaLoaded) {
+			captchaLoaded = true;
+			getCaptchaConfig()
+				.then((config) => { captchaConfig = config; })
+				.catch(() => { /* no-op — no challenge if unavailable */ });
+		}
+	});
+
 	async function handleSetup(e: Event) {
 		e.preventDefault();
 		attempted = true;
@@ -87,12 +110,24 @@
 		loading = true;
 		try {
 			auth.setServer(serverUrl, environment);
-			await setupFirstUser({
-				username: username.trim(),
-				password,
-				email: email.trim(),
-				fullname: fullname.trim() || undefined,
-			});
+
+			let captchaToken = '';
+			try {
+				captchaToken = (await captcha?.token()) ?? '';
+			} catch (err) {
+				toast.error(err instanceof Error ? err.message : i18n.t('ADMIN_NEXT.LOGIN.CAPTCHA_NOT_COMPLETED'));
+				return;
+			}
+
+			await setupFirstUser(
+				{
+					username: username.trim(),
+					password,
+					email: email.trim(),
+					fullname: fullname.trim() || undefined,
+				},
+				captchaToken,
+			);
 			toast.success(i18n.t('ADMIN_NEXT.SETUP.ADMINISTRATOR_ACCOUNT_CREATED_WELCOME'));
 			goto(`${base}/`);
 		} catch (err: unknown) {
@@ -113,6 +148,7 @@
 			}
 		} finally {
 			loading = false;
+			captcha?.reset();
 		}
 	}
 </script>
@@ -265,7 +301,14 @@
 						{/if}
 					</div>
 
-					<Button type="submit" class="w-full" disabled={loading}>
+					<LoginCaptcha
+						bind:this={captcha}
+						bind:ready={captchaReady}
+						config={captchaConfig}
+						flow={captchaConfig.flows.setup}
+					/>
+
+					<Button type="submit" class="w-full" disabled={loading || !captchaReady}>
 						{#if loading}
 							<Loader2 size={15} class="animate-spin" />
 							{i18n.t('ADMIN_NEXT.SETUP.CREATING_ACCOUNT')}
