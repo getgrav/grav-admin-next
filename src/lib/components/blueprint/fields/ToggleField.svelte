@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { renderMarkdownInline } from '$lib/utils/markdown';
+	import { renderMarkdownInline, sanitizeHtml } from '$lib/utils/markdown';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { i18n } from '$lib/stores/i18n.svelte';
 
@@ -93,7 +93,7 @@
 				{#if field.markdown}
 					<p class="mt-0.5 text-xs text-muted-foreground">{@html renderMarkdownInline(desc)}</p>
 				{:else}
-					<p class="mt-0.5 text-xs text-muted-foreground">{desc}</p>
+					<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(desc)}</p>
 				{/if}
 			{/if}
 		</div>

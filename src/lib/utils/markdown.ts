@@ -21,6 +21,21 @@ function clean(html: string): string {
 	return DOMPurify.sanitize(html);
 }
 
+/**
+ * Sanitize a string that is already HTML, with no markdown pass.
+ *
+ * Blueprint `description` and `help` are authored as HTML by whoever ships the
+ * blueprint — admin-classic renders both with `|raw` in forms/field.html.twig —
+ * so escaping them turns documented markup into visible tag soup. They still go
+ * through DOMPurify for the same reason everything else here does: a blueprint
+ * can arrive from a third-party package (GHSA-752r-88j4-vxm3).
+ */
+export function sanitizeHtml(html: string | null | undefined): string {
+	if (!html) return '';
+
+	return clean(html);
+}
+
 /** Render a markdown document as block-level HTML, sanitized. */
 export function renderMarkdown(text: string | null | undefined): string {
 	if (!text) return '';
