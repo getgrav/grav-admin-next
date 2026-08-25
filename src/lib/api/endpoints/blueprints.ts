@@ -100,6 +100,12 @@ export interface BlueprintField {
 	value_type?: string;
 	preview_images?: boolean;
 	folder?: string;
+	/**
+	 * media field — which pickers to offer, in order: `page` (the page's own
+	 * media), `site` (the `user://media` library), `url` (a typed-in address).
+	 * Absent or empty means all three.
+	 */
+	sources?: string[];
 	condition?: string;
 	translate?: boolean;
 	/** colorpicker — when false, hides the alpha slider and emits a 6-digit

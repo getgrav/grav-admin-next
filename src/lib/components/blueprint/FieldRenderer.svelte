@@ -24,6 +24,7 @@
 	import TaxonomyField from './fields/TaxonomyField.svelte';
 	import FolderSlugField from './fields/FolderSlugField.svelte';
 	import FilePickerField from './fields/FilePickerField.svelte';
+	import MediaField from './fields/MediaField.svelte';
 	import FileField from './fields/FileField.svelte';
 	import ElementsField from './fields/ElementsField.svelte';
 	import ConditionalField from './fields/ConditionalField.svelte';
@@ -96,7 +97,7 @@
 	const immediateCommitTypes = new Set([
 		'toggle', 'switch', 'select', 'selectize', 'checkbox', 'checkboxes',
 		'radio', 'datetime', 'dateformat',
-		'filepicker', 'mediapicker', 'pagemediaselect', 'file',
+		'filepicker', 'mediapicker', 'pagemediaselect', 'file', 'media',
 		'pages', 'parents', 'taxonomy', 'cron', 'multilevel',
 		'iconpicker', 'permissions', 'acl_picker', 'themeselect',
 	]);
@@ -609,6 +610,9 @@
 
 {:else if field.type === 'pagemedia'}
 	<PageMediaField />
+
+{:else if field.type === 'media'}
+	<MediaField {field} {value} onchange={committingOnchange} />
 
 {:else if field.type === 'filepicker' || field.type === 'mediapicker' || field.type === 'pagemediaselect'}
 	<FilePickerField {field} {value} onchange={committingOnchange} />

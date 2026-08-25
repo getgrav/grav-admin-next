@@ -35,3 +35,23 @@ export interface MediaSource {
 	apiBase: string | null;
 	invalidationKeys: string[];
 }
+
+/** Which picker tab a value came from — also the `sources` blueprint vocabulary. */
+export type MediaSourceKind = 'page' | 'site' | 'url';
+
+/** One pick made in the shared media picker (MediaSourceTabs). */
+export interface MediaSelection {
+	/**
+	 * The value to store: a bare filename for page media, a `media://path/file`
+	 * stream path for site media, or the URL exactly as typed.
+	 */
+	value: string;
+	/** Absolute URL for previewing the pick. */
+	display: string;
+	/** Resolved alt text (sidecar alt → title → filename), or what was typed. */
+	alt: string;
+	/** The tab that produced it. */
+	source: MediaSourceKind;
+	/** The underlying page-media item, when the page tab produced it. */
+	item?: MediaItem;
+}
