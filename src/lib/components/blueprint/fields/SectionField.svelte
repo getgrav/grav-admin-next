@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
+	import { faIconClass } from '$lib/utils/fa-icon';
 	import { ChevronDown } from 'lucide-svelte';
 	import { renderMarkdownInline } from '$lib/utils/markdown';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
@@ -102,7 +103,7 @@
 		{#snippet heading()}
 			<h3 class="flex items-center gap-2 text-base font-bold text-foreground">
 				{#if field.icon}
-					<i class="fa-solid fa-{field.icon} text-sm text-muted-foreground"></i>
+					<i class="{faIconClass(field.icon)} text-sm text-muted-foreground"></i>
 				{/if}
 				<span>{translateLabel(field.title || field.label)}</span>
 				{#if field.collapsible}

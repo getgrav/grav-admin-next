@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { faIconClass } from '$lib/utils/fa-icon';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api/client';
 	import { floatingWidgetStore } from '$lib/stores/floatingWidgets.svelte';
@@ -16,12 +17,9 @@
 	const FAB_MARGIN = 20;
 	const SPEED_DIAL_THRESHOLD = 3;
 
-	// Normalize Font Awesome icon class: accept "bot", "fa-bot", or "fa-solid fa-bot"
+	// Normalize Font Awesome icon class: accept "bot", "fa-bot", "fa-brands fa-github"
 	function faClass(icon: string): string {
-		if (!icon) return 'fa-solid fa-robot';
-		if (icon.includes('fa-solid') || icon.includes('fa-regular') || icon.includes('fa-brands')) return icon;
-		const name = icon.startsWith('fa-') ? icon : 'fa-' + icon;
-		return 'fa-solid ' + name;
+		return faIconClass(icon) || 'fa-solid fa-robot';
 	}
 
 	// Speed dial state

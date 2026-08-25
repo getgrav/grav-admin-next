@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { faIconClass } from '$lib/utils/fa-icon';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { executeMenubarAction, type MenubarItem, type MenubarPlacement } from '$lib/api/endpoints/menubar';
@@ -112,7 +113,7 @@
 			title={item.label}
 		>
 			{#if item.icon}
-				<i class="fa-solid {item.icon.startsWith('fa-') ? item.icon : 'fa-' + item.icon} text-sm"></i>
+				<i class="{faIconClass(item.icon)} text-sm"></i>
 			{:else}
 				<i class="fa-solid fa-circle-dot text-sm"></i>
 			{/if}
@@ -130,7 +131,7 @@
 			{#if executing === item.id}
 				<Loader2 size={14} class="animate-spin" />
 			{:else if item.icon}
-				<i class="fa-solid {item.icon.startsWith('fa-') ? item.icon : 'fa-' + item.icon} text-sm"></i>
+				<i class="{faIconClass(item.icon)} text-sm"></i>
 			{:else}
 				<i class="fa-solid fa-circle-dot text-sm"></i>
 			{/if}

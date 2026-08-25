@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { prefs } from '$lib/stores/preferences.svelte';
+	import { faIconClass } from '$lib/utils/fa-icon';
 </script>
 
 {#each prefs.menubarLinks as link}
@@ -12,7 +13,7 @@
 			title={link.label}
 		>
 			{#if link.icon}
-				<i class="fa-solid fa-{link.icon.replace(/^fa-/, '')} text-sm"></i>
+				<i class="{faIconClass(link.icon)} text-sm"></i>
 			{:else}
 				<i class="fa-solid fa-link text-sm"></i>
 			{/if}

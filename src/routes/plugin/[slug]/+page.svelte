@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { faIconClass } from '$lib/utils/fa-icon';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -397,7 +398,7 @@
 				<div class="flex items-center gap-2.5">
 					{#if definition.icon && !scrolled}
 						<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-							<i class="fa-solid {definition.icon.startsWith('fa-') ? definition.icon : 'fa-' + definition.icon} text-sm"></i>
+							<i class="{faIconClass(definition.icon)} text-sm"></i>
 						</div>
 					{/if}
 					<h1 class="font-semibold text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : isSidebarPage ? 'text-xl tracking-tight' : 'text-lg'}">{definition.title}</h1>
@@ -437,7 +438,7 @@
 									{#if Icon}
 										<Icon size={14} class="me-1.5" />
 									{:else if action.icon}
-										<i class="fa-solid {action.icon.startsWith('fa-') ? action.icon : 'fa-' + action.icon} me-1.5 text-xs"></i>
+										<i class="{faIconClass(action.icon)} me-1.5 text-xs"></i>
 									{/if}
 								{/if}
 								{action.label}
@@ -462,7 +463,7 @@
 											onclick={() => { openDropdown = null; executeAction(child); }}
 										>
 											{#if child.icon}
-												<i class="fa-solid {child.icon.startsWith('fa-') ? child.icon : 'fa-' + child.icon} w-4 text-center text-xs text-muted-foreground"></i>
+												<i class="{faIconClass(child.icon)} w-4 text-center text-xs text-muted-foreground"></i>
 											{/if}
 											{child.label}
 										</button>
@@ -489,7 +490,7 @@
 								{#if Icon}
 									<Icon size={14} class="me-1.5" />
 								{:else if action.icon}
-									<i class="fa-solid {action.icon.startsWith('fa-') ? action.icon : 'fa-' + action.icon} me-1.5 text-xs"></i>
+									<i class="{faIconClass(action.icon)} me-1.5 text-xs"></i>
 								{/if}
 							{/if}
 							{action.label}
@@ -508,7 +509,7 @@
 								{#if Icon}
 									<Icon size={14} class="me-1.5" />
 								{:else if action.icon}
-									<i class="fa-solid {action.icon.startsWith('fa-') ? action.icon : 'fa-' + action.icon} me-1.5 text-xs"></i>
+									<i class="{faIconClass(action.icon)} me-1.5 text-xs"></i>
 								{/if}
 							{/if}
 							{action.label}

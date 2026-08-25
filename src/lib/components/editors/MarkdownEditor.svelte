@@ -25,6 +25,7 @@
 
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { faIconClass } from '$lib/utils/fa-icon';
 	import { onMount, getContext, untrack } from 'svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
@@ -1021,7 +1022,7 @@
 					{#if button.icon && button.icon.trim().startsWith('<svg')}
 						{@html button.icon}
 					{:else if button.icon}
-						<i class="fa-solid {button.icon.startsWith('fa-') ? button.icon : 'fa-' + button.icon} text-sm"></i>
+						<i class="{faIconClass(button.icon)} text-sm"></i>
 					{:else}
 						<i class="fa-solid fa-circle-dot text-sm"></i>
 					{/if}

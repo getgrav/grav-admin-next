@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { FA_ICONS } from '$lib/data/fa-icons';
+	import { FA_ICONS, type FaFamily } from '$lib/data/fa-icons';
+	import { FA_FAMILY_CLASS, faIconClass, faIconValue, inferFaFamily, parseFaIconValue } from '$lib/utils/fa-icon';
 	import { Search, X } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 
@@ -11,22 +12,38 @@
 
 	let { value = '', onchange }: Props = $props();
 
+	const FAMILY_TABS: Array<{ value: FaFamily | 'all'; key: string }> = [
+		{ value: 'all', key: 'ADMIN_NEXT.FIELDS.ICON_PICKER.FAMILY_ALL' },
+		{ value: 's', key: 'ADMIN_NEXT.FIELDS.ICON_PICKER.FAMILY_SOLID' },
+		{ value: 'r', key: 'ADMIN_NEXT.FIELDS.ICON_PICKER.FAMILY_REGULAR' },
+		{ value: 'b', key: 'ADMIN_NEXT.FIELDS.ICON_PICKER.FAMILY_BRANDS' }
+	];
+
 	let open = $state(false);
 	let search = $state('');
+	let family = $state<FaFamily | 'all'>('all');
 	let containerEl = $state<HTMLDivElement | null>(null);
 
-	const normalized = $derived(value.replace(/^fa-/, ''));
+	// "fa-<name>" for solid, "fa-brands fa-<name>" / "fa-regular fa-<name>" for
+	// the families that need their own webfont to render.
+	const selected = $derived(parseFaIconValue(value));
+	const normalized = $derived(selected.name);
+	const selectedFamily = $derived(selected.family ?? (normalized ? inferFaFamily(normalized) : null));
 
 	const filteredIcons = $derived.by(() => {
-		if (!search) return FA_ICONS.slice(0, 200);
+		const pool = family === 'all' ? FA_ICONS : FA_ICONS.filter((icon) => icon.f === family);
+		if (!search) return pool.slice(0, 200);
 		const q = search.toLowerCase();
-		return FA_ICONS.filter(
-			(icon) => icon.n.includes(q) || icon.t.includes(q)
-		).slice(0, 200);
+		return pool.filter((icon) => icon.n.includes(q) || icon.t.includes(q)).slice(0, 200);
 	});
 
-	function select(name: string) {
-		onchange('fa-' + name);
+	function familyLabel(value: FaFamily): string {
+		const tab = FAMILY_TABS.find((entry) => entry.value === value);
+		return tab ? i18n.t(tab.key) : '';
+	}
+
+	function select(name: string, iconFamily: FaFamily) {
+		onchange(faIconValue(name, iconFamily));
 		open = false;
 		search = '';
 	}
@@ -55,7 +72,7 @@
 		title={normalized || 'Choose icon'}
 	>
 		{#if normalized}
-			<i class="fa-solid fa-{normalized} text-sm text-foreground"></i>
+			<i class="{faIconClass(value)} text-sm text-foreground"></i>
 		{:else}
 			<i class="fa-solid fa-icons text-sm text-muted-foreground/40"></i>
 		{/if}
@@ -89,19 +106,35 @@
 				{/if}
 			</div>
 
+			<!-- Family filter -->
+			<div class="flex items-center gap-1 border-b border-border px-2 py-1.5">
+				{#each FAMILY_TABS as tab (tab.value)}
+					<button
+						type="button"
+						class="rounded-md px-2 py-0.5 text-[0.6875rem] transition-colors
+							{family === tab.value
+								? 'bg-primary text-primary-foreground'
+								: 'text-muted-foreground hover:bg-accent hover:text-foreground'}"
+						onmousedown={(e) => { e.preventDefault(); family = tab.value; }}
+					>
+						{i18n.t(tab.key)}
+					</button>
+				{/each}
+			</div>
+
 			<!-- Icon grid -->
 			<div class="grid max-h-52 grid-cols-8 gap-0.5 overflow-y-auto p-2">
-				{#each filteredIcons as icon (icon.n)}
+				{#each filteredIcons as icon (icon.f + icon.n)}
 					<button
 						type="button"
 						class="flex h-8 w-full items-center justify-center rounded-md transition-colors
-							{normalized === icon.n
+							{normalized === icon.n && selectedFamily === icon.f
 								? 'bg-primary text-primary-foreground'
 								: 'text-foreground hover:bg-accent'}"
-						title={icon.n}
-						onmousedown={(e) => { e.preventDefault(); select(icon.n); }}
+						title={icon.f === 's' ? icon.n : `${icon.n} (${familyLabel(icon.f)})`}
+						onmousedown={(e) => { e.preventDefault(); select(icon.n, icon.f); }}
 					>
-						<i class="fa-solid fa-{icon.n} text-xs"></i>
+						<i class="{FA_FAMILY_CLASS[icon.f]} fa-{icon.n} text-xs"></i>
 					</button>
 				{/each}
 				{#if filteredIcons.length === 0}

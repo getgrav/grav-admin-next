@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { faIconClass } from '$lib/utils/fa-icon';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -300,7 +301,7 @@
 										: 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
 								onclick={() => mobileOpen = false}
 								title={collapsed ? item.label : undefined}>
-								<i class="fa-solid {item.icon.startsWith('fa-') ? item.icon : 'fa-' + item.icon} w-4 text-center text-[0.8125rem]"></i>
+								<i class="{faIconClass(item.icon)} w-4 text-center text-[0.8125rem]"></i>
 								{#if !collapsed}
 									<span>{item.label}</span>
 									{@const badge = sidebarStore.badges[item.id] ?? item.badge}

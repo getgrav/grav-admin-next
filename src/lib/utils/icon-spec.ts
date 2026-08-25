@@ -1,3 +1,5 @@
+import { FA_FAMILY_CLASS, faIconClass } from '$lib/utils/fa-icon';
+
 export type SvgIconTag = 'path' | 'circle' | 'rect' | 'line' | 'polyline' | 'polygon';
 
 export interface SvgIconElement {
@@ -12,6 +14,7 @@ export interface SvgIconElement {
  * String values preserve the existing Font Awesome shorthand:
  * - "clock" => "fa-solid fa-clock"
  * - "fa:clock" => "fa-solid fa-clock"
+ * - "github" => "fa-brands fa-github" (brand names resolve to their own family)
  * - "fa-regular:clock" => "fa-regular fa-clock"
  * - "class:ti ti-user" => any already loaded CSS icon classes
  *
@@ -101,12 +104,13 @@ function iconClassFromString(value: string): string {
 	if (value.startsWith('fa-regular:')) return fontAwesomeClass(value.slice(11), 'regular');
 	if (value.startsWith('fa-brands:')) return fontAwesomeClass(value.slice(10), 'brands');
 
-	return fontAwesomeClass(value);
+	return faIconClass(value);
 }
 
-function fontAwesomeClass(name: string, style = 'solid'): string {
+function fontAwesomeClass(name: string, style?: 'solid' | 'regular' | 'brands'): string {
 	const icon = name.replace(/^fa-/, '');
-	const family = style.startsWith('fa-') ? style : `fa-${style}`;
+	if (!style) return faIconClass(icon);
+	const family = FA_FAMILY_CLASS[style === 'solid' ? 's' : style === 'regular' ? 'r' : 'b'];
 	return `${family} fa-${icon}`;
 }
 

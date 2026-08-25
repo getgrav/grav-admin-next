@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { faIconClass } from '$lib/utils/fa-icon';
 	import { base } from '$app/paths';
 	import { linkClick } from '$lib/utils/navLink';
 	import type { UserInfo, UserColumn, UserRowAction } from '$lib/api/endpoints/users';
@@ -76,9 +77,7 @@
 	}
 
 	function iconClass(icon: string | undefined): string {
-		if (!icon) return 'fa-solid fa-list';
-		if (icon.includes('fa-solid') || icon.includes('fa-regular') || icon.includes('fa-brands')) return icon;
-		return `fa-solid ${icon.startsWith('fa-') ? icon : 'fa-' + icon}`;
+		return faIconClass(icon) || 'fa-solid fa-list';
 	}
 </script>
 
