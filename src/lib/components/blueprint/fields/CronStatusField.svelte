@@ -2,13 +2,13 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { getSchedulerStatus, getSchedulerJobs, runScheduler } from '$lib/api/endpoints/tools';
-	import type { SchedulerStatus, SchedulerJob } from '$lib/api/endpoints/tools';
+	import { getSchedulerStatus, getSchedulerJobs, runScheduler, runSchedulerJob } from '$lib/api/endpoints/tools';
+	import type { SchedulerStatus, SchedulerJob, SchedulerRunMode, SchedulerRunResult } from '$lib/api/endpoints/tools';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		Play, Loader2, CheckCircle2, XCircle, AlertTriangle,
-		Activity, Webhook, Terminal
+		Activity, Webhook, Terminal, Clock, FastForward, X
 	} from 'lucide-svelte';
 
 	interface Props {
@@ -22,7 +22,11 @@
 	let status = $state<SchedulerStatus | null>(null);
 	let jobs = $state<SchedulerJob[]>([]);
 	let loading = $state(true);
-	let running = $state(false);
+	/** Which run is in flight: a mode for the whole scheduler, a job id, or null. */
+	let running = $state<string | null>(null);
+	let lastResult = $state<SchedulerRunResult | null>(null);
+
+	const overdueCount = $derived(jobs.filter((j) => j.enabled && j.overdue).length);
 
 	async function load() {
 		loading = true;
@@ -42,16 +46,35 @@
 		}
 	}
 
-	async function handleRun() {
-		running = true;
+	async function handleRun(mode: SchedulerRunMode) {
+		await execute(mode, () => runScheduler(mode));
+	}
+
+	async function handleRunJob(job: SchedulerJob) {
+		await execute(job.id, () => runSchedulerJob(job.id));
+	}
+
+	/**
+	 * A run can take a while -- a backup or a reindex is a real shell command -- so the
+	 * result is kept on screen rather than only flashed in a toast. The whole list is
+	 * reloaded afterwards so the last-run times and the overdue flags catch up.
+	 */
+	async function execute(token: string, call: () => Promise<SchedulerRunResult>) {
+		running = token;
+		lastResult = null;
 		try {
-			await runScheduler();
-			toast.success(i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.SCHEDULER_RUN_COMPLETED'));
+			const result = await call();
+			lastResult = result;
+			if (result.jobs_failed > 0) {
+				toast.error(result.message);
+			} else {
+				toast.success(result.message);
+			}
 			await load();
-		} catch {
-			toast.error(i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.FAILED_TO_RUN_SCHEDULER'));
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.FAILED_TO_RUN_SCHEDULER'));
 		} finally {
-			running = false;
+			running = null;
 		}
 	}
 
@@ -66,7 +89,10 @@
 		return `${days} day(s) ago`;
 	}
 
-	function cronToHuman(expr: string): string {
+	function cronToHuman(expr: string | null | undefined): string {
+		// A job registered without a schedule of its own runs every minute, which is what the
+		// scheduler falls back to. Reading the missing value as a string crashed the whole panel.
+		if (!expr) return 'Every minute';
 		const parts = expr.split(/\s+/);
 		if (parts.length < 5) return expr;
 		const [min, hour, dom, mon, dow] = parts;
@@ -90,18 +116,81 @@
 
 		<!-- Job Status Table -->
 		<div class="rounded-lg border border-border bg-card">
-			<div class="flex items-center justify-between border-b border-border px-4 py-3">
+			<div class="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
 				<h3 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.SCHEDULER_STATUS')}</h3>
-				<Button size="sm" variant="outline" onclick={handleRun} disabled={running || status?.process_available === false}>
-					{#if running}
-						<Loader2 size={14} class="animate-spin" />
-						{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.RUNNING')}
-					{:else}
-						<Play size={14} />
-						{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.RUN_ALL')}
-					{/if}
-				</Button>
+				<div class="flex items-center gap-2">
+					<!-- Runs the jobs that missed their last slot. This is what somebody without a
+					     cron entry means by "run the scheduler now": a job counts as due only during
+					     the exact minute its schedule names, so a plain due-run would do nothing. -->
+					<Button size="sm" onclick={() => handleRun('overdue')} disabled={running !== null || status?.process_available === false}>
+						{#if running === 'overdue'}
+							<Loader2 size={14} class="animate-spin" />
+							{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.RUNNING')}
+						{:else}
+							<Play size={14} />
+							{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.RUN_PENDING')}
+							{#if overdueCount > 0}
+								<span class="ms-1 rounded-full bg-primary-foreground/20 px-1.5 text-xs font-semibold">{overdueCount}</span>
+							{/if}
+						{/if}
+					</Button>
+					<Button
+						size="sm"
+						variant="outline"
+						onclick={() => handleRun('all')}
+						disabled={running !== null || status?.process_available === false}
+						title={i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.RUN_ALL_HELP')}
+					>
+						{#if running === 'all'}
+							<Loader2 size={14} class="animate-spin" />
+							{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.RUNNING')}
+						{:else}
+							<FastForward size={14} />
+							{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.RUN_ALL')}
+						{/if}
+					</Button>
+				</div>
 			</div>
+
+			<!-- What a manual run is for, said once, where the buttons are. -->
+			<div class="flex items-start gap-2 border-b border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
+				<Clock size={14} class="mt-0.5 shrink-0" />
+				<span>{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.MANUAL_RUN_HELP')}</span>
+			</div>
+
+			{#if lastResult}
+				<div class="border-b border-border px-4 py-3">
+					<div class="flex items-start justify-between gap-2">
+						<p class="text-sm font-medium text-foreground">
+							{lastResult.message}
+							<span class="font-normal text-muted-foreground">({lastResult.duration}s)</span>
+						</p>
+						<button
+							type="button"
+							class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+							onclick={() => (lastResult = null)}
+							aria-label={i18n.t('ADMIN_NEXT.CLOSE')}
+						>
+							<X size={14} />
+						</button>
+					</div>
+					{#if lastResult.results.length > 0}
+						<ul class="mt-2 space-y-1.5">
+							{#each lastResult.results as result (result.id)}
+								<li class="text-xs">
+									<span class="inline-flex items-center gap-1.5 font-medium {result.successful ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}">
+										{#if result.successful}<CheckCircle2 size={12} />{:else}<XCircle size={12} />{/if}
+										{result.id}
+									</span>
+									{#if result.output}
+										<pre class="mt-1 max-h-32 overflow-auto rounded-md bg-muted px-3 py-2 font-mono text-[0.6875rem] text-muted-foreground whitespace-pre-wrap">{result.output}</pre>
+									{/if}
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				</div>
+			{/if}
 
 			{#if status?.process_available === false}
 				<div class="flex items-start gap-2 border-b border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
@@ -118,8 +207,10 @@
 						<tr class="border-b border-border text-start text-xs font-medium text-muted-foreground">
 							<th class="px-4 py-3">{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.JOB_ID')}</th>
 							<th class="px-4 py-3">Run</th>
+							<th class="px-4 py-3">{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.LAST_RUN')}</th>
 							<th class="px-4 py-3">{i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')}</th>
-							<th class="px-4 py-3 text-end">State</th>
+							<th class="px-4 py-3">State</th>
+							<th class="px-4 py-3 text-end"><span class="sr-only">{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.RUN_NOW')}</span></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -129,23 +220,59 @@
 									<span class="font-medium text-primary">{job.id}</span>
 								</td>
 								<td class="px-4 py-3 text-muted-foreground">{cronToHuman(job.expression)}</td>
-								<td class="px-4 py-3">
-									{#if job.error}
-										<span class="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-semibold text-destructive">
-											<XCircle size={12} /> Error
-										</span>
+								<td class="px-4 py-3 text-muted-foreground">
+									{#if job.last_run}
+										{new Date(job.last_run).toLocaleString()}
+										{#if job.last_run_trigger === 'manual'}
+											<span class="ms-1 text-xs">({i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.BY_HAND')})</span>
+										{/if}
 									{:else}
-										<span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-500">
-											<CheckCircle2 size={12} /> Ready
-										</span>
+										{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.NEVER')}
 									{/if}
 								</td>
-								<td class="px-4 py-3 text-end">
+								<!-- Two different things, so two badges: how the last run went, and whether
+								     the job is waiting on a slot it has already missed. -->
+								<td class="px-4 py-3">
+									<div class="flex flex-wrap items-center gap-1.5">
+										{#if job.error}
+											<span class="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-semibold text-destructive">
+												<XCircle size={12} /> Error
+											</span>
+										{:else}
+											<span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-500">
+												<CheckCircle2 size={12} /> Ready
+											</span>
+										{/if}
+										{#if job.enabled && job.overdue}
+											<span class="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+												<Clock size={12} /> {i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.PENDING')}
+											</span>
+										{/if}
+									</div>
+								</td>
+								<td class="px-4 py-3">
 									{#if job.enabled}
 										<span class="inline-block rounded-l-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">{i18n.t('ADMIN_NEXT.ENABLED')}</span><span class="inline-block rounded-r-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.DISABLED')}</span>
 									{:else}
 										<span class="inline-block rounded-l-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.ENABLED')}</span><span class="inline-block rounded-r-md bg-destructive px-2.5 py-1 text-xs font-semibold text-destructive-foreground">{i18n.t('ADMIN_NEXT.DISABLED')}</span>
 									{/if}
+								</td>
+								<td class="px-4 py-3 text-end">
+									<Button
+										size="icon"
+										variant="ghost"
+										class="h-7 w-7"
+										onclick={() => handleRunJob(job)}
+										disabled={running !== null || !job.enabled || status?.process_available === false}
+										title={i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.RUN_NOW')}
+										aria-label={i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.RUN_NOW')}
+									>
+										{#if running === job.id}
+											<Loader2 size={14} class="animate-spin" />
+										{:else}
+											<Play size={14} />
+										{/if}
+									</Button>
 								</td>
 							</tr>
 						{/each}

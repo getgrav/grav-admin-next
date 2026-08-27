@@ -130,10 +130,19 @@
 			</div>
 		{/if}
 
-		{#if status?.last_run}
+		{#if status?.last_run || status?.last_manual_run}
 			<div class="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
 				<Info size={16} class="mt-0.5 shrink-0" />
-				<span>{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.LAST_TRIGGERED')} {new Date(status.last_run).toLocaleString()}</span>
+				<div class="min-w-0 flex-1 space-y-1">
+					{#if status.last_run}
+						<p>{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.LAST_TRIGGERED')} {new Date(status.last_run).toLocaleString()}</p>
+					{/if}
+					<!-- Kept separate from the trigger above: a run somebody started is not evidence
+					     that anything is triggering the scheduler on its own. -->
+					{#if status.last_manual_run}
+						<p>{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.LAST_MANUAL_RUN')} {new Date(status.last_manual_run).toLocaleString()}</p>
+					{/if}
+				</div>
 			</div>
 		{/if}
 

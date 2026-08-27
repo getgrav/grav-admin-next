@@ -65,6 +65,9 @@ export interface SchedulerStatus {
 	cron_detection: 'last-run' | 'crontab' | 'unavailable';
 	process_available: boolean;
 	last_run: string | null;
+	/** When the scheduler was last run by hand, which is kept apart from `last_run` so it
+	 *  cannot be mistaken for evidence that something triggers it automatically. */
+	last_manual_run?: string | null;
 	/** Environment the admin request booted with (e.g. the hostname). */
 	environment?: string | null;
 	/** True when that environment has its own user/env/<env>/config overrides. */
@@ -83,11 +86,30 @@ export interface SchedulerStatus {
 export interface SchedulerJob {
 	id: string;
 	command: string;
-	expression: string;
+	/** Null for a job registered without a schedule of its own; those run every minute. */
+	expression: string | null;
 	enabled: boolean;
 	status: string;
 	last_run: string | null;
+	/** What started the last run: 'cron' for an automated trigger, 'manual' for a person. */
+	last_run_trigger?: 'cron' | 'manual' | null;
+	/** When the schedule next calls for this job. */
+	next_run?: string | null;
+	/** Whether the job has missed the last slot its schedule gave it. */
+	overdue?: boolean;
 	error: string | null;
+}
+
+/** What a run picks up. 'overdue' is the default for a run somebody asks for. */
+export type SchedulerRunMode = 'overdue' | 'due' | 'all';
+
+export interface SchedulerRunResult {
+	message: string;
+	mode: SchedulerRunMode | 'job';
+	jobs_run: number;
+	jobs_failed: number;
+	duration: number;
+	results: { id: string; successful: boolean; output: string }[];
 }
 
 export async function getSchedulerStatus(): Promise<SchedulerStatus> {
@@ -98,8 +120,12 @@ export async function getSchedulerJobs(): Promise<SchedulerJob[]> {
 	return api.get<SchedulerJob[]>('/scheduler/jobs');
 }
 
-export async function runScheduler(force = false): Promise<{ message: string }> {
-	return api.post<{ message: string }>('/scheduler/run', { force });
+export async function runScheduler(mode: SchedulerRunMode = 'overdue'): Promise<SchedulerRunResult> {
+	return api.post<SchedulerRunResult>('/scheduler/run', { mode });
+}
+
+export async function runSchedulerJob(job: string): Promise<SchedulerRunResult> {
+	return api.post<SchedulerRunResult>('/scheduler/run', { job });
 }
 
 // ── Logs ──
