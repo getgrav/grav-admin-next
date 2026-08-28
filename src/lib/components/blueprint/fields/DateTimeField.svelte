@@ -20,14 +20,13 @@
 	 * Locale driving the order of the picker's segments. Without it bits-ui
 	 * falls back to `en-US`, so the field reads month-day-year for everyone and
 	 * typing a day above 12 into the first segment silently lands in the wrong
-	 * one. The regional part is what decides the order, which the admin language
-	 * on its own does not carry -- `en` gives m/d/y where `en-GB` gives d/m/y --
-	 * so read the browser's locale, the same thing every other date in the admin
-	 * is already formatted with via toLocaleDateString().
+	 * one. Admin lang codes are already canonical BCP 47 (`en-US`, `pt-BR`), so
+	 * they feed Intl directly. Deliberately the chosen admin language rather
+	 * than the browser's locale: the admin has never picked date conventions up
+	 * from the visitor's machine, and a setting the operator controls is easier
+	 * to reason about than one that changes with whoever is logged in.
 	 */
-	const locale = $derived(
-		(typeof navigator !== 'undefined' && navigator.language) || i18n.lang || 'en'
-	);
+	const locale = $derived(i18n.lang || 'en-US');
 
 	/** Build a CalendarDateTime from a native Date. */
 	function toCalendar(d: Date): CalendarDateTime {
