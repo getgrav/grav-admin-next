@@ -482,19 +482,24 @@
 		<TextareaField {field} {value} {onchange} error={fieldError} />
 	</div>
 
-{:else if field.type === 'select' && (field.multiple || field.selectize)}
+{:else if field.type === 'select' && field.multiple}
 	<!-- Mirror Grav's classic form-plugin select+selectize+multiple semantics:
 	     by default the stored value is the option label, not the key. Opt in to
 	     storing keys via `selectize.store_keys: true` in the blueprint. Both
 	     this branch and the form plugin's select.html.twig honor the same flag
-	     so blueprints round-trip identically across admin-classic and admin-next. -->
-	{@const storeKeys =
+	     so blueprints round-trip identically across admin-classic and admin-next.
+	     Both halves of classic's rule matter: the tag input, and the
+	     label-as-value default, apply only when the field is `multiple`. A
+	     single-value select that merely carries `selectize: create: true` stores
+	     one key and belongs in the plain select below
+	     (getgrav/grav-plugin-admin2#166). -->
+	{@const useLabelAsValue = !!field.selectize && !(
 		field.selectize !== null && typeof field.selectize === 'object' &&
-		(field.selectize as Record<string, unknown>).store_keys === true}
+		(field.selectize as Record<string, unknown>).store_keys === true)}
 	<SelectizeField
-		field={storeKeys
-			? field
-			: { ...field, options: field.options?.map((o) => ({ value: o.label, label: o.label })) }}
+		field={useLabelAsValue
+			? { ...field, options: field.options?.map((o) => ({ value: o.label, label: o.label })) }
+			: field}
 		{value}
 		onchange={committingOnchange}
 		error={fieldError}

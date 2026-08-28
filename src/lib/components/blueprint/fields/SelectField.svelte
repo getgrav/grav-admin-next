@@ -36,11 +36,6 @@
 		}
 	});
 
-	// Merge blueprint options with dynamically resolved ones
-	const options = $derived(
-		field.options && field.options.length > 0 ? field.options : resolvedOptions
-	);
-
 	function normalize(v: unknown): string {
 		if (v === true) return '1';
 		if (v === false) return '0';
@@ -51,6 +46,23 @@
 	const effectiveValue = $derived(
 		value !== undefined && value !== null ? normalize(value) : normalize(field.default)
 	);
+
+	// Merge blueprint options with dynamically resolved ones, then do the two
+	// things classic's select.html.twig does that a bare <select> cannot: render
+	// `placeholder` as the empty-valued option, so an unset field shows its own
+	// "nothing chosen" wording instead of silently displaying the first option;
+	// and keep a stored value that is not in the list — a hand-written date
+	// format, say — as a real option so it stays selected rather than vanishing.
+	const options = $derived.by(() => {
+		const base = field.options && field.options.length > 0 ? field.options : resolvedOptions;
+		const merged = field.placeholder && !base.some((o) => o.value === '')
+			? [{ value: '', label: String(field.placeholder) }, ...base]
+			: base;
+		const current = effectiveValue;
+		return current && !merged.some((o) => o.value === current)
+			? [...merged, { value: current, label: current }]
+			: merged;
+	});
 </script>
 
 <div class="space-y-2">

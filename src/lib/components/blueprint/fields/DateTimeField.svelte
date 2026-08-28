@@ -4,7 +4,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { DatePicker } from 'bits-ui';
 	import { CalendarDateTime, type DateValue } from '@internationalized/date';
-	import { Calendar as CalendarIcon, X } from 'lucide-svelte';
+	import { Calendar as CalendarIcon, Clock, X } from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	interface Props {
@@ -161,6 +161,11 @@
 		onchange('');
 	}
 
+	/** Fill the field with the current date and time. */
+	function handleSetNow() {
+		onchange(formatForStorage(toCalendar(new Date())));
+	}
+
 	const now = new Date();
 	const placeholder = new CalendarDateTime(
 		now.getFullYear(),
@@ -225,6 +230,18 @@
 					aria-label={i18n.t('ADMIN_NEXT.FIELDS.CLEAR_DATE')}
 				>
 					<X size={14} />
+				</button>
+			{/if}
+
+			{#if !field.disabled && !field.readonly}
+				<button
+					type="button"
+					class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-input bg-muted/50 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+					onclick={handleSetNow}
+					title={i18n.t('ADMIN_NEXT.FIELDS.SET_DATE_NOW')}
+					aria-label={i18n.t('ADMIN_NEXT.FIELDS.SET_DATE_NOW')}
+				>
+					<Clock size={14} />
 				</button>
 			{/if}
 
