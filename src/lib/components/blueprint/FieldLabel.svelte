@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
-	import { renderMarkdownInline } from '$lib/utils/markdown';
+	import { renderMarkdownInline, sanitizeHtml } from '$lib/utils/markdown';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import FieldOverrideIndicator from './FieldOverrideIndicator.svelte';
 
@@ -50,7 +50,7 @@
 		{#if highlight}
 			{@html highlight(i18n.tMaybe(field.help))}
 		{:else}
-			{@html i18n.tMaybe(field.help)}
+			{@html sanitizeHtml(i18n.tMaybe(field.help))}
 		{/if}
 	</p>
 {/if}

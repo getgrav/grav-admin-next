@@ -86,7 +86,7 @@
 				</span>
 			{/if}
 			{#if field.help}
-				<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
+				<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
 			{/if}
 			{#if field.description}
 				{@const desc = translateLabel(field.description)}

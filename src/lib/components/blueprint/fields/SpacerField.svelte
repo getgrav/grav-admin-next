@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { renderMarkdown } from '$lib/utils/markdown';
+	import { renderMarkdown, sanitizeHtml } from '$lib/utils/markdown';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { i18n } from '$lib/stores/i18n.svelte';
 
@@ -33,7 +33,7 @@
 				{#if field.markdown}
 					{@html renderMarkdown(text)}
 				{:else}
-					{@html text}
+					{@html sanitizeHtml(text)}
 				{/if}
 			</div>
 		{/if}

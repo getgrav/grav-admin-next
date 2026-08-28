@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
+	import { sanitizeHtml } from '$lib/utils/markdown';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import MarkdownEditor from '$lib/components/editors/MarkdownEditor.svelte';
 	import { getContext } from 'svelte';
@@ -65,6 +66,6 @@
 	/>
 	{/if}
 	{#if field.help}
-		<span class="text-xs text-muted-foreground">{@html translateLabel(field.help)}</span>
+		<span class="text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</span>
 	{/if}
 </div>

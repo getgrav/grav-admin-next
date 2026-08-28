@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
+	import { sanitizeHtml } from '$lib/utils/markdown';
 	import { FA_ICONS, type FaFamily } from '$lib/data/fa-icons';
 	import { FA_FAMILY_CLASS, faIconClass, faIconValue, inferFaFamily, parseFaIconValue } from '$lib/utils/fa-icon';
 	import { i18n } from '$lib/stores/i18n.svelte';
@@ -79,7 +80,7 @@
 				<label class="text-sm font-semibold text-foreground">{translateLabel(field.label)}</label>
 			{/if}
 			{#if field.help}
-				<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
+				<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
 			{/if}
 		</div>
 	{/if}

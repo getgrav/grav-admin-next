@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { sanitizeHtml } from '$lib/utils/markdown';
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
 	import { getInstalledPlugins, setPluginEnabled, checkUpdates, updatePackage, updateAllPackages, removePlugin, getPluginChangelog, type PluginInfo } from '$lib/api/endpoints/gpm';
@@ -603,7 +604,7 @@
 						{#if selectedPlugin.description}
 							{#if selectedPlugin.description_html}
 								<div class="prose prose-sm dark:prose-invert mt-4 max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">
-									{@html selectedPlugin.description_html}
+									{@html sanitizeHtml(selectedPlugin.description_html)}
 								</div>
 							{:else}
 								<p class="mt-4 text-sm leading-relaxed text-muted-foreground">

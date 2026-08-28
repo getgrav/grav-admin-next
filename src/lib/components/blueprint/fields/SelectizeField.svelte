@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
+	import { sanitizeHtml } from '$lib/utils/markdown';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { X } from 'lucide-svelte';
 
@@ -196,7 +197,7 @@
 				</label>
 			{/if}
 			{#if field.help}
-				<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
+				<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
 			{/if}
 		</div>
 	{/if}

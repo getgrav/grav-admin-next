@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
-	import { renderMarkdown } from '$lib/utils/markdown';
+	import { renderMarkdown, sanitizeHtml } from '$lib/utils/markdown';
 	import TabsField from './fields/TabsField.svelte';
 	import SectionField from './fields/SectionField.svelte';
 	import SpacerField from './fields/SpacerField.svelte';
@@ -392,7 +392,7 @@
 					<label class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{translateLabel(field.label)}{#if field.validate?.required}<span class="text-red-500">*</span>{/if}<FieldOverrideIndicator path={field.name} /></label>
 				{/if}
 				{#if field.help}
-					<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
+					<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
 				{/if}
 			</div>
 		{/if}
@@ -537,7 +537,7 @@
 			<FieldOverrideIndicator path={field.name} />
 		</label>
 		{#if field.help}
-			<p class="mt-0.5 ms-7 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
+			<p class="mt-0.5 ms-7 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
 		{/if}
 	</div>
 
@@ -550,7 +550,7 @@
 					<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{translateLabel(field.label)}{#if field.validate?.required}<span class="text-red-500">*</span>{/if}<FieldOverrideIndicator path={field.name} /></span>
 				{/if}
 				{#if field.help}
-					<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
+					<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
 				{/if}
 			</div>
 		{/if}
@@ -592,7 +592,7 @@
 					<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{translateLabel(field.label)}{#if field.validate?.required}<span class="text-red-500">*</span>{/if}<FieldOverrideIndicator path={field.name} /></span>
 				{/if}
 				{#if field.help}
-					<p class="mt-0.5 text-xs text-muted-foreground">{@html translateLabel(field.help)}</p>
+					<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
 				{/if}
 			</div>
 		{/if}

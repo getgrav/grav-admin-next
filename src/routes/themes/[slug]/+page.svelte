@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { sanitizeHtml } from '$lib/utils/markdown';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -594,7 +595,7 @@
 							{#if theme.description}
 								{#if theme.description_html}
 									<div class="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">
-										{@html theme.description_html}
+										{@html sanitizeHtml(theme.description_html)}
 									</div>
 								{:else}
 									<p class="text-sm leading-relaxed text-muted-foreground">{theme.description}</p>

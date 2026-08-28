@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { sanitizeHtml } from '$lib/utils/markdown';
 	import { getRepositoryPlugins, installPlugin, type RepositoryPlugin } from '$lib/api/endpoints/gpm';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
@@ -307,7 +308,7 @@
 								{#if selectedPlugin.description}
 									{#if selectedPlugin.description_html}
 										<div class="prose prose-sm dark:prose-invert mt-4 max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">
-											{@html selectedPlugin.description_html}
+											{@html sanitizeHtml(selectedPlugin.description_html)}
 										</div>
 									{:else}
 										<p class="mt-4 text-sm leading-relaxed text-muted-foreground">

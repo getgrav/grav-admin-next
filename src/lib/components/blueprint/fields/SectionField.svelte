@@ -2,7 +2,7 @@
 	import { slide } from 'svelte/transition';
 	import { faIconClass } from '$lib/utils/fa-icon';
 	import { ChevronDown } from 'lucide-svelte';
-	import { renderMarkdownInline } from '$lib/utils/markdown';
+	import { renderMarkdownInline, sanitizeHtml, highlightMatch } from '$lib/utils/markdown';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import FieldRenderer from '../FieldRenderer.svelte';
 	import FieldLabel from '../FieldLabel.svelte';
@@ -90,10 +90,10 @@
 		onFieldChange(name, toggleValue(fieldDef, isToggleOn(fieldDef)));
 	}
 
+	// Escapes before marking: `text` here is a blueprint label/help string from a
+	// third-party package, and the highlighter feeds a `{@html …}` sink.
 	function highlight(text: string): string {
-		if (!filter) return text;
-		const escaped = filter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-		return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="bg-yellow-400/40 text-inherit rounded-sm">$1</mark>');
+		return highlightMatch(text, filter);
 	}
 </script>
 
@@ -119,7 +119,7 @@
 				{#if field.markdown}
 					<p class="mt-1 text-sm text-muted-foreground">{@html renderMarkdownInline(desc)}</p>
 				{:else}
-					<p class="mt-1 text-sm text-muted-foreground">{@html desc}</p>
+					<p class="mt-1 text-sm text-muted-foreground">{@html sanitizeHtml(desc)}</p>
 				{/if}
 			{/if}
 		{/snippet}

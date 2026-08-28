@@ -73,3 +73,39 @@ export function escapeMarkdownParam(value: string): string {
 		.replace(/'/g, '&#39;')
 		.replace(/[\\`*_[\]()~!]/g, '\\$&');
 }
+
+/**
+ * Escape a plain-text value for a `{@html …}` sink.
+ *
+ * For the sinks that must NOT keep markup at all — anything wrapped in a search
+ * highlighter, where the only HTML we intend to emit is our own `<mark>`.
+ */
+export function escapeHtml(value: string | null | undefined): string {
+	if (!value) return '';
+
+	return value
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
+
+/**
+ * Wrap every occurrence of `query` in `text` with a `<mark>`, for a `{@html …}` sink.
+ *
+ * The text is escaped first. A highlighter that interpolates its input raw turns
+ * every string it touches into an HTML sink, which is how blueprint labels and help
+ * from a third-party package reached the admin unescaped.
+ */
+export function highlightMatch(text: string | null | undefined, query: string): string {
+	const safe = escapeHtml(text);
+	if (!query) return safe;
+
+	const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+	return safe.replace(
+		new RegExp(`(${escaped})`, 'gi'),
+		'<mark class="rounded-sm bg-yellow-400/40 text-inherit">$1</mark>'
+	);
+}
