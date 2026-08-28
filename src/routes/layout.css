@@ -25,6 +25,14 @@
 
 @layer base {
 	:root {
+		/* Tell the browser which way the page leans. Our `.dark` class only swaps
+		   CSS variables, which the browser knows nothing about, so without this it
+		   paints every native control -- select dropdowns, date and colour pickers,
+		   scrollbars, autofill -- in the OS appearance. On a light desktop that put
+		   a light popup on top of the dark admin (admin2#168); on a dark desktop it
+		   happened to look right, which is why it did not reproduce for everyone. */
+		color-scheme: light;
+
 		--background: hsl(0 0% 100%);
 		--foreground: hsl(240 10% 3.9%);
 		--card: hsl(0 0% 100%);
@@ -57,6 +65,8 @@
 	}
 
 	.dark {
+		color-scheme: dark;
+
 		--background: hsl(240 6% 10.6%);
 		--foreground: hsl(0 0% 98%);
 		--card: hsl(240 4.5% 13%);
