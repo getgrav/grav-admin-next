@@ -2044,7 +2044,7 @@
 										<span class="text-sm font-semibold text-foreground">
 											{i18n.t('PLUGIN_ADMIN.PAGE_FILE')} <span class="text-red-500">*</span>
 										</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">{@html i18n.t('PLUGIN_ADMIN.PAGE_FILE_HELP')}</p>
+										<p class="mt-0.5 text-xs text-muted-foreground">{@html i18n.tHtml('PLUGIN_ADMIN.PAGE_FILE_HELP')}</p>
 									</div>
 									<div>
 										<SelectField

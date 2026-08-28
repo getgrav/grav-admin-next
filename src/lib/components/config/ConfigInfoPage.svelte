@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { highlightMatch } from '$lib/utils/markdown';
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
 	import { ChevronDown, Download } from 'lucide-svelte';
@@ -59,16 +60,10 @@
 		return String(text).toLowerCase().includes(q);
 	}
 
-	function escapeHtml(s: string): string {
-		return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-			.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-	}
-
+	// Shared with the blueprint section search. Escapes before marking, which is
+	// the whole reason it lives in one place rather than two.
 	function highlight(text: string): string {
-		const safe = escapeHtml(text);
-		if (!isFiltering) return safe;
-		const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-		return safe.replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="rounded-sm bg-yellow-400/40 text-inherit">$1</mark>');
+		return highlightMatch(text, isFiltering ? q : '');
 	}
 
 	// PHP config: filter rows + auto-expand any section that has a match

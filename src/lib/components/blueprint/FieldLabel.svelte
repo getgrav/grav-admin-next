@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
-	import { renderMarkdownInline, sanitizeHtml } from '$lib/utils/markdown';
+	import { renderMarkdownInline, sanitizeHtml, highlightMatch } from '$lib/utils/markdown';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import FieldOverrideIndicator from './FieldOverrideIndicator.svelte';
 
@@ -17,11 +17,16 @@
 		field: BlueprintField;
 		/** Toggleable state — an off field dims its label to match the input. */
 		toggled?: boolean;
-		/** Search-filter highlighter (section search). Omit for no highlighting. */
-		highlight?: (text: string) => string;
+		/**
+		 * Section-search term to highlight. A string rather than a highlighter
+		 * function on purpose: the label and help below are package-authored and
+		 * feed `{@html …}`, so this component does its own escaping rather than
+		 * trusting whatever a caller passes in.
+		 */
+		filter?: string;
 	}
 
-	let { field, toggled = true, highlight }: Props = $props();
+	let { field, toggled = true, filter }: Props = $props();
 </script>
 
 {#if field.label}
@@ -30,8 +35,8 @@
 			? 'text-foreground'
 			: 'text-muted-foreground'} {field.labelclasses ?? ''}"
 	>
-		{#if highlight}
-			{@html highlight(i18n.tMaybe(field.label))}
+		{#if filter}
+			{@html highlightMatch(i18n.tMaybe(field.label), filter)}
 		{:else}
 			{i18n.tMaybe(field.label)}
 		{/if}
@@ -47,8 +52,8 @@
 {/if}
 {#if field.help}
 	<p class="mt-0.5 text-xs text-muted-foreground">
-		{#if highlight}
-			{@html highlight(i18n.tMaybe(field.help))}
+		{#if filter}
+			{@html highlightMatch(i18n.tMaybe(field.help), filter)}
 		{:else}
 			{@html sanitizeHtml(i18n.tMaybe(field.help))}
 		{/if}

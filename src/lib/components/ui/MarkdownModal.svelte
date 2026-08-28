@@ -46,6 +46,7 @@
 
 			<!-- Content (scrollable) -->
 			<div class="prose prose-sm dark:prose-invert max-w-none overflow-y-auto px-6 py-5">
+				<!-- eslint-disable-next-line grav/no-unsanitized-html -- html is renderMarkdown() output, sanitized where it is derived -->
 				{@html html}
 			</div>
 		</div>

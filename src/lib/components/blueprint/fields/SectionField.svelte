@@ -2,7 +2,7 @@
 	import { slide } from 'svelte/transition';
 	import { faIconClass } from '$lib/utils/fa-icon';
 	import { ChevronDown } from 'lucide-svelte';
-	import { renderMarkdownInline, sanitizeHtml, highlightMatch } from '$lib/utils/markdown';
+	import { renderMarkdownInline, sanitizeHtml } from '$lib/utils/markdown';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import FieldRenderer from '../FieldRenderer.svelte';
 	import FieldLabel from '../FieldLabel.svelte';
@@ -90,11 +90,6 @@
 		onFieldChange(name, toggleValue(fieldDef, isToggleOn(fieldDef)));
 	}
 
-	// Escapes before marking: `text` here is a blueprint label/help string from a
-	// third-party package, and the highlighter feeds a `{@html …}` sink.
-	function highlight(text: string): string {
-		return highlightMatch(text, filter);
-	}
 </script>
 
 {#if !filter || visibleFields.length > 0}
@@ -169,7 +164,7 @@
 									<ToggleableCheckbox {toggled} onToggle={() => toggleField(childField.name, childField)} />
 								{/if}
 								<div>
-									<FieldLabel field={childField} {toggled} highlight={filter ? highlight : undefined} />
+									<FieldLabel field={childField} {toggled} {filter} />
 								</div>
 							</div>
 						{/if}

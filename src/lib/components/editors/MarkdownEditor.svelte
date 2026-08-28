@@ -53,7 +53,7 @@
 		List, ListOrdered, Quote, Minus, Link, Image, Undo2, Redo2, WrapText,
 		Eye, PenLine
 	} from 'lucide-svelte';
-	import { renderMarkdown } from '$lib/utils/markdown';
+	import { renderMarkdown, sanitizeHtml } from '$lib/utils/markdown';
 	import { modals } from '$lib/stores/modals.svelte';
 	import { getEditorButtons, type EditorToolbarButton } from '$lib/api/endpoints/editorButtons';
 	import { ensureKeymapLoaded, keymapExtension } from './keymap';
@@ -1020,7 +1020,7 @@
 					disabled={disabled || isReadonly}
 				>
 					{#if button.icon && button.icon.trim().startsWith('<svg')}
-						{@html button.icon}
+						{@html sanitizeHtml(button.icon)}
 					{:else if button.icon}
 						<i class="{faIconClass(button.icon)} text-sm"></i>
 					{:else}
@@ -1042,6 +1042,7 @@
 	>
 		{#if showPreview}
 			{#if previewHtml}
+				<!-- eslint-disable-next-line grav/no-unsanitized-html -- previewHtml is renderMarkdown() output, sanitized at line 169 -->
 				{@html previewHtml}
 			{:else}
 				<p class="text-muted-foreground italic">{i18n.t('ADMIN_NEXT.MARKDOWN_EDITOR.NOTHING_TO_PREVIEW')}</p>
