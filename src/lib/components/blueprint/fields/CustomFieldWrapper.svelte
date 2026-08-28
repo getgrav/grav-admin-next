@@ -44,9 +44,17 @@
 		fieldType: string;
 		/** Inline blueprint-validation error (e.g. empty required field). */
 		error?: string;
+		/**
+		 * The web component draws its own heading from `field.label`, so this
+		 * wrapper must not draw it too. The field is still handed over intact —
+		 * the label it carries is already translated server-side, and blanking
+		 * it left the component falling back to hardcoded English
+		 * (trilbymedia/grav-plugin-flex-objects#236).
+		 */
+		selfLabeled?: boolean;
 	}
 
-	let { field, value, onchange, oncommit, pluginSlug, providerKind = 'plugins', fieldType, error: fieldError }: Props = $props();
+	let { field, value, onchange, oncommit, pluginSlug, providerKind = 'plugins', fieldType, error: fieldError, selfLabeled = false }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
 	let containerEl = $state<HTMLDivElement | null>(null);
@@ -222,7 +230,7 @@
 </script>
 
 <div class="space-y-2">
-	{#if field.label || field.help}
+	{#if !selfLabeled && (field.label || field.help)}
 		<div>
 			{#if field.label}
 				<label class="text-sm font-semibold text-foreground">

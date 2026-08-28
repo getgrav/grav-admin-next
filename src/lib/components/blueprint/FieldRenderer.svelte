@@ -131,8 +131,15 @@
 
 	// Custom field types whose web component renders its own label — admin-next
 	// must not also render the blueprint label or it doubles up (e.g. save-redirect's
-	// "After Save..."). Classic admin still uses the blueprint label via the field
+	// "After Save…"). Classic admin still uses the blueprint label via the field
 	// template, so this is admin-next-only and the YAML stays untouched.
+	//
+	// The suppression is a `selfLabeled` flag on the wrapper, NOT a stripped
+	// `label` on the field: the web component still needs the label, already
+	// translated server-side, to draw its own heading. Blanking it left the
+	// component with nothing but its hardcoded English fallback, so the heading
+	// stayed in English in every admin language
+	// (trilbymedia/grav-plugin-flex-objects#236).
 	const selfLabeledTypes = new Set(['save-redirect']);
 
 	// Is this a leaf field whose chrome (label column, description) this
@@ -684,7 +691,8 @@
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div data-translate={field.translate || undefined} data-field-name={field.translate ? field.name : undefined}>
 		<CustomFieldWrapper
-			field={selfLabeledTypes.has(field.type) ? { ...field, label: undefined, help: undefined } : field}
+			{field}
+			selfLabeled={selfLabeledTypes.has(field.type)}
 			{value}
 			onchange={committingOnchange}
 			{oncommit}
