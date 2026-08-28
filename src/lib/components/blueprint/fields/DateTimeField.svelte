@@ -16,6 +16,19 @@
 	let { field, value, onchange }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
+	/**
+	 * Locale driving the order of the picker's segments. Without it bits-ui
+	 * falls back to `en-US`, so the field reads month-day-year for everyone and
+	 * typing a day above 12 into the first segment silently lands in the wrong
+	 * one. The regional part is what decides the order, which the admin language
+	 * on its own does not carry -- `en` gives m/d/y where `en-GB` gives d/m/y --
+	 * so read the browser's locale, the same thing every other date in the admin
+	 * is already formatted with via toLocaleDateString().
+	 */
+	const locale = $derived(
+		(typeof navigator !== 'undefined' && navigator.language) || i18n.lang || 'en'
+	);
+
 	/** Build a CalendarDateTime from a native Date. */
 	function toCalendar(d: Date): CalendarDateTime {
 		return new CalendarDateTime(
@@ -198,6 +211,7 @@
 		onValueChange={handleValueChange}
 		granularity="minute"
 		hourCycle={24}
+		{locale}
 		{placeholder}
 		weekStartsOn={1}
 		fixedWeeks={true}
