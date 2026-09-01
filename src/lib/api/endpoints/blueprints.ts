@@ -187,6 +187,15 @@ export function emptyDateFieldKeys(schema: BlueprintSchema): string[] {
  * The template's own default for `header.published`, or undefined when the
  * blueprint states none (in which case Grav's implicit default, published,
  * applies).
+ *
+ * A `toggleable` field is skipped, the same rule `emptyDateFieldKeys()` above
+ * applies and for the same reason: the API drops toggleable defaults
+ * server-side (`PagesController::collectNonToggleableDefaults()`), and core
+ * marks `header.published` toggleable on every template that extends
+ * `default`. Reading the default without the guard would have the caller
+ * believe the server was about to write a value it will not write, so it would
+ * skip sending `published` and the page would go live against the author's
+ * choice.
  */
 export function publishedDefault(schema: BlueprintSchema): boolean | undefined {
 	let found: boolean | undefined;
@@ -194,9 +203,21 @@ export function publishedDefault(schema: BlueprintSchema): boolean | undefined {
 	const walk = (fields: BlueprintField[] | undefined): void => {
 		if (!fields || found !== undefined) return;
 		for (const field of fields) {
+			// Containers nest their own fields; recurse before the leaf check.
 			walk(field.fields);
-			if (field.name === 'header.published' && typeof field.default === 'boolean') {
-				found = field.default;
+			if (found !== undefined) return;
+
+			if (field.toggleable) continue;
+			if (field.name !== 'header.published') continue;
+
+			// A toggle's default is as often written `1`/`0` as `true`/`false`.
+			const def = field.default;
+			if (typeof def === 'boolean') {
+				found = def;
+				return;
+			}
+			if (def === 1 || def === 0) {
+				found = def === 1;
 				return;
 			}
 		}

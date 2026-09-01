@@ -5,7 +5,7 @@
 	import { page as pageStore } from '$app/state';
 	import { base } from '$app/paths';
 	import { createPage } from '$lib/api/endpoints/pages';
-	import { getPageTypes, getPageBlueprint, emptyDateFieldKeys, publishedDefault, type PageType } from '$lib/api/endpoints/blueprints';
+	import { getPageTypes, getPageBlueprint, emptyDateFieldKeys, publishedDefault, type PageType, type BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import { getChildren, pageApiRoute, type PageSummary } from '$lib/api/endpoints/pages';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -267,20 +267,14 @@
 
 	/**
 	 * Seed empty datetime fields with "now" so a new page carries a date the
-	 * author never had to type — matching Grav 1.7's datetime widget. Best
-	 * effort: a blueprint that fails to load just skips seeding rather than
-	 * blocking the create.
+	 * author never had to type — matching Grav 1.7's datetime widget.
 	 */
-	async function seedDateDefaults(header: Record<string, unknown>): Promise<void> {
-		try {
-			const schema = await getPageBlueprint(template);
-			const keys = emptyDateFieldKeys(schema);
-			if (keys.length === 0) return;
-			const now = formatNowForStorage();
-			for (const key of keys) seedHeaderValue(header, key, now);
-		} catch {
-			// Non-fatal — proceed without seeded dates.
-		}
+	function seedDateDefaults(header: Record<string, unknown>, schema: BlueprintSchema | null): void {
+		if (!schema) return;
+		const keys = emptyDateFieldKeys(schema);
+		if (keys.length === 0) return;
+		const now = formatNowForStorage();
+		for (const key of keys) seedHeaderValue(header, key, now);
 	}
 
 	// ── Create ──────────────────────────────────────────────────────
@@ -303,26 +297,29 @@
 			const order: number | 'auto' | undefined =
 				visible === 'no' ? undefined : 'auto';
 			const header: Record<string, unknown> = {};
+
+			// One fetch serves both the published default and the datetime seeds
+			// below. Folder-only pages have no .md/frontmatter, so there is nothing
+			// to read a default for or to seed. Best effort otherwise: a blueprint
+			// that fails to load skips both rather than blocking the create.
+			const schema: BlueprintSchema | null =
+				kind === 'folder' ? null : await getPageBlueprint(template).catch(() => null);
+
 			if (kind === 'page') {
 				// Only write an explicit `published:` when the author's choice differs
 				// from the template's own default. `header.published` is toggleable, so
 				// leaving it alone keeps new pages free of a key they never used to
 				// carry, and keeps a blueprint `default:` working (admin2#49).
-				const schema = await getPageBlueprint(template).catch(() => null);
 				const blueprintDefault = (schema ? publishedDefault(schema) : undefined) ?? true;
 				if (published !== blueprintDefault) header.published = published;
-			}
-			if (kind === 'page') {
+
 				if (visible === 'yes') header.visible = true;
 				if (visible === 'no') header.visible = false;
 			}
 
-			// Folder-only pages have no .md/frontmatter, so there is nothing to
-			// seed. Pages and modules pick up their template's empty datetime
-			// defaults (e.g. `header.date`) stamped with the current time.
-			if (kind !== 'folder') {
-				await seedDateDefaults(header);
-			}
+			// Pages and modules pick up their template's empty datetime defaults
+			// (e.g. `header.date`) stamped with the current time.
+			seedDateDefaults(header, schema);
 
 			const created = await createPage({
 				route,
@@ -578,12 +575,13 @@
 								{i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')} <span class="text-destructive">*</span>
 							</legend>
 							<p class="mt-0.5 text-xs text-muted-foreground">
-								{i18n.t('ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.DRAFT_UNPUBLISHED')}
+								{i18n.t('ADMIN_NEXT.PAGES.NEW.STATUS_HELP')}
 							</p>
 							<div class="mt-2 inline-flex rounded-lg border border-input">
 								{#each ([false, true] as const) as opt (opt)}
 									<button
 										type="button"
+										aria-pressed={published === opt}
 										class="px-4 py-1.5 text-sm font-medium transition-colors first:rounded-s-lg last:rounded-e-lg
 											{published === opt
 												? 'bg-primary text-primary-foreground'
