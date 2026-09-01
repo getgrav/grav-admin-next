@@ -183,6 +183,29 @@ export function emptyDateFieldKeys(schema: BlueprintSchema): string[] {
 	return keys;
 }
 
+/**
+ * The template's own default for `header.published`, or undefined when the
+ * blueprint states none (in which case Grav's implicit default, published,
+ * applies).
+ */
+export function publishedDefault(schema: BlueprintSchema): boolean | undefined {
+	let found: boolean | undefined;
+
+	const walk = (fields: BlueprintField[] | undefined): void => {
+		if (!fields || found !== undefined) return;
+		for (const field of fields) {
+			walk(field.fields);
+			if (field.name === 'header.published' && typeof field.default === 'boolean') {
+				found = field.default;
+				return;
+			}
+		}
+	};
+
+	walk(schema.fields);
+	return found;
+}
+
 export async function getPageBlueprint(template: string): Promise<BlueprintSchema> {
 	return api.get<BlueprintSchema>(`/blueprints/pages/${template}`);
 }

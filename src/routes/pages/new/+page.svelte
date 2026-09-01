@@ -5,7 +5,7 @@
 	import { page as pageStore } from '$app/state';
 	import { base } from '$app/paths';
 	import { createPage } from '$lib/api/endpoints/pages';
-	import { getPageTypes, getPageBlueprint, emptyDateFieldKeys, type PageType } from '$lib/api/endpoints/blueprints';
+	import { getPageTypes, getPageBlueprint, emptyDateFieldKeys, publishedDefault, type PageType } from '$lib/api/endpoints/blueprints';
 	import { getChildren, pageApiRoute, type PageSummary } from '$lib/api/endpoints/pages';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -43,6 +43,7 @@
 	let template = $state(initialParams.get('template') || 'default');
 	const templateLocked = initialParams.has('template');
 	let visible = $state<'auto' | 'yes' | 'no'>('auto');
+	let published = $state(false);
 	let saving = $state(false);
 
 	// ── Data ────────────────────────────────────────────────────────
@@ -303,6 +304,15 @@
 				visible === 'no' ? undefined : 'auto';
 			const header: Record<string, unknown> = {};
 			if (kind === 'page') {
+				// Only write an explicit `published:` when the author's choice differs
+				// from the template's own default. `header.published` is toggleable, so
+				// leaving it alone keeps new pages free of a key they never used to
+				// carry, and keeps a blueprint `default:` working (admin2#49).
+				const schema = await getPageBlueprint(template).catch(() => null);
+				const blueprintDefault = (schema ? publishedDefault(schema) : undefined) ?? true;
+				if (published !== blueprintDefault) header.published = published;
+			}
+			if (kind === 'page') {
 				if (visible === 'yes') header.visible = true;
 				if (visible === 'no') header.visible = false;
 			}
@@ -558,6 +568,35 @@
 								{/if}
 							</select>
 						</div>
+					{/if}
+
+					{#if kind === 'page'}
+						<!-- New content starts as a draft unless the author explicitly
+							 chooses to publish it during creation. -->
+						<fieldset>
+							<legend class="block text-xs font-medium text-muted-foreground">
+								{i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')} <span class="text-destructive">*</span>
+							</legend>
+							<p class="mt-0.5 text-xs text-muted-foreground">
+								{i18n.t('ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.DRAFT_UNPUBLISHED')}
+							</p>
+							<div class="mt-2 inline-flex rounded-lg border border-input">
+								{#each ([false, true] as const) as opt (opt)}
+									<button
+										type="button"
+										class="px-4 py-1.5 text-sm font-medium transition-colors first:rounded-s-lg last:rounded-e-lg
+											{published === opt
+												? 'bg-primary text-primary-foreground'
+												: 'bg-muted/50 text-foreground hover:bg-muted'}"
+										onclick={() => published = opt}
+									>
+										{opt
+											? i18n.t('ADMIN_NEXT.PAGES.PUBLISHED')
+											: i18n.t('ADMIN_NEXT.PAGES.DRAFT')}
+									</button>
+								{/each}
+							</div>
+						</fieldset>
 					{/if}
 
 					<!-- Visible / Ordering toggle. For regular pages this controls
