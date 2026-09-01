@@ -161,6 +161,23 @@
    ============================================ */
 
 @layer base {
+	/* Windows and Linux browsers paint a native select's drop-down list from the
+	   control's own background and text colours, and Tailwind's reset leaves every
+	   select at `background-color: transparent` with `color: inherit`. The selects
+	   that never get a background utility -- the flat ones on the Settings and
+	   Pages toolbars -- therefore hand the browser nothing to paint with, so the
+	   list lands on the browser's default light surface while the rows keep the
+	   admin's near-white text: white on white (admin2#168). The `color-scheme`
+	   declarations at the top of this file cannot rescue those, because there is
+	   no author colour for the scheme to sit behind. Colour the rows explicitly
+	   instead. macOS is unaffected either way -- Chrome and Safari hand the list
+	   to the system menu there, which ignores both. */
+	option,
+	optgroup {
+		background-color: var(--popover);
+		color: var(--popover-foreground);
+	}
+
 	.label {
 		display: flex;
 		flex-direction: column;
