@@ -9,6 +9,8 @@
 	import '@fontsource-variable/public-sans/wght-italic.css';
 	import '@fontsource-variable/nunito-sans/wght.css';
 	import '@fontsource-variable/nunito-sans/wght-italic.css';
+	import '@fontsource-variable/albert-sans/wght.css';
+	import '@fontsource-variable/albert-sans/wght-italic.css';
 	import '@fontsource-variable/jost/wght.css';
 	import '@fontsource-variable/jost/wght-italic.css';
 	import { page, updated } from '$app/state';

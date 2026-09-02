@@ -1,7 +1,7 @@
 import { api } from '../client';
 
 export type ColorMode = '' | 'light' | 'dark';
-export type FontFamily = 'inter' | 'google-sans' | 'public-sans' | 'nunito-sans' | 'jost';
+export type FontFamily = 'inter' | 'google-sans' | 'public-sans' | 'nunito-sans' | 'jost' | 'albert-sans';
 export type FontSize = 'small' | 'normal' | 'large' | 'xlarge';
 export type EditorMode = 'normal' | 'expert';
 export type EditorKeymap = 'default' | 'vim';

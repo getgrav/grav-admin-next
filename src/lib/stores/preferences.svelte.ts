@@ -52,6 +52,7 @@ export const FONT_OPTIONS: FontOption[] = [
 	{ value: 'public-sans',  label: 'Public Sans',  stack: "'Public Sans Variable', 'Public Sans', ui-sans-serif, system-ui, -apple-system, sans-serif" },
 	{ value: 'nunito-sans',  label: 'Nunito Sans',  stack: "'Nunito Sans Variable', 'Nunito Sans', ui-sans-serif, system-ui, -apple-system, sans-serif" },
 	{ value: 'jost',         label: 'Jost',         stack: "'Jost Variable', 'Jost', ui-sans-serif, system-ui, -apple-system, sans-serif" },
+	{ value: 'albert-sans',  label: 'Albert Sans',  stack: "'Albert Sans Variable', 'Albert Sans', ui-sans-serif, system-ui, -apple-system, sans-serif" },
 ];
 
 export interface FontSizeOption {
