@@ -13,6 +13,7 @@
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import InlineIconPicker from '$lib/components/ui/InlineIconPicker.svelte';
 	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
+	import AccentReadout from '$lib/components/ui/AccentReadout.svelte';
 	import {
 		RotateCcw, Plus, Trash2, GripVertical, Upload, Shield
 	} from 'lucide-svelte';
@@ -314,6 +315,7 @@
 									/>
 									<span class="w-10 shrink-0 text-end text-xs tabular-nums text-muted-foreground">{theme.accentSaturation}%</span>
 								</div>
+								<AccentReadout hue={theme.accentHue} saturation={theme.accentSaturation} />
 							</div>
 						{/if}
 					</div>
@@ -857,6 +859,7 @@
 													/>
 													<span class="w-10 shrink-0 text-end text-xs tabular-nums text-muted-foreground">{siteSat()}%</span>
 												</div>
+												<AccentReadout hue={siteHue()} saturation={siteSat()} />
 											</div>
 										{/if}
 									</div>
