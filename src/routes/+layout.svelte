@@ -75,7 +75,8 @@
 
 	// Favicon: a custom uploaded favicon (resolved to an absolute URL the same
 	// way BrandLogo resolves logo paths) takes precedence over the generated
-	// accent-coloured one. Applies pre-auth too — the branding store seeds from
+	// accent-coloured one, which carries the Grav spaceman or, under text
+	// branding, the site's initial. Applies pre-auth too — the branding store seeds from
 	// window.__GRAV_CONFIG__ on a cache-less visit.
 	const faviconHref = $derived.by(() => {
 		const url = branding.urlFavicon;
@@ -86,7 +87,9 @@
 				: '';
 			return server + url;
 		}
-		return generateFavicon(theme.accentHue, theme.accentSaturation, theme.isDark);
+		// Text branding: the tab shows the same initial as the sidebar chip.
+		const letter = branding.mode === 'text' && branding.text ? branding.text : '';
+		return generateFavicon(theme.accentHue, theme.accentSaturation, theme.isDark, letter);
 	});
 
 	// Custom app title: route components set browser-tab titles like
