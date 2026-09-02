@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
+	import { textMatches } from '$lib/utils/query-match';
 	import { sanitizeHtml } from '$lib/utils/markdown';
 	import FieldRenderer from '../FieldRenderer.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
@@ -296,11 +297,11 @@
 
 	function itemMatches(item: ListItem, q: string): boolean {
 		if (!q) return true;
-		if (item.key && item.key.toLowerCase().includes(q)) return true;
+		if (item.key && textMatches(item.key, q)) return true;
 		for (const v of Object.values(item.data)) {
 			if (v == null) continue;
 			if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
-				if (String(v).toLowerCase().includes(q)) return true;
+				if (textMatches(String(v), q)) return true;
 			}
 		}
 		return false;

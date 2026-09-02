@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { highlightMatch } from '$lib/utils/markdown';
+	import { textMatches } from '$lib/utils/query-match';
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
 	import { ChevronDown, Download } from 'lucide-svelte';
@@ -57,7 +58,7 @@
 
 	function matches(text: string | number | boolean | undefined | null): boolean {
 		if (text === undefined || text === null) return false;
-		return String(text).toLowerCase().includes(q);
+		return textMatches(String(text), q);
 	}
 
 	// Shared with the blueprint section search. Escapes before marking, which is

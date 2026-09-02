@@ -1,3 +1,4 @@
+import { queryRegex } from '$lib/utils/query-match';
 import { marked, type Renderer } from 'marked';
 import DOMPurify from 'dompurify';
 
@@ -106,10 +107,8 @@ export function escapeHtml(value: string | null | undefined): string {
  */
 export function highlightMatchInHtml(html: string | null | undefined, query: string): string {
 	const safe = sanitizeHtml(html);
-	if (!query) return safe;
-
-	const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-	const re = new RegExp(`(${escaped})`, 'gi');
+	const re = queryRegex(query);
+	if (!re) return safe;
 
 	return safe
 		.split(/(<[^>]+>)/g)
@@ -119,12 +118,11 @@ export function highlightMatchInHtml(html: string | null | undefined, query: str
 
 export function highlightMatch(text: string | null | undefined, query: string): string {
 	const safe = escapeHtml(text);
-	if (!query) return safe;
-
-	const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	const re = queryRegex(query);
+	if (!re) return safe;
 
 	return safe.replace(
-		new RegExp(`(${escaped})`, 'gi'),
+		re,
 		'<mark class="rounded-sm bg-yellow-400/40 text-inherit">$1</mark>'
 	);
 }

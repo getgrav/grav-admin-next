@@ -1,12 +1,12 @@
 import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 import { i18n } from '$lib/stores/i18n.svelte';
+import { normalizeForMatch, textMatches } from '$lib/utils/query-match';
 
 /**
  * Check if a field's own text properties match a filter string.
  * Does NOT recurse into children — use fieldOrDescendantMatches for that.
  */
 export function fieldMatchesSelf(field: BlueprintField, query: string): boolean {
-	const q = query.toLowerCase();
 	const t = i18n.tMaybe;
 
 	const texts = [
@@ -17,7 +17,7 @@ export function fieldMatchesSelf(field: BlueprintField, query: string): boolean 
 		field.description ? t(field.description) : '',
 	];
 
-	return texts.some((text) => text.toLowerCase().includes(q));
+	return texts.some((text) => textMatches(text, query));
 }
 
 /**
@@ -42,7 +42,7 @@ export function fieldMatches(field: BlueprintField, query: string, value?: unkno
 }
 
 function listValueMatches(value: unknown, query: string): boolean {
-	const q = query.toLowerCase();
+	const q = normalizeForMatch(query).trim();
 	if (!q) return false;
 
 	if (Array.isArray(value)) {
@@ -50,7 +50,7 @@ function listValueMatches(value: unknown, query: string): boolean {
 	}
 	if (value !== null && typeof value === 'object') {
 		for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-			if (k.toLowerCase().includes(q)) return true;
+			if (normalizeForMatch(k).includes(q)) return true;
 			if (deepMatch(v, q)) return true;
 		}
 	}
@@ -60,7 +60,7 @@ function listValueMatches(value: unknown, query: string): boolean {
 function deepMatch(item: unknown, q: string): boolean {
 	if (item == null) return false;
 	if (typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean') {
-		return String(item).toLowerCase().includes(q);
+		return normalizeForMatch(String(item)).includes(q);
 	}
 	if (Array.isArray(item)) return item.some((v) => deepMatch(v, q));
 	if (typeof item === 'object') return Object.values(item).some((v) => deepMatch(v, q));
