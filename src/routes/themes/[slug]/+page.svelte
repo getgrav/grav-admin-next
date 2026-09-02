@@ -12,6 +12,7 @@
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
+	import BlueprintFilter from '$lib/components/blueprint/BlueprintFilter.svelte';
 	import ExtensionMetaLinks from '$lib/components/extensions/ExtensionMetaLinks.svelte';
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson } from '$lib/utils/blueprint-validation';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
@@ -60,6 +61,10 @@
 	let deleting = $state(false);
 	let updating = $state(false);
 	let error = $state('');
+	// Search box over the settings form, the same one Configuration puts above
+	// system and site. A theme blueprint can run to hundreds of fields and
+	// scrolling for the one you came for is the slowest part of the screen.
+	let filter = $state('');
 
 	let hasChanges = $derived(stableJson(configData) !== originalJson);
 
@@ -400,7 +405,8 @@
 
 <div class="flex h-full flex-col">
 	<!-- Header -->
-	<div class="flex flex-col gap-3 border-b border-border px-6 pt-6 pb-3 sm:min-h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
+	<div class="border-b border-border px-6 pt-6 pb-3">
+	<div class="flex flex-col gap-3 sm:min-h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
 		<div class="flex items-center gap-3">
 			<button
 				type="button"
@@ -551,6 +557,13 @@
 		</div>
 	</div>
 
+		{#if blueprint}
+			<div class="mt-3 flex justify-end">
+				<BlueprintFilter bind:value={filter} />
+			</div>
+		{/if}
+	</div>
+
 	<!-- Content -->
 	{#if loading}
 		<div class="flex flex-1 items-center justify-center">
@@ -626,6 +639,7 @@
 						onchange={handleBlueprintChange}
 						oncommit={autoSave.oncommit}
 						errors={validationErrors}
+						{filter}
 					/>
 				{:else}
 					<div class="rounded-xl border border-dashed border-border p-8 text-center">

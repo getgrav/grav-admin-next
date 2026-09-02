@@ -4,7 +4,7 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
 	import { getInstalledPlugins, setPluginEnabled, checkUpdates, updatePackage, updateAllPackages, removePlugin, getPluginChangelog, type PluginInfo } from '$lib/api/endpoints/gpm';
-	import { reloadIfAdminUpdated } from '$lib/utils/gpm';
+	import { reloadIfAdminUpdated, pluginSettingsRoute } from '$lib/utils/gpm';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { onMount } from 'svelte';
@@ -191,7 +191,11 @@
 	}
 
 	function openPluginConfig(slug: string) {
-		goto(`${base}/plugins/${slug}`);
+		// A plugin that renders its own settings gets opened where those
+		// settings actually are, rather than at /plugins/<slug> only to be
+		// bounced on from there.
+		const ownRoute = pluginSettingsRoute(plugins.find((p) => p.slug === slug));
+		goto(`${base}${ownRoute ?? `/plugins/${slug}`}`);
 	}
 
 	async function handleCheckUpdates() {

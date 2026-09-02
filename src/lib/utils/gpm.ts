@@ -181,3 +181,23 @@ export function formatChangelog(raw: string): string {
 		.replace(/^ {4}\* /gm, '- ')
 		.replace(/^\t\* /gm, '- ');
 }
+
+/**
+ * Where a plugin's settings actually live.
+ *
+ * A plugin whose admin page renders its own settings says so with
+ * `settings_route`, a hash route inside that page. When it does, that is the
+ * one place to edit them and `/plugins/<slug>` is a second copy of the same
+ * form. A disabled plugin is the exception: its page is not running, so the
+ * admin's own screen — the one with the Enable button on it — is where you go.
+ *
+ * Returns a route relative to the admin base, ready to be appended to `base`.
+ */
+export function pluginSettingsRoute(
+	plugin: { slug: string; enabled?: boolean; settings_route?: string } | null | undefined,
+): string | null {
+	if (!plugin || !plugin.enabled) return null;
+	const route = plugin.settings_route;
+	if (typeof route !== 'string' || !route.startsWith('#')) return null;
+	return `/plugin/${plugin.slug}${route}`;
+}

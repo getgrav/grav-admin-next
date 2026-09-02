@@ -11,6 +11,7 @@
 	import { getPluginBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
+	import BlueprintFilter from '$lib/components/blueprint/BlueprintFilter.svelte';
 	import TranslationStringsSupersededBanner from '$lib/components/translations/TranslationStringsSupersededBanner.svelte';
 	import ExtensionMetaLinks from '$lib/components/extensions/ExtensionMetaLinks.svelte';
 	import { canWrite } from '$lib/utils/permissions';
@@ -27,7 +28,7 @@
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
-	import { faIconClass, parseKeywords, parseDependencies, isFirstParty, formatChangelog } from '$lib/utils/gpm';
+	import { faIconClass, parseKeywords, parseDependencies, isFirstParty, formatChangelog, pluginSettingsRoute } from '$lib/utils/gpm';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
@@ -64,6 +65,10 @@
 	let deleting = $state(false);
 	let updating = $state(false);
 	let error = $state('');
+	// Search box over the settings form, the same one Configuration puts above
+	// system and site. A plugin blueprint can run to hundreds of fields and
+	// scrolling for the one you came for is the slowest part of the screen.
+	let filter = $state('');
 
 	let hasChanges = $derived(stableJson(configData) !== originalJson);
 
@@ -112,6 +117,16 @@
 				getPluginBlueprint(slug).catch(() => null),
 				getPluginConfig(slug).catch(() => ({ data: {}, etag: '', overrides: [], fallback: {} })),
 			]);
+
+			// The plugin keeps its settings on its own admin page, so this
+			// screen would be a second copy of the same form. Hand over
+			// instead — replaceState so Back goes to wherever they came from
+			// rather than bouncing straight back here.
+			const ownRoute = pluginSettingsRoute(pluginResult);
+			if (ownRoute) {
+				goto(`${base}${ownRoute}`, { replaceState: true });
+				return;
+			}
 
 			plugin = pluginResult;
 			blueprint = blueprintResult;
@@ -410,7 +425,8 @@
 
 <div class="flex h-full flex-col">
 	<!-- Header -->
-	<div class="flex flex-col gap-3 border-b border-border px-6 pt-6 pb-3 sm:min-h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
+	<div class="border-b border-border px-6 pt-6 pb-3">
+	<div class="flex flex-col gap-3 sm:min-h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
 		<div class="flex items-center gap-3">
 			<button
 				type="button"
@@ -556,6 +572,13 @@
 		</div>
 	</div>
 
+		{#if plugin?.enabled && blueprint}
+			<div class="mt-3 flex justify-end">
+				<BlueprintFilter bind:value={filter} />
+			</div>
+		{/if}
+	</div>
+
 	<!-- Content -->
 	{#if loading}
 		<div class="flex flex-1 items-center justify-center">
@@ -625,6 +648,7 @@
 						onchange={handleBlueprintChange}
 						oncommit={autoSave.oncommit}
 						errors={validationErrors}
+						{filter}
 					/>
 				{:else if !plugin.enabled}
 					<div class="rounded-xl border border-dashed border-border p-8 text-center">

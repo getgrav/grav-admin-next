@@ -28,6 +28,11 @@ export interface PluginPageDefinition {
 	save_endpoint?: string;
 	actions?: PluginPageAction[];
 	has_custom_component?: boolean;
+	/**
+	 * A hash route inside this page where the plugin's settings live. When it
+	 * is set, `/plugins/<slug>` redirects to `/plugin/<slug><settings_route>`.
+	 */
+	settings_route?: string;
 }
 
 export async function getPluginPageDefinition(slug: string): Promise<PluginPageDefinition> {

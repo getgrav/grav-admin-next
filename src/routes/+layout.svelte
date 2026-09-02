@@ -35,6 +35,7 @@
 	import PluginModal from '$lib/components/ui/PluginModal.svelte';
 	import MediaPickerModal from '$lib/components/media/MediaPickerModal.svelte';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
+	import { defineBlueprintFormElement } from '$lib/elements/blueprint-form.svelte';
 	import { modals } from '$lib/stores/modals.svelte';
 	import { mediaPicker } from '$lib/stores/mediaPicker.svelte';
 	import { Toaster, toast } from 'svelte-sonner';
@@ -266,6 +267,12 @@
 					.catch(() => { /* Custom fields endpoint not available */ })
 			);
 		}
+	});
+
+	// Register <grav-blueprint-form> so a plugin's own page can render that
+	// plugin's settings in place instead of sending people to /plugins/<slug>.
+	$effect(() => {
+		defineBlueprintFormElement();
 	});
 
 	// Expose the confirm dialog API to plugin web components via window.__GRAV_DIALOGS

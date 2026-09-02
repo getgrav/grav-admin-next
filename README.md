@@ -105,6 +105,12 @@ Extension APIs that expose icon fields can use the shared `IconSpec` contract fo
 
 See [`docs/IconSpec.md`](docs/IconSpec.md) for the supported shorthands and SVG safety rules.
 
+## Plugin settings on a plugin's own page
+
+A plugin whose admin page is a web component can render that plugin's settings in place, with `<grav-blueprint-form plugin="my-plugin">`, instead of sending people out to `/plugins/my-plugin`. It is the admin's real blueprint form — same fields, same validation, same save — and it takes a live `filter` attribute so the page can put a search box above it.
+
+See [`docs/blueprint-form-element.md`](docs/blueprint-form-element.md) for the attributes, the events, how to slot it into a page that draws itself in a shadow root, and how `settings_route` sends `/plugins/<slug>` to the same place.
+
 ## Contributing
 
 Issues and pull requests are welcome. For bugs that are clearly about the PHP wrapper or static asset delivery, open them on [`grav-plugin-admin2`](https://github.com/getgrav/grav-plugin-admin2/issues); for API shape or data questions, open them on [`grav-plugin-api`](https://github.com/getgrav/grav-plugin-api/issues); for everything UI, open them here.
