@@ -370,6 +370,18 @@
 			// Line wrapping
 			EditorView.lineWrapping,
 
+			// Spell checking (admin2#169). CodeMirror 6 stamps
+			// spellcheck="false" onto the contentDOM of every editor it creates
+			// (@codemirror/view, `updateAttrs`) — the right default for a code
+			// editor and the wrong one here, because this is the prose surface
+			// people write their page content in. Only `spellcheck` is flipped:
+			// `autocorrect` and `writingsuggestions` stay off, since both
+			// rewrite text behind CodeMirror's back and would fight the
+			// markdown syntax people are typing on purpose. The code and YAML
+			// editors (CodeEditor, TextareaField, MultilevelField) keep
+			// CodeMirror's default.
+			EditorView.contentAttributes.of({ spellcheck: 'true' }),
+
 			// Editable state
 			EditorView.editable.of(!disabled && !isReadonly),
 			EditorState.readOnly.of(isReadonly),
