@@ -39,6 +39,26 @@ export interface BootCache {
 	brandingUrls: BrandingUrls;
 }
 
+/**
+ * The site's default appearance, injected pre-auth into `window.__GRAV_CONFIG__`
+ * by admin2.php so a first visit and the sign-in screen paint with the
+ * operator's accent, font and colour mode. The boot cache, when there is one,
+ * is more specific (it is the user's own last-resolved look) and wins.
+ */
+export function bootConfigAppearance(): Partial<Pick<BootCache, 'colorMode' | 'accentHue' | 'accentSaturation' | 'fontFamily' | 'fontSize'>> {
+	if (typeof window === 'undefined') return {};
+	const cfg = (window as unknown as { __GRAV_CONFIG__?: { appearance?: Record<string, unknown> } }).__GRAV_CONFIG__;
+	const a = cfg?.appearance;
+	if (!a || typeof a !== 'object') return {};
+	const out: Partial<Pick<BootCache, 'colorMode' | 'accentHue' | 'accentSaturation' | 'fontFamily' | 'fontSize'>> = {};
+	if (a.colorMode === 'light' || a.colorMode === 'dark' || a.colorMode === '') out.colorMode = a.colorMode as ColorMode;
+	if (typeof a.accentHue === 'number') out.accentHue = a.accentHue;
+	if (typeof a.accentSaturation === 'number') out.accentSaturation = a.accentSaturation;
+	if (typeof a.fontFamily === 'string') out.fontFamily = a.fontFamily as FontFamily;
+	if (typeof a.fontSize === 'string') out.fontSize = a.fontSize as FontSize;
+	return out;
+}
+
 export function saveBootCache(payload: PreferencesResponse): void {
 	if (typeof localStorage === 'undefined') return;
 	try {

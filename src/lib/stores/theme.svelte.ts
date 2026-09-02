@@ -1,5 +1,5 @@
 import { queueUserPatch } from './_serverSync';
-import { loadBootCache, saveBootCache } from './_bootCache';
+import { loadBootCache, saveBootCache, bootConfigAppearance } from './_bootCache';
 import type { PreferencesResponse, ColorMode as ServerColorMode } from '$lib/api/endpoints/preferences';
 
 /**
@@ -44,13 +44,15 @@ function resolveColorMode(intent: ServerColorMode): ColorMode {
 
 function createThemeStore() {
 	const cache = loadBootCache();
+	const site = bootConfigAppearance();
 	// User intent: '' = follow OS, 'light' or 'dark' explicit. Seeded from
 	// the boot cache so the first paint uses the user's last-known accent
-	// and color mode rather than the built-in Grav purple.
-	let intent = $state<ServerColorMode>(cache?.colorMode ?? '');
+	// and color mode, or failing that from the site defaults admin2.php puts
+	// in the boot config, rather than the built-in Grav purple.
+	let intent = $state<ServerColorMode>(cache?.colorMode ?? site.colorMode ?? '');
 	let colorMode = $state<ColorMode>(resolveColorMode(intent));
-	let accentHue = $state<number>(cache?.accentHue ?? DEFAULT_HUE);
-	let accentSaturation = $state<number>(cache?.accentSaturation ?? DEFAULT_SAT);
+	let accentHue = $state<number>(cache?.accentHue ?? site.accentHue ?? DEFAULT_HUE);
+	let accentSaturation = $state<number>(cache?.accentSaturation ?? site.accentSaturation ?? DEFAULT_SAT);
 
 	const isDark = $derived(colorMode === 'dark');
 

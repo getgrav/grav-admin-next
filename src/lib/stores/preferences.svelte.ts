@@ -1,6 +1,6 @@
 import { scopedKey } from '$lib/utils/scopedStorage';
 import { queueUserPatch, onPreferencesUpdated } from './_serverSync';
-import { loadBootCache, saveBootCache } from './_bootCache';
+import { loadBootCache, saveBootCache, bootConfigAppearance } from './_bootCache';
 import { normalizeLang } from '$lib/i18n/normalize';
 import {
 	getPreferences,
@@ -151,10 +151,13 @@ const BUILTIN_DEFAULTS: EffectivePreferences = {
 function createPreferencesStore() {
 	const local = loadLocal();
 	const cache = loadBootCache();
+	const site = bootConfigAppearance();
 
 	// ── Tier B: server-synced, user-overridable ────────────────────────────
-	let fontFamily = $state<FontFamily>(cache?.fontFamily ?? BUILTIN_DEFAULTS.fontFamily);
-	let fontSize = $state<FontSize>(cache?.fontSize ?? BUILTIN_DEFAULTS.fontSize);
+	// The boot cache is the user's own last look; the site defaults from the
+	// boot config cover a first visit and the sign-in screen.
+	let fontFamily = $state<FontFamily>(cache?.fontFamily ?? site.fontFamily ?? BUILTIN_DEFAULTS.fontFamily);
+	let fontSize = $state<FontSize>(cache?.fontSize ?? site.fontSize ?? BUILTIN_DEFAULTS.fontSize);
 	let editorMode = $state<EditorMode>(cache?.editorMode ?? BUILTIN_DEFAULTS.editorMode);
 	let editorKeymap = $state<EditorKeymap>(cache?.editorKeymap ?? BUILTIN_DEFAULTS.editorKeymap);
 	let editorStickyToolbar = $state<boolean>(cache?.editorStickyToolbar ?? BUILTIN_DEFAULTS.editorStickyToolbar);
