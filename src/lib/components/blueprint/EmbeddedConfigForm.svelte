@@ -18,7 +18,7 @@
 	import { provideFormCommit } from '$lib/utils/form-commit.svelte';
 	import { provideConfigOverrides } from '$lib/utils/config-overrides.svelte';
 	import { getPluginBlueprint, getThemeBlueprint } from '$lib/api/endpoints/blueprints';
-	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
+	import type { BlueprintField, BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import {
 		getPluginConfig, savePluginConfig, getThemeConfig, saveThemeConfig,
 	} from '$lib/api/endpoints/gpm';
@@ -41,12 +41,21 @@
 		filter?: string;
 		/** Set to hide the built-in Save row when the host draws its own. */
 		hideToolbar?: boolean;
+		/**
+		 * Blueprint field names to leave out, at any depth.
+		 *
+		 * For the field that only makes sense on the admin's own settings page.
+		 * A plugin whose blueprint carries a "the rest of this plugin lives
+		 * over there" notice does not want that notice on the page it is
+		 * pointing at.
+		 */
+		hideFields?: string[];
 		/** Reported back to the custom element, which re-fires each one as a DOM event. */
 		onevent?: (name: string, detail: Record<string, unknown>) => void;
 	}
 
 	let {
-		kind = 'plugins', slug = '', filter = '', hideToolbar = false, onevent,
+		kind = 'plugins', slug = '', filter = '', hideToolbar = false, hideFields = [], onevent,
 	}: Props = $props();
 
 	let blueprint = $state<BlueprintSchema | null>(null);
@@ -57,6 +66,15 @@
 	let loading = $state(true);
 	let saving = $state(false);
 	let error = $state('');
+
+	/** The blueprint as this host wants it drawn. */
+	function prune(fields: BlueprintField[], names: Set<string>): BlueprintField[] {
+		if (names.size === 0) return fields;
+		return fields
+			.filter((field) => !names.has(field.name))
+			.map((field) => (field.fields ? { ...field, fields: prune(field.fields, names) } : field));
+	}
+	const shownFields = $derived(blueprint ? prune(blueprint.fields, new Set(hideFields)) : []);
 
 	const canSave = $derived(canWrite('config'));
 	const hasChanges = $derived(stableJson(configData) !== originalJson);
@@ -268,7 +286,7 @@
 	</div>
 {:else if blueprint}
 	<BlueprintForm
-		fields={blueprint.fields}
+		fields={shownFields}
 		data={configData}
 		onchange={handleChange}
 		errors={validationErrors}

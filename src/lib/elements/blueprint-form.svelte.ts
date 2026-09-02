@@ -24,7 +24,7 @@ interface FormExports {
 
 class GravBlueprintForm extends HTMLElement {
 	static get observedAttributes() {
-		return ['plugin', 'theme', 'filter', 'hide-toolbar'];
+		return ['plugin', 'theme', 'filter', 'hide-toolbar', 'hide-fields'];
 	}
 
 	#props = $state({
@@ -32,6 +32,7 @@ class GravBlueprintForm extends HTMLElement {
 		slug: '',
 		filter: '',
 		hideToolbar: false,
+		hideFields: [] as string[],
 		onevent: (name: string, detail: Record<string, unknown>) => this.#emit(name, detail),
 	});
 
@@ -75,6 +76,11 @@ class GravBlueprintForm extends HTMLElement {
 			this.#props.filter = value ?? '';
 		} else if (name === 'hide-toolbar') {
 			this.#props.hideToolbar = value !== null && value !== 'false';
+		} else if (name === 'hide-fields') {
+			this.#props.hideFields = (value ?? '')
+				.split(',')
+				.map((n) => n.trim())
+				.filter((n) => n !== '');
 		}
 	}
 
@@ -100,6 +106,14 @@ class GravBlueprintForm extends HTMLElement {
 	}
 	set filter(value: string) {
 		this.setAttribute('filter', value ?? '');
+	}
+
+	/** Blueprint field names this host does not want drawn, comma separated. */
+	get hideFields(): string[] {
+		return this.#props.hideFields;
+	}
+	set hideFields(value: string[] | string) {
+		this.setAttribute('hide-fields', Array.isArray(value) ? value.join(',') : String(value ?? ''));
 	}
 
 	/** True while the form holds changes nobody has saved. */

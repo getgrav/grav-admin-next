@@ -2,6 +2,8 @@
 	import { setContext } from 'svelte';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import FieldRenderer from './FieldRenderer.svelte';
+	import { fieldMatches } from '$lib/utils/field-filter';
+	import { i18n } from '$lib/stores/i18n.svelte';
 
 	interface Props {
 		fields: BlueprintField[];
@@ -65,6 +67,22 @@
 
 	const normalizedFields = $derived(normalizeFields(fields));
 
+	/**
+	 * A filter that matches nothing used to leave the form blank, which reads
+	 * as a screen that failed to load rather than as a search that found
+	 * nothing. Say so instead, in the same words the Configuration page's Info
+	 * tab uses.
+	 *
+	 * Only when every top-level field is filtered out: a field the renderer
+	 * suppresses for its own reasons is not this component's business, and
+	 * being cautious here means the message never appears over a form that does
+	 * have something on it.
+	 */
+	const nothingMatches = $derived(
+		filter.trim() !== '' &&
+		!normalizedFields.some((field) => fieldMatches(field, filter, getValue(field.name)))
+	);
+
 	function getValue(path: string): unknown {
 		const parts = path.split('.');
 		let current: unknown = data;
@@ -121,4 +139,10 @@
 			{filter}
 		/>
 	{/each}
+
+	{#if nothingMatches}
+		<div class="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+			{i18n.t('ADMIN_NEXT.CONFIG.NO_MATCHES_FOUND')}
+		</div>
+	{/if}
 </form>
