@@ -22,6 +22,8 @@
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
 	import { branding } from '$lib/stores/branding.svelte';
+	import { prefs } from '$lib/stores/preferences.svelte';
+	import { clearBootCache } from '$lib/stores/_bootCache';
 	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
 
 	const defaultUrl = import.meta.env.DEV ? 'http://localhost:5180/grav-api' : 'https://localhost/grav-api';
@@ -117,6 +119,13 @@
 	// challenge token and bounced here, so drop straight into the 2FA stage and
 	// reuse the existing verify UI.
 	onMount(() => {
+		// Nobody is signed in here, so the look is the site's, not whoever used
+		// this browser last: forget the boot cache and paint the site defaults.
+		if (!auth.isAuthenticated) {
+			clearBootCache();
+			theme.paintSiteDefaults();
+			prefs.paintSiteDefaults();
+		}
 		const pending = sessionStorage.getItem('grav_sso_2fa');
 		if (pending) {
 			sessionStorage.removeItem('grav_sso_2fa');

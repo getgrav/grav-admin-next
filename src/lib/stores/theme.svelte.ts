@@ -146,6 +146,19 @@ function createThemeStore() {
 			queueUserPatch('colorMode', null);
 		},
 
+		/**
+		 * Paint the site defaults from the boot config without touching the
+		 * server: the sign-in screen uses it once nobody is signed in.
+		 */
+		paintSiteDefaults(): void {
+			const site = bootConfigAppearance();
+			intent = site.colorMode ?? '';
+			colorMode = resolveColorMode(intent);
+			accentHue = site.accentHue ?? DEFAULT_HUE;
+			accentSaturation = site.accentSaturation ?? DEFAULT_SAT;
+			applyAll();
+		},
+
 		resetAccentToSiteDefault(siteHue: number | undefined, siteSat: number | undefined): void {
 			accentHue = siteHue ?? DEFAULT_HUE;
 			accentSaturation = siteSat ?? DEFAULT_SAT;

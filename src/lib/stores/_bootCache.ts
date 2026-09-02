@@ -81,6 +81,20 @@ export function saveBootCache(payload: PreferencesResponse): void {
 	}
 }
 
+/**
+ * Forget the last-resolved look. The sign-in screen calls this so a browser
+ * that signed out, or whose session expired, paints the site defaults rather
+ * than the previous user's accent and font.
+ */
+export function clearBootCache(): void {
+	if (typeof localStorage === 'undefined') return;
+	try {
+		localStorage.removeItem(KEY);
+	} catch {
+		/* disabled storage — nothing to forget */
+	}
+}
+
 export function loadBootCache(): BootCache | null {
 	if (typeof localStorage === 'undefined') return null;
 	try {

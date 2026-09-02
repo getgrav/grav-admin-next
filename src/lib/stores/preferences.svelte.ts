@@ -275,6 +275,18 @@ function createPreferencesStore() {
 		return BUILTIN_DEFAULTS[key];
 	}
 
+	/**
+	 * Paint the site's default font and size from the boot config without
+	 * touching the server: the sign-in screen uses it once nobody is signed in.
+	 */
+	function paintSiteDefaults(): void {
+		const site = bootConfigAppearance();
+		fontFamily = site.fontFamily ?? BUILTIN_DEFAULTS.fontFamily;
+		fontSize = site.fontSize ?? BUILTIN_DEFAULTS.fontSize;
+		applyFont(fontFamily);
+		applyFontSize(fontSize);
+	}
+
 	async function resetToSiteDefault(key: keyof PreferenceValues): Promise<void> {
 		patchUser(key, null);
 		const fallback = effectiveDefault(key);
@@ -387,6 +399,7 @@ function createPreferencesStore() {
 		// ── Lifecycle ──────────────────────────────────────────────────────
 		init,
 		reload,
+		paintSiteDefaults,
 		resetToSiteDefault,
 		resetAllToSiteDefaults,
 		isUserOverridden,
