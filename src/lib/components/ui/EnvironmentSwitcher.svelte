@@ -119,18 +119,18 @@
 <div class="relative" onkeydown={handleKeydown}>
 	<button
 		type="button"
-		class="inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[0.6875rem] font-medium transition-colors
+		class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[0.8125rem] font-medium transition-colors
 			{targetIsMissing
-				? 'border-destructive/40 bg-destructive/10 text-destructive'
+				? 'bg-destructive/10 text-destructive hover:bg-destructive/15'
 				: configEnv.target === ''
-					? 'border-muted-foreground/30 bg-muted/40 text-muted-foreground hover:bg-muted'
-					: 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/15'}"
+					? 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+					: 'bg-primary/10 text-primary hover:bg-primary/15'}"
 		onclick={() => open = !open}
 		title={i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.SELECT_WHERE_CONFIG_WRITES_ARE_SAVED')}
 	>
-		<span class="opacity-60">{i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.PREFIX')}</span>
+		<span class="opacity-75">{i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.PREFIX')}</span>
 		<span>{badgeLabel}</span>
-		<ChevronDown size={11} class="transition-transform {open ? 'rotate-180' : ''}" />
+		<ChevronDown size={13} class="transition-transform {open ? 'rotate-180' : ''}" />
 	</button>
 
 	{#if open}
