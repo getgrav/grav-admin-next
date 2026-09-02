@@ -24,6 +24,8 @@ const SANITIZERS = new Set([
 	'sanitizeHtml',
 	'renderMarkdown',
 	'renderMarkdownInline',
+	// src/lib/utils/markdown.ts — sanitizes first, then marks matches in the text between tags
+	'highlightMatchInHtml',
 	'highlightMatch',
 	'escapeHtml',
 	// src/lib/dashboard/format.ts — a thin wrapper over renderMarkdownInline()

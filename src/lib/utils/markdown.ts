@@ -98,6 +98,25 @@ export function escapeHtml(value: string | null | undefined): string {
  * every string it touches into an HTML sink, which is how blueprint labels and help
  * from a third-party package reached the admin unescaped.
  */
+/**
+ * Highlight `query` inside HTML that is already trusted, such as sanitized
+ * field help, without touching the tags. The HTML is sanitized first, then
+ * only the text between tags is searched, so `<code>` and links in help text
+ * keep rendering while a filter is active instead of showing as raw markup.
+ */
+export function highlightMatchInHtml(html: string | null | undefined, query: string): string {
+	const safe = sanitizeHtml(html);
+	if (!query) return safe;
+
+	const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	const re = new RegExp(`(${escaped})`, 'gi');
+
+	return safe
+		.split(/(<[^>]+>)/g)
+		.map((part) => (part.startsWith('<') ? part : part.replace(re, '<mark class="rounded-sm bg-yellow-400/40 text-inherit">$1</mark>')))
+		.join('');
+}
+
 export function highlightMatch(text: string | null | undefined, query: string): string {
 	const safe = escapeHtml(text);
 	if (!query) return safe;

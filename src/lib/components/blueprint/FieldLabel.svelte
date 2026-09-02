@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
-	import { renderMarkdownInline, sanitizeHtml, highlightMatch } from '$lib/utils/markdown';
+	import { renderMarkdownInline, sanitizeHtml, highlightMatch, highlightMatchInHtml } from '$lib/utils/markdown';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import FieldOverrideIndicator from './FieldOverrideIndicator.svelte';
 
@@ -36,7 +36,10 @@
 			: 'text-muted-foreground'} {field.labelclasses ?? ''}"
 	>
 		{#if filter}
-			{@html highlightMatch(i18n.tMaybe(field.label), filter)}
+			<!-- One element, so the text and its <mark> fragments stay a single
+			     flex item: the wrapper's gap would otherwise open up around every
+			     highlighted piece. -->
+			<span>{@html highlightMatch(i18n.tMaybe(field.label), filter)}</span>
 		{:else}
 			{i18n.tMaybe(field.label)}
 		{/if}
@@ -53,7 +56,7 @@
 {#if field.help}
 	<p class="mt-0.5 text-xs text-muted-foreground">
 		{#if filter}
-			{@html highlightMatch(i18n.tMaybe(field.help), filter)}
+			{@html highlightMatchInHtml(i18n.tMaybe(field.help), filter)}
 		{:else}
 			{@html sanitizeHtml(i18n.tMaybe(field.help))}
 		{/if}
