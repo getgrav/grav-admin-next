@@ -280,6 +280,17 @@
 	let title = $state('');
 	let content = $state('');
 	let template = $state('');
+	// The template as SAVED on disk. Both sync effects below key on this and never
+	// on the live `template` state above: the server builds its own room id from
+	// the page it reads off disk (grav-plugin-sync SyncController::resolveRoom ->
+	// RoomRegistry::roomForPage), so the saved value is the only one that can match
+	// the channel it publishes to. It also has to stay out of the effects'
+	// dependency set on a live edit: a room log that contains a template change
+	// replays one snapshot per stored update, so applyRemoteSnapshot writes the old
+	// name back into `template` on every connect, which re-entered the effect and
+	// reconnected, forever. Derived rather than read inline so a save that leaves
+	// the template alone doesn't needlessly re-key the room. (grav-plugin-sync#3)
+	const savedTemplate = $derived(pageData?.template || 'default');
 	let headerData = $state<Record<string, unknown>>({});
 	let headerChanges = $state<Record<string, unknown>>({});
 	let headerYaml = $state('');
@@ -438,7 +449,7 @@
 		const loaded = !loading && untrack(() => pageData !== null);
 		const currentRoute = route;
 		const currentLang = contentLang.enabled ? contentLang.activeLang : null;
-		const currentTemplate = template || 'default';
+		const currentTemplate = savedTemplate;
 
 		if (!enabled || !loaded || !currentRoute) return;
 		// A previous page in this session already learned the API has no /sync
@@ -588,7 +599,18 @@
 				}
 			}
 
-			offRemote = binding.onRemote((snap) => { void applyRemoteSnapshot(snap); });
+			// Connecting replays the room's entire update log, one Yjs transaction per
+			// stored update, and the form binding emits a full snapshot for each one.
+			// Those intermediate states are history, not UI: on a room whose log
+			// contains a template change they walk the editor back through the old
+			// template, refetching a blueprint and re-rendering the form for each
+			// step. Only the merged state at the end of the replay is meaningful, and
+			// that is applied explicitly below. (grav-plugin-sync#3)
+			let replaying = true;
+			offRemote = binding.onRemote((snap) => {
+				if (replaying) return;
+				void applyRemoteSnapshot(snap);
+			});
 
 			// 4) Connect, seed-or-adopt, then build per-editor collab.
 			try {
@@ -639,6 +661,7 @@
 				}
 				// Whether we won, lost, or the room was already populated,
 				// the live doc now reflects the canonical state.
+				replaying = false;
 				await applyRemoteSnapshot(binding.getValue());
 				const contentText = binding.getText('content');
 				if (contentText) {
@@ -692,7 +715,10 @@
 		const currentRoute = route;
 		if (!currentRoute) return;
 		const currentLang = contentLang.enabled ? contentLang.activeLang : null;
-		const currentTemplate = template || 'default';
+		// Same rule as the room effect: sync publishes to a channel built from the
+		// page on disk, so an unsaved template pick subscribed us to a channel
+		// nothing ever writes to. (grav-plugin-sync#3)
+		const currentTemplate = savedTemplate;
 		const baseId = `${currentRoute.replace(/^\//, '')}@${currentTemplate}`;
 		const roomId = currentLang ? `${baseId}@${currentLang}` : baseId;
 

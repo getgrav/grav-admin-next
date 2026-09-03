@@ -36,7 +36,9 @@ export interface PageSavedSubscriber {
 interface ChannelMessage {
 	timestamp: number;
 	payload: Record<string, unknown>;
-	eventName?: string | null;
+	/** Wire key is `event` - see BroadcastMessage::toArray() and
+	 *  FileBroadcastStorage::since() in grav-plugin-sync. */
+	event?: string | null;
 }
 
 interface ChannelPullResponse {
@@ -55,6 +57,10 @@ export function subscribePageSaved(opts: {
 	const intervalMs = opts.intervalMs ?? 4000;
 
 	let cancelled = false;
+	// Consecutive failures back the poll off instead of hammering a fixed interval.
+	// A 429 or a 403 otherwise kept the loop at full rate for the whole edit
+	// session, on top of whatever caused it. (grav-plugin-sync#3)
+	let failures = 0;
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	// `since` starts at the current server time on the first response so we
 	// don't re-fire historical saves the page has already loaded into its
@@ -84,17 +90,20 @@ export function subscribePageSaved(opts: {
 			} else {
 				since = res.serverTimeMs ?? since;
 				for (const msg of res.messages ?? []) {
-					if (msg.eventName === 'page-saved' && msg.payload?.kind === 'page-saved') {
+					if (msg.event === 'page-saved' && msg.payload?.kind === 'page-saved') {
 						opts.onSaved(msg.payload as unknown as PageSavedEvent);
 					}
 				}
 			}
+			failures = 0;
 		} catch {
 			// Channel might not be registered yet (no save has ever happened
 			// for this room), or auth failed, or transport blip — silently
 			// retry next tick. We don't surface anything to the editor.
+			failures = Math.min(failures + 1, 5);
 		}
-		if (!cancelled) timer = setTimeout(tick, intervalMs);
+		// 4s, 8s, 16s, 32s, 64s, capped at ~2min.
+		if (!cancelled) timer = setTimeout(tick, intervalMs * 2 ** failures);
 	}
 
 	// Kick off the first poll immediately so the bootstrap `since` anchors
