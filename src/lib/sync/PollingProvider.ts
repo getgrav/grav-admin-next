@@ -17,7 +17,12 @@ import { api } from '$lib/api/client';
 import type { Awareness } from 'y-protocols/awareness';
 import { encodeAwarenessUpdate, applyAwarenessUpdate } from 'y-protocols/awareness';
 import type { Peer, RemoteUpdateHandler, StatusHandler, SyncProvider, SyncProviderOptions, PeersHandler, SyncStatus } from './SyncProvider';
-import { markSyncUnavailable, isSyncUnavailable, isNotFoundError } from './availability';
+import {
+	markSyncUnavailable,
+	isSyncUnavailable,
+	isNotFoundError,
+	isRateLimitedError,
+} from './availability';
 
 // The admin2 API client already unwraps the outer `{ data: … }` envelope
 // (see client.ts:169), so these types describe the inner shape directly.
@@ -68,6 +73,9 @@ export class PollingProvider implements SyncProvider {
 	private activeMs: number;
 	private presenceIdleMs: number;
 	private presenceActiveMs: number;
+	/** Consecutive failures per loop; stretches the interval until one succeeds. */
+	private pullFailures = 0;
+	private presenceFailures = 0;
 
 	private pullTimer: ReturnType<typeof setTimeout> | null = null;
 	private presenceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -347,11 +355,27 @@ export class PollingProvider implements SyncProvider {
 	}
 
 	private get pullIntervalMs(): number {
-		return this.hasOtherPeers() ? this.activeMs : this.idleMs;
+		return (this.hasOtherPeers() ? this.activeMs : this.idleMs) * this.backoff(this.pullFailures);
 	}
 
 	private get presenceIntervalMs(): number {
-		return this.hasOtherPeers() ? this.presenceActiveMs : this.presenceIdleMs;
+		return (
+			(this.hasOtherPeers() ? this.presenceActiveMs : this.presenceIdleMs) *
+			this.backoff(this.presenceFailures)
+		);
+	}
+
+	/**
+	 * How much to stretch a poll interval after consecutive failures.
+	 *
+	 * Without this a loop kept its full rate for the rest of the edit session no
+	 * matter how it was failing. A 429 is the case that matters: the API client has
+	 * already retried it four times with jitter by the time we see one, so the
+	 * bucket is spent and polling on is what keeps it spent. Doubling up to 32x
+	 * takes a 4s pull out to about two minutes, and the first success resets it.
+	 */
+	private backoff(failures: number): number {
+		return 2 ** Math.min(failures, 5);
 	}
 
 	private hasOtherPeers(): boolean {
@@ -367,7 +391,10 @@ export class PollingProvider implements SyncProvider {
 	private pullSoon(): void {
 		if (this.disposed) return;
 		if (this.pullTimer) clearTimeout(this.pullTimer);
-		this.pullTimer = setTimeout(() => this.pullLoop(), 0);
+		// A local change wants the next pull straight away, but not while the last
+		// few have been failing -- that is how a rate limit gets held open.
+		const delay = this.pullFailures ? this.pullIntervalMs : 0;
+		this.pullTimer = setTimeout(() => this.pullLoop(), delay);
 	}
 
 	private schedulePresence(): void {
@@ -380,10 +407,12 @@ export class PollingProvider implements SyncProvider {
 		if (this.disposed) return;
 		try {
 			await this.pullOnce();
+			this.pullFailures = 0;
 			this.setStatus('connected');
 		} catch (e) {
 			if (this.standDownIfUnavailable(e)) return;
-			this.setStatus('error', (e as Error).message);
+			this.pullFailures++;
+			this.setStatus('error', this.failureDetail(e));
 		}
 		this.schedulePull();
 	}
@@ -392,12 +421,27 @@ export class PollingProvider implements SyncProvider {
 		if (this.disposed) return;
 		try {
 			await this.heartbeatOnce();
+			this.presenceFailures = 0;
 		} catch (e) {
 			if (this.standDownIfUnavailable(e)) return;
 			// Non-fatal; presence just won't refresh this tick.
-			this.setStatus('error', (e as Error).message);
+			this.presenceFailures++;
+			this.setStatus('error', this.failureDetail(e));
 		}
 		this.schedulePresence();
+	}
+
+	/**
+	 * Status detail for a failed poll. A rate limit is named, because "Too Many
+	 * Requests" on its own reads like a fault on the editor's side rather than
+	 * something that clears on its own.
+	 */
+	private failureDetail(e: unknown): string {
+		if (isRateLimitedError(e)) {
+			return 'Rate limited by the server; retrying less often.';
+		}
+
+		return (e as Error).message;
 	}
 
 	private async pullOnce(): Promise<void> {

@@ -37,3 +37,14 @@ export function resetSyncAvailability(): void {
 export function isNotFoundError(e: unknown): boolean {
 	return !!e && typeof e === 'object' && (e as { status?: number }).status === 404;
 }
+
+/**
+ * Whether an error is the API's rate limiter turning us away.
+ *
+ * Worth telling apart from a transport blip: the API client already retries a
+ * 429 four times with jitter, so one that reaches a caller means the bucket is
+ * genuinely spent and the right response is to poll less, not to try again.
+ */
+export function isRateLimitedError(e: unknown): boolean {
+	return !!e && typeof e === 'object' && (e as { status?: number }).status === 429;
+}
