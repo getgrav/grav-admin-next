@@ -104,3 +104,5 @@ public function onApiPluginPageInfo(Event $event): void
 ```
 
 `/plugins/my-plugin-stripe` then redirects to `/plugin/my-plugin#/settings/my-plugin-stripe`, and so does the Configure button on the add-on's card. Your page renders `<grav-blueprint-form plugin="my-plugin-stripe">` at that route and the add-on's settings are edited where the rest of it is managed. Leave `settings_page` out and the redirect goes to the plugin's own page as before; the API drops both keys if it names a plugin that is not installed or has no admin page of its own.
+
+A page or field that makes its own API calls should send the environment picker's selection with them, or a button on your page writes base config while the form beside it writes the selected environment. The admin exposes it as `window.__GRAV_ENVIRONMENT` (`default` for base), beside `window.__GRAV_API_TOKEN`; put it in both `X-Grav-Environment` and `X-Config-Environment` on every request that writes configuration.

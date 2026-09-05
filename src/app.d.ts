@@ -16,6 +16,8 @@ declare global {
 		__GRAV_API_SERVER_URL: string;
 		__GRAV_API_PREFIX: string;
 		__GRAV_API_TOKEN: string | null;
+		/** The environment picker's selection, `default` for base config; sent as X-Grav-Environment and X-Config-Environment on a plugin's own API calls. */
+		__GRAV_ENVIRONMENT: string;
 		__GRAV_PAGE_ROUTE: string;
 		/**
 		 * Live page media snapshot for web components (editor-pro's image picker).

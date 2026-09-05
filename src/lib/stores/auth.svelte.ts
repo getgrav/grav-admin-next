@@ -86,6 +86,16 @@ function createAuthStore() {
 	// (Uri::environment()) only seeds the very first boot, before any choice is
 	// persisted; '' is a valid explicit choice meaning base/"Default".
 	let environment = $state(stored?.environment ?? gravConfig?.environment ?? '');
+
+	// Plugin pages, custom fields and widgets run outside this store and make
+	// their own API calls with `window.__GRAV_API_TOKEN`. They need the picker's
+	// selection beside it, or a button on a plugin page writes base config
+	// while the form beside it writes the selected environment. Mirrored as the
+	// same `default` sentinel the request headers carry.
+	const mirrorEnvironment = () => {
+		if (typeof window !== 'undefined') window.__GRAV_ENVIRONMENT = environment || 'default';
+	};
+	mirrorEnvironment();
 	let apiPrefix = $state(gravConfig?.apiPrefix ?? stored?.apiPrefix ?? '/api/v1');
 	let accessToken = $state(stored?.accessToken ?? '');
 	let refreshToken = $state(stored?.refreshToken ?? '');
@@ -153,7 +163,7 @@ function createAuthStore() {
 		set serverUrl(v: string) { serverUrl = v; persist(); },
 
 		get environment() { return environment; },
-		set environment(v: string) { environment = v; persist(); },
+		set environment(v: string) { environment = v; mirrorEnvironment(); persist(); },
 
 		/**
 		 * The value to send as the X-Grav-Environment header. Base ('') maps to
@@ -244,6 +254,7 @@ function createAuthStore() {
 		setServer(url: string, env: string, prefix?: string) {
 			serverUrl = url.replace(/\/+$/, '');
 			environment = env;
+			mirrorEnvironment();
 			// Only overwrite the API prefix when one is explicitly supplied.
 			// The login/setup pages call setServer(url, env) without a prefix,
 			// and must not clobber the per-site prefix injected via
