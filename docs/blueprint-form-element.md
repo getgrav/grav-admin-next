@@ -81,3 +81,26 @@ $event['definition'] = [
 ```
 
 `settings_route` is a hash route inside the plugin's own page. With it set, `/plugins/<slug>` redirects to `/plugin/<slug><settings_route>`, and the Configure button on the Plugins list goes straight there too, so there is only one place to look. The plugin's card on the Plugins list still handles updating, removing and enabling, and a disabled plugin never redirects — you still land on the admin's own page with the Enable button on it.
+
+### Drawing an add-on's settings on your page
+
+A plugin with add-ons of its own — payment providers, connectors, anything installed as a separate plugin — has the same problem one step removed: the add-on has no admin page, so its settings sit on the Plugins list while everything else about it lives on yours. `settings_page` fixes that. Answer `onApiPluginPageInfo` for the add-on's slug and name your own page as the one that draws them:
+
+```php
+public function onApiPluginPageInfo(Event $event): void
+{
+    if ($event['plugin'] !== 'my-plugin-stripe') {
+        return;
+    }
+
+    $event['definition'] = [
+        'id' => 'my-plugin-stripe',
+        'plugin' => 'my-plugin-stripe',
+        // My page draws these settings, at this route inside it.
+        'settings_page' => 'my-plugin',
+        'settings_route' => '#/settings/my-plugin-stripe',
+    ];
+}
+```
+
+`/plugins/my-plugin-stripe` then redirects to `/plugin/my-plugin#/settings/my-plugin-stripe`, and so does the Configure button on the add-on's card. Your page renders `<grav-blueprint-form plugin="my-plugin-stripe">` at that route and the add-on's settings are edited where the rest of it is managed. Leave `settings_page` out and the redirect goes to the plugin's own page as before; the API drops both keys if it names a plugin that is not installed or has no admin page of its own.

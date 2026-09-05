@@ -35,12 +35,18 @@ export interface PluginInfo {
 	/** Custom admin-next field types provided by this plugin (type → type name) */
 	custom_fields?: Record<string, string>;
 	/**
-	 * Set when the plugin keeps its settings on its own admin page, at this
-	 * hash route inside it. `/plugins/<slug>` redirects there and the Plugins
-	 * list sends Configure to the same place, so there is one set of settings
+	 * Set when the plugin keeps its settings on an admin page, at this hash
+	 * route inside it. `/plugins/<slug>` redirects there and the Plugins list
+	 * sends Configure to the same place, so there is one set of settings
 	 * rather than two.
 	 */
 	settings_route?: string;
+	/**
+	 * The plugin whose page draws those settings, when it is not this one.
+	 * An add-on with no admin page of its own is edited inside the page of the
+	 * plugin it extends.
+	 */
+	settings_page?: string;
 }
 
 /**

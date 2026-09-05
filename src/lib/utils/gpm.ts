@@ -191,13 +191,20 @@ export function formatChangelog(raw: string): string {
  * form. A disabled plugin is the exception: its page is not running, so the
  * admin's own screen — the one with the Enable button on it — is where you go.
  *
+ * `settings_page` names the plugin whose page draws them when that is not the
+ * plugin itself: an add-on with no admin page of its own gets its settings
+ * inside the page of the plugin it extends.
+ *
  * Returns a route relative to the admin base, ready to be appended to `base`.
  */
 export function pluginSettingsRoute(
-	plugin: { slug: string; enabled?: boolean; settings_route?: string } | null | undefined,
+	plugin:
+		| { slug: string; enabled?: boolean; settings_route?: string; settings_page?: string }
+		| null
+		| undefined,
 ): string | null {
 	if (!plugin || !plugin.enabled) return null;
 	const route = plugin.settings_route;
 	if (typeof route !== 'string' || !route.startsWith('#')) return null;
-	return `/plugin/${plugin.slug}${route}`;
+	return `/plugin/${plugin.settings_page ?? plugin.slug}${route}`;
 }

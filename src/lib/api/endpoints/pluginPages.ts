@@ -29,10 +29,15 @@ export interface PluginPageDefinition {
 	actions?: PluginPageAction[];
 	has_custom_component?: boolean;
 	/**
-	 * A hash route inside this page where the plugin's settings live. When it
-	 * is set, `/plugins/<slug>` redirects to `/plugin/<slug><settings_route>`.
+	 * A hash route inside a page where the plugin's settings live. When it is
+	 * set, `/plugins/<slug>` redirects to `/plugin/<slug><settings_route>`.
 	 */
 	settings_route?: string;
+	/**
+	 * The plugin whose page draws those settings, when it is not this one —
+	 * the redirect goes to `/plugin/<settings_page><settings_route>` instead.
+	 */
+	settings_page?: string;
 }
 
 export async function getPluginPageDefinition(slug: string): Promise<PluginPageDefinition> {
