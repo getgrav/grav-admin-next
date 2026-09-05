@@ -24,7 +24,7 @@ interface FormExports {
 
 class GravBlueprintForm extends HTMLElement {
 	static get observedAttributes() {
-		return ['plugin', 'theme', 'filter', 'hide-toolbar', 'hide-fields'];
+		return ['plugin', 'theme', 'filter', 'hide-toolbar', 'hide-fields', 'tab'];
 	}
 
 	#props = $state({
@@ -33,6 +33,7 @@ class GravBlueprintForm extends HTMLElement {
 		filter: '',
 		hideToolbar: false,
 		hideFields: [] as string[],
+		tab: '',
 		onevent: (name: string, detail: Record<string, unknown>) => this.#emit(name, detail),
 	});
 
@@ -81,6 +82,8 @@ class GravBlueprintForm extends HTMLElement {
 				.split(',')
 				.map((n) => n.trim())
 				.filter((n) => n !== '');
+		} else if (name === 'tab') {
+			this.#props.tab = (value ?? '').trim();
 		}
 	}
 
@@ -114,6 +117,22 @@ class GravBlueprintForm extends HTMLElement {
 	}
 	set hideFields(value: string[] | string) {
 		this.setAttribute('hide-fields', Array.isArray(value) ? value.join(',') : String(value ?? ''));
+	}
+
+	/**
+	 * The tab the form opens on, or switches to when this changes.
+	 *
+	 * A tab's blueprint name, with or without its `_tab` suffix, so a host
+	 * can say `tab="sending"` for a tab named `sending_tab`. It wins over the
+	 * tab the form was last left on. The form never reads or writes the page
+	 * hash while it is hosted this way: that hash belongs to the host page's
+	 * own router.
+	 */
+	get tab(): string {
+		return this.#props.tab;
+	}
+	set tab(value: string) {
+		this.setAttribute('tab', value ?? '');
 	}
 
 	/** True while the form holds changes nobody has saved. */

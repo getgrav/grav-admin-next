@@ -50,12 +50,18 @@
 		 * pointing at.
 		 */
 		hideFields?: string[];
+		/**
+		 * The tab to open on, or switch to when it changes: a tab's blueprint
+		 * name with or without its `_tab` suffix. Empty means the tab the form
+		 * was last left on.
+		 */
+		tab?: string;
 		/** Reported back to the custom element, which re-fires each one as a DOM event. */
 		onevent?: (name: string, detail: Record<string, unknown>) => void;
 	}
 
 	let {
-		kind = 'plugins', slug = '', filter = '', hideToolbar = false, hideFields = [], onevent,
+		kind = 'plugins', slug = '', filter = '', hideToolbar = false, hideFields = [], tab = '', onevent,
 	}: Props = $props();
 
 	let blueprint = $state<BlueprintSchema | null>(null);
@@ -82,6 +88,9 @@
 	// Scope for blueprint-upload destination resolution (`self@:` → the package
 	// directory), the same value the /plugins/<slug> page sets.
 	setContext('blueprintScope', () => (slug ? `${kind}/${slug}` : ''));
+	// Tab groups inside a hosted form take their tab from the host rather than
+	// the page hash: the hash belongs to whichever router drew the host page.
+	setContext('blueprintTabs', () => ({ embedded: true, tab }));
 	// Bus for leaf fields that defer side effects to the save commit.
 	const formCommit = provideFormCommit();
 

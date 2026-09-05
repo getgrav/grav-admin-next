@@ -19,6 +19,7 @@ That is the same blueprint, the same field types (including any custom fields th
 | `filter` | Show only the fields whose label, help text, name, title or description contains this text, with the match highlighted. Containers with no matching field inside them stay shut. Changing it re-filters straight away, so it can be wired to a search box the host page owns. |
 | `hide-toolbar` | Present means the element does not draw its own Save row, because the host page has a Save button of its own and drives the form through `save()`. |
 | `hide-fields` | Comma-separated blueprint field names to leave out, at any depth. For the field that only makes sense on the admin's own settings page — a blueprint carrying a "the rest of this plugin lives over there" notice does not want that notice on the page it is pointing at. |
+| `tab` | The tab to open on, and to switch to whenever the attribute changes: a tab's blueprint name, with or without its `_tab` suffix, so `tab="sending"` opens a tab named `sending_tab`. It wins over the tab the form was last left on. A hosted form never reads or writes the page hash for its tabs, since that hash belongs to the host page's own router. |
 
 Every attribute has a matching property (`el.filter = 'tax'`, `el.hideFields = ['open_store']`), and setting the property writes the attribute back, so either style works.
 

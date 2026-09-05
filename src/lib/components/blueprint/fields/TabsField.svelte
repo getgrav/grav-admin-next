@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { replaceState } from '$app/navigation';
+	import { getContext } from 'svelte';
 	import FieldRenderer from '../FieldRenderer.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldMatches } from '$lib/utils/field-filter';
@@ -16,6 +17,14 @@
 	}
 
 	let { field, getValue, onFieldChange, onFieldCommit, filter = '' }: Props = $props();
+
+	// A form hosted inside another plugin's page (`<grav-blueprint-form>`) says
+	// so here, and names the tab it wants. Hosted, this group leaves the page
+	// hash alone in both directions: reading it would match nothing the host's
+	// router wrote there, and writing it would replace the host's own route.
+	const hostTabs = getContext<(() => { embedded: boolean; tab: string }) | undefined>('blueprintTabs');
+	const embedded = $derived(hostTabs?.().embedded ?? false);
+	const hostTab = $derived((hostTabs?.().tab ?? '').trim().toLowerCase());
 	const translateLabel = i18n.tMaybe;
 
 	// A real tab needs an explicit `type: tab`, OR a title/label combined with
@@ -49,7 +58,7 @@
 
 	// Check if this is a nested tab (URL already has a hash from a parent tab context)
 	function getHashParts(): string[] {
-		if (typeof window === 'undefined') return [];
+		if (typeof window === 'undefined' || embedded) return [];
 		// Drop empty segments so a top-level tab writes `#options`, not `#--options`
 		return window.location.hash.slice(1).split('--').map(s => s.toLowerCase()).filter(Boolean);
 	}
@@ -63,7 +72,20 @@
 
 	// Resolve initial tab from URL hash (supports nested hashes like #scheduler--jobs_tab),
 	// falling back to whichever tab this group was last left on.
+	// The tab the host asked for, by name with or without its `_tab` suffix.
+	function hostIndex(): number {
+		if (!embedded || hostTab === '') return -1;
+		return tabs.findIndex((t) => {
+			const name = t.name.toLowerCase();
+			return name === hostTab || name === `${hostTab}_tab`;
+		});
+	}
+
 	function getInitialIndex(): number {
+		// A host that named a tab wins outright: an alert's "Set the From
+		// address" button has to land on the tab with the From address.
+		const asked = hostIndex();
+		if (asked >= 0) return asked;
 		// An explicit hash wins, so deep links land where they point.
 		// Try matching the last segment, then any segment
 		for (const part of [...getHashParts()].reverse()) {
@@ -124,6 +146,13 @@
 		return () => { ro.disconnect(); mo?.disconnect(); };
 	});
 
+	// The host changed its mind about the tab while the form stayed mounted:
+	// an alert button pressed from a screen that already had the form open.
+	$effect(() => {
+		const asked = hostIndex();
+		if (asked >= 0 && asked !== activeIndex) activeIndex = asked;
+	});
+
 	// Only re-resolve activeIndex when the tabs actually change (blueprint reload)
 	$effect(() => {
 		if (tabKey === prevTabKey) return;
@@ -144,12 +173,13 @@
 			const myTabNames = new Set(tabs.map(t => t.name.toLowerCase()));
 			const parentParts = hashParts.filter(p => !myTabNames.has(p));
 			const newHash = [...parentParts, tabName].join('--');
-			replaceState(`#${newHash}`, {});
+			if (!embedded) replaceState(`#${newHash}`, {});
 		}
 	}
 
 	// Listen for hash changes (browser back/forward)
 	$effect(() => {
+		if (embedded) return;
 		function onHashChange() {
 			const hashParts = getHashParts();
 			for (const part of [...hashParts].reverse()) {
