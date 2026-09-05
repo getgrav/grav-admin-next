@@ -533,7 +533,7 @@
 						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_LANGUAGE_DESC', { count: i18n.count })}</p>
 					</div>
 					<select
-						class="flex h-9 max-w-48 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+						class="flex h-9 max-w-48 rounded-md border border-input px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 						value={prefs.adminLanguage}
 						onchange={(e) => handleLanguageChange((e.target as HTMLSelectElement).value)}
 					>
@@ -948,7 +948,7 @@
 										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_INTERFACE_LANGUAGE_DESC')}</p>
 									</div>
 									<select
-										class="flex h-9 max-w-48 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+										class="flex h-9 max-w-48 rounded-md border border-input px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 										value={siteDraft.adminLanguage ?? 'en-US'}
 										onchange={(e) => siteDraft = { ...siteDraft, adminLanguage: (e.target as HTMLSelectElement).value }}
 									>
@@ -1090,7 +1090,7 @@
 											<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.GROUP_RAPID_FIELD_CHANGES_INTO_A_SINGLE')}</p>
 										</div>
 										<select
-											class="flex h-9 max-w-40 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+											class="flex h-9 max-w-40 rounded-md border border-input px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 											value={siteDraft.autoSaveBatchWindowMs ?? 0}
 											onchange={(e) => siteDraft = { ...siteDraft, autoSaveBatchWindowMs: Number((e.target as HTMLSelectElement).value) }}
 										>

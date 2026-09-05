@@ -169,9 +169,23 @@
 	   list lands on the browser's default light surface while the rows keep the
 	   admin's near-white text: white on white (admin2#168). The `color-scheme`
 	   declarations at the top of this file cannot rescue those, because there is
-	   no author colour for the scheme to sit behind. Colour the rows explicitly
-	   instead. macOS is unaffected either way -- Chrome and Safari hand the list
-	   to the system menu there, which ignores both. */
+	   no author colour for the scheme to sit behind.
+
+	   Both halves of the list need a colour, and they come from different places.
+	   The rows are `option`, below. Everything around them -- the frame, the
+	   padding at the top and bottom, and the scrollbar on a list long enough to
+	   need one -- is painted from the control's own background, so a select whose
+	   background is `transparent` keeps a white surround however the rows are
+	   coloured. That is the residue that survived the first fix: dark rows in a
+	   white frame with a light scrollbar. So a select must always resolve to a
+	   real colour, never `transparent`; the rule below is the floor for one that
+	   is given no background utility of its own. macOS is unaffected either way --
+	   Chrome and Safari hand the list to the system menu there, which ignores
+	   both. */
+	select {
+		background-color: var(--popover);
+	}
+
 	option,
 	optgroup {
 		background-color: var(--popover);

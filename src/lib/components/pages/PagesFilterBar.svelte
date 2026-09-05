@@ -95,7 +95,7 @@
 				<div class="space-y-1">
 					<span class="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.FILTER.TEMPLATE')}</span>
 					<select
-						class="h-8 w-full rounded-md border border-border bg-transparent ps-2 pe-7 py-0 text-[0.75rem] shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+						class="h-8 w-full rounded-md border border-border ps-2 pe-7 py-0 text-[0.75rem] shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 						value={filters.template}
 						onchange={(e) => setTemplate((e.target as HTMLSelectElement).value)}
 					>

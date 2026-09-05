@@ -882,7 +882,7 @@
 	<div class="ms-auto flex items-center gap-1.5 text-muted-foreground">
 		<ArrowUpDown size={11} />
 		<select
-			class="h-6 rounded border-0 bg-transparent pe-6 text-[0.6875rem] font-medium focus:outline-none focus:ring-0"
+			class="h-6 rounded border-0 pe-6 text-[0.6875rem] font-medium focus:outline-none focus:ring-0"
 			value={`${sortField}:${sortOrder}`}
 			onchange={handleSortChange}
 		>

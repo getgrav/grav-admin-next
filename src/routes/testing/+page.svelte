@@ -164,7 +164,7 @@
 				<!-- Select -->
 				<div class="space-y-1.5">
 					<label for="test-select" class="text-[0.8125rem] font-medium text-foreground">Select</label>
-					<select id="test-select" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" bind:value={selectValue}>
+					<select id="test-select" class="flex h-9 w-full rounded-md border border-input px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" bind:value={selectValue}>
 						<option value="">Select an option...</option>
 						<option value="default">Default</option>
 						<option value="blog">Blog</option>

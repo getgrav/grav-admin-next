@@ -280,7 +280,7 @@
 			<label class="inline-flex items-center gap-1.5 text-[0.75rem] font-medium text-muted-foreground" title={i18n.t('ADMIN_NEXT.PAGES.CHUNK_SIZE_HELP')}>
 				<span class="hidden md:inline">{i18n.t('ADMIN_NEXT.PAGES.CHUNK_SIZE')}</span>
 				<select
-					class="h-8 rounded-md border border-border bg-transparent ps-2 pe-7 py-0 text-[0.75rem] shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+					class="h-8 rounded-md border border-border ps-2 pe-7 py-0 text-[0.75rem] shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 					value={prefs.pagesChunkSize}
 					onchange={(e) => prefs.pagesChunkSize = Number((e.target as HTMLSelectElement).value) as PagesChunkSize}
 				>
