@@ -11,6 +11,7 @@
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson } from '$lib/utils/blueprint-validation';
 	import { canWrite } from '$lib/utils/permissions';
 	import CopyButton from '$lib/components/ui/CopyButton.svelte';
+	import NoticePanel from '$lib/components/tools/NoticePanel.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Save, Loader2, AlertTriangle, Info, Shield } from 'lucide-svelte';
 
@@ -25,6 +26,48 @@
 
 	let hasChanges = $derived(stableJson(configData) !== originalJson);
 	const canSave = $derived(canWrite('system'));
+
+	// Which of the standing notices apply right now. They are advisories about how
+	// the scheduler is set up rather than events, so they say the same thing on
+	// every visit; the panel below keeps them out of the way until asked for, and
+	// the count and colour on its header are what carry urgency while it is shut.
+	const noticeStatusUnavailable = $derived(!status);
+	const noticeProcessUnavailable = $derived(!!status && !status.process_available);
+	const noticeCronMissing = $derived(status?.crontab_status === 'not_installed');
+	const noticeCronUnknown = $derived(status?.crontab_status === 'unknown');
+	const noticeLastRun = $derived(!!(status?.last_run || status?.last_manual_run));
+	const noticeEnvMismatch = $derived(
+		!!status?.environment_has_overrides &&
+		!!status.last_run_environment &&
+		status.last_run_environment !== status.environment
+	);
+	// The crontab command is the fix for noticeCronMissing, so it travels with it
+	// rather than being stranded outside the panel that hides its own warning.
+	const noticeCronCommand = $derived(!!status?.cron_command && status.crontab_status !== 'installed');
+
+	const noticeCount = $derived(
+		[
+			noticeStatusUnavailable,
+			noticeProcessUnavailable,
+			noticeCronMissing,
+			noticeCronUnknown,
+			noticeLastRun,
+			noticeEnvMismatch,
+			noticeCronCommand,
+			true, // INFO_BANNER
+			true, // SECURITY_WARNING
+		].filter(Boolean).length
+	);
+
+	// The header takes the colour of the worst thing inside it, so a shut panel
+	// still says whether anything in there needs doing.
+	const noticeSeverity = $derived<'error' | 'warning' | 'info'>(
+		noticeCronMissing
+			? 'error'
+			: noticeStatusUnavailable || noticeProcessUnavailable || noticeEnvMismatch
+				? 'warning'
+				: 'info'
+	);
 
 	async function load() {
 		loading = true;
@@ -103,14 +146,16 @@
 		<div class="p-8 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.LOADING_SCHEDULER')}</div>
 	{:else}
 
-		{#if !status}
+		<NoticePanel count={noticeCount} severity={noticeSeverity} storageKey="grav_scheduler_notices">
+
+		{#if noticeStatusUnavailable}
 			<div class="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
 				<AlertTriangle size={16} class="mt-0.5 shrink-0" />
 				<span>{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.STATUS_UNAVAILABLE')}</span>
 			</div>
 		{/if}
 
-		{#if status && !status.process_available}
+		{#if noticeProcessUnavailable}
 			<div class="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
 				<AlertTriangle size={16} class="mt-0.5 shrink-0" />
 				<span>{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.PROCESS_UNAVAILABLE')}</span>
@@ -118,19 +163,19 @@
 		{/if}
 
 		<!-- Cron Status Notice. Only shown when we could actually determine it. -->
-		{#if status && status.crontab_status === 'not_installed'}
+		{#if noticeCronMissing}
 			<div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
 				<AlertTriangle size={16} />
 				{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.NOT_ENABLED_FOR_USER')} <strong>{status.whoami}</strong>
 			</div>
-		{:else if status && status.crontab_status === 'unknown'}
+		{:else if noticeCronUnknown}
 			<div class="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
 				<Info size={16} class="mt-0.5 shrink-0" />
 				<span>{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.CRON_UNDETERMINED')}</span>
 			</div>
 		{/if}
 
-		{#if status?.last_run || status?.last_manual_run}
+		{#if noticeLastRun}
 			<div class="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
 				<Info size={16} class="mt-0.5 shrink-0" />
 				<div class="min-w-0 flex-1 space-y-1">
@@ -147,7 +192,7 @@
 		{/if}
 
 		<!-- Cron runs under a different environment than the site: overrides never load (grav#4248) -->
-		{#if status?.environment_has_overrides && status.last_run_environment && status.last_run_environment !== status.environment}
+		{#if noticeEnvMismatch}
 			<div class="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
 				<AlertTriangle size={16} class="mt-0.5 shrink-0" />
 				<div class="min-w-0 flex-1 space-y-2">
@@ -167,7 +212,7 @@
 		</div>
 
 		<!-- Cron Command -->
-		{#if status?.cron_command && status.crontab_status !== 'installed'}
+		{#if noticeCronCommand}
 			<div class="rounded-lg border border-border bg-card p-4">
 				<div class="flex items-start gap-2">
 					<code class="block flex-1 overflow-x-auto rounded-md bg-muted px-3 py-2.5 font-mono text-xs text-foreground">{status.cron_command}</code>
@@ -189,6 +234,8 @@
 			<Shield size={16} class="mt-0.5 shrink-0" />
 			<span>{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.SECURITY_WARNING')}</span>
 		</div>
+
+		</NoticePanel>
 
 		<!-- Save button (always visible, disabled when no changes) -->
 		<div class="flex justify-end">
