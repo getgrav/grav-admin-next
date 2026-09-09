@@ -264,10 +264,23 @@ export async function createPage(body: CreatePageBody): Promise<PageDetail> {
  * (getgrav/grav-plugin-admin2#100). The token is appended to the preview URL
  * alongside `admin_preview=1`; the API plugin validates it and force-publishes
  * only this one page for that request.
+ *
+ * `route` is the page the preview should actually load, and `anchor` the
+ * fragment that scrolls to the part being previewed. Both differ from the
+ * requested page only for a module, which has no page of its own and is drawn
+ * inside its parent (getgrav/grav-plugin-admin2#170). The server resolves them
+ * from the page tree, so the client never derives a parent route itself: with
+ * `system.home.hide_in_urls` a route cannot be had by trimming a child's
+ * (getgrav/grav-plugin-admin2#132).
  */
-export async function getPagePreviewToken(route: string): Promise<{ token: string; expires_in: number }> {
+export async function getPagePreviewToken(
+	route: string
+): Promise<{ token: string; expires_in: number; route?: string; anchor?: string | null }> {
 	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
-	return api.post<{ token: string; expires_in: number }>(`/pages/${cleanRoute}/preview-token`, {});
+	return api.post<{ token: string; expires_in: number; route?: string; anchor?: string | null }>(
+		`/pages/${cleanRoute}/preview-token`,
+		{}
+	);
 }
 
 export async function updatePage(route: string, body: UpdatePageBody, etag?: string, lang?: string): Promise<PageDetail> {

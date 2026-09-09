@@ -235,6 +235,20 @@
 	// even when it is unpublished (admin2#100). Minted fresh each time the preview
 	// opens; null for published pages (which need no token) or if minting fails.
 	let previewToken = $state<string | null>(null);
+	// The route the preview actually loads, and the fragment that scrolls to the
+	// part being previewed. Both come from the server and differ from this page's
+	// own route only for a module, which has no page of its own and is drawn
+	// inside its parent (admin2#170). Never derived here: a parent route cannot
+	// be had by trimming a child's once `system.home.hide_in_urls` is on
+	// (admin2#132).
+	let previewRoute = $state<string | null>(null);
+	let previewAnchor = $state<string | null>(null);
+	const previewTargetRoute = $derived(previewRoute ?? pageData?.route ?? '');
+	// True when the preview is showing a different page from the one being
+	// edited, i.e. a module rendered inside its parent.
+	const previewIsHostPage = $derived(
+		!!previewRoute && !!pageData && previewRoute !== pageData.route
+	);
 	// `admin_preview` tells the API plugin to render this front-end page without
 	// starting the shared front-end session, so opening the preview (iframe or
 	// new tab) can't rotate or invalidate a visitor's `grav-site` session and log
@@ -242,9 +256,12 @@
 	// additionally unlocks an unpublished draft for this one request (admin2#100).
 	const frontendPreviewUrl = $derived.by(() => {
 		if (!pageData) return '';
-		const sep = pageData.route.includes('?') ? '&' : '?';
-		let url = `${auth.serverUrl}${pageData.route}${sep}admin_preview=1`;
+		const sep = previewTargetRoute.includes('?') ? '&' : '?';
+		let url = `${auth.serverUrl}${previewTargetRoute}${sep}admin_preview=1`;
 		if (previewToken) url += `&preview_token=${encodeURIComponent(previewToken)}`;
+		// Advisory: themes that give each module an anchor scroll straight to it,
+		// and one that emits no such id just lands at the top of the parent.
+		if (previewAnchor) url += `#${encodeURIComponent(previewAnchor)}`;
 		return url;
 	});
 
@@ -253,7 +270,7 @@
 	// and iframe still use the full frontendPreviewUrl so the draft renders.
 	const frontendPreviewDisplayUrl = $derived.by(() => {
 		if (!pageData) return '';
-		return `${auth.serverUrl}${pageData.route}`;
+		return `${auth.serverUrl}${previewTargetRoute}`;
 	});
 
 	// Open the front-end preview. We mint the draft-preview token BEFORE showing
@@ -265,11 +282,17 @@
 		if (!pageData) return;
 		previewLoading = true;
 		previewToken = null;
+		previewRoute = null;
+		previewAnchor = null;
 		try {
 			const res = await getPagePreviewToken(pageData.route);
 			previewToken = res.token ?? null;
+			previewRoute = res.route ?? null;
+			previewAnchor = res.anchor ?? null;
 		} catch {
 			previewToken = null;
+			previewRoute = null;
+			previewAnchor = null;
 		} finally {
 			previewLoading = false;
 			showFrontendPreview = true;
@@ -2372,6 +2395,14 @@
 				<div class="flex min-w-0 flex-1 items-center gap-3">
 					<h2 class="shrink-0 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_PREVIEW')}</h2>
 					<span class="min-w-0 truncate text-xs text-muted-foreground">{frontendPreviewDisplayUrl}</span>
+					{#if previewIsHostPage}
+						<!-- A module has no page of its own, so the preview loads the page
+						     it lives in. Say so, since the URL above is not the page being
+						     edited (admin2#170). -->
+						<span class="shrink-0 rounded border border-border bg-muted px-1.5 py-0.5 text-[0.6875rem] text-muted-foreground">
+							{i18n.t('ADMIN_NEXT.PAGES.EDIT.PREVIEW_SHOWING_HOST_PAGE')}
+						</span>
+					{/if}
 				</div>
 				<div class="flex shrink-0 items-center gap-2">
 					<a
