@@ -4,6 +4,7 @@
 	import { toast } from 'svelte-sonner';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import { canWrite } from '$lib/utils/permissions';
 	import {
 		addTwigAllowlist,
 		clearTwigContentEvents,
@@ -297,14 +298,18 @@
 			<span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 				{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.SECTION_EVENTS')}
 			</span>
-			<Button variant="ghost" size="sm" onclick={clearEvents} disabled={clearing}>
-				{#if clearing}
-					<Loader2 size={13} class="me-1.5 animate-spin" />
-				{:else}
-					<Trash2 size={13} class="me-1.5" />
-				{/if}
-				{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.CLEAR_EVENTS')}
-			</Button>
+			<!-- Clearing is a write to a record every admin reads, so it needs
+			     api.system.write (getgrav/grav-plugin-api#35). -->
+			{#if canWrite('system')}
+				<Button variant="ghost" size="sm" onclick={clearEvents} disabled={clearing}>
+					{#if clearing}
+						<Loader2 size={13} class="me-1.5 animate-spin" />
+					{:else}
+						<Trash2 size={13} class="me-1.5" />
+					{/if}
+					{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.CLEAR_EVENTS')}
+				</Button>
+			{/if}
 		</div>
 		<div class="divide-y divide-border">
 			{#each events as event, idx (idx)}
