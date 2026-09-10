@@ -55,6 +55,8 @@
 	let loading = $state(true);
 	let saving = $state(false);
 	let error = $state('');
+	/** The failed request's own message, shown under `error`. */
+	let errorDetail = $state('');
 	let validationErrors = $state<Record<string, string>>({});
 
 	let accessDenied = $state(false);
@@ -80,6 +82,7 @@
 	async function loadConfig() {
 		loading = true;
 		error = '';
+		errorDetail = '';
 		accessDenied = false;
 		blueprint = null;
 
@@ -90,7 +93,14 @@
 			}
 
 			const [blueprintResult, configResult] = await Promise.all([
-				getConfigBlueprint(scope).catch(() => null),
+				// A scope with no blueprint answers 404, and the page says so below.
+				// Any other failure (a 500, a reply that isn't JSON) is a failed
+				// request and must read as one, not as a missing blueprint
+				// (getgrav/grav-plugin-admin2#173).
+				getConfigBlueprint(scope).catch((err: unknown) => {
+					if (err instanceof ApiRequestError && err.status === 404) return null;
+					throw err;
+				}),
 				getConfig(scope)
 			]);
 
@@ -106,9 +116,10 @@
 			if (status === 403) {
 				accessDenied = true;
 			} else if (status === 404) {
-				error = `Configuration scope '${scope}' not found.`;
+				error = i18n.t('ADMIN_NEXT.CONFIG.SCOPE_NOT_FOUND', { scope });
 			} else {
-				error = 'Failed to load configuration.';
+				error = i18n.t('ADMIN_NEXT.CONFIG.FAILED_TO_LOAD_CONFIGURATION');
+				errorDetail = err instanceof Error ? err.message : '';
 			}
 		} finally {
 			loading = false;
@@ -454,9 +465,18 @@
 		{#if accessDenied}
 		<AccessDenied message="You don't have permission to view configuration." />
 	{:else if error}
-		<div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
-			<AlertCircle size={16} />
-			{error}
+		<div class="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300" role="alert">
+			<AlertCircle size={16} class="mt-0.5 shrink-0" />
+			<div class="min-w-0 flex-1">
+				<p>{error}</p>
+				{#if errorDetail}
+					<p class="mt-0.5 text-xs opacity-80">{errorDetail}</p>
+				{/if}
+			</div>
+			<Button variant="outline" size="sm" onclick={loadConfig} disabled={loading}>
+				<RefreshCw size={14} class="me-1.5" />
+				{i18n.t('ADMIN_NEXT.RETRY')}
+			</Button>
 		</div>
 	{/if}
 

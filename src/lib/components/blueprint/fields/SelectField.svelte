@@ -31,9 +31,14 @@
 			if (field.data_options.includes('pageTypes') && getPageType) {
 				params.type = getPageType();
 			}
-			resolveDataOptions(field.data_options, Object.keys(params).length > 0 ? params : undefined).then((opts) => {
-				resolvedOptions = opts;
-			});
+			resolveDataOptions(field.data_options, Object.keys(params).length > 0 ? params : undefined)
+				.then((opts) => {
+					resolvedOptions = opts;
+				})
+				.catch((err) => {
+					// Leave the list empty rather than leak an unhandled rejection.
+					console.warn(`[SelectField] Could not load options from ${field.data_options}`, err);
+				});
 		}
 	});
 

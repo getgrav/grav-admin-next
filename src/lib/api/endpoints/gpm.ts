@@ -1,4 +1,4 @@
-import { api } from '../client';
+import { api, expectArray } from '../client';
 import { extractEtag } from '$lib/utils/etag';
 import { readOverrideMeta, type ConfigResponse } from './config';
 
@@ -149,7 +149,8 @@ export interface RepositoryPlugin {
  * Uses a large per_page to fetch all in one request.
  */
 export async function getRepositoryPlugins(): Promise<RepositoryPlugin[]> {
-	return api.get<RepositoryPlugin[]>('/gpm/repository/plugins', { per_page: '500' });
+	const path = '/gpm/repository/plugins';
+	return expectArray<RepositoryPlugin>(await api.get<unknown>(path, { per_page: '500' }), 'GET', path);
 }
 
 export interface InstallPackageResult {
@@ -327,7 +328,8 @@ export interface RepositoryTheme {
 }
 
 export async function getRepositoryThemes(): Promise<RepositoryTheme[]> {
-	return api.get<RepositoryTheme[]>('/gpm/repository/themes', { per_page: '500' });
+	const path = '/gpm/repository/themes';
+	return expectArray<RepositoryTheme>(await api.get<unknown>(path, { per_page: '500' }), 'GET', path);
 }
 
 export async function installTheme(slug: string): Promise<InstallPackageResult> {

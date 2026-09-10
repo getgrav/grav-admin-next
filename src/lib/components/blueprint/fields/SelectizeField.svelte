@@ -34,11 +34,14 @@
 	// Stored tags are option *values* (e.g. group keys like `procras`), but we
 	// display the option *label* (`Procrastinators`) when one exists — matching
 	// classic selectize, which renders the readable name while submitting the
-	// key. Falls back to the raw value for free-form / unknown tags.
+	// key. Falls back to the raw value for free-form / unknown tags, and for an
+	// option whose label is empty: a user group saved without a display name
+	// comes back labelled "", which drew a blank chip and a blank suggestion
+	// (getgrav/grav-plugin-admin2#172).
 	const optionLabels = $derived(
 		new Map((field.options ?? []).map((opt) => [opt.value, opt.label]))
 	);
-	const labelFor = (val: string): string => translateLabel(optionLabels.get(val) ?? val);
+	const labelFor = (val: string): string => translateLabel(optionLabels.get(val) || val);
 
 	// Show filtered suggestions when typing, or ALL unselected options on focus
 	const suggestions = $derived.by(() => {

@@ -78,6 +78,91 @@ export class ApiRequestError extends Error {
 	}
 }
 
+/**
+ * Codes the client assigns itself when a response arrived but can't be used,
+ * so callers (and the console) can tell them apart from an HTTP error (a
+ * non-2xx status) and a network error (status 0).
+ */
+export const INVALID_JSON_CODE = 'invalid_json_response';
+export const UNEXPECTED_RESPONSE_CODE = 'unexpected_response_type';
+
+/** How much of an unusable body to log from each end. */
+const BODY_SNIPPET_CHARS = 200;
+
+/** The API's JSON envelope. Some endpoints return a bare value instead. */
+interface ApiEnvelope {
+	data?: unknown;
+	meta?: unknown;
+}
+
+/**
+ * Read a response body as JSON. An empty body reads as `null`, as before.
+ *
+ * A body that isn't valid JSON used to be swallowed into `null` as well, so a
+ * 200 whose JSON was followed by a PHP fatal-error block (or preceded by a
+ * stray warning) *resolved* with `null`. Callers then crashed on the null
+ * somewhere downstream and left their spinners running with no error shown
+ * (getgrav/grav-plugin-admin2#173). Now the body is logged, head and tail,
+ * because the stray output can sit at either end, and a 2xx rejects with an
+ * INVALID_JSON_CODE error. A non-2xx still reads as `null`, so the caller's
+ * status-based error applies unchanged.
+ */
+async function readJsonBody(response: Response, method: string, path: string): Promise<unknown> {
+	const text = await response.text();
+	if (text.trim() === '') return null;
+	try {
+		return JSON.parse(text);
+	} catch (err) {
+		const head = text.slice(0, BODY_SNIPPET_CHARS);
+		const tail = text.length > BODY_SNIPPET_CHARS * 2 ? text.slice(-BODY_SNIPPET_CHARS) : '';
+		console.error(
+			`[api] ${method} ${path} returned HTTP ${response.status} with a body that is not valid JSON ` +
+				`(${err instanceof Error ? err.message : String(err)}). ` +
+				`Content-Type: ${response.headers.get('content-type') ?? 'none'}, ${text.length} characters.`,
+			{ head, tail }
+		);
+		if (!response.ok) return null;
+		throw new ApiRequestError(
+			{
+				status: response.status,
+				title: i18n.t('ADMIN_NEXT.API_CLIENT.INVALID_JSON_TITLE'),
+				detail: i18n.t('ADMIN_NEXT.API_CLIENT.INVALID_JSON_DETAIL'),
+				code: INVALID_JSON_CODE,
+			},
+			response
+		);
+	}
+}
+
+/**
+ * Check that a response carried the list an endpoint promises. Valid JSON of
+ * another type (an object, a string, null) would otherwise flow into code that
+ * calls array methods on it and crash there, far from the cause. Logs what
+ * arrived and rejects with an UNEXPECTED_RESPONSE_CODE error.
+ */
+export function expectArray<T>(value: unknown, method: string, path: string): T[] {
+	if (Array.isArray(value)) return value as T[];
+	let preview = '';
+	try {
+		preview = (JSON.stringify(value) ?? '').slice(0, BODY_SNIPPET_CHARS);
+	} catch {
+		/* not serializable; the type below is enough */
+	}
+	console.error(
+		`[api] ${method} ${path} returned ${value === null ? 'null' : typeof value} where a list was expected.`,
+		preview
+	);
+	throw new ApiRequestError(
+		{
+			status: 200,
+			title: i18n.t('ADMIN_NEXT.API_CLIENT.UNEXPECTED_RESPONSE_TITLE'),
+			detail: i18n.t('ADMIN_NEXT.API_CLIENT.UNEXPECTED_RESPONSE_DETAIL'),
+			code: UNEXPECTED_RESPONSE_CODE,
+		},
+		Response.error()
+	);
+}
+
 interface RequestOptions {
 	body?: unknown;
 	params?: Record<string, string>;
@@ -334,7 +419,7 @@ class ApiClient {
 		await this.tryRefresh();
 	}
 
-	private async handleResponse<T>(response: Response): Promise<T> {
+	private async handleResponse<T>(response: Response, method: string, path: string): Promise<T> {
 		// 2xx: always parse invalidation header before returning.
 		if (response.ok) {
 			this.parseInvalidates(response);
@@ -344,13 +429,13 @@ class ApiClient {
 			return undefined as T;
 		}
 
-		const body = await response.json().catch(() => null);
+		const body = (await readJsonBody(response, method, path)) as ApiEnvelope | null;
 
 		if (!response.ok) {
 			throw new ApiRequestError(buildApiError(body, response), response);
 		}
 
-		return body?.data !== undefined ? body.data : body;
+		return (body?.data !== undefined ? body.data : body) as T;
 	}
 
 	private async request<T>(
@@ -418,7 +503,10 @@ class ApiClient {
 					title: 'Network Error',
 					detail: 'Unable to connect to the server. Check your connection and server URL.'
 				},
-				new Response(null, { status: 0 })
+				// `new Response(null, { status: 0 })` throws a RangeError (status
+				// must be 200-599), which replaced this error with one no caller
+				// could read. Response.error() is the real status-0 response.
+				Response.error()
 			);
 		} finally {
 			if (limited) releaseApiSlot();
@@ -470,7 +558,7 @@ class ApiClient {
 			}
 		}
 
-		return this.handleResponse<T>(response);
+		return this.handleResponse<T>(response, upperMethod, path);
 	}
 
 	/**
@@ -591,7 +679,7 @@ class ApiClient {
 		if (response.status === 204) {
 			return { data: undefined as T, headers: response.headers };
 		}
-		const body = await response.json().catch(() => null);
+		const body = (await readJsonBody(response, method, path)) as ApiEnvelope | null;
 		if (!response.ok) {
 			throw new ApiRequestError(buildApiError(body, response), response);
 		}
@@ -646,7 +734,7 @@ class ApiClient {
 
 		if (response.ok) this.parseInvalidates(response);
 
-		const body = await response.json().catch(() => null);
+		const body = await readJsonBody(response, 'GET', path);
 
 		if (!response.ok) {
 			throw new ApiRequestError(buildApiError(body, response), response);
@@ -738,7 +826,7 @@ class ApiClient {
 					title: 'Network Error',
 					detail: 'Unable to connect to the server. Check your connection and server URL.',
 				},
-				new Response(null, { status: 0 }),
+				Response.error(),
 			);
 		}
 
@@ -759,7 +847,7 @@ class ApiClient {
 			});
 		}
 
-		return this.handleResponse<T>(response);
+		return this.handleResponse<T>(response, method, path);
 	}
 
 	/**

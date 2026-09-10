@@ -26,9 +26,14 @@
 
 	$effect(() => {
 		if (constrained && field.data_options && (!field.options || field.options.length === 0)) {
-			resolveDataOptions(field.data_options).then((opts) => {
-				resolvedOptions = opts;
-			});
+			resolveDataOptions(field.data_options)
+				.then((opts) => {
+					resolvedOptions = opts;
+				})
+				.catch((err) => {
+					// Leave the list empty rather than leak an unhandled rejection.
+					console.warn(`[ArrayField] Could not load options from ${field.data_options}`, err);
+				});
 		}
 	});
 

@@ -499,13 +499,15 @@
 	     label-as-value default, apply only when the field is `multiple`. A
 	     single-value select that merely carries `selectize: create: true` stores
 	     one key and belongs in the plain select below
-	     (getgrav/grav-plugin-admin2#166). -->
+	     (getgrav/grav-plugin-admin2#166). An option with an empty label falls
+	     back to its key, so it is never offered as a blank, unstorable tag
+	     (getgrav/grav-plugin-admin2#172). -->
 	{@const useLabelAsValue = !!field.selectize && !(
 		field.selectize !== null && typeof field.selectize === 'object' &&
 		(field.selectize as Record<string, unknown>).store_keys === true)}
 	<SelectizeField
 		field={useLabelAsValue
-			? { ...field, options: field.options?.map((o) => ({ value: o.label, label: o.label })) }
+			? { ...field, options: field.options?.map((o) => ({ value: o.label || o.value, label: o.label || o.value })) }
 			: field}
 		{value}
 		onchange={committingOnchange}

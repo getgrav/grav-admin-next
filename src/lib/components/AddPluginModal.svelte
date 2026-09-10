@@ -7,6 +7,7 @@
 	import { canWrite } from '$lib/utils/permissions';
 	import { Search, X, Puzzle, ExternalLink, Download, Loader2, Check, ShoppingCart, BadgeCheck } from 'lucide-svelte';
 	import { hostname } from '$lib/utils/url';
+	import LoadErrorState from '$lib/components/ui/LoadErrorState.svelte';
 
 	const canInstall = $derived(canWrite('gpm'));
 	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText } from '$lib/utils/gpm';
@@ -22,6 +23,8 @@
 
 	let allPlugins = $state<RepositoryPlugin[]>([]);
 	let loading = $state(false);
+	/** Why the list failed to load; null while loading or once loaded. */
+	let loadError = $state<string | null>(null);
 	let search = $state(initialSearch);
 
 	// Update search when initialSearch changes (e.g., navigated with ?install=slug)
@@ -58,14 +61,18 @@
 
 	async function loadPlugins() {
 		loading = true;
+		loadError = null;
 		try {
 			allPlugins = await getRepositoryPlugins();
 			// Auto-select matching plugin if initialSearch is a slug, otherwise first available
 			const match = initialSearch ? allPlugins.find((p) => !p.installed && p.slug === initialSearch) : null;
 			const first = match ?? allPlugins.find((p) => !p.installed);
 			if (first) selectedSlug = first.slug;
-		} catch {
-			toast.error(i18n.t('ADMIN_NEXT.ADD_PLUGIN_MODAL.FAILED_TO_LOAD_AVAILABLE_PLUGINS_FROM'));
+		} catch (err: unknown) {
+			// Keep the failure on screen with a Retry. A toast fades and leaves an
+			// empty picker behind (getgrav/grav-plugin-admin2#173).
+			allPlugins = [];
+			loadError = err instanceof Error ? err.message : String(err);
 		} finally {
 			loading = false;
 		}
@@ -151,7 +158,7 @@
 			<div class="flex shrink-0 items-center justify-between border-b border-border px-6 py-4">
 				<div>
 					<h2 class="text-lg font-semibold text-foreground">{i18n.t('ADMIN_NEXT.ADD_PLUGIN_MODAL.ADD_PLUGIN')}</h2>
-					{#if !loading}
+					{#if !loading && loadError === null}
 						<p class="mt-0.5 text-xs text-muted-foreground">{available.length} available</p>
 					{/if}
 				</div>
@@ -188,6 +195,12 @@
 				<div class="flex flex-1 items-center justify-center">
 					<Loader2 size={24} class="animate-spin text-muted-foreground" />
 				</div>
+			{:else if loadError !== null}
+				<LoadErrorState
+					title={i18n.t('ADMIN_NEXT.ADD_PLUGIN_MODAL.FAILED_TO_LOAD_AVAILABLE_PLUGINS_FROM')}
+					detail={loadError}
+					onretry={loadPlugins}
+				/>
 			{:else}
 				<!-- Search bar -->
 				<div class="shrink-0 border-b border-border px-4 py-2">

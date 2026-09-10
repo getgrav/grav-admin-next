@@ -1,4 +1,4 @@
-import { api } from '../client';
+import { api, expectArray } from '../client';
 
 interface ResolvedOption {
 	value: string;
@@ -27,7 +27,8 @@ export async function resolveDataOptions(
 	}
 
 	const query: Record<string, string> = { callable, ...params };
-	const data = await api.get<ResolvedOption[]>('/data/resolve', query);
+	// Never cache a non-list: every caller treats the result as an array.
+	const data = expectArray<ResolvedOption>(await api.get<unknown>('/data/resolve', query), 'GET', '/data/resolve');
 	cache.set(cacheKey, { data, timestamp: Date.now() });
 	return data;
 }

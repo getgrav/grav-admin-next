@@ -7,6 +7,7 @@
 	import { canWrite } from '$lib/utils/permissions';
 	import { Search, X, Palette, ExternalLink, Download, Loader2, ShoppingCart, BadgeCheck } from 'lucide-svelte';
 	import { hostname } from '$lib/utils/url';
+	import LoadErrorState from '$lib/components/ui/LoadErrorState.svelte';
 
 	const canInstall = $derived(canWrite('gpm'));
 	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText } from '$lib/utils/gpm';
@@ -22,6 +23,8 @@
 
 	let allThemes = $state<RepositoryTheme[]>([]);
 	let loading = $state(false);
+	/** Why the list failed to load; null while loading or once loaded. */
+	let loadError = $state<string | null>(null);
 	let search = $state(initialSearch);
 
 	// Update search when initialSearch changes (e.g., navigated with ?install=slug)
@@ -67,14 +70,18 @@
 
 	async function loadThemes() {
 		loading = true;
+		loadError = null;
 		try {
 			allThemes = await getRepositoryThemes();
 			// Auto-select matching theme if initialSearch is a slug, otherwise first available
 			const match = initialSearch ? allThemes.find((t) => !t.installed && t.slug === initialSearch) : null;
 			const first = match ?? allThemes.find((t) => !t.installed);
 			if (first) selectedSlug = first.slug;
-		} catch {
-			toast.error(i18n.t('ADMIN_NEXT.ADD_THEME_MODAL.FAILED_TO_LOAD_AVAILABLE_THEMES_FROM_GPM'));
+		} catch (err: unknown) {
+			// Keep the failure on screen with a Retry. A toast fades and leaves an
+			// empty picker behind (getgrav/grav-plugin-admin2#173).
+			allThemes = [];
+			loadError = err instanceof Error ? err.message : String(err);
 		} finally {
 			loading = false;
 		}
@@ -142,7 +149,7 @@
 			<div class="flex shrink-0 items-center justify-between border-b border-border px-6 py-4">
 				<div>
 					<h2 class="text-lg font-semibold text-foreground">{i18n.t('ADMIN_NEXT.ADD_THEME_MODAL.ADD_THEME')}</h2>
-					{#if !loading}
+					{#if !loading && loadError === null}
 						<p class="mt-0.5 text-xs text-muted-foreground">{available.length} available</p>
 					{/if}
 				</div>
@@ -179,6 +186,12 @@
 				<div class="flex flex-1 items-center justify-center">
 					<Loader2 size={24} class="animate-spin text-muted-foreground" />
 				</div>
+			{:else if loadError !== null}
+				<LoadErrorState
+					title={i18n.t('ADMIN_NEXT.ADD_THEME_MODAL.FAILED_TO_LOAD_AVAILABLE_THEMES_FROM_GPM')}
+					detail={loadError}
+					onretry={loadThemes}
+				/>
 			{:else}
 				<!-- Search bar -->
 				<div class="shrink-0 border-b border-border px-4 py-2">
