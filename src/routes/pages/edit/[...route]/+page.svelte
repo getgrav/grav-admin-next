@@ -13,6 +13,7 @@
 	import type { PageMediaContext } from '$lib/components/media/types';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt } from '$lib/utils/blueprint-validation';
+	import { buildHeaderPatch, setByPath } from '$lib/utils/dot-path';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import LanguageSwitcher from '$lib/components/ui/LanguageSwitcher.svelte';
@@ -1208,18 +1209,10 @@
 			}
 		}
 
-		// Apply the value change to headerData immutably
-		const parts = path.split('.');
-		const newData = { ...headerData };
-		let current: Record<string, unknown> = newData;
-		for (let i = 0; i < parts.length - 1; i++) {
-			if (!current[parts[i]] || typeof current[parts[i]] !== 'object') {
-				current[parts[i]] = {};
-			}
-			current[parts[i]] = { ...(current[parts[i]] as Record<string, unknown>) };
-			current = current[parts[i]] as Record<string, unknown>;
-		}
-		current[parts[parts.length - 1]] = value;
+		// Apply the value change to headerData immutably (lists stay lists, so
+		// `header.paneles.0.kicker` edits entry 0 rather than turning the list
+		// into a `{ "0": … }` map).
+		const newData = setByPath(headerData, path, value);
 		headerData = newData;
 
 		// Re-check this field now it's been touched: flag it if a required field was
@@ -1341,20 +1334,13 @@
 
 			// Include header changes from blueprint form fields (normal mode only)
 			if (prefs.editorMode !== 'expert' && Object.keys(headerChanges).length > 0) {
-				// Build nested header object from dot-notation keys
-				const header: Record<string, unknown> = {};
-				for (const [dotPath, val] of Object.entries(headerChanges)) {
-					const parts = dotPath.split('.');
-					let current = header;
-					for (let i = 0; i < parts.length - 1; i++) {
-						if (!current[parts[i]] || typeof current[parts[i]] !== 'object') {
-							current[parts[i]] = {};
-						}
-						current = current[parts[i]] as Record<string, unknown>;
-					}
-					current[parts[parts.length - 1]] = val;
-				}
-				body.header = header;
+				// Build the partial header from dot-notation keys. An edit inside a
+				// list sends the whole list, because the API replaces lists rather
+				// than merging into them (admin2#174).
+				body.header = buildHeaderPatch(
+					headerChanges,
+					(headerData.header as Record<string, unknown> | undefined) ?? {},
+				);
 			}
 
 			// Check if a move is also needed (expert mode: slug or parent changed)
@@ -1590,19 +1576,9 @@
 				return;
 			}
 
-			const header = { ...pageData.header ?? {}, title };
-			if (Object.keys(headerChanges).length > 0) {
-				for (const [dotPath, val] of Object.entries(headerChanges)) {
-					const parts = dotPath.split('.');
-					let current: Record<string, unknown> = header;
-					for (let i = 0; i < parts.length - 1; i++) {
-						if (!current[parts[i]] || typeof current[parts[i]] !== 'object') {
-							current[parts[i]] = {};
-						}
-						current = current[parts[i]] as Record<string, unknown>;
-					}
-					current[parts[parts.length - 1]] = val;
-				}
+			let header: Record<string, unknown> = { ...pageData.header ?? {}, title };
+			for (const [dotPath, val] of Object.entries(headerChanges)) {
+				header = setByPath(header, dotPath, val);
 			}
 
 			await createTranslation(route, {
