@@ -82,8 +82,13 @@
 	// Probe for a fresh install with no user accounts — redirect to /setup so
 	// the operator can create the first super-admin. Silently ignore failures
 	// (e.g. server URL not yet configured) and fall through to the login form.
+	// Gate on hasGravConfig too, like the SSO and captcha probes below: a
+	// root-hosted install injects serverUrl='', and the effect above only copies
+	// the full URL into auth.serverUrl while i18n is unloaded. On a repeat visit
+	// the cached strings count as loaded, so serverUrl stayed '' and a site with
+	// no accounts showed a login form nobody could use.
 	$effect(() => {
-		if (auth.serverUrl) {
+		if (auth.hasGravConfig || auth.serverUrl) {
 			getSetupStatus()
 				.then((status) => {
 					if (status.setup_required) goto(`${base}/setup`);
