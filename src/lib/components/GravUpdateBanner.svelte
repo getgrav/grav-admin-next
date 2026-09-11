@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { ArrowUpCircle, Loader2, FileText } from 'lucide-svelte';
-	import { toast } from 'svelte-sonner';
 	import { getUpdates, type UpdatesData } from '$lib/api/endpoints/dashboard';
-	import { upgradeGrav, getGravChangelog } from '$lib/api/endpoints/gpm';
+	import { getGravChangelog } from '$lib/api/endpoints/gpm';
+	import { confirmAndUpgradeGrav } from '$lib/utils/grav-upgrade';
 	import { formatChangelog } from '$lib/utils/gpm';
 	import { canWrite } from '$lib/utils/permissions';
-	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
@@ -38,25 +37,12 @@
 	}
 
 	async function handleUpgrade() {
-		const target = grav?.available ?? '';
-		const ok = await dialogs.confirm({
-			title: 'Upgrade Grav core?',
-			message: `This will upgrade Grav from v${grav?.current ?? ''} to v${target}. The site may be briefly unavailable during the upgrade.`,
-			confirmLabel: i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPGRADE_GRAV'),
+		const result = await confirmAndUpgradeGrav(grav?.current ?? '', grav?.available ?? '', (busy) => {
+			upgrading = busy;
 		});
-		if (!ok) return;
-		upgrading = true;
-		const toastId = toast.loading(`Upgrading Grav to v${target}…`);
-		try {
-			const result = await upgradeGrav();
-			toast.success(i18n.t('ADMIN_NEXT.TOASTS.GRAV_UPGRADED', { version: result.new_version }), { id: toastId });
-			await refresh();
-			onUpgraded?.();
-		} catch (err: unknown) {
-			toast.error(`Grav upgrade failed: ${err instanceof Error ? err.message : String(err)}`, { id: toastId });
-		} finally {
-			upgrading = false;
-		}
+		if (!result) return;
+		await refresh();
+		onUpgraded?.();
 	}
 
 	async function handleShowChangelog() {

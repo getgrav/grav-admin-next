@@ -7,7 +7,8 @@
 		type FeedItem, type BackupInfo, type UpdatesData, type SystemInfoOverview
 	} from '$lib/api/endpoints/dashboard';
 	import { getWidgets, saveUserLayout, saveSiteLayout } from '$lib/api/endpoints/dashboard-widgets';
-	import { updateAllPackages, upgradeGrav, getGravChangelog } from '$lib/api/endpoints/gpm';
+	import { updateAllPackages, getGravChangelog } from '$lib/api/endpoints/gpm';
+	import { confirmAndUpgradeGrav } from '$lib/utils/grav-upgrade';
 	import { reloadIfAdminUpdated, formatChangelog } from '$lib/utils/gpm';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
 	import { createBackup } from '$lib/api/endpoints/tools';
@@ -263,24 +264,14 @@
 	}
 
 	async function handleUpgradeGrav() {
-		const target = updates?.grav?.available ?? '';
-		const ok = await dialogs.confirm({
-			title: 'Upgrade Grav core?',
-			message: `This will upgrade Grav from v${updates?.grav?.current ?? ''} to v${target}. The site may be briefly unavailable during the upgrade.`,
-			confirmLabel: 'Upgrade Grav',
-		});
-		if (!ok) return;
-		upgradingGrav = true;
-		const toastId = toast.loading(`Upgrading Grav to v${target}…`);
-		try {
-			const result = await upgradeGrav();
-			toast.success(i18n.t('ADMIN_NEXT.TOASTS.GRAV_UPGRADED', { version: result.new_version }), { id: toastId });
-			await loadDashboard({ silent: true });
-		} catch (err: unknown) {
-			toast.error(`Grav upgrade failed: ${err instanceof Error ? err.message : String(err)}`, { id: toastId });
-		} finally {
-			upgradingGrav = false;
-		}
+		const result = await confirmAndUpgradeGrav(
+			updates?.grav?.current ?? '',
+			updates?.grav?.available ?? '',
+			(busy) => {
+				upgradingGrav = busy;
+			}
+		);
+		if (result) await loadDashboard({ silent: true });
 	}
 
 	async function handleCreateBackup() {

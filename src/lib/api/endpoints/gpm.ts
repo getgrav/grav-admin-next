@@ -1,4 +1,4 @@
-import { api, expectArray } from '../client';
+import { api, expectArray, ApiRequestError } from '../client';
 import { extractEtag } from '$lib/utils/etag';
 import { readOverrideMeta, type ConfigResponse } from './config';
 
@@ -206,6 +206,29 @@ export interface GravUpgradeResult {
 	new_version: string;
 }
 
+/** A plugin or theme named by the pre-upgrade compatibility check. */
+export interface GravPreflightPackage {
+	type?: string;
+	version?: string;
+	compatibility?: { grav?: string[] };
+	enabled?: boolean;
+}
+
+/**
+ * The report POST /gpm/upgrade returns with HTTP 409 when the checks that run
+ * before an upgrade stop it. `blocking` holds core's own reasons; the packages
+ * behind the compatibility reason are in `incompatible_packages.blocking`.
+ */
+export interface GravPreflightReport {
+	status: 'preflight_failed';
+	message?: string;
+	blocking: string[];
+	warnings?: string[];
+	/** PHP serializes an empty report as `[]` rather than `{}`. */
+	incompatible_packages?: { blocking?: Record<string, GravPreflightPackage>; target?: string } | [];
+	can_override?: boolean;
+}
+
 /**
  * Update a single package (plugin or theme). Type is auto-detected server-side.
  */
@@ -221,10 +244,23 @@ export async function updateAllPackages(): Promise<UpdateAllResult> {
 }
 
 /**
- * Self-upgrade Grav core. Refuses when Grav is installed via symlink.
+ * Self-upgrade Grav core. Refuses when Grav is installed via symlink. Pass
+ * `override` to go ahead despite the pre-upgrade checks (see gravPreflightReport()).
  */
-export async function upgradeGrav(): Promise<GravUpgradeResult> {
-	return api.post<GravUpgradeResult>('/gpm/upgrade', {});
+export async function upgradeGrav(override = false): Promise<GravUpgradeResult> {
+	return api.post<GravUpgradeResult>('/gpm/upgrade', override ? { override: true } : {});
+}
+
+/**
+ * The pre-upgrade report carried by a 409 from upgradeGrav(), or null for any
+ * other failure. The 409 body is a normal `{ data }` envelope rather than an
+ * error document, so it arrives on the ApiRequestError as `error.data`.
+ */
+export function gravPreflightReport(err: unknown): GravPreflightReport | null {
+	if (!(err instanceof ApiRequestError) || err.response.status !== 409) return null;
+	const data = (err.error as unknown as { data?: Partial<GravPreflightReport> } | null)?.data;
+	if (data?.status !== 'preflight_failed') return null;
+	return { ...data, status: 'preflight_failed', blocking: Array.isArray(data.blocking) ? data.blocking : [] };
 }
 
 // ---------------------------------------------------------------------------
