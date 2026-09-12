@@ -315,8 +315,6 @@ function writeScriptCache(url: string, entry: CachedScript): void {
 }
 
 class ApiClient {
-	private refreshPromise: Promise<boolean> | null = null;
-
 	/**
 	 * Every read of the auth store in this client goes through `untrack()`.
 	 *
@@ -598,16 +596,14 @@ class ApiClient {
 	private async tryRefresh(): Promise<boolean> {
 		if (!auth.refreshToken) return false;
 
-		// Deduplicate concurrent refresh attempts
-		if (!this.refreshPromise) {
-			this.refreshPromise = authSession.performRefresh();
-		}
-
-		try {
-			return await this.refreshPromise;
-		} finally {
-			this.refreshPromise = null;
-		}
+		// Deduplication lives in authSession.performRefresh(), which coalesces
+		// every caller in the tab — including the scheduled pre-expiry timer,
+		// which never passes through this client. Deduping here as well only
+		// looked safe: the timer could still fire its own refresh alongside a
+		// request-triggered one, and since the server revokes a refresh token as
+		// soon as it is spent, whichever landed second came back 401 and put a
+		// re-auth prompt in front of a live session.
+		return authSession.performRefresh();
 	}
 
 	/**

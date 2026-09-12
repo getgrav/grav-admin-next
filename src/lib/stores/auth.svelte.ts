@@ -1,6 +1,11 @@
 import { scopedKey } from '$lib/utils/scopedStorage';
 
-const STORAGE_KEY = scopedKey('grav_admin_auth');
+/**
+ * Where the token pair and the cached profile live. Exported so the session
+ * manager can tell this key apart from the other scoped keys that arrive in a
+ * cross-tab `storage` event.
+ */
+export const AUTH_STORAGE_KEY = scopedKey('grav_admin_auth');
 
 interface StoredAuth {
 	serverUrl: string;
@@ -35,7 +40,7 @@ export interface DemoModeInfo {
 
 function loadStored(): StoredAuth | null {
 	try {
-		const raw = localStorage.getItem(STORAGE_KEY);
+		const raw = localStorage.getItem(AUTH_STORAGE_KEY);
 		return raw ? JSON.parse(raw) : null;
 	} catch {
 		return null;
@@ -155,7 +160,7 @@ function createAuthStore() {
 			demoSecondsUntilReset,
 			demoStateFetchedAt,
 		};
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+		localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data));
 	}
 
 	return {
@@ -206,6 +211,36 @@ function createAuthStore() {
 			refreshToken = refresh;
 			expiresAt = Date.now() + expiresIn * 1000;
 			persist();
+		},
+
+		/**
+		 * Re-read the persisted token pair and adopt it when another tab has
+		 * rotated it.
+		 *
+		 * The server rotates refresh tokens: `/auth/refresh` revokes the one it
+		 * was handed and issues a new pair. Every admin tab holds its own copy in
+		 * memory, so the moment any tab refreshes, the others are holding a token
+		 * the server has already revoked — their next refresh fails and they
+		 * prompt for a password against a session that is perfectly alive.
+		 * Adopting the persisted pair is what makes that a non-event.
+		 *
+		 * Only ever moves forward: a storage event that arrives out of order, or
+		 * a tab that was suspended mid-write, must not push us back onto the
+		 * revoked pair. Does not persist — the value came from storage, and
+		 * writing it back would only race the tab that put it there.
+		 *
+		 * @returns true when a newer pair was adopted.
+		 */
+		adoptStoredTokens(): boolean {
+			const fresh = loadStored();
+			if (!fresh?.accessToken || !fresh.refreshToken) return false;
+			if (fresh.accessToken === accessToken && fresh.refreshToken === refreshToken) return false;
+			if ((fresh.expiresAt ?? 0) <= expiresAt) return false;
+
+			accessToken = fresh.accessToken;
+			refreshToken = fresh.refreshToken;
+			expiresAt = fresh.expiresAt;
+			return true;
 		},
 
 		setUser(name: string, full: string, userEmail = '', avatar?: string, editor?: string) {
