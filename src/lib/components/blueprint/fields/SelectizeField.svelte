@@ -27,9 +27,61 @@
 	let highlightedIndex = $state(-1);
 	let selectedTagIndex = $state(-1);
 
-	const predefinedOptions = $derived(
-		field.options?.map((opt) => opt.value) ?? []
-	);
+	// Predefined suggestions reach the field two ways. `options` is the API's
+	// normalised [{value,label}] list, which is what a `select`-style blueprint
+	// produces. The documented `selectize` field instead carries its own list
+	// under `selectize.options`, in selectize.js's own shape — an array of
+	// objects keyed by `valueField` / `labelField` (defaulting to `value` and
+	// `text`). Classic admin handed that whole object to selectize.js, so
+	// blueprints written against the docs only ever fill the nested list;
+	// reading `options` alone left every one of those fields with no
+	// suggestions at all (trilbymedia/grav-plugin-flex-objects#243). Nested
+	// entries are appended after the normalised ones, so a field that already
+	// suggests something keeps suggesting it in the same order.
+	const resolvedOptions = $derived.by((): Array<{ value: string; label: string }> => {
+		const resolved = [...(field.options ?? [])];
+
+		const config = field.selectize;
+		if (config && typeof config === 'object') {
+			const rawOptions = config.options;
+			if (Array.isArray(rawOptions)) {
+				const valueField = typeof config.valueField === 'string' ? config.valueField : 'value';
+				const labelField = typeof config.labelField === 'string' ? config.labelField : 'text';
+				const seen = new Set(resolved.map((opt) => opt.value));
+
+				for (const raw of rawOptions) {
+					if (raw === null || raw === undefined) continue;
+
+					let value: string;
+					let label: string;
+					if (typeof raw === 'object') {
+						const entry = raw as Record<string, unknown>;
+						const rawValue = entry[valueField];
+						if (rawValue === null || rawValue === undefined || rawValue === '') continue;
+						value = String(rawValue);
+						const rawLabel = entry[labelField];
+						label =
+							rawLabel === null || rawLabel === undefined || rawLabel === ''
+								? value
+								: String(rawLabel);
+					} else {
+						// A bare scalar list (`options: [DE, EN]`) is its own label.
+						value = String(raw);
+						if (!value) continue;
+						label = value;
+					}
+
+					if (seen.has(value)) continue;
+					seen.add(value);
+					resolved.push({ value, label });
+				}
+			}
+		}
+
+		return resolved;
+	});
+
+	const predefinedOptions = $derived(resolvedOptions.map((opt) => opt.value));
 
 	// Stored tags are option *values* (e.g. group keys like `procras`), but we
 	// display the option *label* (`Procrastinators`) when one exists — matching
@@ -39,7 +91,7 @@
 	// comes back labelled "", which drew a blank chip and a blank suggestion
 	// (getgrav/grav-plugin-admin2#172).
 	const optionLabels = $derived(
-		new Map((field.options ?? []).map((opt) => [opt.value, opt.label]))
+		new Map(resolvedOptions.map((opt) => [opt.value, opt.label]))
 	);
 	const labelFor = (val: string): string => translateLabel(optionLabels.get(val) || val);
 
