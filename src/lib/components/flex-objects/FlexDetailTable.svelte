@@ -15,6 +15,8 @@
 	import { linkClick } from '$lib/utils/navLink';
 	import { toast } from 'svelte-sonner';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
+	import FlexCellValue from '$lib/components/flex-objects/FlexCellValue.svelte';
+	import { isScalarArray } from '$lib/utils/flex-cell';
 	import {
 		ArrowDown,
 		ArrowUp,
@@ -141,13 +143,6 @@
 		currentPage = 1;
 	}
 
-	function renderCell(object: FlexObject, fieldName: string): string {
-		const val = object[fieldName];
-		if (val === null || val === undefined) return '';
-		if (typeof val === 'boolean') return val ? i18n.t('ADMIN_NEXT.YES') : i18n.t('ADMIN_NEXT.NO');
-		return String(val);
-	}
-
 	function toDate(val: unknown): Date | null {
 		let ms: number | null = null;
 		if (typeof val === 'number') {
@@ -184,12 +179,6 @@
 			opts.hour12 = false;
 		}
 		return d.toLocaleString(undefined, opts);
-	}
-
-	function optionLabel(options: Record<string, string> | undefined, val: unknown): string {
-		if (val === null || val === undefined) return '';
-		const key = String(val);
-		return options?.[key] ?? key;
 	}
 
 	function isUrl(val: unknown): boolean {
@@ -303,11 +292,11 @@
 										{/if}
 									{:else if DATE_TYPES.has(col.type)}
 										{formatDateCell(obj[col.name], col.type !== 'date')}
-									{:else if Array.isArray(obj[col.name])}
+									{:else if isScalarArray(obj[col.name])}
 										<div class="flex flex-wrap gap-1">
 											{#each (obj[col.name] as unknown[]).slice(0, 5) as tag}
 												<span class="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
-													{optionLabel(col.options, tag)}
+													<FlexCellValue value={tag} options={col.options} />
 												</span>
 											{/each}
 											{#if (obj[col.name] as unknown[]).length > 5}
@@ -317,7 +306,7 @@
 											{/if}
 										</div>
 									{:else if col.options}
-										{optionLabel(col.options, obj[col.name])}
+										<FlexCellValue value={obj[col.name]} options={col.options} />
 									{:else if col.type === 'url' || isUrl(obj[col.name])}
 										{@const url = String(obj[col.name] ?? '')}
 										{#if url}
@@ -332,7 +321,7 @@
 											</a>
 										{/if}
 									{:else}
-										{renderCell(obj, col.name)}
+										<FlexCellValue value={obj[col.name]} options={col.options} />
 									{/if}
 								</td>
 							{/each}

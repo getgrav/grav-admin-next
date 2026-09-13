@@ -15,6 +15,8 @@
 		type FlexObject,
 	} from '$lib/api/endpoints/flexObjects';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import FlexCellValue from '$lib/components/flex-objects/FlexCellValue.svelte';
+	import { isScalarArray } from '$lib/utils/flex-cell';
 	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
@@ -179,13 +181,6 @@
 		loadObjects(1);
 	}
 
-	function renderCell(object: FlexObject, fieldName: string): string {
-		const val = object[fieldName];
-		if (val === null || val === undefined) return '';
-		if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-		return String(val);
-	}
-
 	/** Parse a stored date value to a Date, handling unix seconds, unix ms, and date strings. */
 	function toDate(val: unknown): Date | null {
 		let ms: number | null = null;
@@ -224,13 +219,6 @@
 			opts.hour12 = false;
 		}
 		return d.toLocaleString(undefined, opts);
-	}
-
-	/** Resolve a select/radio value to its configured option label, falling back to the raw value. */
-	function optionLabel(options: Record<string, string> | undefined, val: unknown): string {
-		if (val === null || val === undefined) return '';
-		const key = String(val);
-		return options?.[key] ?? key;
 	}
 
 	function isUrl(val: unknown): boolean {
@@ -414,25 +402,25 @@
 											href="{base}/flex-objects/{type}/{obj.key}"
 											onclick={linkClick(() => openEdit(obj.key))}
 										>
-											{renderCell(obj, col.name)}
+											<FlexCellValue value={obj[col.name]} options={col.options} />
 										</a>
 									{:else if DATE_TYPES.has(col.type)}
 										{formatDateCell(obj[col.name], col.type !== 'date')}
-									{:else if Array.isArray(obj[col.name])}
+									{:else if isScalarArray(obj[col.name])}
 										<div class="flex flex-wrap gap-1">
-											{#each (obj[col.name] as string[]).slice(0, 5) as tag}
+											{#each (obj[col.name] as unknown[]).slice(0, 5) as tag}
 												<span class="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
-													{optionLabel(col.options, tag)}
+													<FlexCellValue value={tag} options={col.options} />
 												</span>
 											{/each}
-											{#if (obj[col.name] as string[]).length > 5}
+											{#if (obj[col.name] as unknown[]).length > 5}
 												<span class="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-													+{(obj[col.name] as string[]).length - 5}
+													+{(obj[col.name] as unknown[]).length - 5}
 												</span>
 											{/if}
 										</div>
 									{:else if col.options}
-										{optionLabel(col.options, obj[col.name])}
+										<FlexCellValue value={obj[col.name]} options={col.options} />
 									{:else if col.type === 'url' || isUrl(obj[col.name])}
 										{@const url = String(obj[col.name] ?? '')}
 										{#if url}
@@ -448,7 +436,7 @@
 											</a>
 										{/if}
 									{:else}
-										{renderCell(obj, col.name)}
+										<FlexCellValue value={obj[col.name]} options={col.options} />
 									{/if}
 								</td>
 							{/each}
