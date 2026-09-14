@@ -46,6 +46,14 @@
 	function gradientFor(accent?: string): string {
 		return ACCENT_GRADIENTS[accent ?? ''] ?? ACCENT_GRADIENTS.purple;
 	}
+
+	// A logo is drawn 28px tall unless the feed says otherwise. A tall mark
+	// (a van beside a name) reads smaller than a wide one at the same height,
+	// so the feed can ask for more, within a band that keeps the row tidy.
+	function imageHeight(promo: Notification): number {
+		const h = Number(promo.image_height);
+		return Number.isFinite(h) && h > 0 ? Math.min(48, Math.max(20, Math.round(h))) : 28;
+	}
 </script>
 
 <div class="h-full rounded-lg border border-border bg-card p-4">
@@ -130,7 +138,7 @@
 
 {#snippet promoBody(promo: Notification)}
 	{#if promo.image}
-		<img src={promo.image} alt="" class="mb-3 h-7" />
+		<img src={promo.image} alt="" class="mb-3 w-auto" style="height: {imageHeight(promo)}px" />
 	{:else if promo.title}
 		<div class="mb-2 text-base font-semibold">{promo.title}</div>
 	{/if}

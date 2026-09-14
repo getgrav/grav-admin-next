@@ -22,6 +22,8 @@ export interface Notification {
 	 * when the widget is narrow.
 	 */
 	layout?: 'full' | 'half' | 'joined' | string;
+	/** Height of `image` in pixels, 20 to 48. The default is 28. */
+	image_height?: number;
 	action?: NotificationAction;
 }
 
