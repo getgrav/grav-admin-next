@@ -42,6 +42,7 @@ interface NotificationsResponse {
 	notifications: {
 		feed: Notification[];
 		dashboard: Notification[];
+		'dashboard-row'?: Notification[];
 		top: Notification[];
 	};
 	last_checked: string;
@@ -51,7 +52,15 @@ export async function getNotifications(force = false): Promise<Notification[]> {
 	const data = await api.get<NotificationsResponse>(`/dashboard/notifications${force ? '?force=true' : ''}`);
 	// Combine feed and dashboard notifications. Top notifications render in
 	// the banner separately — see getTopNotifications().
-	return [...(data.notifications?.dashboard ?? []), ...(data.notifications?.feed ?? [])];
+	// `dashboard-row` is a second dashboard list: promos that share a row with
+	// the ones in `dashboard`. It lives under its own location so an admin
+	// older than this one, which reads `dashboard` alone, shows one banner
+	// rather than two stacked.
+	return [
+		...(data.notifications?.dashboard ?? []),
+		...(data.notifications?.['dashboard-row'] ?? []),
+		...(data.notifications?.feed ?? []),
+	];
 }
 
 export async function getTopNotifications(force = false): Promise<Notification[]> {
