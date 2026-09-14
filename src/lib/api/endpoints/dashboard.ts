@@ -15,6 +15,13 @@ export interface Notification {
 	title?: string;
 	image?: string;
 	accent?: string;
+	/**
+	 * How a promo shares the row. `full` (the default) is a banner on its own.
+	 * Consecutive `half` promos sit side by side with a gap; consecutive
+	 * `joined` promos form one banner divided by a hairline. Either stacks
+	 * when the widget is narrow.
+	 */
+	layout?: 'full' | 'half' | 'joined' | string;
 	action?: NotificationAction;
 }
 

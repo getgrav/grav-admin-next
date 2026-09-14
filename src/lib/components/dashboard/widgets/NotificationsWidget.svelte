@@ -11,6 +11,29 @@
 	const max = $derived(size === 'xl' ? 16 : size === 'lg' ? 12 : size === 'md' ? 8 : 6);
 
 	const promos = $derived(notifications.filter(n => n.type === 'promo'));
+
+	// Promos come in rows. A `full` promo (the default) is a row of its own;
+	// consecutive `half` promos share a row with a gap between them, and
+	// consecutive `joined` promos share a row as one banner divided by a
+	// hairline. Both stack when the widget is narrow, so the grouping is by
+	// layout and the columns are the container's decision.
+	type PromoRow = { layout: 'full' | 'half' | 'joined'; promos: Notification[] };
+	function rowLayout(promo: Notification): PromoRow['layout'] {
+		return promo.layout === 'half' || promo.layout === 'joined' ? promo.layout : 'full';
+	}
+	const promoRows = $derived.by(() => {
+		const rows: PromoRow[] = [];
+		for (const promo of promos) {
+			const layout = rowLayout(promo);
+			const last = rows[rows.length - 1];
+			if (layout !== 'full' && last && last.layout === layout) {
+				last.promos.push(promo);
+			} else {
+				rows.push({ layout, promos: [promo] });
+			}
+		}
+		return rows;
+	});
 	const items = $derived(notifications.filter(n => n.type !== 'promo').slice(0, max));
 
 	const ACCENT_GRADIENTS: Record<string, string> = {
@@ -34,28 +57,34 @@
 	{#if promos.length === 0 && items.length === 0}
 		<p class="py-4 text-center text-[0.8125rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.NOTIFICATIONS_WIDGET.NO_NOTIFICATIONS')}</p>
 	{:else}
-		{#each promos as promo (promo.id)}
-			<div class="mb-3 overflow-hidden rounded-lg bg-gradient-to-br {gradientFor(promo.accent)} p-5 text-white shadow-sm">
-				{#if promo.image}
-					<img src={promo.image} alt="" class="mb-3 h-7" />
-				{:else if promo.title}
-					<div class="mb-2 text-base font-semibold">{promo.title}</div>
-				{/if}
-				<p class="mb-4 text-[0.8125rem] leading-relaxed text-white/90 [&_a]:font-medium [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-white">
-					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-					{@html renderInlineMarkdown(promo.message)}
-				</p>
-				{#if promo.action}
-					<a
-						href={promo.action.url}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="inline-block rounded-md border border-white/40 px-3.5 py-1.5 text-[0.75rem] font-semibold text-white transition-colors hover:bg-white/10"
+		{#each promoRows as row, r (r)}
+			{#if row.layout === 'full'}
+				{#each row.promos as promo (promo.id)}
+					<div class="mb-3 overflow-hidden rounded-lg bg-gradient-to-br {gradientFor(promo.accent)} p-5 text-white shadow-sm">
+						{@render promoBody(promo)}
+					</div>
+				{/each}
+			{:else}
+				<div class="@container mb-3">
+					<div
+						class="grid grid-cols-1 @xl:grid-cols-2 {row.layout === 'joined'
+							? 'overflow-hidden rounded-lg shadow-sm'
+							: 'gap-3'}"
 					>
-						{promo.action.label}
-					</a>
-				{/if}
-			</div>
+						{#each row.promos as promo, i (promo.id)}
+							<div
+								class="bg-gradient-to-br {gradientFor(promo.accent)} p-5 text-white {row.layout === 'joined'
+									? 'shadow-none'
+									: 'overflow-hidden rounded-lg shadow-sm'} {row.layout === 'joined' && i > 0
+									? 'border-t border-white/20 @xl:border-t-0 @xl:border-l'
+									: ''} {i === row.promos.length - 1 && i % 2 === 0 ? '@xl:col-span-2' : ''}"
+							>
+								{@render promoBody(promo)}
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
 		{/each}
 
 		{#if items.length > 0}
@@ -97,4 +126,26 @@
 		</p>
 	</div>
 	<span class="shrink-0 text-[0.6875rem] tabular-nums text-muted-foreground">{formatDate(notif.date)}</span>
+{/snippet}
+
+{#snippet promoBody(promo: Notification)}
+	{#if promo.image}
+		<img src={promo.image} alt="" class="mb-3 h-7" />
+	{:else if promo.title}
+		<div class="mb-2 text-base font-semibold">{promo.title}</div>
+	{/if}
+	<p class="mb-4 text-[0.8125rem] leading-relaxed text-white/90 [&_a]:font-medium [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-white">
+		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+		{@html renderInlineMarkdown(promo.message)}
+	</p>
+	{#if promo.action}
+		<a
+			href={promo.action.url}
+			target="_blank"
+			rel="noopener noreferrer"
+			class="inline-block rounded-md border border-white/40 px-3.5 py-1.5 text-[0.75rem] font-semibold text-white transition-colors hover:bg-white/10"
+		>
+			{promo.action.label}
+		</a>
+	{/if}
 {/snippet}
