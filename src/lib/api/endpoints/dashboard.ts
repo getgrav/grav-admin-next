@@ -53,12 +53,12 @@ export async function getNotifications(force = false): Promise<Notification[]> {
 	// Combine feed and dashboard notifications. Top notifications render in
 	// the banner separately — see getTopNotifications().
 	// `dashboard-row` is a second dashboard list: promos that share a row with
-	// the ones in `dashboard`. It lives under its own location so an admin
-	// older than this one, which reads `dashboard` alone, shows one banner
-	// rather than two stacked.
+	// the ones in `dashboard`, drawn first. It lives under its own location so
+	// an admin older than this one, which reads `dashboard` alone, shows one
+	// banner rather than two stacked.
 	return [
-		...(data.notifications?.dashboard ?? []),
 		...(data.notifications?.['dashboard-row'] ?? []),
+		...(data.notifications?.dashboard ?? []),
 		...(data.notifications?.feed ?? []),
 	];
 }
