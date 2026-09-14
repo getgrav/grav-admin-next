@@ -3,6 +3,24 @@ import { marked, type Renderer } from 'marked';
 import DOMPurify from 'dompurify';
 
 /**
+ * What these renderers actually receive.
+ *
+ * Every one of them is fed values that started life in someone else's YAML — a
+ * plugin's `version`, a blueprint `description`, a theme `name`. YAML types
+ * bare scalars, so `version: 1.0` arrives as the number 1, not the string
+ * "1.0", and a `.replace()` on it throws and takes the whole page down with it
+ * (the Info page went blank for any site with one such package installed).
+ * Declaring the real input type and coercing once here keeps that a rendering
+ * detail instead of a crash.
+ */
+export type TextLike = string | number | boolean | null | undefined;
+
+function toText(value: TextLike): string {
+	if (value === null || value === undefined) return '';
+	return typeof value === 'string' ? value : String(value);
+}
+
+/**
  * The single place markdown becomes HTML for `{@html …}`.
  *
  * `marked` does not sanitize anything — it emits `javascript:` hrefs as live links
@@ -31,16 +49,18 @@ function clean(html: string): string {
  * through DOMPurify for the same reason everything else here does: a blueprint
  * can arrive from a third-party package (GHSA-752r-88j4-vxm3).
  */
-export function sanitizeHtml(html: string | null | undefined): string {
-	if (!html) return '';
+export function sanitizeHtml(html: TextLike): string {
+	const str = toText(html);
+	if (!str) return '';
 
-	return clean(html);
+	return clean(str);
 }
 
 /** Render a markdown document as block-level HTML, sanitized. */
-export function renderMarkdown(text: string | null | undefined): string {
-	if (!text) return '';
-	return clean(marked.parse(text, { async: false }) as string);
+export function renderMarkdown(text: TextLike): string {
+	const str = toText(text);
+	if (!str) return '';
+	return clean(marked.parse(str, { async: false }) as string);
 }
 
 /**
@@ -48,11 +68,12 @@ export function renderMarkdown(text: string | null | undefined): string {
  * `renderer` lets callers customize link output — it does not affect safety.
  */
 export function renderMarkdownInline(
-	text: string | null | undefined,
+	text: TextLike,
 	renderer?: Renderer
 ): string {
-	if (!text) return '';
-	return clean(marked.parseInline(text, { async: false, renderer }) as string);
+	const str = toText(text);
+	if (!str) return '';
+	return clean(marked.parseInline(str, { async: false, renderer }) as string);
 }
 
 /**
@@ -81,10 +102,11 @@ export function escapeMarkdownParam(value: string): string {
  * For the sinks that must NOT keep markup at all — anything wrapped in a search
  * highlighter, where the only HTML we intend to emit is our own `<mark>`.
  */
-export function escapeHtml(value: string | null | undefined): string {
-	if (!value) return '';
+export function escapeHtml(value: TextLike): string {
+	const str = toText(value);
+	if (!str) return '';
 
-	return value
+	return str
 		.replace(/&/g, '&amp;')
 		.replace(/</g, '&lt;')
 		.replace(/>/g, '&gt;')
@@ -105,7 +127,7 @@ export function escapeHtml(value: string | null | undefined): string {
  * only the text between tags is searched, so `<code>` and links in help text
  * keep rendering while a filter is active instead of showing as raw markup.
  */
-export function highlightMatchInHtml(html: string | null | undefined, query: string): string {
+export function highlightMatchInHtml(html: TextLike, query: string): string {
 	const safe = sanitizeHtml(html);
 	const re = queryRegex(query);
 	if (!re) return safe;
@@ -116,7 +138,7 @@ export function highlightMatchInHtml(html: string | null | undefined, query: str
 		.join('');
 }
 
-export function highlightMatch(text: string | null | undefined, query: string): string {
+export function highlightMatch(text: TextLike, query: string): string {
 	const safe = escapeHtml(text);
 	const re = queryRegex(query);
 	if (!re) return safe;
