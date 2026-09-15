@@ -440,8 +440,13 @@
 		return resolveUrl(item.url);
 	}
 
-	function getMediaUrl(item: MediaItem): string {
-		return resolveUrl(item.url);
+	// Absolute URL to the file itself, for the copy row and Open link in the
+	// metadata modal — those are pasted elsewhere, so a server-relative path
+	// is not enough when the admin is served from another origin.
+	function getAbsoluteUrl(item: MediaItem): string {
+		const safe = encodeMediaFileUrl(item.url);
+		if (safe.startsWith('http')) return safe;
+		return safe.startsWith('/') ? `${auth.serverUrl}${safe}` : `${auth.serverUrl}/${safe}`;
 	}
 
 	function isImage(item: MediaItem): boolean {
@@ -612,12 +617,14 @@
 											<Plus size={12} />
 										</button>
 									{/if}
-									{#if canEditMeta && !inReorderMode && !readonly}
+									{#if canEditMeta && !inReorderMode}
 										<button
 											type="button"
 											class="inline-flex h-5 w-5 items-center justify-center rounded-sm text-white/80 transition-colors hover:bg-white/20 hover:text-white"
 											onclick={(e) => { e.stopPropagation(); metaItem = item; }}
-											title={i18n.t('ADMIN_NEXT.MEDIA.METADATA.EDIT')}
+											title={readonly
+												? i18n.t('ADMIN_NEXT.MEDIA.FILE_DETAILS.TITLE')
+												: i18n.t('ADMIN_NEXT.MEDIA.METADATA.EDIT')}
 										>
 											<Info size={12} />
 										</button>
@@ -667,8 +674,16 @@
 	<MediaMetadataModal
 		open={true}
 		filename={target.filename}
+		file={target}
+		path={route}
+		copyRows={[
+			{ label: i18n.t('ADMIN_NEXT.MEDIA.FILE_DETAILS.URL'), value: getAbsoluteUrl(target) },
+			{ label: i18n.t('ADMIN_NEXT.MEDIA.FILE_DETAILS.MARKDOWN'), value: mediaMarkdown(target) },
+		]}
+		openUrl={getAbsoluteUrl(target)}
 		load={() => getPageMediaMeta(route, target.filename)}
 		save={(values) => savePageMediaMeta(route, target.filename, values)}
+		{readonly}
 		onsaved={(meta) => applySavedMeta(target.filename, meta)}
 		onclose={() => (metaItem = null)}
 	/>

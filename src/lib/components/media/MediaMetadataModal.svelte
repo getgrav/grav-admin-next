@@ -3,11 +3,24 @@
 	import { portal } from '$lib/utils/portal';
 	import { X } from 'lucide-svelte';
 	import MediaMetadataForm from './MediaMetadataForm.svelte';
-	import type { MediaMetaResponse, MediaMetaValues } from '$lib/api/endpoints/media';
+	import MediaFileDetails from './MediaFileDetails.svelte';
+	import type { MediaItem, MediaMetaResponse, MediaMetaValues } from '$lib/api/endpoints/media';
 
 	interface Props {
 		open: boolean;
 		filename: string;
+		/**
+		 * The item being edited. When given, the modal shows the same file facts
+		 * (preview, type, size, dimensions, modified, copyable path/URL) as the
+		 * Media manager's inspector above the metadata form.
+		 */
+		file?: MediaItem;
+		/** Path row for the facts list — the page route, for page media. */
+		path?: string;
+		/** Copyable one-line values (reference, URL, markdown snippet, …). */
+		copyRows?: { label: string; value: string }[];
+		/** When set, an "Open" link to the file is rendered under the copy rows. */
+		openUrl?: string;
 		load: () => Promise<MediaMetaResponse>;
 		save: (values: MediaMetaValues) => Promise<MediaMetaResponse>;
 		readonly?: boolean;
@@ -15,7 +28,19 @@
 		onsaved?: (meta: MediaMetaResponse) => void;
 	}
 
-	let { open, filename, load, save, readonly = false, onclose, onsaved }: Props = $props();
+	let {
+		open,
+		filename,
+		file,
+		path,
+		copyRows,
+		openUrl,
+		load,
+		save,
+		readonly = false,
+		onclose,
+		onsaved,
+	}: Props = $props();
 
 	function handleBackdrop(e: MouseEvent) {
 		if (e.target === e.currentTarget) onclose();
@@ -40,7 +65,9 @@
 			<div class="flex items-center justify-between border-b border-border px-4 py-3">
 				<div class="min-w-0">
 					<h3 class="text-sm font-semibold text-foreground">
-						{i18n.t('ADMIN_NEXT.MEDIA.METADATA.TITLE')}
+						{file
+							? i18n.t('ADMIN_NEXT.MEDIA.FILE_DETAILS.TITLE')
+							: i18n.t('ADMIN_NEXT.MEDIA.METADATA.TITLE')}
 					</h3>
 					<p class="mt-0.5 truncate text-xs text-muted-foreground">{filename}</p>
 				</div>
@@ -53,7 +80,17 @@
 				</button>
 			</div>
 			<div class="overflow-y-auto p-4">
-				<MediaMetadataForm {filename} {load} {save} {readonly} {onsaved} />
+				{#if file}
+					<MediaFileDetails {file} {path} {copyRows} {openUrl} />
+					<div class="mt-5 border-t border-border pt-4">
+						<h4 class="mb-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground">
+							{i18n.t('ADMIN_NEXT.MEDIA.METADATA.TITLE')}
+						</h4>
+						<MediaMetadataForm {filename} {load} {save} {readonly} {onsaved} />
+					</div>
+				{:else}
+					<MediaMetadataForm {filename} {load} {save} {readonly} {onsaved} />
+				{/if}
 			</div>
 		</div>
 	</div>
