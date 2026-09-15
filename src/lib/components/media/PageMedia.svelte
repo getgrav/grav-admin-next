@@ -554,13 +554,13 @@
 
 		<!-- Thumbnail grid -->
 		{#if loading}
-			<div class="grid grid-cols-3 gap-1.5 p-2">
-				{#each [1, 2, 3] as _}
+			<div class="grid grid-cols-[repeat(auto-fill,minmax(min(9rem,100%),11rem))] gap-1.5 p-2">
+				{#each [1, 2, 3, 4, 5, 6] as _}
 					<div class="aspect-square animate-pulse rounded-md bg-muted"></div>
 				{/each}
 			</div>
 		{:else if mediaItems.length > 0}
-			<div class="grid grid-cols-3 gap-1.5 p-2">
+			<div class="grid grid-cols-[repeat(auto-fill,minmax(min(9rem,100%),11rem))] gap-1.5 p-2">
 				{#each mediaItems as item, index (item.filename)}
 					<!-- Outer cell (unclipped) so the insertion line shows in the gap -->
 					<div class="relative">

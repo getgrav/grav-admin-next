@@ -61,7 +61,11 @@
 		class="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/75 p-4 backdrop-blur-sm"
 		onclick={handleBackdrop}
 	>
-		<div class="flex max-h-[85vh] w-full max-w-md flex-col rounded-xl border border-border bg-card shadow-2xl">
+		<div
+			class="flex max-h-[85vh] w-full flex-col rounded-xl border border-border bg-card shadow-2xl {file
+				? 'max-w-3xl'
+				: 'max-w-md'}"
+		>
 			<div class="flex items-center justify-between border-b border-border px-4 py-3">
 				<div class="min-w-0">
 					<h3 class="text-sm font-semibold text-foreground">
@@ -81,12 +85,19 @@
 			</div>
 			<div class="overflow-y-auto p-4">
 				{#if file}
-					<MediaFileDetails {file} {path} {copyRows} {openUrl} />
-					<div class="mt-5 border-t border-border pt-4">
-						<h4 class="mb-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground">
-							{i18n.t('ADMIN_NEXT.MEDIA.METADATA.TITLE')}
-						</h4>
-						<MediaMetadataForm {filename} {load} {save} {readonly} {onsaved} />
+					<!-- Side by side where there is room: the facts are a narrow column, so
+					     stacking them above the form made for a very tall dialog. Below the
+					     breakpoint the two simply stack, separated by a rule. -->
+					<div class="grid gap-5 sm:grid-cols-[17rem_minmax(0,1fr)]">
+						<div>
+							<MediaFileDetails {file} {path} {copyRows} {openUrl} />
+						</div>
+						<div class="border-t border-border pt-4 sm:border-s sm:border-t-0 sm:ps-5 sm:pt-0">
+							<h4 class="mb-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground">
+								{i18n.t('ADMIN_NEXT.MEDIA.METADATA.TITLE')}
+							</h4>
+							<MediaMetadataForm {filename} {load} {save} {readonly} {onsaved} />
+						</div>
 					</div>
 				{:else}
 					<MediaMetadataForm {filename} {load} {save} {readonly} {onsaved} />
