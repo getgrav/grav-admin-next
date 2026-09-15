@@ -27,6 +27,23 @@ export interface PageSummary {
 	header: Record<string, unknown>;
 	taxonomy: Record<string, string[]>;
 	published: boolean;
+	/**
+	 * Date the page becomes public, from `header.publish_date`. Null when the
+	 * page carries no schedule.
+	 *
+	 * Sent by API plugin 1.0.35 and later; absent before that, which is why
+	 * `pageStatus()` in `$lib/utils/pageStatus` falls back to the `published`
+	 * boolean alone.
+	 */
+	publish_date?: string | null;
+	/** Date the page comes back down, from `header.unpublish_date`. API >= 1.0.35. */
+	unpublish_date?: string | null;
+	/**
+	 * Publication state with the two dates above already applied, so a page
+	 * waiting on a future `publish_date` reads as `scheduled` rather than as a
+	 * published page nobody can see. API >= 1.0.35.
+	 */
+	publish_state?: 'published' | 'unpublished' | 'scheduled' | 'expired';
 	visible: boolean;
 	routable: boolean;
 	date: string;

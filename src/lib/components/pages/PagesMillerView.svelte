@@ -11,11 +11,12 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import TranslationBadges from '$lib/components/ui/TranslationBadges.svelte';
+	import PageStatusIndicator from '$lib/components/pages/PageStatusIndicator.svelte';
+	import { pageStatus, pageStatusKey, pageStatusToggleLabel } from '$lib/utils/pageStatus';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
 		Folder, File, Loader2, ExternalLink, ArrowUpDown, GripVertical, Copy, Trash2,
-		CircleCheck, CircleDashed
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
@@ -130,6 +131,14 @@
 	let columns = $state<Column[]>([]);
 	let previewPage = $state<PageDetail | null>(null);
 	let previewLoading = $state(false);
+
+	/** "Publish"/"Unpublish" plus the state the page is in, for the toggle's tooltip. */
+	function togglePublishedLabel(page: PageDetail | PageSummary): string {
+		return pageStatusToggleLabel(
+			page,
+			i18n.t(page.published ? 'ADMIN_NEXT.PAGES.UNPUBLISH' : 'ADMIN_NEXT.PAGES.PUBLISH'),
+		);
+	}
 
 	// Per-column chunk size — captured at column creation so changing the
 	// toolbar dropdown mid-navigation doesn't blow away already-loaded
@@ -987,12 +996,11 @@
 											<div class="flex items-center gap-1.5">
 												<div class="truncate text-[0.8125rem] font-medium
 													{isUntranslated ? (isActive ? 'text-primary-foreground/60 italic' : 'text-muted-foreground italic') : ''}">{page.title}</div>
-												{#if !page.published}
-													<span
-														class="inline-flex h-4 shrink-0 items-center rounded px-1 text-[0.5625rem] font-bold uppercase leading-none
-															{isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'}"
-														title={i18n.t('ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.DRAFT_UNPUBLISHED')}
-													>Draft</span>
+												{#if pageStatusKey(page) !== 'published'}
+													<!-- A published page needs no chip: the column is narrow and
+													     a chip on every row would say nothing. Draft, scheduled
+													     and expired all get one, each in its own colour. -->
+													<PageStatusIndicator {page} variant="pill" {isActive} />
 												{/if}
 												{#if lang && badgeKeys.length > 0}
 													<TranslationBadges
@@ -1040,6 +1048,7 @@
 				</div>
 			{:else if previewPage}
 				{@const copyingPreview = copyingRoutes?.has(previewPage.route) ?? false}
+				{@const previewStatus = pageStatus(previewPage)}
 				<div class="p-5">
 					<!-- Title & edit button -->
 					<div class="flex items-start justify-between gap-2">
@@ -1061,10 +1070,12 @@
 					     noise low while still distinguishing state from action. -->
 					<div class="mt-3 flex flex-wrap items-center gap-1.5">
 						<Badge variant="outline">{previewPage.template}</Badge>
-						{#if previewPage.published}
-							<Badge variant="success">{i18n.t('ADMIN_NEXT.PAGES.PUBLISHED')}</Badge>
-						{:else}
-							<Badge variant="secondary">Draft</Badge>
+						<Badge variant={previewStatus.badgeVariant}>{previewStatus.label}</Badge>
+						{#if previewStatus.date}
+							<!-- The date the page is waiting on is the point of the
+							     scheduled/expired states, so name it outright here
+							     rather than hiding it in the badge's tooltip. -->
+							<Badge variant="outline">{previewStatus.title}</Badge>
 						{/if}
 						{#if previewPage.visible}
 							<Badge variant="success">{i18n.t('ADMIN_NEXT.PAGES.PAGES_MILLER_VIEW.VISIBLE')}</Badge>
@@ -1079,14 +1090,10 @@
 										type="button"
 										class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 										onclick={() => onTogglePublished(previewPage as unknown as PageSummary)}
-										title={previewPage.published ? i18n.t('ADMIN_NEXT.PAGES.UNPUBLISH') : i18n.t('ADMIN_NEXT.PAGES.PUBLISH')}
-										aria-label={previewPage.published ? i18n.t('ADMIN_NEXT.PAGES.UNPUBLISH') : i18n.t('ADMIN_NEXT.PAGES.PUBLISH')}
+										title={togglePublishedLabel(previewPage)}
+										aria-label={togglePublishedLabel(previewPage)}
 									>
-										{#if previewPage.published}
-											<CircleCheck size={13} class="text-green-500" />
-										{:else}
-											<CircleDashed size={13} />
-										{/if}
+										<PageStatusIndicator page={previewPage} size={13} decorative />
 									</button>
 								{/if}
 								{#if onCopy && pageCan(previewPage, 'update')}

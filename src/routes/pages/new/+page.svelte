@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { goto } from '$app/navigation';
 	import { slugify, sanitizeSlugInput } from '$lib/utils/slug';
@@ -6,7 +7,7 @@
 	import { base } from '$app/paths';
 	import { createPage } from '$lib/api/endpoints/pages';
 	import { getPageTypes, getPageBlueprint, emptyDateFieldKeys, publishedDefault, type PageType, type BlueprintSchema } from '$lib/api/endpoints/blueprints';
-	import { getChildren, pageApiRoute, type PageSummary } from '$lib/api/endpoints/pages';
+	import { getChildren, getPage, pageApiRoute, type PageSummary } from '$lib/api/endpoints/pages';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
@@ -34,7 +35,8 @@
 	//   /pages/new?parent=/blog&template=item&title=My%20Post
 	// `?template=` also locks the template picker, so the button creates the
 	// intended page type — the admin-next equivalent of the classic
-	// "custom page creation modal" cookbook recipe.
+	// "custom page creation modal" cookbook recipe. It outranks the parent's
+	// own `child_type` preselection below.
 	const initialParams = pageStore.url.searchParams;
 	let title = $state(initialParams.get('title') ?? '');
 	let slug = $state(initialParams.get('title') ? slugify(initialParams.get('title') as string, i18n.lang) : '');
@@ -42,6 +44,13 @@
 	let parentRoute = $state(initialParams.get('parent') || '/');
 	let template = $state(initialParams.get('template') || 'default');
 	const templateLocked = initialParams.has('template');
+	// Set once the author touches the template selector. From then on their
+	// pick outranks anything the parent page would otherwise preselect
+	// (getgrav/grav-plugin-admin2#175).
+	let templatePickedByUser = $state(false);
+	// The template the currently selected parent asked its children to use, or
+	// null when it asked for nothing.
+	let parentChildType = $state<string | null>(null);
 	let visible = $state<'auto' | 'yes' | 'no'>('auto');
 	let published = $state(false);
 	let saving = $state(false);
@@ -67,6 +76,15 @@
 		canWrite('pages')
 		&& slug.trim().length > 0
 		&& (kind === 'folder' || (title.trim().length > 0 && template.length > 0))
+	);
+
+	// Only claim the parent set the template while the selector is actually
+	// still sitting on that template — if `loadPageTypes()` later rejects it, or
+	// the author changes it, the hint has to go with it.
+	const childTypeHint = $derived(
+		!templateLocked && parentChildType !== null && template === parentChildType
+			? (pageTypes.find(t => t.type === parentChildType)?.label ?? parentChildType)
+			: null,
 	);
 
 	const parentLabel = $derived(() => {
@@ -112,6 +130,90 @@
 		}
 	}
 
+	// ── Parent child_type ───────────────────────────────────────────
+	// A listing page can declare the template its children should use, either
+	// as a `child_type:` frontmatter header or as a root `child_type` in its
+	// blueprint. Classic admin watched the parent field and set the template
+	// select from it; admin-next ignored it entirely, so every Quark-based blog
+	// (`blueprints/blog.yaml` ships `child_type: item`) created plain `default`
+	// children. getgrav/grav-plugin-admin2#175.
+	//
+	// This PRESELECTS and never locks: core enforces `child_type` nowhere, and a
+	// listing page does legitimately get the odd child that is not a listing
+	// item, so the selector stays enabled exactly as classic left it.
+
+	/** Bumped per lookup so a slow reply for a parent the author has already moved off is discarded. */
+	let childTypeLookup = 0;
+
+	/** The page behind `route`, from the picker's cache when it is already there. */
+	function findCachedPage(pages: PageSummary[], route: string, seen = new Set<string>()): PageSummary | null {
+		for (const p of pages) {
+			const apiRoute = pageApiRoute(p);
+			if (apiRoute === route) return p;
+			if (seen.has(apiRoute)) continue;
+			seen.add(apiRoute);
+			const cached = childrenCache[apiRoute];
+			if (cached) {
+				const found = findCachedPage(cached, route, seen);
+				if (found) return found;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * The template a parent wants for its children, resolved in the same order
+	 * classic admin used (`$parent->childType() ?: $parent->blueprints()->get('child_type', 'default')`):
+	 *   1. the parent page's own `child_type:` frontmatter header
+	 *   2. the parent blueprint's root `child_type`
+	 * `default` means "no preference" and is dropped, which is what classic's
+	 * `add.js` did before touching the select.
+	 */
+	async function resolveChildType(route: string): Promise<string | null> {
+		const parent = findCachedPage(rootPages, route) ?? await getPage(route).catch(() => null);
+		if (!parent) return null;
+
+		const fromHeader = parent.header?.child_type;
+		if (typeof fromHeader === 'string' && fromHeader !== '') return fromHeader;
+
+		if (!parent.template) return null;
+		const schema = await getPageBlueprint(parent.template).catch(() => null);
+		const fromBlueprint = schema?.child_type;
+		return typeof fromBlueprint === 'string' && fromBlueprint !== '' ? fromBlueprint : null;
+	}
+
+	async function applyParentChildType(route: string): Promise<void> {
+		const lookup = ++childTypeLookup;
+		parentChildType = null;
+
+		// An explicit `?template=` deep link is the caller's stated intent and
+		// wins outright; folders have no template at all; and once the author
+		// has picked for themselves, nothing overrides them.
+		if (templateLocked || templatePickedByUser || kind === 'folder') return;
+		// `/` is the pages root, not a page — there is no parent to ask.
+		if (route === '/') return;
+
+		const childType = await resolveChildType(route);
+		// A newer parent selection started while this one was in flight.
+		if (lookup !== childTypeLookup) return;
+		if (!childType || childType === 'default') return;
+		if (templatePickedByUser) return;
+		// Drop a child_type the current list cannot offer — a standard type
+		// under a module parent, or one whose template was since removed —
+		// rather than selecting something that is not there.
+		if (pageTypes.length > 0 && !pageTypes.some(t => t.type === childType)) return;
+
+		template = childType;
+		parentChildType = childType;
+	}
+
+	// Keyed on the parent route alone: every other piece of form state changes
+	// without re-running this, so a manual template pick survives.
+	$effect(() => {
+		const route = parentRoute;
+		untrack(() => { void applyParentChildType(route); });
+	});
+
 	// ── Slugify ─────────────────────────────────────────────────────
 
 	function handleTitleInput(e: Event) {
@@ -144,19 +246,8 @@
 	// to raw_route — the walk would otherwise recurse until the stack blew, and
 	// the "too much recursion" exception would kill the click handler
 	// mid-selection (getgrav/grav-plugin-admin2#145).
-	function findPageTitle(pages: PageSummary[], route: string, seen = new Set<string>()): string | null {
-		for (const p of pages) {
-			const apiRoute = pageApiRoute(p);
-			if (apiRoute === route) return p.title;
-			if (seen.has(apiRoute)) continue;
-			seen.add(apiRoute);
-			const cached = childrenCache[apiRoute];
-			if (cached) {
-				const found = findPageTitle(cached, route, seen);
-				if (found) return found;
-			}
-		}
-		return null;
+	function findPageTitle(pages: PageSummary[], route: string): string | null {
+		return findCachedPage(pages, route)?.title ?? null;
 	}
 
 	async function loadRoot() {
@@ -553,6 +644,7 @@
 							<select
 								id="page-template"
 								bind:value={template}
+								onchange={() => templatePickedByUser = true}
 								disabled={pageTypesLoading || templateLocked}
 								class="mt-1 h-10 w-full rounded-lg border border-input bg-muted/50 px-3 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
 							>
@@ -564,6 +656,13 @@
 									{/each}
 								{/if}
 							</select>
+							{#if childTypeHint}
+								<!-- Say why the template moved on its own, so it is not a
+								     surprise that it changed when the parent did. -->
+								<p class="mt-1 text-xs text-muted-foreground">
+									{i18n.t('ADMIN_NEXT.PAGES.NEW.CHILD_TYPE_HINT', { template: childTypeHint })}
+								</p>
+							{/if}
 						</div>
 					{/if}
 

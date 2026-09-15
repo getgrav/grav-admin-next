@@ -9,11 +9,13 @@
 	import { onMount, tick, untrack } from 'svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import TranslationBadges from '$lib/components/ui/TranslationBadges.svelte';
+	import PageStatusIndicator from '$lib/components/pages/PageStatusIndicator.svelte';
+	import { pageStatusToggleLabel } from '$lib/utils/pageStatus';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
 		ChevronDown, FolderOpen, Folder, File, Loader2, Trash2, Copy,
-		ArrowUp, ArrowDown, GripVertical, CircleCheck, CircleDashed
+		ArrowUp, ArrowDown, GripVertical
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
@@ -357,6 +359,14 @@
 	 *  treating itself as its own parent. */
 	function getParentRoute(page: PageSummary): string {
 		return parentRouteOf(pageApiRoute(page));
+	}
+
+	/** "Publish"/"Unpublish" plus the state the page is in, for the toggle's tooltip. */
+	function togglePublishedLabel(page: PageSummary): string {
+		return pageStatusToggleLabel(
+			page,
+			i18n.t(page.published ? 'ADMIN_NEXT.PAGES.UNPUBLISH' : 'ADMIN_NEXT.PAGES.PUBLISH'),
+		);
 	}
 
 	/** True if any sibling under this parent has a numeric order prefix.
@@ -756,23 +766,13 @@
 								type="button"
 								class="inline-flex h-6 w-6 items-center justify-center rounded transition-colors hover:bg-accent"
 								onclick={(e) => { e.stopPropagation(); onTogglePublished(page); }}
-								title={page.published ? i18n.t('ADMIN_NEXT.PAGES.UNPUBLISH') : i18n.t('ADMIN_NEXT.PAGES.PUBLISH')}
-								aria-label={page.published ? i18n.t('ADMIN_NEXT.PAGES.UNPUBLISH') : i18n.t('ADMIN_NEXT.PAGES.PUBLISH')}
+								title={togglePublishedLabel(page)}
+								aria-label={togglePublishedLabel(page)}
 							>
-								{#if page.published}
-									<CircleCheck size={14} class="text-green-500" />
-								{:else}
-									<CircleDashed size={14} class="text-muted-foreground" />
-								{/if}
+								<PageStatusIndicator {page} decorative />
 							</button>
 						{:else}
-							<span title={page.published ? 'Published' : 'Draft'}>
-								{#if page.published}
-									<CircleCheck size={14} class="text-green-500" aria-label={i18n.t('ADMIN_NEXT.PAGES.PUBLISHED')} />
-								{:else}
-									<CircleDashed size={14} class="text-muted-foreground" aria-label="Draft" />
-								{/if}
-							</span>
+							<PageStatusIndicator {page} />
 						{/if}
 					</div>
 
