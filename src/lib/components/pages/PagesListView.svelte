@@ -449,8 +449,8 @@
 		</div>
 
 		{#if !reorderMode}
-			<div class="hidden w-20 text-center md:block">
-				<Badge variant="outline">{page.template}</Badge>
+			<div class="hidden w-36 text-center md:block lg:w-44" title={page.template}>
+				<Badge variant="outline" class="max-w-full"><span class="block truncate">{page.template}</span></Badge>
 			</div>
 			<div class="flex w-6 justify-center">
 				{#if onTogglePublished && pageCan(page, 'publish')}
@@ -511,7 +511,7 @@
 	{#if reorderMode}<div class="w-6"></div>{/if}
 	<div class="min-w-0 flex-1">{@render sortHeader(i18n.t('ADMIN_NEXT.PAGES.HEADER_TITLE'), 'title')}</div>
 	{#if !reorderMode}
-		<div class="hidden w-20 text-center md:block">
+		<div class="hidden w-36 text-center md:block lg:w-44">
 			<span class="text-[0.6875rem] font-medium tracking-wider text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_TEMPLATE')}</span>
 		</div>
 		<div class="w-6 text-center" title={i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')}>
