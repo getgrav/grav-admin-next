@@ -134,7 +134,7 @@ const BUILTIN_DEFAULTS: EffectivePreferences = {
 	editorFixedHeight: 0,
 	adminLanguage: 'en-US',
 	pagesPerPage: 20,
-	pagesViewMode: 'tree',
+	pagesViewMode: 'miller',
 	usersViewMode: 'cards',
 	groupsViewMode: 'cards',
 	pluginsViewMode: 'cards',

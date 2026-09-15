@@ -12,7 +12,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import TranslationBadges from '$lib/components/ui/TranslationBadges.svelte';
 	import PageStatusIndicator from '$lib/components/pages/PageStatusIndicator.svelte';
-	import { pageStatus, pageStatusKey, pageStatusToggleLabel } from '$lib/utils/pageStatus';
+	import { pageStatus, pageStatusToggleLabel } from '$lib/utils/pageStatus';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
@@ -996,12 +996,12 @@
 											<div class="flex items-center gap-1.5">
 												<div class="truncate text-[0.8125rem] font-medium
 													{isUntranslated ? (isActive ? 'text-primary-foreground/60 italic' : 'text-muted-foreground italic') : ''}">{page.title}</div>
-												{#if pageStatusKey(page) !== 'published'}
-													<!-- A published page needs no chip: the column is narrow and
-													     a chip on every row would say nothing. Draft, scheduled
-													     and expired all get one, each in its own colour. -->
-													<PageStatusIndicator {page} variant="pill" {isActive} />
-												{/if}
+												<!-- The compact marker rather than the labelled chip: a
+												     Miller column is narrow, and this is the default view, so
+												     every row needs to answer the question at a glance the way
+												     the tree and list rows do. Shape carries the state, colour
+												     reinforces it. -->
+												<PageStatusIndicator {page} {isActive} size={12} />
 												{#if lang && badgeKeys.length > 0}
 													<TranslationBadges
 														translated={badgeKeys}

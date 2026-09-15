@@ -16,9 +16,9 @@
 		/** Icon size in px. Ignored by the pill variant. */
 		size?: number;
 		/**
-		 * Pill variant only: the row is selected and painted in the primary
-		 * colour, so the chip has to invert instead of using its status colour,
-		 * which would not survive on that background.
+		 * The row is selected and painted in the primary colour, so the marker
+		 * has to invert instead of using its status colour, which would not
+		 * survive on that background. The shape still carries the state.
 		 */
 		isActive?: boolean;
 		/**
@@ -49,9 +49,14 @@
 		{status.label}
 	</span>
 {:else if decorative}
-	<status.icon {size} class={cn(status.colorClass, className)} aria-hidden="true" />
+	<status.icon {size} class={cn(isActive ? 'text-primary-foreground' : status.colorClass, className)} aria-hidden="true" />
 {:else}
 	<span class={cn('inline-flex', className)} title={status.title}>
-		<status.icon {size} class={status.colorClass} role="img" aria-label={status.title} />
+		<status.icon
+			{size}
+			class={isActive ? 'text-primary-foreground' : status.colorClass}
+			role="img"
+			aria-label={status.title}
+		/>
 	</span>
 {/if}
