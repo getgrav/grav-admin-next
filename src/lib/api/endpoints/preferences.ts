@@ -72,6 +72,31 @@ export interface SiteSettings {
 	menubarLinks: MenubarLink[];
 }
 
+/**
+ * Media upload constraints, derived from the classic admin plugin's `pagemedia`
+ * config (Admin -> Configuration -> Pages, "Page Media Resizer"). Read-only:
+ * the admin plugin's config is the source of truth, so this is never PATCHed
+ * back. All zeros means no constraint.
+ */
+export interface MediaUploadSettings {
+	/** Target width in px for an on-device resize before upload. 0 = off. */
+	resizeWidth: number;
+	/** Target height in px. 0 = scale proportionally from the width. */
+	resizeHeight: number;
+	/** JPEG/WebP re-encode quality, 0 < q <= 1. */
+	resizeQuality: number;
+	/** Reject an image narrower/shorter than this. 0 = no minimum. */
+	minWidth: number;
+	minHeight: number;
+	/**
+	 * Reject an image wider/taller than this. Ignored when a resize is
+	 * configured, matching classic admin: once we can shrink the image there is
+	 * nothing to reject.
+	 */
+	maxWidth: number;
+	maxHeight: number;
+}
+
 /** Merged Tier B + A2 — what every consumer reads at runtime. */
 export interface EffectivePreferences extends PreferenceValues, SiteSettings {}
 
@@ -82,6 +107,7 @@ export interface PreferencesResponse {
 	branding_urls: BrandingUrls;
 	site: Partial<PreferenceValues>;
 	site_settings: SiteSettings;
+	media_upload: MediaUploadSettings;
 	user: UserPreferencesPayload;
 	effective: EffectivePreferences;
 	can_edit_site: boolean;

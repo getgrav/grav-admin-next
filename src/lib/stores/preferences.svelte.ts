@@ -12,6 +12,7 @@ import {
 	type FontSize,
 	type EditorMode,
 	type EditorKeymap,
+	type MediaUploadSettings,
 	type MenubarLink,
 	type PagesViewMode,
 	type PreferenceValues,
@@ -29,6 +30,7 @@ export type {
 	FontFamily,
 	FontSize,
 	LogoMode,
+	MediaUploadSettings,
 	MenubarLink,
 	PagesViewMode,
 } from '$lib/api/endpoints/preferences';
@@ -148,6 +150,17 @@ const BUILTIN_DEFAULTS: EffectivePreferences = {
 	menubarLinks: [],
 };
 
+/** Everything off: what a site without the classic admin plugin gets. */
+const NO_MEDIA_CONSTRAINTS: MediaUploadSettings = {
+	resizeWidth: 0,
+	resizeHeight: 0,
+	resizeQuality: 0.8,
+	minWidth: 0,
+	minHeight: 0,
+	maxWidth: 0,
+	maxHeight: 0,
+};
+
 function createPreferencesStore() {
 	const local = loadLocal();
 	const cache = loadBootCache();
@@ -188,6 +201,7 @@ function createPreferencesStore() {
 	// ── Server payload mirrors (read-only via getters) ─────────────────────
 	let siteDefaults = $state<Partial<PreferenceValues>>({});
 	let siteSettings = $state<SiteSettings>({ ...BUILTIN_DEFAULTS } as SiteSettings);
+	let mediaUpload = $state<MediaUploadSettings>({ ...NO_MEDIA_CONSTRAINTS });
 	let userOverrides = $state<UserPreferencesPayload>({});
 	let canEditSite = $state<boolean>(false);
 	let loaded = $state<boolean>(false);
@@ -236,6 +250,7 @@ function createPreferencesStore() {
 		applyEffective(payload.effective);
 		siteDefaults = payload.site ?? {};
 		siteSettings = payload.site_settings ?? ({ ...BUILTIN_DEFAULTS } as SiteSettings);
+		mediaUpload = payload.media_upload ?? { ...NO_MEDIA_CONSTRAINTS };
 		userOverrides = payload.user ?? {};
 		canEditSite = !!payload.can_edit_site;
 		loaded = true;
@@ -248,6 +263,7 @@ function createPreferencesStore() {
 	onPreferencesUpdated((payload) => {
 		siteDefaults = payload.site ?? {};
 		siteSettings = payload.site_settings ?? siteSettings;
+		mediaUpload = payload.media_upload ?? mediaUpload;
 		userOverrides = payload.user ?? {};
 	});
 
@@ -394,6 +410,8 @@ function createPreferencesStore() {
 		get siteSettings() { return siteSettings; },
 		get userOverrides() { return userOverrides; },
 		get canEditSite() { return canEditSite; },
+		/** Upload constraints from the admin plugin's `pagemedia` config. */
+		get mediaUpload() { return mediaUpload; },
 		get loaded() { return loaded; },
 
 		// ── Lifecycle ──────────────────────────────────────────────────────

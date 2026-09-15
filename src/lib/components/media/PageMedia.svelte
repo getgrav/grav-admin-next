@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { Uppy } from '@uppy/core';
 	import XHRUpload from '@uppy/xhr-upload';
+	import { useUploadConstraints } from '$lib/utils/uppyImageConstraints';
 	import ImageEditor from '@uppy/image-editor';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api/client';
@@ -160,6 +161,10 @@
 		});
 
 		// Pre-check token so Uppy's XHR uploads don't fail silently on expiry.
+		// Shrink oversized images and enforce resolution rules before upload,
+		// matching classic admin's Dropzone resizer.
+		useUploadConstraints(uppy);
+
 		uppy.addPreProcessor(async () => {
 			await api.ensureAuth();
 		});
