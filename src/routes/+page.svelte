@@ -29,7 +29,7 @@
 	import WidgetPicker from '$lib/components/dashboard/WidgetPicker.svelte';
 	import TopBanner from '$lib/components/dashboard/TopBanner.svelte';
 	import SecurityHealthBanner from '$lib/components/dashboard/SecurityHealthBanner.svelte';
-	import { checkUserFolderExposure } from '$lib/api/endpoints/security';
+	import { checkSensitiveFileExposure } from '$lib/api/endpoints/security';
 	import { setDashboardData, type DashboardData } from '$lib/dashboard/context';
 	import { formatBytes } from '$lib/dashboard/format';
 	import type { ResolvedWidget, DashboardLayout } from '$lib/dashboard/types';
@@ -49,6 +49,7 @@
 	let savedWidgetsSnapshot = $state<ResolvedWidget[]>([]);
 	let canEditSite = $state(false);
 	let userFolderExposed = $state(false);
+	let exposedFiles = $state<string[]>([]);
 	let loading = $state(true);
 	let animated = $state(false);
 	let updatingAll = $state(false);
@@ -293,10 +294,13 @@
 	const poller = usePoll(() => loadDashboard({ silent: true }), 60_000, { runImmediately: false });
 	onMount(() => {
 		poller.start();
-		// One-off security health check: probe whether user/data is reachable
+		// One-off security health check: probe sensitive storage directories
 		// over the web. Runs independently of the dashboard payload so a slow
 		// or blocked external fetch never delays the rest of the page.
-		checkUserFolderExposure().then((exposed) => { userFolderExposed = exposed === true; });
+		checkSensitiveFileExposure().then((result) => {
+			userFolderExposed = result.exposed === true;
+			exposedFiles = result.exposedFiles;
+		});
 		const unsubPages = invalidations.subscribe('pages:*', () => loadDashboard({ silent: true }));
 		const unsubUsers = invalidations.subscribe('users:*', () => loadDashboard({ silent: true }));
 		const unsubPlugins = invalidations.subscribe('plugins:*', () => loadDashboard({ silent: true }));
@@ -360,7 +364,7 @@
 		</StickyHeader>
 
 		<div class="relative z-0 px-6 pb-6">
-			<SecurityHealthBanner exposed={userFolderExposed} />
+			<SecurityHealthBanner exposed={userFolderExposed} {exposedFiles} />
 			<TopBanner notifications={topNotifications} />
 			<DashboardGrid
 				{widgets}

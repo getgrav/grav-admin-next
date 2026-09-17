@@ -4,7 +4,8 @@
 
 	// `null` while undetermined / safe — the parent only renders this when an
 	// exposure has been confirmed, but guard anyway.
-	let { exposed = false }: { exposed?: boolean } = $props();
+	let { exposed = false, exposedFiles = [] }: { exposed?: boolean; exposedFiles?: string[] } =
+		$props();
 </script>
 
 {#if exposed}
@@ -22,8 +23,15 @@
 				{i18n.t('ADMIN_NEXT.SECURITY_CHECK.USER_FOLDER_EXPOSED_TITLE')}
 			</p>
 			<p class="mt-1 text-sm text-amber-700 dark:text-amber-200/90">
-				{i18n.t('ADMIN_NEXT.SECURITY_CHECK.USER_FOLDER_EXPOSED_BODY')}
+				{i18n.t('ADMIN_NEXT.SECURITY_CHECK.STORAGE_EXPOSED_BODY')}
 			</p>
+			{#if exposedFiles.length}
+				<ul class="mt-2 list-inside list-disc text-sm text-amber-800 dark:text-amber-200">
+					{#each exposedFiles as path}
+						<li><code>{path}</code></li>
+					{/each}
+				</ul>
+			{/if}
 			<a
 				href="https://learn.getgrav.org/security/user-folder-exposure"
 				target="_blank"
