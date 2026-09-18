@@ -488,6 +488,13 @@
 		if (!view || e.button !== 0 || disabled) return;
 		const target = e.target as Node;
 		if (view.contentDOM.contains(target)) return; // CM handles it
+		// Only the empty parts of the box are dead: the wrapper, the editor
+		// frame and the scroller. Panels (Find/Replace, the vim command line)
+		// and tooltips hold their own inputs and buttons; preventing their
+		// mousedown and refocusing the content stopped the Replace field from
+		// taking focus and moved the cursor before every Find/Replace button
+		// ran (grav-admin-next#24).
+		if (target !== editorContainer && target !== view.dom && !view.scrollDOM.contains(target)) return;
 		// Leave the scroller's own scrollbar alone.
 		if (target === view.scrollDOM) {
 			const r = view.scrollDOM.getBoundingClientRect();
