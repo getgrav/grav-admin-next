@@ -96,9 +96,29 @@
 		silent?: boolean;
 	}
 
+	let securityCheckRunning = false;
+
+	// Probe sensitive storage directories over the web. Kept off the dashboard
+	// payload so a slow or blocked external fetch never delays the rest of the
+	// page, and guarded so repeated Refresh clicks don't stack probe requests.
+	function refreshSecurityHealth() {
+		if (securityCheckRunning) return;
+		securityCheckRunning = true;
+		checkSensitiveFileExposure()
+			.then((result) => {
+				userFolderExposed = result.exposed === true;
+				exposedFiles = result.exposedFiles;
+			})
+			.finally(() => { securityCheckRunning = false; });
+	}
+
 	async function loadDashboard(options: LoadDashboardOptions = {}) {
 		const { flushGpm = false, silent = false } = options;
 		if (!silent) loading = true;
+		// Re-probe whenever the operator asks for fresh data, so fixing the server
+		// rules and pressing Refresh clears the banner. Silent refreshes skip it:
+		// the 60s poller should not fire external requests on every tick.
+		if (!silent) refreshSecurityHealth();
 		try {
 			const results = await Promise.allSettled([
 				getStats(), getSystemInfo(), getNotifications(flushGpm), getRecentPages(8),
@@ -294,13 +314,6 @@
 	const poller = usePoll(() => loadDashboard({ silent: true }), 60_000, { runImmediately: false });
 	onMount(() => {
 		poller.start();
-		// One-off security health check: probe sensitive storage directories
-		// over the web. Runs independently of the dashboard payload so a slow
-		// or blocked external fetch never delays the rest of the page.
-		checkSensitiveFileExposure().then((result) => {
-			userFolderExposed = result.exposed === true;
-			exposedFiles = result.exposedFiles;
-		});
 		const unsubPages = invalidations.subscribe('pages:*', () => loadDashboard({ silent: true }));
 		const unsubUsers = invalidations.subscribe('users:*', () => loadDashboard({ silent: true }));
 		const unsubPlugins = invalidations.subscribe('plugins:*', () => loadDashboard({ silent: true }));
