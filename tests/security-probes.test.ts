@@ -16,7 +16,9 @@ const mockFetch =
 		assert.equal(options?.credentials, 'omit');
 		assert.equal(options?.cache, 'no-store');
 		assert.ok(options?.signal);
-		const response = responses[String(input).split('.').pop()!];
+		const url = new URL(String(input));
+		assert.match(url.search, /^\?_=[a-z0-9]+$/);
+		const response = responses[url.pathname.split('.').pop()!];
 		if (response instanceof Error) throw response;
 		return response;
 	};
@@ -84,4 +86,16 @@ test('confirmed exposure wins over incomplete checks', async () => {
 test('missing or unwritable sentinels are unknown', async () => {
 	assert.equal((await checkSecuritySentinels([])).exposed, null);
 	assert.equal((await checkSecuritySentinels([{ ...probes[0], available: false }])).exposed, null);
+});
+
+test('every request carries a fresh cache-busting query', async () => {
+	const seen: string[] = [];
+	const fetcher: typeof fetch = async (input) => {
+		seen.push(String(input));
+		return new Response('', { status: 403 });
+	};
+	await checkSecuritySentinels(probes, fetcher);
+	await checkSecuritySentinels(probes, fetcher);
+	assert.equal(new Set(seen).size, seen.length);
+	assert.ok(seen.every((url) => /\/backup\/probe\.(dat|txt|zip)\?_=[a-z0-9]+$/.test(url)));
 });

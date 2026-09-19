@@ -11,6 +11,15 @@ export interface ExposureCheck {
 	exposedFiles: string[];
 }
 
+/**
+ * A unique query string on every request, so a CDN answers from the origin rather than a
+ * copy it cached before the server's rules changed. `cache: 'no-store'` only skips the
+ * browser's own cache.
+ */
+function cacheBusted(url: string): string {
+	return `${url}${url.includes('?') ? '&' : '?'}_=${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+}
+
 /** Only a matching sentinel confirms exposure; only 403/404 confirms a blocked probe. */
 export async function checkSecuritySentinels(
 	probes: SecuritySentinel[],
@@ -20,7 +29,7 @@ export async function checkSecuritySentinels(
 		probes.map(async (probe) => {
 			if (!probe.available || !probe.url || !probe.token) return null;
 			try {
-				const response = await fetcher(probe.url, {
+				const response = await fetcher(cacheBusted(probe.url), {
 					credentials: 'omit',
 					cache: 'no-store',
 					signal: AbortSignal.timeout(5000)
