@@ -6,9 +6,64 @@ export interface SecuritySentinel {
 	extension?: string;
 }
 
+export interface ProbeResult {
+	location: string;
+	extension: string;
+	/** true = served, false = blocked (403/404), null = inconclusive. */
+	exposed: boolean | null;
+}
+
 export interface ExposureCheck {
 	exposed: boolean | null;
 	exposedFiles: string[];
+	results?: ProbeResult[];
+}
+
+/**
+ * What the pattern of served and blocked probes points to, so the banner can name the likely fix:
+ * - `tmp`: only tmp/ was served, the other folders were blocked (server rules older than 2.1.7).
+ * - `by-type`: a folder blocked some file types and served others (a static-file layer in front).
+ * - `all`: every probe was served (the rules are not applied at all).
+ * - `unknown`: anything else, including older APIs without per-probe locations.
+ */
+export type ExposurePattern = 'tmp' | 'by-type' | 'all' | 'unknown';
+
+export function classifyExposure(results: ProbeResult[] = []): ExposurePattern {
+	const known = results.filter((r) => r.location && r.exposed !== null);
+	const served = known.filter((r) => r.exposed);
+	if (!served.length) return 'unknown';
+
+	const mixed = [...new Set(served.map((r) => r.location))].some((location) =>
+		known.some((r) => r.location === location && r.exposed === false)
+	);
+	if (mixed) return 'by-type';
+
+	const locations = new Set(known.map((r) => r.location));
+	if (served.length === known.length && locations.size > 1) return 'all';
+
+	const isTmp = (location: string) => location === 'tmp' || location.endsWith('/tmp');
+	if (served.every((r) => isTmp(r.location)) && known.some((r) => !isTmp(r.location))) return 'tmp';
+
+	return 'unknown';
+}
+
+/** A stable key for a set of exposed files, so a snooze or collapse ends when the set changes. */
+export function exposureSignature(exposedFiles: string[]): string {
+	return [...exposedFiles].sort().join('|');
+}
+
+export const SNOOZE_MS = 24 * 60 * 60 * 1000;
+
+export interface BannerState {
+	signature: string;
+	collapsed?: boolean;
+	snoozedUntil?: number;
+}
+
+/** Whether the saved state still applies: it only does for the same set of exposed files. */
+export function bannerStateFor(saved: BannerState | null, signature: string, now = Date.now()) {
+	if (!saved || saved.signature !== signature) return { collapsed: false, snoozed: false };
+	return { collapsed: !!saved.collapsed, snoozed: (saved.snoozedUntil ?? 0) > now };
 }
 
 /**
@@ -50,6 +105,11 @@ export async function checkSecuritySentinels(
 				: null,
 		exposedFiles: probes
 			.filter((_, i) => results[i] === true)
-			.map((p) => (p.location && p.extension ? `${p.location}/*.${p.extension}` : 'user/data'))
+			.map((p) => (p.location && p.extension ? `${p.location}/*.${p.extension}` : 'user/data')),
+		results: probes.map((p, i) => ({
+			location: p.location ?? '',
+			extension: p.extension ?? '',
+			exposed: results[i]
+		}))
 	};
 }

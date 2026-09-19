@@ -29,6 +29,7 @@
 	import WidgetPicker from '$lib/components/dashboard/WidgetPicker.svelte';
 	import TopBanner from '$lib/components/dashboard/TopBanner.svelte';
 	import SecurityHealthBanner from '$lib/components/dashboard/SecurityHealthBanner.svelte';
+	import type { ProbeResult } from '$lib/api/security-probes';
 	import { checkSensitiveFileExposure } from '$lib/api/endpoints/security';
 	import { setDashboardData, type DashboardData } from '$lib/dashboard/context';
 	import { formatBytes } from '$lib/dashboard/format';
@@ -50,6 +51,7 @@
 	let canEditSite = $state(false);
 	let userFolderExposed = $state(false);
 	let exposedFiles = $state<string[]>([]);
+	let exposureResults = $state<ProbeResult[]>([]);
 	let loading = $state(true);
 	let animated = $state(false);
 	let updatingAll = $state(false);
@@ -108,6 +110,7 @@
 			.then((result) => {
 				userFolderExposed = result.exposed === true;
 				exposedFiles = result.exposedFiles;
+				exposureResults = result.results ?? [];
 			})
 			.finally(() => { securityCheckRunning = false; });
 	}
@@ -377,7 +380,7 @@
 		</StickyHeader>
 
 		<div class="relative z-0 px-6 pb-6">
-			<SecurityHealthBanner exposed={userFolderExposed} {exposedFiles} />
+			<SecurityHealthBanner exposed={userFolderExposed} {exposedFiles} results={exposureResults} />
 			<TopBanner notifications={topNotifications} />
 			<DashboardGrid
 				{widgets}
