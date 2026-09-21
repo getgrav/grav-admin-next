@@ -79,6 +79,18 @@
 		}
 	});
 
+	// Hold the form back until the setup probe has answered and the full string
+	// set has arrived. Otherwise a fresh install shows this form for a moment,
+	// with placeholder labels, before the probe sends it on to /setup. A slow
+	// or unreachable server still gets the form after a few seconds.
+	let setupChecked = $state(!(auth.hasGravConfig || auth.serverUrl));
+	let waitedLongEnough = $state(false);
+	const ready = $derived(waitedLongEnough || (setupChecked && i18n.loaded));
+	onMount(() => {
+		const timer = setTimeout(() => (waitedLongEnough = true), 4000);
+		return () => clearTimeout(timer);
+	});
+
 	// Probe for a fresh install with no user accounts — redirect to /setup so
 	// the operator can create the first super-admin. Silently ignore failures
 	// (e.g. server URL not yet configured) and fall through to the login form.
@@ -92,8 +104,9 @@
 			getSetupStatus()
 				.then((status) => {
 					if (status.setup_required) goto(`${base}/setup`);
+					else setupChecked = true;
 				})
-				.catch(() => { /* no-op — probe is best-effort */ });
+				.catch(() => { setupChecked = true; /* probe is best-effort */ });
 		}
 	});
 
@@ -255,228 +268,232 @@
 	<title>{i18n.t('ADMIN_NEXT.LOGIN.LOGIN_GRAV_ADMIN')}</title>
 </svelte:head>
 
-<div class="flex min-h-screen items-center justify-center bg-background p-4">
-	<button
-		type="button"
-		class="absolute top-4 right-4 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-		onclick={() => theme.toggleColorMode()}
-		aria-label={i18n.t('ADMIN_NEXT.TOGGLE_DARK_MODE')}
-	>
-		{#if theme.isDark}
-			<Sun size={16} />
-		{:else}
-			<Moon size={16} />
-		{/if}
-	</button>
+{#if !ready}
+	<div class="min-h-screen bg-background" aria-busy="true"></div>
+{:else}
+	<div class="flex min-h-screen items-center justify-center bg-background p-4">
+		<button
+			type="button"
+			class="absolute top-4 right-4 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+			onclick={() => theme.toggleColorMode()}
+			aria-label={i18n.t('ADMIN_NEXT.TOGGLE_DARK_MODE')}
+		>
+			{#if theme.isDark}
+				<Sun size={16} />
+			{:else}
+				<Moon size={16} />
+			{/if}
+		</button>
 
-	<div class="w-full max-w-sm">
-		<!-- Brand -->
-		<div class="mb-8 flex flex-col items-center text-center">
-			<div class="mb-4">
-				<BrandLogo size="login" />
+		<div class="w-full max-w-sm">
+			<!-- Brand -->
+			<div class="mb-8 flex flex-col items-center text-center">
+				<div class="mb-4">
+					<BrandLogo size="login" />
+				</div>
+				<h1 class="text-2xl font-semibold tracking-tight text-foreground">{branding.title || i18n.t('ADMIN_NEXT.LOGIN.GRAV_ADMIN')}</h1>
+				<p class="mt-1 text-[0.8125rem] text-muted-foreground">
+					{#if stage === '2fa'}
+						{i18n.t('ADMIN_NEXT.LOGIN.TWOFA_SUBTITLE')}
+					{:else}
+						{branding.subtitle || i18n.t('ADMIN_NEXT.LOGIN.SUBTITLE')}
+					{/if}
+				</p>
 			</div>
-			<h1 class="text-2xl font-semibold tracking-tight text-foreground">{branding.title || i18n.t('ADMIN_NEXT.LOGIN.GRAV_ADMIN')}</h1>
-			<p class="mt-1 text-[0.8125rem] text-muted-foreground">
-				{#if stage === '2fa'}
-					{i18n.t('ADMIN_NEXT.LOGIN.TWOFA_SUBTITLE')}
-				{:else}
-					{branding.subtitle || i18n.t('ADMIN_NEXT.LOGIN.SUBTITLE')}
-				{/if}
-			</p>
-		</div>
 
-		<!-- Login Card -->
-		<div class="rounded-lg border border-border bg-card shadow-sm">
-			{#if stage === 'credentials'}
-				<!-- Server config (collapsible) -->
-				<div class="border-b border-border px-6 py-3">
-					<button
-						type="button"
-						class="flex w-full items-center gap-2 text-[0.8125rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
-						onclick={() => showServerConfig = !showServerConfig}
-					>
-						<Server size={13} />
-						{i18n.t('ADMIN_NEXT.LOGIN.SERVER_CONFIGURATION')}
-						<ChevronDown size={13} class="ms-auto transition-transform {showServerConfig ? 'rotate-180' : ''}" />
-					</button>
+			<!-- Login Card -->
+			<div class="rounded-lg border border-border bg-card shadow-sm">
+				{#if stage === 'credentials'}
+					<!-- Server config (collapsible) -->
+					<div class="border-b border-border px-6 py-3">
+						<button
+							type="button"
+							class="flex w-full items-center gap-2 text-[0.8125rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
+							onclick={() => showServerConfig = !showServerConfig}
+						>
+							<Server size={13} />
+							{i18n.t('ADMIN_NEXT.LOGIN.SERVER_CONFIGURATION')}
+							<ChevronDown size={13} class="ms-auto transition-transform {showServerConfig ? 'rotate-180' : ''}" />
+						</button>
 
-					{#if showServerConfig}
-						<div class="mt-3 space-y-3 pb-1">
-							<div class="space-y-1.5">
-								<label for="server-url" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.LOGIN.SERVER_URL')}</label>
-								<div class="flex rounded-md shadow-sm">
-									<span class="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-muted-foreground">
-										<Globe size={13} />
-									</span>
+						{#if showServerConfig}
+							<div class="mt-3 space-y-3 pb-1">
+								<div class="space-y-1.5">
+									<label for="server-url" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.LOGIN.SERVER_URL')}</label>
+									<div class="flex rounded-md shadow-sm">
+										<span class="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-muted-foreground">
+											<Globe size={13} />
+										</span>
+										<input
+											id="server-url"
+											type="url"
+											class="flex h-9 w-full rounded-r-md border border-input bg-transparent px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+											bind:value={serverUrl}
+										/>
+									</div>
+								</div>
+
+								<div class="space-y-1.5">
+									<label for="environment" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.LOGIN.ENVIRONMENT')}</label>
 									<input
-										id="server-url"
-										type="url"
-										class="flex h-9 w-full rounded-r-md border border-input bg-transparent px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-										bind:value={serverUrl}
+										id="environment"
+										type="text"
+										class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+										bind:value={environment}
 									/>
 								</div>
 							</div>
+						{/if}
+					</div>
 
-							<div class="space-y-1.5">
-								<label for="environment" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.LOGIN.ENVIRONMENT')}</label>
-								<input
-									id="environment"
-									type="text"
-									class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-									bind:value={environment}
-								/>
+					<!-- Credentials form -->
+					<form onsubmit={handleLogin} class="space-y-4 px-6 py-5">
+						<div class="space-y-1.5">
+							<label for="username" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.USERNAME')}</label>
+							<input
+								id="username"
+								type="text"
+								class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
+									{usernameInvalid
+										? 'border-red-500 ring-1 ring-red-500/30 animate-[shake_0.3s_ease-in-out]'
+										: 'border-input'}"
+								bind:value={username}
+								autocomplete="username"
+								disabled={loading}
+							/>
+							{#if usernameInvalid}
+								<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.LOGIN.USERNAME_IS_REQUIRED')}</p>
+							{/if}
+						</div>
+
+						<div class="space-y-1.5">
+							<label for="password" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.PASSWORD')}</label>
+							<input
+								id="password"
+								type="password"
+								class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
+									{passwordInvalid
+										? 'border-red-500 ring-1 ring-red-500/30 animate-[shake_0.3s_ease-in-out]'
+										: 'border-input'}"
+								bind:value={password}
+								autocomplete="current-password"
+								disabled={loading}
+							/>
+							{#if passwordInvalid}
+								<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.LOGIN.PASSWORD_IS_REQUIRED')}</p>
+							{/if}
+							<div class="pt-0.5 text-end">
+								<a
+									href="{base}/forgot"
+									class="text-[0.75rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
+								>
+									{i18n.t('ADMIN_NEXT.LOGIN.FORGOT_PASSWORD')}
+								</a>
+							</div>
+						</div>
+
+						<LoginCaptcha
+							bind:this={captcha}
+							bind:ready={captchaReady}
+							config={captchaConfig}
+							flow={captchaConfig.flows.login}
+						/>
+
+						<Button type="submit" class="w-full" disabled={loading || !captchaReady}>
+							{#if loading}
+								<Loader2 size={15} class="animate-spin" />
+								{i18n.t('ADMIN_NEXT.LOGIN.SIGNING_IN')}
+							{:else}
+								<LogIn size={15} />
+								{i18n.t('ADMIN_NEXT.LOGIN.SIGN_IN')}
+							{/if}
+						</Button>
+					</form>
+
+					{#if ssoProviders.length > 0}
+						<div class="px-6 pb-5">
+							<div class="relative mb-4 flex items-center">
+								<div class="flex-grow border-t border-border"></div>
+								<span class="mx-3 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
+									{i18n.t('ADMIN_NEXT.LOGIN.OR_CONTINUE_WITH')}
+								</span>
+								<div class="flex-grow border-t border-border"></div>
+							</div>
+							<div class="space-y-2">
+								{#each ssoProviders as provider (provider.id)}
+									<Button
+										type="button"
+										variant="outline"
+										class="w-full"
+										disabled={loading}
+										onclick={() => startSso(provider.id)}
+									>
+										{i18n.t('ADMIN_NEXT.LOGIN.CONTINUE_WITH', { provider: provider.label })}
+									</Button>
+								{/each}
 							</div>
 						</div>
 					{/if}
-				</div>
+				{:else}
+					<!-- 2FA challenge form -->
+					<form onsubmit={handleVerify} class="space-y-4 px-6 py-5">
+						<div class="flex items-center gap-3 rounded-md border border-border bg-muted/40 px-3 py-2.5">
+							<ShieldCheck size={16} class="shrink-0 text-muted-foreground" />
+							<p class="text-[0.75rem] text-muted-foreground">
+								{@html i18n.tHtml('ADMIN_NEXT.LOGIN.AUTH_CODE_PROMPT', { username })}
+							</p>
+						</div>
 
-				<!-- Credentials form -->
-				<form onsubmit={handleLogin} class="space-y-4 px-6 py-5">
-					<div class="space-y-1.5">
-						<label for="username" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.USERNAME')}</label>
-						<input
-							id="username"
-							type="text"
-							class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
-								{usernameInvalid
-									? 'border-red-500 ring-1 ring-red-500/30 animate-[shake_0.3s_ease-in-out]'
-									: 'border-input'}"
-							bind:value={username}
-							autocomplete="username"
+						<div class="space-y-1.5">
+							<label for="twofa-code" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.LOGIN.AUTHENTICATION_CODE')}</label>
+							<input
+								id="twofa-code"
+								type="text"
+								inputmode="numeric"
+								pattern="[0-9]*"
+								maxlength="6"
+								autocomplete="one-time-code"
+								class="flex h-10 w-full rounded-md border bg-transparent px-3 py-1 text-center font-mono text-lg tracking-[0.4em] shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
+									{codeInvalid
+										? 'border-red-500 ring-1 ring-red-500/30 animate-[shake_0.3s_ease-in-out]'
+										: 'border-input'}"
+								bind:value={code}
+								disabled={loading}
+								placeholder="000000"
+							/>
+							{#if codeInvalid}
+								<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.LOGIN.ENTER_A_VALID_6_DIGIT_CODE')}</p>
+							{/if}
+						</div>
+
+						<Button type="submit" class="w-full" disabled={loading}>
+							{#if loading}
+								<Loader2 size={15} class="animate-spin" />
+								{i18n.t('ADMIN_NEXT.LOGIN.VERIFYING')}
+							{:else}
+								<ShieldCheck size={15} />
+								{i18n.t('ADMIN_NEXT.LOGIN.VERIFY')}
+							{/if}
+						</Button>
+
+						<button
+							type="button"
+							onclick={backToCredentials}
+							class="flex w-full items-center justify-center gap-1.5 text-[0.75rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
 							disabled={loading}
-						/>
-						{#if usernameInvalid}
-							<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.LOGIN.USERNAME_IS_REQUIRED')}</p>
-						{/if}
-					</div>
-
-					<div class="space-y-1.5">
-						<label for="password" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.PASSWORD')}</label>
-						<input
-							id="password"
-							type="password"
-							class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
-								{passwordInvalid
-									? 'border-red-500 ring-1 ring-red-500/30 animate-[shake_0.3s_ease-in-out]'
-									: 'border-input'}"
-							bind:value={password}
-							autocomplete="current-password"
-							disabled={loading}
-						/>
-						{#if passwordInvalid}
-							<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.LOGIN.PASSWORD_IS_REQUIRED')}</p>
-						{/if}
-						<div class="pt-0.5 text-end">
-							<a
-								href="{base}/forgot"
-								class="text-[0.75rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
-							>
-								{i18n.t('ADMIN_NEXT.LOGIN.FORGOT_PASSWORD')}
-							</a>
-						</div>
-					</div>
-
-					<LoginCaptcha
-						bind:this={captcha}
-						bind:ready={captchaReady}
-						config={captchaConfig}
-						flow={captchaConfig.flows.login}
-					/>
-
-					<Button type="submit" class="w-full" disabled={loading || !captchaReady}>
-						{#if loading}
-							<Loader2 size={15} class="animate-spin" />
-							{i18n.t('ADMIN_NEXT.LOGIN.SIGNING_IN')}
-						{:else}
-							<LogIn size={15} />
-							{i18n.t('ADMIN_NEXT.LOGIN.SIGN_IN')}
-						{/if}
-					</Button>
-				</form>
-
-				{#if ssoProviders.length > 0}
-					<div class="px-6 pb-5">
-						<div class="relative mb-4 flex items-center">
-							<div class="flex-grow border-t border-border"></div>
-							<span class="mx-3 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
-								{i18n.t('ADMIN_NEXT.LOGIN.OR_CONTINUE_WITH')}
-							</span>
-							<div class="flex-grow border-t border-border"></div>
-						</div>
-						<div class="space-y-2">
-							{#each ssoProviders as provider (provider.id)}
-								<Button
-									type="button"
-									variant="outline"
-									class="w-full"
-									disabled={loading}
-									onclick={() => startSso(provider.id)}
-								>
-									{i18n.t('ADMIN_NEXT.LOGIN.CONTINUE_WITH', { provider: provider.label })}
-								</Button>
-							{/each}
-						</div>
-					</div>
+						>
+							<DirectionalIcon name="arrow-back" size={12} />
+							{i18n.t('ADMIN_NEXT.LOGIN.BACK_TO_SIGN_IN')}
+						</button>
+					</form>
 				{/if}
-			{:else}
-				<!-- 2FA challenge form -->
-				<form onsubmit={handleVerify} class="space-y-4 px-6 py-5">
-					<div class="flex items-center gap-3 rounded-md border border-border bg-muted/40 px-3 py-2.5">
-						<ShieldCheck size={16} class="shrink-0 text-muted-foreground" />
-						<p class="text-[0.75rem] text-muted-foreground">
-							{@html i18n.tHtml('ADMIN_NEXT.LOGIN.AUTH_CODE_PROMPT', { username })}
-						</p>
-					</div>
+			</div>
 
-					<div class="space-y-1.5">
-						<label for="twofa-code" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.LOGIN.AUTHENTICATION_CODE')}</label>
-						<input
-							id="twofa-code"
-							type="text"
-							inputmode="numeric"
-							pattern="[0-9]*"
-							maxlength="6"
-							autocomplete="one-time-code"
-							class="flex h-10 w-full rounded-md border bg-transparent px-3 py-1 text-center font-mono text-lg tracking-[0.4em] shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
-								{codeInvalid
-									? 'border-red-500 ring-1 ring-red-500/30 animate-[shake_0.3s_ease-in-out]'
-									: 'border-input'}"
-							bind:value={code}
-							disabled={loading}
-							placeholder="000000"
-						/>
-						{#if codeInvalid}
-							<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.LOGIN.ENTER_A_VALID_6_DIGIT_CODE')}</p>
-						{/if}
-					</div>
-
-					<Button type="submit" class="w-full" disabled={loading}>
-						{#if loading}
-							<Loader2 size={15} class="animate-spin" />
-							{i18n.t('ADMIN_NEXT.LOGIN.VERIFYING')}
-						{:else}
-							<ShieldCheck size={15} />
-							{i18n.t('ADMIN_NEXT.LOGIN.VERIFY')}
-						{/if}
-					</Button>
-
-					<button
-						type="button"
-						onclick={backToCredentials}
-						class="flex w-full items-center justify-center gap-1.5 text-[0.75rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
-						disabled={loading}
-					>
-						<DirectionalIcon name="arrow-back" size={12} />
-						{i18n.t('ADMIN_NEXT.LOGIN.BACK_TO_SIGN_IN')}
-					</button>
-				</form>
+			{#if branding.showPoweredBy}
+				<p class="mt-6 text-center text-xs text-muted-foreground">
+					{i18n.t('ADMIN_NEXT.LOGIN.POWERED_BY_GRAV_CMS')}
+				</p>
 			{/if}
 		</div>
-
-		{#if branding.showPoweredBy}
-			<p class="mt-6 text-center text-xs text-muted-foreground">
-				{i18n.t('ADMIN_NEXT.LOGIN.POWERED_BY_GRAV_CMS')}
-			</p>
-		{/if}
 	</div>
-</div>
+{/if}

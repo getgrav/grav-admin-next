@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { onMount, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -66,12 +67,27 @@
 	const passwordInvalid = $derived(attempted && !passwordResult.allRulesMet);
 	const confirmInvalid = $derived(attempted && password !== confirmPassword);
 
+	// Hold the page back until the full string set has arrived, so a fresh
+	// install doesn't show it for a moment with placeholder labels. A slow or
+	// unreachable server still gets the page after a few seconds.
+	let waitedLongEnough = $state(false);
+	const ready = $derived(waitedLongEnough || i18n.loaded);
+	onMount(() => {
+		const timer = setTimeout(() => (waitedLongEnough = true), 4000);
+		return () => clearTimeout(timer);
+	});
+
 	// Guard: if setup is not actually required, bounce to login. This also
 	// handles the case where setup was completed in another tab.
 	$effect(() => {
 		if (!auth.serverUrl) {
 			auth.setServer(serverUrl, environment);
 		}
+		// Arriving here directly (not via the login page) nothing has asked for
+		// the strings yet; coming from login, that request is already running.
+		untrack(() => {
+			if (!i18n.loaded && !i18n.loading) i18n.loadAllInBackground();
+		});
 		getSetupStatus()
 			.then((status) => {
 				if (!status.setup_required) {
@@ -157,174 +173,178 @@
 	<title>{i18n.t('ADMIN_NEXT.SETUP.SETUP_GRAV_ADMIN')}</title>
 </svelte:head>
 
-<div class="flex min-h-screen items-center justify-center bg-background p-4">
-	<button
-		type="button"
-		class="absolute top-4 right-4 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-		onclick={() => theme.toggleColorMode()}
-		aria-label={i18n.t('ADMIN_NEXT.TOGGLE_DARK_MODE')}
-	>
-		{#if theme.isDark}
-			<Sun size={16} />
-		{:else}
-			<Moon size={16} />
-		{/if}
-	</button>
-
-	<div class="w-full max-w-sm">
-		<div class="mb-8 flex flex-col items-center text-center">
-			<div class="mb-4">
-				<BrandLogo size="login" />
-			</div>
-			<h1 class="text-2xl font-semibold tracking-tight text-foreground">{i18n.t('ADMIN_NEXT.SETUP.WELCOME_TO_GRAV')}</h1>
-			<p class="mt-1 text-[0.8125rem] text-muted-foreground">
-				{i18n.t('ADMIN_NEXT.SETUP.CREATE_YOUR_ADMINISTRATOR_ACCOUNT_TO')}
-			</p>
-		</div>
-
-		<div class="rounded-lg border border-border bg-card shadow-sm">
-			{#if checking}
-				<div class="flex items-center justify-center px-6 py-10 text-muted-foreground">
-					<Loader2 size={16} class="animate-spin" />
-					<span class="ms-2 text-[0.8125rem]">{i18n.t('ADMIN_NEXT.SETUP.CHECKING_SERVER')}</span>
-				</div>
+{#if !ready}
+	<div class="min-h-screen bg-background" aria-busy="true"></div>
+{:else}
+	<div class="flex min-h-screen items-center justify-center bg-background p-4">
+		<button
+			type="button"
+			class="absolute top-4 right-4 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+			onclick={() => theme.toggleColorMode()}
+			aria-label={i18n.t('ADMIN_NEXT.TOGGLE_DARK_MODE')}
+		>
+			{#if theme.isDark}
+				<Sun size={16} />
 			{:else}
-				<!-- Server config (collapsible) -->
-				<div class="border-b border-border px-6 py-3">
-					<button
-						type="button"
-						class="flex w-full items-center gap-2 text-[0.8125rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
-						onclick={() => showServerConfig = !showServerConfig}
-					>
-						<Server size={13} />
-						{i18n.t('ADMIN_NEXT.SETUP.SERVER_CONFIGURATION')}
-						<ChevronDown size={13} class="ms-auto transition-transform {showServerConfig ? 'rotate-180' : ''}" />
-					</button>
+				<Moon size={16} />
+			{/if}
+		</button>
 
-					{#if showServerConfig}
-						<div class="mt-3 space-y-3 pb-1">
-							<div class="space-y-1.5">
-								<label for="server-url" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETUP.SERVER_URL')}</label>
-								<div class="flex rounded-md shadow-sm">
-									<span class="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-muted-foreground">
-										<Globe size={13} />
-									</span>
+		<div class="w-full max-w-sm">
+			<div class="mb-8 flex flex-col items-center text-center">
+				<div class="mb-4">
+					<BrandLogo size="login" />
+				</div>
+				<h1 class="text-2xl font-semibold tracking-tight text-foreground">{i18n.t('ADMIN_NEXT.SETUP.WELCOME_TO_GRAV')}</h1>
+				<p class="mt-1 text-[0.8125rem] text-muted-foreground">
+					{i18n.t('ADMIN_NEXT.SETUP.CREATE_YOUR_ADMINISTRATOR_ACCOUNT_TO')}
+				</p>
+			</div>
+
+			<div class="rounded-lg border border-border bg-card shadow-sm">
+				{#if checking}
+					<div class="flex items-center justify-center px-6 py-10 text-muted-foreground">
+						<Loader2 size={16} class="animate-spin" />
+						<span class="ms-2 text-[0.8125rem]">{i18n.t('ADMIN_NEXT.SETUP.CHECKING_SERVER')}</span>
+					</div>
+				{:else}
+					<!-- Server config (collapsible) -->
+					<div class="border-b border-border px-6 py-3">
+						<button
+							type="button"
+							class="flex w-full items-center gap-2 text-[0.8125rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
+							onclick={() => showServerConfig = !showServerConfig}
+						>
+							<Server size={13} />
+							{i18n.t('ADMIN_NEXT.SETUP.SERVER_CONFIGURATION')}
+							<ChevronDown size={13} class="ms-auto transition-transform {showServerConfig ? 'rotate-180' : ''}" />
+						</button>
+
+						{#if showServerConfig}
+							<div class="mt-3 space-y-3 pb-1">
+								<div class="space-y-1.5">
+									<label for="server-url" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETUP.SERVER_URL')}</label>
+									<div class="flex rounded-md shadow-sm">
+										<span class="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-muted-foreground">
+											<Globe size={13} />
+										</span>
+										<input
+											id="server-url"
+											type="url"
+											class="flex h-9 w-full rounded-r-md border border-input bg-transparent px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+											bind:value={serverUrl}
+										/>
+									</div>
+								</div>
+								<div class="space-y-1.5">
+									<label for="environment" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETUP.ENVIRONMENT')}</label>
 									<input
-										id="server-url"
-										type="url"
-										class="flex h-9 w-full rounded-r-md border border-input bg-transparent px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-										bind:value={serverUrl}
+										id="environment"
+										type="text"
+										class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+										bind:value={environment}
 									/>
 								</div>
 							</div>
-							<div class="space-y-1.5">
-								<label for="environment" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETUP.ENVIRONMENT')}</label>
-								<input
-									id="environment"
-									type="text"
-									class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-									bind:value={environment}
-								/>
-							</div>
+						{/if}
+					</div>
+
+					<form onsubmit={handleSetup} class="space-y-4 px-6 py-5">
+						<div class="space-y-1.5">
+							<label for="username" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.USERNAME')}</label>
+							<input
+								id="username"
+								type="text"
+								class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
+									{usernameInvalid ? 'border-red-500 ring-1 ring-red-500/30' : 'border-input'}"
+								bind:value={username}
+								autocomplete="username"
+								disabled={loading}
+							/>
+							{#if usernameInvalid}
+								<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.SETUP.3_64_CHARACTERS_LETTERS_NUMBERS_HYPHENS')}</p>
+							{/if}
 						</div>
-					{/if}
-				</div>
 
-				<form onsubmit={handleSetup} class="space-y-4 px-6 py-5">
-					<div class="space-y-1.5">
-						<label for="username" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.USERNAME')}</label>
-						<input
-							id="username"
-							type="text"
-							class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
-								{usernameInvalid ? 'border-red-500 ring-1 ring-red-500/30' : 'border-input'}"
-							bind:value={username}
-							autocomplete="username"
+						<div class="space-y-1.5">
+							<label for="fullname" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETUP.FULL_NAME')} <span class="text-muted-foreground">{i18n.t('ADMIN_NEXT.SETUP.OPTIONAL')}</span></label>
+							<input
+								id="fullname"
+								type="text"
+								class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+								bind:value={fullname}
+								autocomplete="name"
+								disabled={loading}
+							/>
+						</div>
+
+						<div class="space-y-1.5">
+							<label for="email" class="text-[0.8125rem] font-medium text-foreground">Email</label>
+							<input
+								id="email"
+								type="email"
+								class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
+									{emailInvalid ? 'border-red-500 ring-1 ring-red-500/30' : 'border-input'}"
+								bind:value={email}
+								autocomplete="email"
+								disabled={loading}
+							/>
+							{#if emailInvalid}
+								<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.SETUP.ENTER_A_VALID_EMAIL_ADDRESS')}</p>
+							{/if}
+						</div>
+
+						<PasswordField
+							id="password"
+							label="Password"
+							bind:value={password}
+							policy={passwordPolicy.current}
 							disabled={loading}
+							invalid={passwordInvalid}
+							invalidMessage="Password does not meet the required policy"
 						/>
-						{#if usernameInvalid}
-							<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.SETUP.3_64_CHARACTERS_LETTERS_NUMBERS_HYPHENS')}</p>
-						{/if}
-					</div>
 
-					<div class="space-y-1.5">
-						<label for="fullname" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETUP.FULL_NAME')} <span class="text-muted-foreground">{i18n.t('ADMIN_NEXT.SETUP.OPTIONAL')}</span></label>
-						<input
-							id="fullname"
-							type="text"
-							class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-							bind:value={fullname}
-							autocomplete="name"
-							disabled={loading}
+						<div class="space-y-1.5">
+							<label for="confirm" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETUP.CONFIRM_PASSWORD')}</label>
+							<input
+								id="confirm"
+								type="password"
+								class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
+									{confirmInvalid ? 'border-red-500 ring-1 ring-red-500/30' : 'border-input'}"
+								bind:value={confirmPassword}
+								autocomplete="new-password"
+								disabled={loading}
+							/>
+							{#if confirmInvalid}
+								<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.SETUP.PASSWORDS_DO_NOT_MATCH')}</p>
+							{/if}
+						</div>
+
+						<LoginCaptcha
+							bind:this={captcha}
+							bind:ready={captchaReady}
+							config={captchaConfig}
+							flow={captchaConfig.flows.setup}
 						/>
-					</div>
 
-					<div class="space-y-1.5">
-						<label for="email" class="text-[0.8125rem] font-medium text-foreground">Email</label>
-						<input
-							id="email"
-							type="email"
-							class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
-								{emailInvalid ? 'border-red-500 ring-1 ring-red-500/30' : 'border-input'}"
-							bind:value={email}
-							autocomplete="email"
-							disabled={loading}
-						/>
-						{#if emailInvalid}
-							<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.SETUP.ENTER_A_VALID_EMAIL_ADDRESS')}</p>
-						{/if}
-					</div>
+						<Button type="submit" class="w-full" disabled={loading || !captchaReady}>
+							{#if loading}
+								<Loader2 size={15} class="animate-spin" />
+								{i18n.t('ADMIN_NEXT.SETUP.CREATING_ACCOUNT')}
+							{:else}
+								<UserPlus size={15} />
+								{i18n.t('ADMIN_NEXT.SETUP.CREATE_ADMINISTRATOR')}
+							{/if}
+						</Button>
+					</form>
+				{/if}
+			</div>
 
-					<PasswordField
-						id="password"
-						label="Password"
-						bind:value={password}
-						policy={passwordPolicy.current}
-						disabled={loading}
-						invalid={passwordInvalid}
-						invalidMessage="Password does not meet the required policy"
-					/>
-
-					<div class="space-y-1.5">
-						<label for="confirm" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETUP.CONFIRM_PASSWORD')}</label>
-						<input
-							id="confirm"
-							type="password"
-							class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
-								{confirmInvalid ? 'border-red-500 ring-1 ring-red-500/30' : 'border-input'}"
-							bind:value={confirmPassword}
-							autocomplete="new-password"
-							disabled={loading}
-						/>
-						{#if confirmInvalid}
-							<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.SETUP.PASSWORDS_DO_NOT_MATCH')}</p>
-						{/if}
-					</div>
-
-					<LoginCaptcha
-						bind:this={captcha}
-						bind:ready={captchaReady}
-						config={captchaConfig}
-						flow={captchaConfig.flows.setup}
-					/>
-
-					<Button type="submit" class="w-full" disabled={loading || !captchaReady}>
-						{#if loading}
-							<Loader2 size={15} class="animate-spin" />
-							{i18n.t('ADMIN_NEXT.SETUP.CREATING_ACCOUNT')}
-						{:else}
-							<UserPlus size={15} />
-							{i18n.t('ADMIN_NEXT.SETUP.CREATE_ADMINISTRATOR')}
-						{/if}
-					</Button>
-				</form>
+			{#if branding.showPoweredBy}
+				<p class="mt-6 text-center text-xs text-muted-foreground">
+					{i18n.t('ADMIN_NEXT.SETUP.POWERED_BY_GRAV_CMS')}
+				</p>
 			{/if}
 		</div>
-
-		{#if branding.showPoweredBy}
-			<p class="mt-6 text-center text-xs text-muted-foreground">
-				{i18n.t('ADMIN_NEXT.SETUP.POWERED_BY_GRAV_CMS')}
-			</p>
-		{/if}
 	</div>
-</div>
+{/if}

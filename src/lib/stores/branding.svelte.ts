@@ -51,6 +51,7 @@ function createBrandingStore() {
 	let text = $state<string>(seedB?.text ?? 'Grav');
 	let logoLight = $state<string>(seedB?.logoLight ?? '');
 	let logoDark = $state<string>(seedB?.logoDark ?? '');
+	let logoHeight = $state<number>(seedB?.logoHeight ?? 0);
 	let title = $state<string>(seedB?.title ?? '');
 	let subtitle = $state<string>(seedB?.subtitle ?? '');
 	let showPoweredBy = $state<boolean>(seedB?.showPoweredBy ?? true);
@@ -65,6 +66,7 @@ function createBrandingStore() {
 		text = b?.text ?? 'Grav';
 		logoLight = b?.logoLight ?? '';
 		logoDark = b?.logoDark ?? '';
+		logoHeight = b?.logoHeight ?? 0;
 		title = b?.title ?? '';
 		subtitle = b?.subtitle ?? '';
 		showPoweredBy = b?.showPoweredBy ?? true;
@@ -96,6 +98,11 @@ function createBrandingStore() {
 		return applyAndCache(await apiUploadBrandingLogo(variant, file));
 	}
 
+	/** Show a logo height live (e.g. while a slider is dragged) without saving it. */
+	function previewLogoHeight(height: number): void {
+		logoHeight = height;
+	}
+
 	async function deleteLogo(variant: BrandingVariant): Promise<PreferencesResponse> {
 		return applyAndCache(await apiDeleteBrandingLogo(variant));
 	}
@@ -105,6 +112,7 @@ function createBrandingStore() {
 		get text() { return text; },
 		get logoLight() { return logoLight; },
 		get logoDark() { return logoDark; },
+		get logoHeight() { return logoHeight; },
 		get title() { return title; },
 		get subtitle() { return subtitle; },
 		get showPoweredBy() { return showPoweredBy; },
@@ -116,6 +124,7 @@ function createBrandingStore() {
 		save,
 		uploadLogo,
 		deleteLogo,
+		previewLogoHeight,
 	};
 }
 

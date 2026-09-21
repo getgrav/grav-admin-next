@@ -24,6 +24,12 @@
 	const customLogoClass = $derived(
 		iconOnly ? 'h-7 w-7 shrink-0 object-contain' : `${logoHeight} w-auto max-w-full`
 	);
+	// A custom logo can be given its own sidebar height. It's set in px but
+	// applied in rem, so it scales with the font-size preference the same way
+	// the 48px (h-12) sidebar header it sits in does.
+	const customLogoStyle = $derived(
+		isSmall && !iconOnly && branding.logoHeight > 0 ? `height: ${branding.logoHeight / 16}rem` : undefined
+	);
 	const iconSize = $derived(isSmall ? 'h-7 w-7' : 'h-14 w-14');
 	const iconRound = $derived(isSmall ? 'rounded-md' : 'rounded-xl');
 	const textSize = $derived(isSmall ? 'text-xs' : 'text-xl');
@@ -80,7 +86,7 @@
 	<!-- Custom uploaded logo -->
 	<div class="flex items-center gap-2.5">
 		{#if customSrc}
-			<img src={customSrc} alt="Logo" class={customLogoClass} />
+			<img src={customSrc} alt="Logo" class={customLogoClass} style={customLogoStyle} />
 		{:else}
 			<!-- Fallback to first-letter chip if no custom image uploaded -->
 			<div class="flex {iconSize} shrink-0 items-center justify-center {iconRound} bg-primary text-primary-foreground shadow-sm">

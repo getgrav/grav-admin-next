@@ -26,6 +26,8 @@ export interface SiteBranding {
 	text: string;
 	logoLight: string;
 	logoDark: string;
+	/** Sidebar height of a custom logo in CSS px (16-44). 0 = the built-in 28px. */
+	logoHeight: number;
 	/** Custom sign-in heading + browser-tab title. Empty = built-in "Grav Admin". */
 	title: string;
 	/** Custom sign-in subtitle. Empty = built-in copy. */

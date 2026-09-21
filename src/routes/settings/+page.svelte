@@ -47,6 +47,10 @@
 		try { await branding.save({ text }); } catch { toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_SAVE_LOGO_TEXT')); }
 	}
 
+	async function setLogoHeight(logoHeight: number) {
+		try { await branding.save({ logoHeight }); } catch { toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_SAVE_BRANDING')); }
+	}
+
 	async function setBrandingTitle(title: string) {
 		try { await branding.save({ title }); } catch { toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_SAVE_BRANDING')); }
 	}
@@ -694,6 +698,34 @@
 										{i18n.t('ADMIN_NEXT.UPLOAD')}
 										<input type="file" accept="image/svg+xml,image/png,image/jpeg,image/webp" class="hidden" onchange={(e) => handleLogoUpload('dark', e)} />
 									</label>
+								</div>
+							</div>
+							<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+								<div class="lg:pt-2.5">
+									<span class="text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SIDEBAR_LOGO_HEIGHT')}</span>
+									<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SIDEBAR_LOGO_HEIGHT_DESC')}</p>
+								</div>
+								<div class="space-y-3">
+									<SegmentedToggle
+										value={branding.logoHeight > 0 ? 'custom' : 'default'}
+										onchange={(v) => setLogoHeight(v === 'custom' ? 40 : 0)}
+										options={[
+											{ value: 'default', label: i18n.t('ADMIN_NEXT.SETTINGS.LOGO_HEIGHT_DEFAULT') },
+											{ value: 'custom', label: i18n.t('ADMIN_NEXT.SETTINGS.LOGO_HEIGHT_CUSTOM') }
+										]}
+									/>
+									{#if branding.logoHeight > 0}
+										<div class="flex max-w-xs items-center gap-3">
+											<input
+												type="range" min="16" max="44" step="1"
+												value={branding.logoHeight}
+												class="h-2 flex-1 cursor-pointer appearance-none rounded-full accent-primary"
+												oninput={(e) => branding.previewLogoHeight(Number((e.target as HTMLInputElement).value))}
+												onchange={(e) => setLogoHeight(Number((e.target as HTMLInputElement).value))}
+											/>
+											<span class="w-12 shrink-0 text-end text-xs tabular-nums text-muted-foreground">{branding.logoHeight}px</span>
+										</div>
+									{/if}
 								</div>
 							</div>
 						{/if}
