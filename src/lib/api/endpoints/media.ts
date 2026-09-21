@@ -467,8 +467,13 @@ export async function uploadBlueprintFile(
 
 /**
  * Delete a file previously written by uploadBlueprintFile. `path` is the
- * Grav-root-relative path that the upload response returned.
+ * Grav-root-relative path that the upload response returned. `owner` names
+ * the blueprint field and its scope, so the server can honour that field's
+ * `allow_extensions` (read from the blueprint, never from this request).
  */
-export async function deleteBlueprintFile(path: string): Promise<void> {
-	await api.delete(`/blueprint-upload`, { path });
+export async function deleteBlueprintFile(
+	path: string,
+	owner?: { field: string; scope: string },
+): Promise<void> {
+	await api.delete(`/blueprint-upload`, owner?.field ? { path, ...owner } : { path });
 }

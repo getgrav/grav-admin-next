@@ -219,12 +219,15 @@
 		// blueprint-upload endpoint we additionally pass destination + scope so
 		// the server can resolve `self@:` relative to the owning plugin/theme/
 		// page. XHRUpload supports `formData: true` + `allowedMetaFields` for
-		// this — we stuff the values into Uppy meta and whitelist them.
+		// this — we stuff the values into Uppy meta and whitelist them. `field`
+		// names this field so the server can read its `allow_extensions` from
+		// the blueprint itself.
 		const settingsMeta = getUploadSettingsMeta();
 		const meta: Record<string, string> = { ...settingsMeta };
 		if (useBlueprintUpload) {
 			meta.destination = destination;
 			meta.scope = getBlueprintScope?.() ?? '';
+			meta.field = field.name;
 		}
 		uppy.setMeta(meta);
 
@@ -235,7 +238,7 @@
 			formData: true,
 			allowedMetaFields: [
 				...Object.keys(settingsMeta),
-				...(useBlueprintUpload ? ['destination', 'scope'] : []),
+				...(useBlueprintUpload ? ['destination', 'scope', 'field'] : []),
 			],
 		});
 
@@ -435,9 +438,10 @@
 			const paths = [...pendingDeletes];
 			pendingDeletes.clear();
 			const { deleteBlueprintFile } = await import('$lib/api/endpoints/media');
+			const owner = { field: field.name, scope: getBlueprintScope?.() ?? '' };
 			for (const path of paths) {
 				try {
-					await deleteBlueprintFile(path);
+					await deleteBlueprintFile(path, owner);
 				} catch (err) {
 					console.warn('[FileField] Failed to delete file on server:', err);
 				}

@@ -4,6 +4,7 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { canWrite } from '$lib/utils/permissions';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { hasUnsavedChanges } from '$lib/utils/unsaved-guard.svelte';
 	import { ChevronDown, Plus, Check, Trash2 } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
@@ -101,6 +102,9 @@
 	}
 
 	const canManage = $derived(canWrite('config'));
+	// Deleting an environment also removes its system and security overrides,
+	// which only a super admin may change, so the API refuses it for everyone else.
+	const canDelete = $derived(auth.isSuperAdmin);
 	const badgeLabel = $derived(configEnv.target === '' ? i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.DEFAULT') : configEnv.target);
 	// The detected host env is worth offering to create only when no env folder
 	// for it exists yet; otherwise the create row falls back to a generic label.
@@ -182,7 +186,7 @@
 								<span class="text-[0.625rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.HAS_OVERRIDES')}</span>
 							{/if}
 						</button>
-						{#if canManage && env.name !== '' && env.name !== configEnv.detected}
+						{#if canDelete && env.name !== '' && env.name !== configEnv.detected}
 							<button
 								type="button"
 								class="flex items-center px-2 text-muted-foreground/60 opacity-0 transition hover:text-destructive group-hover:opacity-100"
