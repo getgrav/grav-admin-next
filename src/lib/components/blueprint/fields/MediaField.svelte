@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import type { MediaSelection, MediaSourceKind, PageMediaContext } from '$lib/components/media/types';
-	import { getSiteMedia, encodeMediaFileUrl, type MediaItem } from '$lib/api/endpoints/media';
+	import { getAllSiteMedia, encodeMediaFileUrl, type MediaItem } from '$lib/api/endpoints/media';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { portal } from '$lib/utils/portal';
@@ -100,7 +100,7 @@
 			if (requestedFolders.has(folder)) continue;
 			requestedFolders.add(folder);
 
-			void getSiteMedia({ path: folder, per_page: 500 })
+			void getAllSiteMedia({ path: folder })
 				.then((res) => {
 					const next: Record<string, string> = {};
 					for (const item of res.items) {

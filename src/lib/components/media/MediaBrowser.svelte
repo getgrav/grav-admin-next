@@ -2,7 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import {
-		getSiteMedia,
+		getAllSiteMedia,
 		encodeMediaFileUrl,
 		mediaAltText,
 		siteMediaStreamPath,
@@ -57,10 +57,9 @@
 		loading = true;
 		error = '';
 		try {
-			const res = await getSiteMedia({
+			const res = await getAllSiteMedia({
 				path,
 				type: siteMediaTypeFilter(accept),
-				per_page: 200,
 			});
 			// Guard against an out-of-order response after a fast folder change.
 			if (path !== currentPath) return;

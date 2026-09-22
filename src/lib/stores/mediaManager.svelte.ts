@@ -1,5 +1,5 @@
 import {
-	getSiteMedia,
+	getAllSiteMedia,
 	deleteSiteMedia,
 	createFolder as apiCreateFolder,
 	deleteFolder as apiDeleteFolder,
@@ -81,10 +81,9 @@ function createMediaManagerStore() {
 
 	async function loadFolder(path: string, gen: number, resetSort = false) {
 		try {
-			const result = await getSiteMedia({
+			const result = await getAllSiteMedia({
 				path: path || undefined,
 				type: typeFilter || undefined,
-				per_page: 200,
 			});
 
 			// Discard stale responses
@@ -116,10 +115,9 @@ function createMediaManagerStore() {
 
 	async function doSearch(query: string, gen: number) {
 		try {
-			const result = await getSiteMedia({
+			const result = await getAllSiteMedia({
 				search: query,
 				type: typeFilter || undefined,
-				per_page: 200,
 			});
 
 			if (gen !== generation) return;

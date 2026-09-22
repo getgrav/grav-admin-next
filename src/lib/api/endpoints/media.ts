@@ -154,6 +154,34 @@ export async function getSiteMedia(params: SiteMediaParams = {}): Promise<SiteMe
 }
 
 /**
+ * List every file in a site media folder (or search), not just one page. The
+ * first page reports how many pages there are and the rest are fetched in
+ * parallel, like getChildren() does for the page tree. Views that sort,
+ * reorder or pick from a folder need the whole list: a sort or a saved order
+ * over one page would only ever cover part of the folder.
+ */
+export async function getAllSiteMedia(
+	params: Omit<SiteMediaParams, 'page' | 'per_page'> = {},
+): Promise<SiteMediaResponse> {
+	const perPage = 200;
+	const first = await getSiteMedia({ ...params, page: 1, per_page: perPage });
+	const totalPages = Math.max(1, first.pagination?.total_pages ?? 1);
+	if (totalPages === 1) return first;
+
+	const rest = await Promise.all(
+		Array.from({ length: totalPages - 1 }, (_, i) =>
+			getSiteMedia({ ...params, page: i + 2, per_page: perPage }).then((res) => res.items),
+		),
+	);
+
+	return {
+		...first,
+		items: first.items.concat(...rest),
+		pagination: { ...first.pagination, page: 1, total_pages: 1 },
+	};
+}
+
+/**
  * Delete a site media file (supports paths like "subfolder/file.jpg").
  */
 export async function deleteSiteMedia(filePath: string): Promise<void> {
