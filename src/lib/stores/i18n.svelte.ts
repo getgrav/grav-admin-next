@@ -398,6 +398,22 @@ function createI18nStore() {
 	}
 
 	/**
+	 * Accept a checksum the server reported elsewhere (the boot request) as a
+	 * revalidation: when it matches the full dictionary we hold for that
+	 * language, the strings are current and load() for it sends nothing.
+	 * Returns whether it matched.
+	 */
+	function adoptServerChecksum(serverLang: string, serverChecksum: string): boolean {
+		return untrack(() => {
+			if (!serverChecksum || !checksum || serverChecksum !== checksum) return false;
+			if (serverLang !== lang && normalizeLang(serverLang) !== normalizeLang(lang)) return false;
+			revalidatedLang = lang;
+			loaded = true;
+			return true;
+		});
+	}
+
+	/**
 	 * Load a subset of translations (by prefix) for fast initial page load.
 	 * Merges with any existing strings without replacing them.
 	 */
@@ -468,6 +484,8 @@ function createI18nStore() {
 		get dir() { return dir; },
 		get loading() { return loading; },
 		get loaded() { return loaded; },
+		/** Checksum of the full dictionary held for `lang`, or '' when none is. */
+		get checksum() { return checksum; },
 		get count() { return Object.keys(strings).length; },
 		t,
 		tHtml,
@@ -475,6 +493,7 @@ function createI18nStore() {
 		has,
 		isTranslationKey,
 		load,
+		adoptServerChecksum,
 		loadPrefix,
 		loadAllInBackground,
 		setLanguage,

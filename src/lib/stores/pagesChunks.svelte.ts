@@ -159,6 +159,11 @@ function createPagesChunksStore() {
 		return chunk[index % s.perPage] ?? null;
 	}
 
+	/** The rows of one loaded chunk (1-based page number), or null. */
+	function getChunk(key: string, page: number): PageSummary[] | null {
+		return streams[key]?.chunks[page] ?? null;
+	}
+
 	function getTotal(key: string): number | null {
 		return streams[key]?.total ?? null;
 	}
@@ -215,6 +220,7 @@ function createPagesChunksStore() {
 		invalidate,
 		invalidateAll,
 		getRow,
+		getChunk,
 		getTotal,
 		isChunkLoaded,
 		isChunkLoading,

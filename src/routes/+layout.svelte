@@ -27,6 +27,7 @@
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { branding } from '$lib/stores/branding.svelte';
 	import { getPreferences, type PreferencesResponse } from '$lib/api/endpoints/preferences';
+	import { takeBootPart, type BootTranslations } from '$lib/stores/boot';
 	import { stableStringify } from '$lib/utils/stable-json';
 	import { scopedKey } from '$lib/utils/scopedStorage';
 	import { migrateLegacyPreferences } from '$lib/stores/_legacyMigration';
@@ -158,17 +159,37 @@
 	// `adminLanguage` is applied the first time only if it differs; load() is
 	// idempotent per language, so a login screen that already loaded the same
 	// dictionary costs nothing here.
+	//
+	// Both loads wait for the boot request, which reports the dictionary's
+	// checksum: when it matches the cached one, the cache counts as
+	// revalidated and no /translations request goes out at all. Without the
+	// boot endpoint (older API) the wait ends at once and load() revalidates
+	// as before.
 	let i18nPrefsApplied = false;
+	let i18nBootCheck: Promise<unknown> | null = null;
+	function afterBootCheck(fn: () => void): void {
+		// Nothing cached to compare with: no reason to wait.
+		if (!i18nBootCheck && !untrack(() => i18n.checksum)) {
+			fn();
+			return;
+		}
+		i18nBootCheck ??= takeBootPart<BootTranslations>('translations')
+			.then((part) => {
+				if (part?.value?.checksum) i18n.adoptServerChecksum(part.value.lang, part.value.checksum);
+			})
+			.catch(() => { /* load() revalidates on its own */ });
+		void i18nBootCheck.then(fn);
+	}
 	$effect(() => {
 		if (!auth.isAuthenticated) return;
 		const ready = prefs.loaded;
 		const wanted = ready ? prefs.adminLanguage : undefined;
 		untrack(() => {
 			if (!ready) {
-				void i18n.load();
+				afterBootCheck(() => void i18n.load());
 			} else if (!i18nPrefsApplied) {
 				i18nPrefsApplied = true;
-				void i18n.load(wanted);
+				afterBootCheck(() => void i18n.load(wanted));
 			}
 		});
 	});
@@ -187,7 +208,7 @@
 
 	$effect(() => {
 		if (auth.isAuthenticated && !contentLang.loaded) {
-			contentLang.load();
+			contentLang.load(true);
 		}
 	});
 
@@ -244,14 +265,18 @@
 			channel = null;
 		}
 
-		/** Fetch unless this tab, or another one, fetched within `minAgeMs`. */
-		async function refresh(minAgeMs: number) {
+		/**
+		 * Fetch unless this tab, or another one, fetched within `minAgeMs`.
+		 * The first fetch takes the preferences from the boot request.
+		 */
+		async function refresh(minAgeMs: number, fromBoot = false) {
 			if (hasPendingSync()) return;
 			const now = Date.now();
 			if (now - lastFetchAt < minAgeMs) return;
 			lastFetchAt = now;
 			try {
-				const payload = await getPreferences();
+				const boot = fromBoot ? await takeBootPart<PreferencesResponse>('preferences') : null;
+				const payload = boot ? boot.value : await getPreferences();
 				const signature = stableStringify(payload);
 				try {
 					channel?.postMessage({ signature, payload, at: now });
@@ -274,7 +299,7 @@
 			}
 		}
 
-		void refresh(0);
+		void refresh(0, true);
 
 		// Another tab's fetch within the window counts as ours, so of several
 		// visible tabs only one asks the server each time round.
@@ -299,21 +324,26 @@
 	$effect(() => {
 		if (auth.isAuthenticated && !customFieldsLoaded) {
 			customFieldsLoaded = true;
-			import('$lib/api/client').then(({ api }) =>
-				// Each value is either a bare slug (legacy API → assume a plugin) or
-				// `{ slug, kind }` so theme-provided fields resolve to the right route.
-				api.get<Record<string, string | { slug: string; kind: 'plugins' | 'themes' }>>('/custom-fields')
-					.then((data) => {
-						if (data && typeof data === 'object') {
-							for (const [fieldType, provider] of Object.entries(data)) {
-								const slug = typeof provider === 'string' ? provider : provider.slug;
-								const kind = typeof provider === 'string' ? 'plugins' : provider.kind;
-								customFieldRegistry.register(slug, { [fieldType]: fieldType }, kind);
-							}
+			type CustomFieldMap = Record<string, string | { slug: string; kind: 'plugins' | 'themes' }>;
+			// Taken from the boot request when it has them.
+			takeBootPart<CustomFieldMap>('custom_fields')
+				.then(async (boot) => {
+					if (boot) return boot.value;
+					const { api } = await import('$lib/api/client');
+					return api.get<CustomFieldMap>('/custom-fields');
+				})
+				.then((data) => {
+					// Each value is either a bare slug (legacy API → assume a plugin) or
+					// `{ slug, kind }` so theme-provided fields resolve to the right route.
+					if (data && typeof data === 'object') {
+						for (const [fieldType, provider] of Object.entries(data)) {
+							const slug = typeof provider === 'string' ? provider : provider.slug;
+							const kind = typeof provider === 'string' ? 'plugins' : provider.kind;
+							customFieldRegistry.register(slug, { [fieldType]: fieldType }, kind);
 						}
-					})
-					.catch(() => { /* Custom fields endpoint not available */ })
-			);
+					}
+				})
+				.catch(() => { /* Custom fields endpoint not available */ });
 		}
 	});
 
@@ -367,7 +397,33 @@
 		window.__GRAV_MEDIA_PICKER = () => mediaPicker.open();
 	});
 
-	// SvelteKit's version-poll (configured in svelte.config.js) flips
+	// Check for a new admin build every 60s while the tab is visible, and on
+	// coming back to a tab that missed a check. Kit's built-in timer
+	// (`version.pollInterval`) would keep fetching in hidden tabs, so it is
+	// off in svelte.config.js and this drives `updated.check()` instead.
+	$effect(() => {
+		if (typeof document === 'undefined' || import.meta.env.DEV) return;
+		const VERSION_POLL_MS = 60_000;
+		let lastCheck = Date.now();
+		const check = () => {
+			if (updated.current) return;
+			lastCheck = Date.now();
+			void updated.check().catch(() => { /* offline: try again next time */ });
+		};
+		const timer = setInterval(() => {
+			if (document.visibilityState === 'visible') check();
+		}, VERSION_POLL_MS);
+		const onVisibilityChange = () => {
+			if (document.visibilityState === 'visible' && Date.now() - lastCheck >= VERSION_POLL_MS) check();
+		};
+		document.addEventListener('visibilitychange', onVisibilityChange);
+		return () => {
+			clearInterval(timer);
+			document.removeEventListener('visibilitychange', onVisibilityChange);
+		};
+	});
+
+	// SvelteKit's version check (driven by the effect above) flips
 	// `updated.current` to true when _app/version.json changes — i.e. admin2
 	// (or anything else writing to the SPA's bundle) has been updated under
 	// us. The next intra-app navigation must be a full page load instead of

@@ -507,6 +507,7 @@
 			transports?: CapabilitiesTransport[];
 			preferred?: string;
 			mercure?: { hub: string };
+			presence?: { ttl_seconds?: number };
 		};
 
 		let provider: SyncProvider | null = null;
@@ -521,8 +522,11 @@
 			// 1) Pick the transport. Mercure when the API advertises it;
 			//    polling otherwise. A 404 means the sync plugin isn't there.
 			let useMercure = false;
+			let presenceTtlMs: number | undefined;
 			try {
 				const caps = await apiClient.get<Capabilities>('/sync/capabilities');
+				const ttl = Number(caps.presence?.ttl_seconds);
+				if (Number.isFinite(ttl) && ttl > 0) presenceTtlMs = ttl * 1000;
 				const hasMercure = Array.isArray(caps.transports)
 					&& caps.transports.some(t =>
 						(typeof t === 'string' && t === 'mercure')
@@ -555,6 +559,7 @@
 				clientId: syncClientId,
 				user: auth.fullname || auth.username || null,
 				editorType: myEditorType,
+				presenceTtlMs,
 			};
 			provider = useMercure ? new MercureProvider(providerOpts) : new PollingProvider(providerOpts);
 			provider.onStatus((s, d) => { syncStatus = s; syncDetail = d; });

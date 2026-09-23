@@ -1,5 +1,6 @@
 import { getMenubarItems, type MenubarItem, type MenubarPlacement } from '$lib/api/endpoints/menubar';
 import { invalidations } from './invalidation.svelte';
+import { takeBootPart } from './boot';
 
 /**
  * Shared menubar-items store. The toolbar renders plugin buttons in two zones
@@ -11,9 +12,11 @@ function createMenubarStore() {
 	let items = $state<MenubarItem[]>([]);
 	let loaded = $state(false);
 
-	async function load() {
+	/** `fromBoot` takes the items from the boot request when it has them. */
+	async function load(fromBoot = false) {
 		try {
-			items = await getMenubarItems();
+			const boot = fromBoot ? await takeBootPart<MenubarItem[]>('menubar') : null;
+			items = boot ? boot.value : await getMenubarItems();
 			loaded = true;
 		} catch {
 			// Silently fail — the menubar is non-critical.

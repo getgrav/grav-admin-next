@@ -1,5 +1,6 @@
 import { api } from './client';
 import { auth, type DemoModeInfo } from '$lib/stores/auth.svelte';
+import { resetBoot, takeBootPart } from '$lib/stores/boot';
 import { base } from '$app/paths';
 import type { PasswordPolicy } from '$lib/utils/passwordStrength';
 
@@ -46,6 +47,8 @@ function parseJwtSubject(token: string): string {
 }
 
 async function finalizeLogin(data: TokenResponse, fallbackSubject: string): Promise<void> {
+	// A fresh sign-in boots the shell through one request again.
+	resetBoot();
 	auth.setTokens(data.access_token, data.refresh_token, data.expires_in);
 
 	const sub = parseJwtSubject(data.access_token) || fallbackSubject;
@@ -311,9 +314,11 @@ export async function acceptInvite(token: string, input: AcceptInviteData): Prom
  * Refresh the current user's profile and resolved permissions from GET /me.
  * Called on app startup and after re-authentication to keep permissions fresh.
  */
-export async function refreshMe(): Promise<void> {
+export async function refreshMe(fromBoot = false): Promise<void> {
 	try {
-		const profile = await api.get<UserProfile>('/me');
+		// The startup call takes the profile from the boot request when it has it.
+		const boot = fromBoot ? await takeBootPart<UserProfile>('me') : null;
+		const profile = boot ? boot.value : await api.get<UserProfile>('/me');
 		auth.setUser(
 			profile.username || auth.username,
 			profile.fullname || auth.username,

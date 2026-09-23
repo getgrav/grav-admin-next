@@ -11,10 +11,10 @@
  *     update stays in the local Y.Doc and will naturally resync via pull.
  *   - Awareness is piggy-backed on the presence endpoint on a separate,
  *     slower cadence (every 5s idle, every 2s active) since it's chatty.
- *   - In a hidden tab the pull stops and the heartbeat slows to
- *     HIDDEN_PRESENCE_MS, which still renews presence (and the editor lock)
- *     before the server's TTL runs out. Showing the tab pulls at once and
- *     restores both cadences.
+ *   - In a hidden tab the pull stops and the heartbeat slows to two thirds
+ *     of the server's presence TTL (20s when the TTL is unknown), which still
+ *     renews presence (and the editor lock) before the TTL runs out. Showing
+ *     the tab pulls at once and restores both cadences.
  */
 
 import { api } from '$lib/api/client';
@@ -50,12 +50,14 @@ type PresenceResponse = { peers: Peer[] };
 const AWARENESS_DEBOUNCE_MS = 50;
 
 /**
- * Heartbeat cadence while the tab is hidden. The sync plugin's presence TTL
- * defaults to 30s (`plugins.sync.presence.ttl_seconds`), so a heartbeat every
- * 20s keeps this client, and any editor lock it holds, alive with room for a
- * slow request, while cutting a background tab from ~27 requests a minute to 3.
+ * Heartbeat cadence while the tab is hidden, when the capabilities don't say
+ * what the presence TTL is. The sync plugin's TTL defaults to 30s
+ * (`plugins.sync.presence.ttl_seconds`), and a heartbeat at two thirds of it
+ * keeps this client, and any editor lock it holds, alive with room for a slow
+ * request, while cutting a background tab from ~27 requests a minute to 3.
  */
 const HIDDEN_PRESENCE_MS = 20_000;
+const HIDDEN_PRESENCE_MIN_MS = 2_000;
 
 function tabHidden(): boolean {
 	return typeof document !== 'undefined' && document.visibilityState === 'hidden';
@@ -89,6 +91,7 @@ export class PollingProvider implements SyncProvider {
 	private activeMs: number;
 	private presenceIdleMs: number;
 	private presenceActiveMs: number;
+	private hiddenPresenceMs: number;
 	/** Consecutive failures per loop; stretches the interval until one succeeds. */
 	private pullFailures = 0;
 	private presenceFailures = 0;
@@ -136,6 +139,9 @@ export class PollingProvider implements SyncProvider {
 		// Awareness can afford to be slower than doc pulls.
 		this.presenceIdleMs = Math.max(5000, this.idleMs);
 		this.presenceActiveMs = Math.max(2000, this.activeMs * 2);
+		this.hiddenPresenceMs = opts.presenceTtlMs && opts.presenceTtlMs > 0
+			? Math.max(HIDDEN_PRESENCE_MIN_MS, Math.round(opts.presenceTtlMs / 1.5))
+			: HIDDEN_PRESENCE_MS;
 	}
 
 	async connect(): Promise<void> {
@@ -407,7 +413,7 @@ export class PollingProvider implements SyncProvider {
 
 	private get presenceIntervalMs(): number {
 		const base = tabHidden()
-			? HIDDEN_PRESENCE_MS
+			? this.hiddenPresenceMs
 			: this.hasOtherPeers() ? this.presenceActiveMs : this.presenceIdleMs;
 		return base * this.backoff(this.presenceFailures);
 	}

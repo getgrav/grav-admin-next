@@ -1,3 +1,23 @@
+<script module lang="ts">
+	import type { MediaItem as RecentMediaItem } from '$lib/api/endpoints/media';
+	import { invalidations as recentInvalidations } from '$lib/stores/invalidation.svelte';
+
+	// The page editor can mount this list twice for one page in quick
+	// succession (the form is rebuilt once the page and blueprint load).
+	// A list fetched for the same source a moment ago is reused instead of
+	// asked for again; any media or page change drops it.
+	const RECENT_MS = 5_000;
+	// Plain object on purpose: nothing renders from it.
+	let recentLists: Record<string, { items: RecentMediaItem[]; at: number }> = {};
+	let recentHooked = false;
+	function hookRecentLists(): void {
+		if (recentHooked || typeof window === 'undefined') return;
+		recentHooked = true;
+		recentInvalidations.subscribe('media:*', () => { recentLists = {}; });
+		recentInvalidations.subscribe('pages:*', () => { recentLists = {}; });
+	}
+</script>
+
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { onMount } from 'svelte';
@@ -223,17 +243,28 @@
 		return [`media:update:pages/${route}`, `pages:update:/${route}`];
 	}
 
-	async function loadMedia() {
+	/** `reuse` accepts a list fetched for the same source a moment ago. */
+	async function loadMedia(reuse = false) {
 		if (!resolvedBase) {
 			// Source not resolved yet — page host is still resolving the home
 			// alias, or a flex object hasn't been saved. Defer until the base
 			// resolves; the $effect below re-fires loadMedia once it does.
 			return;
 		}
+		const base = resolvedBase;
+		hookRecentLists();
+		const recent = reuse ? recentLists[base] : undefined;
+		if (recent && Date.now() - recent.at < RECENT_MS) {
+			mediaItems = structuredClone(recent.items);
+			onMediaChange?.(mediaItems);
+			loading = false;
+			return;
+		}
 		try {
 			mediaItems = objectMode
-				? await getObjectMedia(resolvedBase)
+				? await getObjectMedia(base)
 				: await getPageMedia(route);
+			recentLists[base] = { items: $state.snapshot(mediaItems) as MediaItem[], at: Date.now() };
 			onMediaChange?.(mediaItems);
 		} catch (err) {
 			console.error('[PageMedia] Failed to load media:', err);
@@ -244,13 +275,22 @@
 
 	// Re-load whenever the route flips from placeholder (`/`) to a real
 	// structural path, and keep Uppy's endpoint in sync.
+	//
+	// The load waits a tick: when the page editor navigates to another page,
+	// this instance sees the new route just before the editor tears the form
+	// down to load that page, and would otherwise fetch media it never shows.
+	// A destroyed instance cancels its pending load.
 	$effect(() => {
 		if (routeReady) {
-			loadMedia();
+			const base = resolvedBase;
+			const timer = setTimeout(() => {
+				if (base === resolvedBase) void loadMedia(true);
+			}, 0);
 			const xhr = uppy?.getPlugin('XHRUpload');
 			if (xhr && typeof xhr.setOptions === 'function') {
 				xhr.setOptions({ endpoint: getUploadEndpoint() });
 			}
+			return () => clearTimeout(timer);
 		}
 	});
 

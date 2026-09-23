@@ -51,6 +51,9 @@ export interface SyncProviderOptions {
 	/** Initial cadence hints from capabilities. Provider may override. */
 	idleIntervalMs?: number;
 	activeIntervalMs?: number;
+	/** The server's presence TTL (`presence.ttl_seconds` in the capabilities),
+	 *  in ms. A hidden tab paces its heartbeat from it. */
+	presenceTtlMs?: number;
 }
 
 export interface SyncProvider {

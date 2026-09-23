@@ -7,6 +7,7 @@
 
 import { api } from '$lib/api/client';
 import { getSidebarItems, type SidebarItem } from '$lib/api/endpoints/sidebar';
+import { takeBootPart } from './boot';
 
 let pluginItems = $state<SidebarItem[]>([]);
 let loaded = $state(false);
@@ -19,9 +20,11 @@ export const sidebarStore = {
 	get loaded() { return loaded; },
 	get badges() { return badges; },
 
-	async load() {
+	/** `fromBoot` takes the items from the boot request when it has them. */
+	async load(fromBoot = false) {
 		try {
-			const items = await getSidebarItems();
+			const boot = fromBoot ? await takeBootPart<SidebarItem[]>('sidebar') : null;
+			const items = boot ? boot.value : await getSidebarItems();
 			pluginItems = items.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
 			loaded = true;
 		} catch {

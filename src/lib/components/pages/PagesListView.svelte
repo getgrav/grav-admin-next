@@ -41,6 +41,9 @@
 
 	// Drag state
 	let dragPage = $state<PageSummary | null>(null);
+	// Absolute index of the row being dragged: its chunk stays mounted for the
+	// whole drag, or the browser would never deliver its dragend.
+	let dragIndex = $state<number | null>(null);
 	let dropIndex = $state<number | null>(null);
 	let saving = $state(false);
 
@@ -91,6 +94,8 @@
 		rows: PageSummary[];
 	}
 
+	// Each block hands out its chunk's own row array, so a newly loaded chunk
+	// doesn't copy the rows of every chunk loaded before it.
 	const chunkBlocks = $derived.by((): ChunkBlock[] => {
 		if (total === null || total === 0) return [];
 		const blocks: ChunkBlock[] = [];
@@ -98,30 +103,117 @@
 		for (let page = 1; page <= totalPages; page++) {
 			const startIndex = (page - 1) * chunkSize;
 			const count = Math.min(chunkSize, total - startIndex);
-			const loaded = pagesChunks.isChunkLoaded(skey, startIndex);
-			const rows: PageSummary[] = [];
-			if (loaded) {
-				for (let i = 0; i < count; i++) {
-					const r = pagesChunks.getRow(skey, startIndex + i);
-					if (r) rows.push(r);
-				}
-			}
-			blocks.push({ page, startIndex, count, loaded, rows });
+			const chunk = pagesChunks.getChunk(skey, page);
+			blocks.push({ page, startIndex, count, loaded: chunk !== null, rows: chunk ?? [] });
 		}
 		return blocks;
 	});
 
-	/** Flat list of currently-loaded pages, in absolute order. Used by drag
-	 *  reorder (which requires the full sibling sequence to be resident). */
-	const loadedPages = $derived.by((): PageSummary[] => {
+	const loadedCount = $derived.by(() => {
+		let n = 0;
+		for (const b of chunkBlocks) n += b.rows.length;
+		return n;
+	});
+
+	const fullyLoaded = $derived(total !== null && loadedCount === total);
+
+	/** Every loaded page, in absolute order. Only drag reorder needs it, and
+	 *  only once every chunk is resident. */
+	function loadedPages(): PageSummary[] {
 		const out: PageSummary[] = [];
 		for (const b of chunkBlocks) {
 			if (b.loaded) out.push(...b.rows);
 		}
 		return out;
+	}
+
+	// Starting per-row height for sizing chunks that have never rendered, until
+	// a rendered chunk gives the real one.
+	const ROW_HEIGHT_PX = 52;
+
+	// ── Windowing ────────────────────────────────────────────────────────────
+	//
+	// A loaded chunk only keeps its rows mounted while it is within
+	// NEAR_MARGIN_PX of the visible part of the list; further away it is
+	// swapped for a spacer of the height it last rendered at, so scrolling
+	// through a thousand pages keeps a couple of hundred rows in the DOM
+	// instead of all of them. The block wrappers themselves stay mounted and
+	// keep their height, so the scroll position never moves.
+	const NEAR_MARGIN_PX = 1500;
+	let nearBlocks = $state<Record<number, boolean>>({});
+	let blockHeights = $state<Record<number, number>>({});
+	// Measured from rendered rows; sizes chunks that were never rendered.
+	let rowHeight = $state(ROW_HEIGHT_PX);
+	// A chunk scroll-restore needs mounted before the list has scrolled to it.
+	let pinnedBlock = $state<number | null>(null);
+
+	// A new stream starts with new blocks; the keyed wrappers below re-observe.
+	$effect(() => {
+		void skey;
+		untrack(() => {
+			nearBlocks = {};
+			blockHeights = {};
+		});
 	});
 
-	const fullyLoaded = $derived(total !== null && loadedPages.length === total);
+	$effect(() => {
+		if (pinnedBlock !== null && nearBlocks[pinnedBlock]) pinnedBlock = null;
+	});
+
+	function blockMounted(block: ChunkBlock): boolean {
+		if (nearBlocks[block.page] || pinnedBlock === block.page) return true;
+		return dragIndex !== null && dragIndex >= block.startIndex && dragIndex < block.startIndex + block.count;
+	}
+
+	function blockHeight(block: ChunkBlock): number {
+		return blockHeights[block.page] ?? block.count * rowHeight;
+	}
+
+	/** The element the list scrolls in (the admin's <main>), or null for the window. */
+	function scrollRoot(node: HTMLElement): HTMLElement | null {
+		let cur: HTMLElement | null = node.parentElement;
+		while (cur) {
+			const overflowY = getComputedStyle(cur).overflowY;
+			if (overflowY === 'auto' || overflowY === 'scroll') return cur;
+			cur = cur.parentElement;
+		}
+		return null;
+	}
+
+	/**
+	 * Action on each chunk's wrapper: reports whether the chunk is near the
+	 * visible area, and records its rendered height while its rows are
+	 * mounted. A chunk holding keyboard focus stays mounted.
+	 */
+	function observeBlock(node: HTMLElement, page: number) {
+		let current = page;
+		const io = new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					const near = entry.isIntersecting || node.contains(document.activeElement);
+					if (!!nearBlocks[current] !== near) nearBlocks[current] = near;
+				}
+			},
+			{ root: scrollRoot(node), rootMargin: `${NEAR_MARGIN_PX}px 0px` },
+		);
+		io.observe(node);
+		const ro = new ResizeObserver(() => {
+			if (node.dataset.rendered !== 'true') return;
+			const h = node.offsetHeight;
+			if (h <= 0) return;
+			if (blockHeights[current] !== h) blockHeights[current] = h;
+			const rows = node.querySelectorAll('[data-page-route]').length;
+			if (rows > 0) {
+				const perRow = h / rows;
+				if (Math.abs(perRow - rowHeight) > 0.5) rowHeight = perRow;
+			}
+		});
+		ro.observe(node);
+		return {
+			update(next: number) { current = next; },
+			destroy() { io.disconnect(); ro.disconnect(); },
+		};
+	}
 
 	// ── Search (separate path — no chunking) ─────────────────────────────────
 
@@ -188,9 +280,10 @@
 		return '/' + parts.slice(0, -1).join('/');
 	}
 
-	function handleDragStart(e: DragEvent, page: PageSummary) {
+	function handleDragStart(e: DragEvent, page: PageSummary, index: number) {
 		if (!reorderMode) return;
 		dragPage = page;
+		dragIndex = index;
 		if (e.dataTransfer) {
 			e.dataTransfer.effectAllowed = 'move';
 			e.dataTransfer.setData('text/plain', page.route);
@@ -213,8 +306,10 @@
 		}
 
 		const source = dragPage;
+		dragIndex = null;
 		const sourceParent = getParentRoute(source);
-		const target = loadedPages[targetIndex];
+		const all = loadedPages();
+		const target = all[targetIndex];
 		const targetParent = getParentRoute(target);
 
 		dragPage = null;
@@ -225,7 +320,7 @@
 			return;
 		}
 
-		const siblings = loadedPages.filter(p => getParentRoute(p) === sourceParent);
+		const siblings = all.filter(p => getParentRoute(p) === sourceParent);
 		const sourceIdx = siblings.findIndex(s => s.route === source.route);
 		const targetIdx = siblings.findIndex(s => s.route === target.route);
 		if (sourceIdx === -1 || targetIdx === -1 || sourceIdx === targetIdx) return;
@@ -254,6 +349,7 @@
 
 	function handleDragEnd() {
 		dragPage = null;
+		dragIndex = null;
 		dropIndex = null;
 	}
 
@@ -270,11 +366,19 @@
 			sessionStorage.removeItem(FOCUS_KEY);
 			(async () => {
 				try {
-					await pagesChunks.ensureChunkForRoute(skey, streamConfig, chunkSize, focusRoute);
+					const index = await pagesChunks.ensureChunkForRoute(skey, streamConfig, chunkSize, focusRoute);
+					// Its chunk is far from the top the list opens at, so keep
+					// it mounted until the scroll brings it into range.
+					if (index !== null) pinnedBlock = Math.floor(index / chunkSize) + 1;
 					await tick();
 					await new Promise(res => requestAnimationFrame(() => res(null)));
 					scrollRouteIntoView(focusRoute);
 				} catch { /* row may no longer exist */ }
+				finally {
+					// Normally released as soon as the chunk reports itself near
+					// (the effect below); this only catches a scroll that failed.
+					setTimeout(() => { pinnedBlock = null; }, 2000);
+				}
 			})();
 		}
 	});
@@ -357,7 +461,7 @@
 					pagesChunks.ensureChunkForIndex(current.key, current.config, pp, idx + pp);
 				}
 			},
-			{ rootMargin: '1500px 0px' },
+			{ root: scrollRoot(node), rootMargin: '1500px 0px' },
 		);
 		observer.observe(node);
 		return {
@@ -368,10 +472,6 @@
 		};
 	}
 
-	// Rough per-row height used to size unloaded chunk placeholders, so the
-	// scrollbar position approximates the final layout. Exact pixel-accuracy
-	// isn't required — bidirectional loading keeps things stable.
-	const ROW_HEIGHT_PX = 52;
 </script>
 
 {#snippet sortHeader(label: string, field: PageListParams['sort'], align: string = 'left')}
@@ -413,7 +513,7 @@
 			{dragPage?.route === page.route ? 'opacity-30' : 'hover:bg-accent/50'}
 			{saving ? 'pointer-events-none' : ''}"
 		draggable={reorderMode}
-		ondragstart={(e) => handleDragStart(e, page)}
+		ondragstart={(e) => handleDragStart(e, page, index)}
 		ondragover={(e) => handleDragOver(e, index)}
 		ondrop={(e) => handleDrop(e, index)}
 		ondragend={handleDragEnd}
@@ -573,28 +673,38 @@
 			{i18n.t('ADMIN_NEXT.PAGES.REORDER_LOADING_ALL')}
 		</div>
 	{/if}
-	{#each chunkBlocks as block (block.page)}
-		{#if block.loaded}
-			<!-- Key on the structural route (raw_route), which is unique by construction.
-			     Two siblings can share a public route when one declares an explicit `slug:`
-			     in its frontmatter, and a duplicate key aborts the whole listing (admin2#154). -->
-			{#each block.rows as page, i (pageApiRoute(page))}
-				{@render pageRow(page, block.startIndex + i)}
-			{/each}
-		{:else}
-			<div
-				class="flex items-center justify-center border-b border-border/50 text-[0.75rem] text-muted-foreground/60"
-				style="min-height: {block.count * ROW_HEIGHT_PX}px;"
-				use:observeChunkPlaceholder={{ startIndex: block.startIndex, key: skey, config: streamConfig, perPage: chunkSize }}
-			>
-				<Loader2 size={14} class="me-2 animate-spin" />
-				{i18n.t('ADMIN_NEXT.PAGES.LOADING_CHUNK', { from: block.startIndex + 1, to: block.startIndex + block.count })}
+	{#key skey}
+		{#each chunkBlocks as block (block.page)}
+			{@const mounted = block.loaded && blockMounted(block)}
+			<!-- The wrapper always stays: it watches whether the chunk is near the
+			     visible area, and keeps the chunk's height while its rows are
+			     swapped out for a spacer. -->
+			<div data-rendered={mounted ? 'true' : 'false'} use:observeBlock={block.page}>
+				{#if mounted}
+					<!-- Key on the structural route (raw_route), which is unique by construction.
+					     Two siblings can share a public route when one declares an explicit `slug:`
+					     in its frontmatter, and a duplicate key aborts the whole listing (admin2#154). -->
+					{#each block.rows as page, i (pageApiRoute(page))}
+						{@render pageRow(page, block.startIndex + i)}
+					{/each}
+				{:else if block.loaded}
+					<div aria-hidden="true" style="height: {blockHeight(block)}px;"></div>
+				{:else}
+					<div
+						class="flex items-center justify-center border-b border-border/50 text-[0.75rem] text-muted-foreground/60"
+						style="min-height: {block.count * rowHeight}px;"
+						use:observeChunkPlaceholder={{ startIndex: block.startIndex, key: skey, config: streamConfig, perPage: chunkSize }}
+					>
+						<Loader2 size={14} class="me-2 animate-spin" />
+						{i18n.t('ADMIN_NEXT.PAGES.LOADING_CHUNK', { from: block.startIndex + 1, to: block.startIndex + block.count })}
+					</div>
+				{/if}
 			</div>
-		{/if}
-	{/each}
+		{/each}
+	{/key}
 
 	<!-- Footer: progress indicator -->
 	<div class="flex items-center gap-3 border-t border-border px-4 py-2 text-[0.6875rem] text-muted-foreground">
-		<span>{i18n.t('ADMIN_NEXT.PAGES.LOADED_OF', { n: loadedPages.length, total })}</span>
+		<span>{i18n.t('ADMIN_NEXT.PAGES.LOADED_OF', { n: loadedCount, total })}</span>
 	</div>
 {/if}

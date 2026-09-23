@@ -22,6 +22,7 @@
 	import PluginMenubarItems from '$lib/components/menubar/PluginMenubarItems.svelte';
 	import ViewSiteButton from '$lib/components/menubar/ViewSiteButton.svelte';
 	import { menubar } from '$lib/stores/menubar.svelte';
+	import { resetBoot } from '$lib/stores/boot';
 	import { sidebarStore } from '$lib/stores/sidebar.svelte';
 	import { navBadges } from '$lib/stores/navBadges.svelte';
 	import { floatingWidgetStore } from '$lib/stores/floatingWidgets.svelte';
@@ -51,7 +52,9 @@
 	// The end-zone "custom" group is plugin buttons that opted in plus the user's
 	// own quick links — separated from the core actions by a divider.
 	const hasEndCustom = $derived(endMenubarItems.length > 0 || prefs.menubarLinks.length > 0);
-	$effect(() => { menubar.load(); });
+	// The first load of each boot-time store takes its part of the single
+	// /admin-next/boot answer (see $lib/stores/boot); reloads go direct.
+	$effect(() => { menubar.load(true); });
 
 	// Proactive token refresh + focus checking is handled by authSession.
 	// It decodes the JWT exp claim, refreshes at exp-60s, and opens ReauthModal
@@ -67,11 +70,12 @@
 	// Load plugin sidebar items, floating widgets, and nav badges on authentication
 	$effect(() => {
 		if (auth.isAuthenticated) {
-			sidebarStore.load().then(() => sidebarStore.fetchBadges());
-			floatingWidgetStore.load();
-			contextPanelStore.load();
+			sidebarStore.load(true).then(() => sidebarStore.fetchBadges());
+			floatingWidgetStore.load(true);
+			contextPanelStore.load(true);
 			navBadges.load();
 		} else {
+			resetBoot();
 			sidebarStore.clear();
 			floatingWidgetStore.clear();
 			contextPanelStore.clear();
@@ -82,7 +86,7 @@
 	// Refresh user profile and permissions on mount
 	$effect(() => {
 		if (auth.isAuthenticated && auth.username) {
-			refreshMe();
+			refreshMe(true);
 		}
 	});
 
