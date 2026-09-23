@@ -234,20 +234,37 @@ export async function getPagesList(params: PageListParams = {}): Promise<PageSum
 	return api.get<PageSummary[]>('/pages', toParams(params));
 }
 
+/** One page of full-site search results, plus how many pages match in all. */
+export interface PageSearchResult {
+	pages: PageSummary[];
+	total: number;
+}
+
 /**
- * Full-site page search (server-side). Queries against title, route, template.
- * Returns a flat list of matching pages across the entire site.
+ * Full-site page search (server-side). The API matches the title, the menu
+ * label and the slug, on Flex and regular page sites alike. Returns one page
+ * of matches (100 by default) and the total, so a view can offer the rest.
+ *
+ * Pass `signal` and abort it when the query changes: a slow reply for an
+ * older query must never replace the results of a newer one.
  */
 export async function searchPages(
 	query: string,
-	options?: { lang?: string; translations?: boolean; per_page?: number },
-): Promise<PageSummary[]> {
-	return api.get<PageSummary[]>('/pages', toParams({
-		search: query,
-		per_page: options?.per_page ?? 500,
-		lang: options?.lang,
-		translations: options?.translations,
-	}));
+	options?: { lang?: string; translations?: boolean; per_page?: number; page?: number; signal?: AbortSignal },
+): Promise<PageSearchResult> {
+	const { data, meta } = await api.requestRaw<PageSummary[]>('GET', '/pages', {
+		params: toParams({
+			search: query,
+			per_page: options?.per_page ?? 100,
+			page: options?.page,
+			lang: options?.lang,
+			translations: options?.translations,
+		}),
+		signal: options?.signal,
+	});
+	const pages = Array.isArray(data) ? data : [];
+	const total = (meta as { pagination?: { total?: number } } | undefined)?.pagination?.total;
+	return { pages, total: typeof total === 'number' ? total : pages.length };
 }
 
 export async function getRecentPages(limit = 5): Promise<PageSummary[]> {

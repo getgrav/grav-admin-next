@@ -3,7 +3,9 @@
 	import { base } from '$app/paths';
 	import { linkClick } from '$lib/utils/navLink';
 	import { pageCan } from '$lib/utils/permissions';
-	import { reorganizePages, searchPages, pageApiRoute } from '$lib/api/endpoints/pages';
+	import { reorganizePages, pageApiRoute } from '$lib/api/endpoints/pages';
+	import { createPageSearch } from '$lib/utils/page-search.svelte';
+	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import type { PageSummary, PageDetail, PageListParams, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { onMount, tick, untrack } from 'svelte';
 	import { Badge } from '$lib/components/ui/badge';
@@ -42,16 +44,18 @@
 	let dropIndex = $state<number | null>(null);
 	let saving = $state(false);
 
-	// Search results are kept separate from the chunk store — search is a flat,
-	// non-paginated view across the entire site and uses different filters than
-	// the normal list.
-	let searchResults = $state<PageSummary[]>([]);
-	let searchLoading = $state(false);
+	// Search results are kept separate from the chunk store — search is a flat
+	// view across the entire site (100 matches at a time, "Show more" for the
+	// rest) and uses different filters than the normal list. Each keystroke
+	// aborts the request before it.
+	const search = createPageSearch({
+		params: () => ({ lang: lang || undefined, translations: !!lang }),
+	});
 
-	// The search endpoint returns a flat, fully-loaded array, so the active
-	// filters are applied client-side here to keep search + filter consistent
-	// with the browse mode (which filters server-side through streamConfig).
-	const filteredSearchResults = $derived(searchResults.filter((p) => matchesPageFilters(p, filters)));
+	// The search endpoint returns a flat array, so the active filters are
+	// applied client-side here to keep search + filter consistent with the
+	// browse mode (which filters server-side through streamConfig).
+	const filteredSearchResults = $derived(search.results.filter((p) => matchesPageFilters(p, filters)));
 
 	// ── Chunked listing ──────────────────────────────────────────────────────
 
@@ -121,24 +125,19 @@
 
 	// ── Search (separate path — no chunking) ─────────────────────────────────
 
-	let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-	let prevSearch = searchQuery;
 	$effect(() => {
-		if (searchQuery === prevSearch) return;
-		prevSearch = searchQuery;
-		if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-		const q = searchQuery.trim();
-		if (!q) { searchResults = []; return; }
-		searchDebounceTimer = setTimeout(async () => {
-			searchLoading = true;
-			try {
-				searchResults = await searchPages(q, {
-					lang: lang || undefined,
-					translations: !!lang,
-				});
-			} catch { /* handled upstream */ }
-			finally { searchLoading = false; }
-		}, 250);
+		search.run(searchQuery);
+	});
+	$effect(() => () => search.dispose());
+	// Keep search results current after an edit or on refocus; the browse
+	// list refreshes itself through the chunk store.
+	onMount(() => {
+		const refresh = () => {
+			if (searchQuery.trim()) search.refresh();
+		};
+		const unsubPages = invalidations.subscribe('pages:*', refresh);
+		const unsubFocus = invalidations.subscribe('*:focus', refresh);
+		return () => { unsubPages(); unsubFocus(); };
 	});
 
 	// ── Reorder mode: force-load every chunk so the full sibling list is
@@ -530,7 +529,7 @@
 
 {#if searchQuery.trim()}
 	<!-- Search mode: flat list, no chunking -->
-	{#if searchLoading}
+	{#if search.loading}
 		<div class="py-12 text-center text-sm text-muted-foreground">
 			<Loader2 size={16} class="mx-auto mb-2 animate-spin" />
 			{i18n.t('ADMIN_NEXT.PAGES.LOADING')}
@@ -543,6 +542,19 @@
 		{#each filteredSearchResults as page, index (pageApiRoute(page))}
 			{@render pageRow(page, index)}
 		{/each}
+	{/if}
+	{#if !search.loading && search.hasMore}
+		<div class="flex items-center gap-3 px-4 py-2 text-[0.6875rem] text-muted-foreground">
+			<span>{i18n.t('ADMIN_NEXT.PAGES.SEARCH_SHOWING', { shown: search.results.length, total: search.total })}</span>
+			<button
+				type="button"
+				class="font-medium text-primary hover:underline disabled:opacity-50"
+				disabled={search.loadingMore}
+				onclick={() => search.more()}
+			>
+				{i18n.t('ADMIN_NEXT.PAGES.SEARCH_SHOW_MORE')}
+			</button>
+		</div>
 	{/if}
 {:else if total === null}
 	<!-- Initial bootstrap of the first chunk -->

@@ -14,7 +14,7 @@
  * `FA_BRAND_NAMES` set. Regular icons share every name with a solid twin, so
  * they can only be identified by an explicit `fa-regular` prefix in the value.
  */
-import { FA_BRAND_NAMES, type FaFamily } from '$lib/data/fa-icons';
+import { FA_BRAND_NAMES, type FaFamily } from '$lib/data/fa-brand-names';
 
 export type { FaFamily };
 

@@ -3,7 +3,7 @@
 	import { api } from '$lib/api/client';
 	import { contextPanelStore } from '$lib/stores/contextPanels.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
-	import * as icons from 'lucide-svelte';
+	import NamedLucideIcon from '$lib/components/ui/NamedLucideIcon.svelte';
 
 	interface Props {
 		context: string;
@@ -12,12 +12,6 @@
 	}
 
 	let { context, route, lang }: Props = $props();
-
-	function resolveIcon(name: string): typeof icons.History | undefined {
-		// Convert kebab-case to PascalCase: "clock-arrow-up" -> "ClockArrowUp"
-		const pascal = name.replace(/(^|-)([a-z])/g, (_: string, __: string, c: string) => c.toUpperCase());
-		return (icons as Record<string, any>)[pascal];
-	}
 
 	// Fetch badge counts for panels with badgeEndpoints
 	async function fetchBadges() {
@@ -66,7 +60,6 @@
 
 {#if contextPanelStore.loaded}
 	{#each contextPanelStore.forContext(context) as panel (panel.id)}
-		{@const Icon = resolveIcon(panel.icon)}
 		{@const badge = contextPanelStore.badges[panel.id]}
 		{@const isActive = contextPanelStore.activePanel === panel.id}
 
@@ -78,9 +71,8 @@
 			onclick={() => contextPanelStore.toggle(panel.id, { route, lang, type: context })}
 			title={panel.label}
 		>
-			{#if Icon}
-				<Icon size={14} />
-			{/if}
+			<!-- Plugins name a Lucide icon ("clock-arrow-up" or "ClockArrowUp"); it loads lazily. -->
+			<NamedLucideIcon name={panel.icon} size={14} />
 			{#if badge && badge > 0}
 				<span class="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[0.625rem] font-bold leading-none text-white">
 					{badge > 99 ? '99+' : badge}

@@ -12,6 +12,7 @@
 	import { flushNow } from '$lib/stores/_serverSync';
 	import { api } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import type { InvalidationEvent } from '$lib/api/types';
 	import { can } from '$lib/utils/permissions';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
 	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
@@ -147,6 +148,16 @@
 			reloadBadges();
 		};
 
+		// Actions that change how many pages, users or media files exist. A
+		// bare `list` event arrives only when nothing more specific came with
+		// it (a batch operation), so it may have changed counts too.
+		const COUNT_CHANGING_ACTIONS = new Set(['create', 'delete', 'move', 'copy', 'list']);
+		const onContentChange = (event: InvalidationEvent) => {
+			if (!COUNT_CHANGING_ACTIONS.has(event.action)) return;
+			reloadBadges();
+			reloadSidebarBadges();
+		};
+
 		// Live push: a plugin page/widget can update its own sidebar badge
 		// without a round-trip via `grav:sidebar:badge` ({ id, count }).
 		const onSidebarBadge = (e: Event) => {
@@ -161,11 +172,13 @@
 			invalidations.subscribe('plugins:*', onPluginOrTheme),
 			invalidations.subscribe('themes:*', onPluginOrTheme),
 			invalidations.subscribe('gpm:*', onPluginOrTheme),
-			// Content/config changes refresh nav badges and any sidebar badge
-			// counts derived from that data.
-			invalidations.subscribe('pages:*', () => { reloadBadges(); reloadSidebarBadges(); }),
-			invalidations.subscribe('users:*', () => { reloadBadges(); reloadSidebarBadges(); }),
-			invalidations.subscribe('media:*', () => { reloadBadges(); reloadSidebarBadges(); }),
+			// Content changes that add or remove things refresh nav badges and
+			// any sidebar badge counts derived from that data. A plain save
+			// (autosave included) changes no count, and /dashboard/stats walks
+			// every page, so updates and reorders leave the badges alone.
+			invalidations.subscribe('pages:*', onContentChange),
+			invalidations.subscribe('users:*', onContentChange),
+			invalidations.subscribe('media:*', onContentChange),
 			invalidations.subscribe('config:*', reloadSidebarBadges),
 		];
 		return () => {

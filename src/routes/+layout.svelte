@@ -13,6 +13,7 @@
 	import '@fontsource-variable/albert-sans/wght-italic.css';
 	import '@fontsource-variable/jost/wght.css';
 	import '@fontsource-variable/jost/wght-italic.css';
+	import { untrack } from 'svelte';
 	import { page, updated } from '$app/state';
 	import { goto, beforeNavigate } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -33,7 +34,6 @@
 	import AppShell from '$lib/components/AppShell.svelte';
 	import GlobalDialogs from '$lib/components/ui/GlobalDialogs.svelte';
 	import PluginModal from '$lib/components/ui/PluginModal.svelte';
-	import MediaPickerModal from '$lib/components/media/MediaPickerModal.svelte';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { defineBlueprintFormElement } from '$lib/elements/blueprint-form.svelte';
 	import { modals } from '$lib/stores/modals.svelte';
@@ -146,21 +146,29 @@
 		}
 	});
 
-	// Load translations and language config when authenticated.
-	// We always call load() once per session: cached strings make the UI usable
-	// immediately, and load() internally no-ops if the server checksum matches.
-	// Without this, users stay pinned to whatever they cached previously and
-	// never see new keys added to language YAML files.
+	// Revalidate the translations once per session. Cached strings make the UI
+	// usable immediately; load() sends their checksum and a 304 keeps them, so
+	// users still pick up new keys added to language YAML files without paying
+	// for the full dictionary on every boot.
 	//
-	// Gate on `prefs.loaded` so we pass the user's `adminLanguage` into load().
-	// Without this gate, load() runs with the builtin default ('en-US') and the
-	// admin boots in English regardless of what the user picked in preferences.
-	let i18nLoadedThisSession = $state(false);
+	// Start with the cached language straight away rather than waiting for the
+	// preferences round-trip. Once preferences arrive, the user's
+	// `adminLanguage` is applied the first time only if it differs; load() is
+	// idempotent per language, so a login screen that already loaded the same
+	// dictionary costs nothing here.
+	let i18nPrefsApplied = false;
 	$effect(() => {
-		if (auth.isAuthenticated && prefs.loaded && !i18nLoadedThisSession) {
-			i18nLoadedThisSession = true;
-			i18n.load(prefs.adminLanguage);
-		}
+		if (!auth.isAuthenticated) return;
+		const ready = prefs.loaded;
+		const wanted = ready ? prefs.adminLanguage : undefined;
+		untrack(() => {
+			if (!ready) {
+				void i18n.load();
+			} else if (!i18nPrefsApplied) {
+				i18nPrefsApplied = true;
+				void i18n.load(wanted);
+			}
+		});
 	});
 
 	// Reflect the active locale and text direction on <html>. Can't do this
@@ -376,7 +384,13 @@
 
 <GlobalDialogs />
 <PluginModal />
-<MediaPickerModal />
+<!-- Loaded on first open: the media browser brings the uploader with it, which
+     every other screen can boot without. -->
+{#if mediaPicker.open_}
+	{#await import('$lib/components/media/MediaPickerModal.svelte') then MediaPickerModal}
+		<MediaPickerModal.default />
+	{/await}
+{/if}
 
 {#if isAuthPage}
 	{@render children()}

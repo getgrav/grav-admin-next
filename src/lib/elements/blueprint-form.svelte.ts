@@ -10,9 +10,18 @@
  * It loads the package's config blueprint and current values, renders the real
  * admin fields, and saves through the same endpoint with the same validation as
  * the settings page. See docs/blueprint-form-element.md.
+ *
+ * The element itself is a thin shell so registering it at boot costs nothing:
+ * the form, every field type and the editors behind them (CodeMirror, yjs,
+ * uppy) load on first use, when an element is actually connected.
  */
 import { mount, unmount } from 'svelte';
-import EmbeddedConfigForm from '$lib/components/blueprint/EmbeddedConfigForm.svelte';
+
+type FormModule = typeof import('$lib/components/blueprint/EmbeddedConfigForm.svelte');
+
+function loadForm(): Promise<FormModule> {
+	return import('$lib/components/blueprint/EmbeddedConfigForm.svelte');
+}
 
 export const BLUEPRINT_FORM_TAG = 'grav-blueprint-form';
 
@@ -39,6 +48,12 @@ class GravBlueprintForm extends HTMLElement {
 
 	#form: FormExports | null = null;
 
+	/** Settles once the form is mounted (or failed to load); null while disconnected. */
+	#ready: Promise<void> | null = null;
+
+	/** Bumped on every disconnect so a slow import can't mount into a detached element. */
+	#generation = 0;
+
 	#emit(name: string, detail: Record<string, unknown>) {
 		this.dispatchEvent(new CustomEvent(`blueprint-${name}`, {
 			detail,
@@ -48,18 +63,28 @@ class GravBlueprintForm extends HTMLElement {
 	}
 
 	connectedCallback() {
-		if (this.#form) return;
-		// Light DOM on purpose: the fields are styled by the admin's own
-		// stylesheet, and a shadow root would cut them off from it. A page that
-		// draws itself inside a shadow root reaches this element through a
-		// `<slot>` — see the docs.
-		this.#form = mount(EmbeddedConfigForm, {
-			target: this,
-			props: this.#props,
-		}) as unknown as FormExports;
+		if (this.#form || this.#ready) return;
+		const generation = this.#generation;
+		this.#ready = loadForm()
+			.then(({ default: EmbeddedConfigForm }) => {
+				if (generation !== this.#generation || !this.isConnected || this.#form) return;
+				// Light DOM on purpose: the fields are styled by the admin's own
+				// stylesheet, and a shadow root would cut them off from it. A page
+				// that draws itself inside a shadow root reaches this element
+				// through a `<slot>` — see the docs.
+				this.#form = mount(EmbeddedConfigForm, {
+					target: this,
+					props: this.#props,
+				}) as unknown as FormExports;
+			})
+			.catch((err) => {
+				console.error(`[${BLUEPRINT_FORM_TAG}] failed to load the form:`, err);
+			});
 	}
 
 	disconnectedCallback() {
+		this.#generation++;
+		this.#ready = null;
 		const form = this.#form;
 		this.#form = null;
 		if (form) unmount(form as never);
@@ -141,13 +166,15 @@ class GravBlueprintForm extends HTMLElement {
 	}
 
 	/** Save the form. Resolves true when the settings were written. */
-	save(): Promise<boolean> {
-		return this.#form ? this.#form.save() : Promise.resolve(false);
+	async save(): Promise<boolean> {
+		await this.#ready;
+		return this.#form ? this.#form.save() : false;
 	}
 
 	/** Throw away what is on screen and read the settings again. */
-	reload(): Promise<void> {
-		return this.#form ? this.#form.reload() : Promise.resolve();
+	async reload(): Promise<void> {
+		await this.#ready;
+		if (this.#form) await this.#form.reload();
 	}
 }
 

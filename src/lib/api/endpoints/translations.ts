@@ -19,6 +19,24 @@ export async function getTranslations(lang: string, prefix?: string): Promise<Tr
 	return api.get<TranslationsResponse>(`/translations/${lang}`, params);
 }
 
+/**
+ * The full dictionary, revalidated against the checksum we already hold. The
+ * server sends the checksum as the ETag, so an unchanged dictionary comes back
+ * as an empty 304 and this resolves null. An API that predates the ETag just
+ * answers 200 every time, which reads exactly like a changed dictionary.
+ */
+export async function getTranslationsIfChanged(
+	lang: string,
+	checksum: string
+): Promise<TranslationsResponse | null> {
+	const headers: Record<string, string> = {};
+	if (checksum) headers['If-None-Match'] = `"${checksum}"`;
+	const { data, status } = await api.requestRaw<TranslationsResponse>('GET', `/translations/${lang}`, {
+		headers,
+	});
+	return status === 304 ? null : data;
+}
+
 // ── Translation editor (Tools → Translations) ──
 //
 // A separate `/i18n` surface, not more routes under `/translations`. That

@@ -609,6 +609,11 @@ class ApiClient {
 	/**
 	 * Make a request and return both parsed data and response headers.
 	 * Useful for extracting ETag headers for optimistic concurrency.
+	 *
+	 * A caller that sends its own `If-None-Match` gets a 304 back as
+	 * `{ status: 304, data: undefined }` rather than an error. Pass `signal` to
+	 * cancel a request a newer one has made obsolete (it rejects with the
+	 * fetch AbortError).
 	 */
 	async requestRaw<T>(
 		method: string,
@@ -618,8 +623,9 @@ class ApiClient {
 			params?: Record<string, string>;
 			headers?: Record<string, string>;
 			retry?: boolean;
+			signal?: AbortSignal;
 		} = {}
-	): Promise<{ data: T; meta?: unknown; headers: Headers }> {
+	): Promise<{ data: T; meta?: unknown; headers: Headers; status: number }> {
 		await this.ensureFreshToken(path);
 
 		let url = `${this.baseUrl}${path}`;
@@ -631,7 +637,8 @@ class ApiClient {
 
 		const fetchOptions: RequestInit = {
 			method,
-			headers: { ...this.headers, ...options.headers }
+			headers: { ...this.headers, ...options.headers },
+			signal: options.signal,
 		};
 
 		if (options.body !== undefined) {
@@ -662,7 +669,7 @@ class ApiClient {
 					body: options.body,
 					params: options.params,
 					headers: options.headers,
-					resolve: (v) => resolve(v as { data: T; headers: Headers }),
+					resolve: (v) => resolve(v as { data: T; headers: Headers; status: number }),
 					reject,
 				});
 			});
@@ -672,15 +679,15 @@ class ApiClient {
 		// envelope's `meta` alongside `data` — e.g. config reads carry
 		// meta.overrides / meta.fallback for the per-field override indicators.
 		if (response.ok) this.parseInvalidates(response);
-		if (response.status === 204) {
-			return { data: undefined as T, headers: response.headers };
+		if (response.status === 204 || response.status === 304) {
+			return { data: undefined as T, headers: response.headers, status: response.status };
 		}
 		const body = (await readJsonBody(response, method, path)) as ApiEnvelope | null;
 		if (!response.ok) {
 			throw new ApiRequestError(buildApiError(body, response), response);
 		}
 		const data = (body?.data !== undefined ? body.data : body) as T;
-		return { data, meta: body?.meta, headers: response.headers };
+		return { data, meta: body?.meta, headers: response.headers, status: response.status };
 	}
 
 	/**

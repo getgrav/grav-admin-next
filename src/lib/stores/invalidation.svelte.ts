@@ -63,23 +63,45 @@ function createInvalidationBus() {
 	return {
 		/**
 		 * Emit one or more invalidation events. Tags can be strings or already
-		 * structured events. Matching subscribers are called in subscription order;
-		 * subscribers with a dirtyGuard that returns true are skipped.
+		 * structured events. Subscribers with a dirtyGuard that returns true are
+		 * skipped.
+		 *
+		 * Each handler runs at most once per emit, however many of the tags it
+		 * matches: one save answers with `pages:update:/x, pages:list`, and a
+		 * `pages:*` subscriber used to refetch twice. The handler gets the most
+		 * specific event it matched, the first one carrying an id (for a move,
+		 * that is `pages:move:<old route>`), or else the first it matched.
+		 * Handlers are grouped by function identity, so one function subscribed
+		 * to several patterns also runs once. Handlers run in subscription order.
 		 */
 		emit(tagOrEvent: string | InvalidationEvent | Array<string | InvalidationEvent>): void {
 			const list = Array.isArray(tagOrEvent) ? tagOrEvent : [tagOrEvent];
-			for (const item of list) {
-				const event = typeof item === 'string' ? parseTag(item) : item;
-				const eventSegments = event.tag.split(':');
+			const events = list.map((item) => (typeof item === 'string' ? parseTag(item) : item));
+			const matched = new Map<InvalidationHandler, { subs: Subscription[]; hits: InvalidationEvent[] }>();
 
-				for (const sub of subscriptions) {
-					if (!matches(eventSegments, sub.segments)) continue;
-					if (sub.dirtyGuard?.()) continue;
-					try {
-						sub.handler(event);
-					} catch (err) {
-						console.error('[invalidation] subscriber error for', event.tag, err);
+			for (const sub of subscriptions) {
+				for (const event of events) {
+					if (!matches(event.tag.split(':'), sub.segments)) continue;
+					if (sub.dirtyGuard?.()) break;
+					let entry = matched.get(sub.handler);
+					if (!entry) {
+						entry = { subs: [], hits: [] };
+						matched.set(sub.handler, entry);
 					}
+					if (!entry.subs.includes(sub)) entry.subs.push(sub);
+					entry.hits.push(event);
+				}
+			}
+
+			for (const [handler, { subs, hits }] of matched) {
+				// An earlier handler may have unsubscribed this one (a view
+				// unmounting mid-dispatch); skip it as iterating the live set did.
+				if (!subs.some((sub) => subscriptions.has(sub))) continue;
+				const event = hits.find((e) => e.id !== undefined) ?? hits[0];
+				try {
+					handler(event);
+				} catch (err) {
+					console.error('[invalidation] subscriber error for', event.tag, err);
 				}
 			}
 		},

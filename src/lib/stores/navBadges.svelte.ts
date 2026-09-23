@@ -29,9 +29,12 @@ export const navBadges = {
 				plugins: stats.plugins?.total ?? null,
 				themes: stats.themes?.total ?? null,
 			};
+			// A null update count means the server could not tell this time
+			// (no GPM data on disk yet). Keep what we last knew rather than
+			// dropping a real badge to zero; with nothing known, show none.
 			updates = {
-				plugins: stats.plugins?.updatable ?? 0,
-				themes: stats.themes?.updatable ?? 0,
+				plugins: stats.plugins?.updatable ?? updates.plugins ?? 0,
+				themes: stats.themes?.updatable ?? updates.themes ?? 0,
 			};
 			loaded = true;
 		} catch {

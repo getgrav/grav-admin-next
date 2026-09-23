@@ -30,9 +30,12 @@ export interface Notification {
 export interface DashboardStats {
 	pages: { total: number; published: number };
 	users: { total: number };
-	plugins: { total: number; active: number; updatable?: number };
-	themes: { total: number; updatable?: number; active_updatable?: boolean };
-	grav?: { updatable: boolean };
+	// The update fields are null when the server has no GPM repository data on
+	// disk to count from (it no longer downloads it inside this request): that
+	// means "unknown", not "no updates". /gpm/updates holds the full answer.
+	plugins: { total: number; active: number; updatable?: number | null };
+	themes: { total: number; updatable?: number | null; active_updatable?: boolean | null };
+	grav?: { updatable: boolean | null };
 	media: { total: number };
 	theme: string;
 	grav_version: string;

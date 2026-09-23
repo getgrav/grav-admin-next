@@ -123,9 +123,11 @@
 			const count = result?.successful?.length ?? 0;
 			if (count > 0) {
 				toast.success(i18n.t('ADMIN_NEXT.TOASTS.FILES_UPLOADED', { n: count }));
-				// XHRUpload bypasses our API client, so emit invalidation manually.
+				// XHRUpload bypasses our API client, so emit invalidation manually,
+				// with the same `create` tag the API sends for an upload (it is what
+				// tells the nav badge the file count changed).
 				const path = mediaManager.currentPath || '/';
-				invalidations.emit([`media:update:${path}`, 'media:list']);
+				invalidations.emit([`media:create:${path}`, 'media:list']);
 			}
 			mediaManager.refresh();
 			uppy?.cancelAll();
