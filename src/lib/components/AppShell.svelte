@@ -12,6 +12,7 @@
 	import { flushNow } from '$lib/stores/_serverSync';
 	import { api } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import type { InvalidationEvent } from '$lib/api/types';
 	import { can } from '$lib/utils/permissions';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
 	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
@@ -21,6 +22,7 @@
 	import PluginMenubarItems from '$lib/components/menubar/PluginMenubarItems.svelte';
 	import ViewSiteButton from '$lib/components/menubar/ViewSiteButton.svelte';
 	import { menubar } from '$lib/stores/menubar.svelte';
+	import { resetBoot } from '$lib/stores/boot';
 	import { sidebarStore } from '$lib/stores/sidebar.svelte';
 	import { navBadges } from '$lib/stores/navBadges.svelte';
 	import { floatingWidgetStore } from '$lib/stores/floatingWidgets.svelte';
@@ -50,7 +52,9 @@
 	// The end-zone "custom" group is plugin buttons that opted in plus the user's
 	// own quick links — separated from the core actions by a divider.
 	const hasEndCustom = $derived(endMenubarItems.length > 0 || prefs.menubarLinks.length > 0);
-	$effect(() => { menubar.load(); });
+	// The first load of each boot-time store takes its part of the single
+	// /admin-next/boot answer (see $lib/stores/boot); reloads go direct.
+	$effect(() => { menubar.load(true); });
 
 	// Proactive token refresh + focus checking is handled by authSession.
 	// It decodes the JWT exp claim, refreshes at exp-60s, and opens ReauthModal
@@ -66,11 +70,12 @@
 	// Load plugin sidebar items, floating widgets, and nav badges on authentication
 	$effect(() => {
 		if (auth.isAuthenticated) {
-			sidebarStore.load().then(() => sidebarStore.fetchBadges());
-			floatingWidgetStore.load();
-			contextPanelStore.load();
+			sidebarStore.load(true).then(() => sidebarStore.fetchBadges());
+			floatingWidgetStore.load(true);
+			contextPanelStore.load(true);
 			navBadges.load();
 		} else {
+			resetBoot();
 			sidebarStore.clear();
 			floatingWidgetStore.clear();
 			contextPanelStore.clear();
@@ -81,7 +86,7 @@
 	// Refresh user profile and permissions on mount
 	$effect(() => {
 		if (auth.isAuthenticated && auth.username) {
-			refreshMe();
+			refreshMe(true);
 		}
 	});
 
@@ -147,6 +152,16 @@
 			reloadBadges();
 		};
 
+		// Actions that change how many pages, users or media files exist. A
+		// bare `list` event arrives only when nothing more specific came with
+		// it (a batch operation), so it may have changed counts too.
+		const COUNT_CHANGING_ACTIONS = new Set(['create', 'delete', 'move', 'copy', 'list']);
+		const onContentChange = (event: InvalidationEvent) => {
+			if (!COUNT_CHANGING_ACTIONS.has(event.action)) return;
+			reloadBadges();
+			reloadSidebarBadges();
+		};
+
 		// Live push: a plugin page/widget can update its own sidebar badge
 		// without a round-trip via `grav:sidebar:badge` ({ id, count }).
 		const onSidebarBadge = (e: Event) => {
@@ -161,11 +176,13 @@
 			invalidations.subscribe('plugins:*', onPluginOrTheme),
 			invalidations.subscribe('themes:*', onPluginOrTheme),
 			invalidations.subscribe('gpm:*', onPluginOrTheme),
-			// Content/config changes refresh nav badges and any sidebar badge
-			// counts derived from that data.
-			invalidations.subscribe('pages:*', () => { reloadBadges(); reloadSidebarBadges(); }),
-			invalidations.subscribe('users:*', () => { reloadBadges(); reloadSidebarBadges(); }),
-			invalidations.subscribe('media:*', () => { reloadBadges(); reloadSidebarBadges(); }),
+			// Content changes that add or remove things refresh nav badges and
+			// any sidebar badge counts derived from that data. A plain save
+			// (autosave included) changes no count, and /dashboard/stats walks
+			// every page, so updates and reorders leave the badges alone.
+			invalidations.subscribe('pages:*', onContentChange),
+			invalidations.subscribe('users:*', onContentChange),
+			invalidations.subscribe('media:*', onContentChange),
 			invalidations.subscribe('config:*', reloadSidebarBadges),
 		];
 		return () => {

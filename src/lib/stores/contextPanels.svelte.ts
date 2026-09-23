@@ -9,6 +9,7 @@
  */
 
 import { getContextPanels, type ContextPanel } from '$lib/api/endpoints/contextPanels';
+import { takeBootPart } from './boot';
 
 export interface PanelContext {
 	route: string;
@@ -29,9 +30,11 @@ export const contextPanelStore = {
 	get context() { return panelContext; },
 	get badges() { return badges; },
 
-	async load() {
+	/** `fromBoot` takes the items from the boot request when it has them. */
+	async load(fromBoot = false) {
 		try {
-			const items = await getContextPanels();
+			const boot = fromBoot ? await takeBootPart<ContextPanel[]>('context_panels') : null;
+			const items = boot ? boot.value : await getContextPanels();
 			panels = items.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
 			loaded = true;
 		} catch {

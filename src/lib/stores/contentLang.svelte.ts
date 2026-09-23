@@ -1,4 +1,5 @@
-import { getSiteLanguages, type LanguageInfo } from '$lib/api/endpoints/languages';
+import { getSiteLanguages, type LanguageInfo, type SiteLanguages } from '$lib/api/endpoints/languages';
+import { takeBootPart } from './boot';
 import { scopedKey } from '$lib/utils/scopedStorage';
 import { invalidations } from './invalidation.svelte';
 
@@ -27,11 +28,13 @@ function createContentLangStore() {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify({ activeLang }));
 	}
 
-	async function load() {
+	/** `fromBoot` takes the languages from the boot request when it has them. */
+	async function load(fromBoot = false) {
 		if (loading) return;
 		loading = true;
 		try {
-			const data = await getSiteLanguages();
+			const boot = fromBoot ? await takeBootPart<SiteLanguages>('languages') : null;
+			const data = boot ? boot.value : await getSiteLanguages();
 			enabled = data.enabled;
 			languages = data.languages;
 			defaultLang = data.default ?? '';

@@ -175,6 +175,22 @@ interface RequestOptions {
 	rateAttempt?: number;
 }
 
+/** How long `getCached()` reuses an answer unless told otherwise. */
+const SHORT_CACHE_TTL_MS = 2 * 60 * 1000;
+
+/**
+ * A private copy of a parsed JSON reply, so callers sharing one request or
+ * cache entry cannot change each other's data.
+ */
+function cloneResult(value: unknown): unknown {
+	if (value === null || typeof value !== 'object') return value;
+	try {
+		return structuredClone(value);
+	} catch {
+		return value;
+	}
+}
+
 /** Refresh proactively if the access token expires within this window. */
 const PRE_EXPIRY_MS = 60_000;
 
@@ -609,6 +625,11 @@ class ApiClient {
 	/**
 	 * Make a request and return both parsed data and response headers.
 	 * Useful for extracting ETag headers for optimistic concurrency.
+	 *
+	 * A caller that sends its own `If-None-Match` gets a 304 back as
+	 * `{ status: 304, data: undefined }` rather than an error. Pass `signal` to
+	 * cancel a request a newer one has made obsolete (it rejects with the
+	 * fetch AbortError).
 	 */
 	async requestRaw<T>(
 		method: string,
@@ -618,8 +639,9 @@ class ApiClient {
 			params?: Record<string, string>;
 			headers?: Record<string, string>;
 			retry?: boolean;
+			signal?: AbortSignal;
 		} = {}
-	): Promise<{ data: T; meta?: unknown; headers: Headers }> {
+	): Promise<{ data: T; meta?: unknown; headers: Headers; status: number }> {
 		await this.ensureFreshToken(path);
 
 		let url = `${this.baseUrl}${path}`;
@@ -631,7 +653,8 @@ class ApiClient {
 
 		const fetchOptions: RequestInit = {
 			method,
-			headers: { ...this.headers, ...options.headers }
+			headers: { ...this.headers, ...options.headers },
+			signal: options.signal,
 		};
 
 		if (options.body !== undefined) {
@@ -662,7 +685,7 @@ class ApiClient {
 					body: options.body,
 					params: options.params,
 					headers: options.headers,
-					resolve: (v) => resolve(v as { data: T; headers: Headers }),
+					resolve: (v) => resolve(v as { data: T; headers: Headers; status: number }),
 					reject,
 				});
 			});
@@ -672,15 +695,15 @@ class ApiClient {
 		// envelope's `meta` alongside `data` — e.g. config reads carry
 		// meta.overrides / meta.fallback for the per-field override indicators.
 		if (response.ok) this.parseInvalidates(response);
-		if (response.status === 204) {
-			return { data: undefined as T, headers: response.headers };
+		if (response.status === 204 || response.status === 304) {
+			return { data: undefined as T, headers: response.headers, status: response.status };
 		}
 		const body = (await readJsonBody(response, method, path)) as ApiEnvelope | null;
 		if (!response.ok) {
 			throw new ApiRequestError(buildApiError(body, response), response);
 		}
 		const data = (body?.data !== undefined ? body.data : body) as T;
-		return { data, meta: body?.meta, headers: response.headers };
+		return { data, meta: body?.meta, headers: response.headers, status: response.status };
 	}
 
 	/**
@@ -751,8 +774,108 @@ class ApiClient {
 		return !!untrack(() => auth.accessToken);
 	}
 
+	/**
+	 * GETs in flight, keyed by URL plus the headers that change the answer.
+	 * Two components asking for the same thing at once (two selects with the
+	 * same data-options, a store and a page both loading stats) share one
+	 * round-trip. The entry goes as soon as the request settles.
+	 */
+	private inflight = new Map<string, { promise: Promise<unknown>; callers: number }>();
+
+	/** Short-lived GET results for `getCached()`, keyed like `inflight`. */
+	private shortCache = new Map<string, { value: unknown; expires: number }>();
+	/** Bumped on every clear, so a reply that started before it is not cached. */
+	private shortCacheGeneration = 0;
+	private shortCacheHooked = false;
+
+	private requestKey(path: string, params: Record<string, string> | undefined, withToken: boolean): string {
+		const query = params ? new URLSearchParams(params).toString() : '';
+		const env = untrack(() => auth.gravEnvironment);
+		// The token only matters while a request is in flight: a cached value
+		// should survive the hourly refresh, but not a different account.
+		const who = withToken ? untrack(() => auth.accessToken) : untrack(() => auth.username);
+		return `${path}${query ? `?${query}` : ''}|${env}|${who}`;
+	}
+
 	async get<T>(path: string, params?: Record<string, string>): Promise<T> {
-		return this.request<T>('GET', path, { params });
+		const key = this.requestKey(path, params, true);
+		const pending = this.inflight.get(key);
+		if (pending) {
+			pending.callers++;
+			// Each extra caller gets its own copy: callers are free to mutate
+			// what they receive, and must not see each other's changes.
+			return pending.promise.then((value) => cloneResult(value) as T);
+		}
+
+		const promise = this.request<T>('GET', path, { params });
+		const entry = { promise: promise as Promise<unknown>, callers: 1 };
+		this.inflight.set(key, entry);
+		const settle = () => {
+			if (this.inflight.get(key) === entry) this.inflight.delete(key);
+		};
+		promise.then(settle, settle);
+		// The first caller keeps the original unless someone joined, in which
+		// case it gets a copy too and nobody holds the shared object.
+		return promise.then((value) => (entry.callers > 1 ? (cloneResult(value) as T) : value));
+	}
+
+	/**
+	 * A GET whose answer is reused for `ttlMs` (default two minutes). For
+	 * reads that rarely change and are asked for on every visit: page
+	 * blueprints, page types, data-options. Plugin, theme and config changes
+	 * clear it, as does switching the admin language; a reload always starts
+	 * fresh because it lives in memory only.
+	 */
+	async getCached<T>(path: string, params?: Record<string, string>, ttlMs = SHORT_CACHE_TTL_MS): Promise<T> {
+		this.hookShortCache();
+		const key = this.requestKey(path, params, false);
+		const hit = this.shortCache.get(key);
+		if (hit && hit.expires > Date.now()) return cloneResult(hit.value) as T;
+
+		const generation = this.shortCacheGeneration;
+		const value = await this.get<T>(path, params);
+		if (generation === this.shortCacheGeneration) {
+			this.shortCache.set(key, { value: cloneResult(value), expires: Date.now() + ttlMs });
+		}
+		return value;
+	}
+
+	/** Drop cached GETs, all of them or those whose path starts with `prefix`. */
+	clearShortCache(prefix?: string): void {
+		this.shortCacheGeneration++;
+		if (!prefix) {
+			this.shortCache.clear();
+			return;
+		}
+		for (const key of this.shortCache.keys()) {
+			if (key.startsWith(prefix)) this.shortCache.delete(key);
+		}
+	}
+
+	/**
+	 * Plugin, theme and config changes can change any blueprint or option
+	 * list. Subscribed when the client is created, before any component, so
+	 * the cache is already empty when a component's own handler for the same
+	 * event asks for the blueprint again (handlers run in subscription order).
+	 */
+	private readonly clearOnInvalidation = (() => {
+		const clear = () => this.clearShortCache();
+		for (const pattern of ['plugins:*', 'themes:*', 'config:*', 'gpm:*']) {
+			invalidations.subscribe(pattern, clear);
+		}
+		return clear;
+	})();
+
+	/**
+	 * Labels can come back translated, so a language switch clears the cache
+	 * too. Hooked on first use rather than at module load: the i18n store and
+	 * this client import each other, and touching `i18n` while the modules are
+	 * still initialising would throw.
+	 */
+	private hookShortCache(): void {
+		if (this.shortCacheHooked) return;
+		this.shortCacheHooked = true;
+		i18n.subscribeLocale(this.clearOnInvalidation);
 	}
 
 	async post<T>(path: string, body?: unknown): Promise<T> {

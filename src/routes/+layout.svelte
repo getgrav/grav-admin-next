@@ -13,6 +13,7 @@
 	import '@fontsource-variable/albert-sans/wght-italic.css';
 	import '@fontsource-variable/jost/wght.css';
 	import '@fontsource-variable/jost/wght-italic.css';
+	import { untrack } from 'svelte';
 	import { page, updated } from '$app/state';
 	import { goto, beforeNavigate } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -25,7 +26,10 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { branding } from '$lib/stores/branding.svelte';
-	import { getPreferences } from '$lib/api/endpoints/preferences';
+	import { getPreferences, type PreferencesResponse } from '$lib/api/endpoints/preferences';
+	import { takeBootPart, type BootTranslations } from '$lib/stores/boot';
+	import { stableStringify } from '$lib/utils/stable-json';
+	import { scopedKey } from '$lib/utils/scopedStorage';
 	import { migrateLegacyPreferences } from '$lib/stores/_legacyMigration';
 	import { hasPendingSync } from '$lib/stores/_serverSync';
 	import { hasUnsavedChanges } from '$lib/utils/unsaved-guard.svelte';
@@ -33,7 +37,6 @@
 	import AppShell from '$lib/components/AppShell.svelte';
 	import GlobalDialogs from '$lib/components/ui/GlobalDialogs.svelte';
 	import PluginModal from '$lib/components/ui/PluginModal.svelte';
-	import MediaPickerModal from '$lib/components/media/MediaPickerModal.svelte';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { defineBlueprintFormElement } from '$lib/elements/blueprint-form.svelte';
 	import { modals } from '$lib/stores/modals.svelte';
@@ -146,21 +149,49 @@
 		}
 	});
 
-	// Load translations and language config when authenticated.
-	// We always call load() once per session: cached strings make the UI usable
-	// immediately, and load() internally no-ops if the server checksum matches.
-	// Without this, users stay pinned to whatever they cached previously and
-	// never see new keys added to language YAML files.
+	// Revalidate the translations once per session. Cached strings make the UI
+	// usable immediately; load() sends their checksum and a 304 keeps them, so
+	// users still pick up new keys added to language YAML files without paying
+	// for the full dictionary on every boot.
 	//
-	// Gate on `prefs.loaded` so we pass the user's `adminLanguage` into load().
-	// Without this gate, load() runs with the builtin default ('en-US') and the
-	// admin boots in English regardless of what the user picked in preferences.
-	let i18nLoadedThisSession = $state(false);
-	$effect(() => {
-		if (auth.isAuthenticated && prefs.loaded && !i18nLoadedThisSession) {
-			i18nLoadedThisSession = true;
-			i18n.load(prefs.adminLanguage);
+	// Start with the cached language straight away rather than waiting for the
+	// preferences round-trip. Once preferences arrive, the user's
+	// `adminLanguage` is applied the first time only if it differs; load() is
+	// idempotent per language, so a login screen that already loaded the same
+	// dictionary costs nothing here.
+	//
+	// Both loads wait for the boot request, which reports the dictionary's
+	// checksum: when it matches the cached one, the cache counts as
+	// revalidated and no /translations request goes out at all. Without the
+	// boot endpoint (older API) the wait ends at once and load() revalidates
+	// as before.
+	let i18nPrefsApplied = false;
+	let i18nBootCheck: Promise<unknown> | null = null;
+	function afterBootCheck(fn: () => void): void {
+		// Nothing cached to compare with: no reason to wait.
+		if (!i18nBootCheck && !untrack(() => i18n.checksum)) {
+			fn();
+			return;
 		}
+		i18nBootCheck ??= takeBootPart<BootTranslations>('translations')
+			.then((part) => {
+				if (part?.value?.checksum) i18n.adoptServerChecksum(part.value.lang, part.value.checksum);
+			})
+			.catch(() => { /* load() revalidates on its own */ });
+		void i18nBootCheck.then(fn);
+	}
+	$effect(() => {
+		if (!auth.isAuthenticated) return;
+		const ready = prefs.loaded;
+		const wanted = ready ? prefs.adminLanguage : undefined;
+		untrack(() => {
+			if (!ready) {
+				afterBootCheck(() => void i18n.load());
+			} else if (!i18nPrefsApplied) {
+				i18nPrefsApplied = true;
+				afterBootCheck(() => void i18n.load(wanted));
+			}
+		});
 	});
 
 	// Reflect the active locale and text direction on <html>. Can't do this
@@ -177,15 +208,19 @@
 
 	$effect(() => {
 		if (auth.isAuthenticated && !contentLang.loaded) {
-			contentLang.load();
+			contentLang.load(true);
 		}
 	});
 
 	// Preferences lifecycle. Three things in one effect:
 	//   1. Initial fetch (seed stores + run one-time legacy migration)
-	//   2. Periodic poll every 30s while the tab is visible — picks up
+	//   2. Periodic poll every 2 minutes while the tab is visible — picks up
 	//      changes made on another browser/device without a hard refresh.
-	//   3. Immediate refetch on tab focus.
+	//   3. Refetch when the tab becomes visible again.
+	// A payload identical to the last one applied is skipped: re-seeding the
+	// stores rewrites CSS variables and localStorage for nothing. Tabs of
+	// this admin in the same browser share each fetch over a BroadcastChannel,
+	// so two open tabs don't each poll.
 	// The poll doubles as a session keep-alive: every fetch runs through
 	// `ensureFreshToken`, so an idle SPA still refreshes its JWT.
 	// `hasPendingSync()` guards against clobbering the user's in-flight
@@ -193,35 +228,70 @@
 	$effect(() => {
 		if (!auth.isAuthenticated) return;
 
+		const POLL_MS = 120_000;
 		let migrated = false;
 		let lastFetchAt = 0;
+		let lastApplied: string | null = null;
 
-		async function refresh() {
+		function apply(payload: PreferencesResponse, signature: string): void {
+			if (signature === lastApplied) return;
+			// While the user is actively editing (page content or any config
+			// form), do NOT re-seed the preference/theme/branding stores. A
+			// background poll must never disturb the editing surface: re-init
+			// here can churn a store the page editor depends on (e.g.
+			// `collabEnabled`), which tears down and reseeds the collaboration
+			// session and silently loses unsaved work (admin2#83). The fetch
+			// itself still ran, so the JWT stays fresh; we just defer applying
+			// the result until the edit is saved or abandoned.
+			if (hasPendingSync() || hasUnsavedChanges()) return;
+			prefs.init(payload);
+			theme.init(payload);
+			branding.init(payload);
+			lastApplied = signature;
+		}
+
+		let channel: BroadcastChannel | null = null;
+		try {
+			const user = untrack(() => auth.username);
+			channel = new BroadcastChannel(scopedKey(`grav_admin_prefs::${user}`));
+			channel.onmessage = (event: MessageEvent) => {
+				const data = event.data as { signature?: unknown; payload?: PreferencesResponse; at?: unknown } | null;
+				if (!data || typeof data.signature !== 'string' || !data.payload) return;
+				if (typeof data.at === 'number') lastFetchAt = Math.max(lastFetchAt, data.at);
+				apply(data.payload, data.signature);
+			};
+		} catch {
+			// No BroadcastChannel: each tab polls on its own, as before.
+			channel = null;
+		}
+
+		/**
+		 * Fetch unless this tab, or another one, fetched within `minAgeMs`.
+		 * The first fetch takes the preferences from the boot request.
+		 */
+		async function refresh(minAgeMs: number, fromBoot = false) {
 			if (hasPendingSync()) return;
 			const now = Date.now();
-			if (now - lastFetchAt < 5_000) return;
+			if (now - lastFetchAt < minAgeMs) return;
 			lastFetchAt = now;
 			try {
-				const payload = await getPreferences();
-				// While the user is actively editing (page content or any config
-				// form), do NOT re-seed the preference/theme/branding stores. A
-				// background poll must never disturb the editing surface: re-init
-				// here can churn a store the page editor depends on (e.g.
-				// `collabEnabled`), which tears down and reseeds the collaboration
-				// session and silently loses unsaved work (admin2#83). The fetch
-				// itself still ran, so the JWT stays fresh; we just defer applying
-				// the result until the edit is saved or abandoned.
-				if (hasUnsavedChanges()) return;
-				prefs.init(payload);
-				theme.init(payload);
-				branding.init(payload);
-				if (!migrated) {
+				const boot = fromBoot ? await takeBootPart<PreferencesResponse>('preferences') : null;
+				const payload = boot ? boot.value : await getPreferences();
+				const signature = stableStringify(payload);
+				try {
+					channel?.postMessage({ signature, payload, at: now });
+				} catch {
+					/* a closed channel only loses the sharing */
+				}
+				apply(payload, signature);
+				if (!migrated && lastApplied === signature) {
 					migrated = true;
 					const migratedPayload = await migrateLegacyPreferences(payload);
 					if (migratedPayload) {
 						prefs.init(migratedPayload);
 						theme.init(migratedPayload);
 						branding.init(migratedPayload);
+						lastApplied = stableStringify(migratedPayload);
 					}
 				}
 			} catch (err) {
@@ -229,20 +299,23 @@
 			}
 		}
 
-		void refresh();
+		void refresh(0, true);
 
+		// Another tab's fetch within the window counts as ours, so of several
+		// visible tabs only one asks the server each time round.
 		const pollTimer = setInterval(() => {
-			if (document.visibilityState === 'visible') void refresh();
-		}, 30_000);
+			if (document.visibilityState === 'visible') void refresh(POLL_MS - 5_000);
+		}, POLL_MS);
 
 		const onVisibilityChange = () => {
-			if (document.visibilityState === 'visible') void refresh();
+			if (document.visibilityState === 'visible') void refresh(30_000);
 		};
 		document.addEventListener('visibilitychange', onVisibilityChange);
 
 		return () => {
 			clearInterval(pollTimer);
 			document.removeEventListener('visibilitychange', onVisibilityChange);
+			channel?.close();
 		};
 	});
 
@@ -251,21 +324,26 @@
 	$effect(() => {
 		if (auth.isAuthenticated && !customFieldsLoaded) {
 			customFieldsLoaded = true;
-			import('$lib/api/client').then(({ api }) =>
-				// Each value is either a bare slug (legacy API → assume a plugin) or
-				// `{ slug, kind }` so theme-provided fields resolve to the right route.
-				api.get<Record<string, string | { slug: string; kind: 'plugins' | 'themes' }>>('/custom-fields')
-					.then((data) => {
-						if (data && typeof data === 'object') {
-							for (const [fieldType, provider] of Object.entries(data)) {
-								const slug = typeof provider === 'string' ? provider : provider.slug;
-								const kind = typeof provider === 'string' ? 'plugins' : provider.kind;
-								customFieldRegistry.register(slug, { [fieldType]: fieldType }, kind);
-							}
+			type CustomFieldMap = Record<string, string | { slug: string; kind: 'plugins' | 'themes' }>;
+			// Taken from the boot request when it has them.
+			takeBootPart<CustomFieldMap>('custom_fields')
+				.then(async (boot) => {
+					if (boot) return boot.value;
+					const { api } = await import('$lib/api/client');
+					return api.get<CustomFieldMap>('/custom-fields');
+				})
+				.then((data) => {
+					// Each value is either a bare slug (legacy API → assume a plugin) or
+					// `{ slug, kind }` so theme-provided fields resolve to the right route.
+					if (data && typeof data === 'object') {
+						for (const [fieldType, provider] of Object.entries(data)) {
+							const slug = typeof provider === 'string' ? provider : provider.slug;
+							const kind = typeof provider === 'string' ? 'plugins' : provider.kind;
+							customFieldRegistry.register(slug, { [fieldType]: fieldType }, kind);
 						}
-					})
-					.catch(() => { /* Custom fields endpoint not available */ })
-			);
+					}
+				})
+				.catch(() => { /* Custom fields endpoint not available */ });
 		}
 	});
 
@@ -319,7 +397,33 @@
 		window.__GRAV_MEDIA_PICKER = () => mediaPicker.open();
 	});
 
-	// SvelteKit's version-poll (configured in svelte.config.js) flips
+	// Check for a new admin build every 60s while the tab is visible, and on
+	// coming back to a tab that missed a check. Kit's built-in timer
+	// (`version.pollInterval`) would keep fetching in hidden tabs, so it is
+	// off in svelte.config.js and this drives `updated.check()` instead.
+	$effect(() => {
+		if (typeof document === 'undefined' || import.meta.env.DEV) return;
+		const VERSION_POLL_MS = 60_000;
+		let lastCheck = Date.now();
+		const check = () => {
+			if (updated.current) return;
+			lastCheck = Date.now();
+			void updated.check().catch(() => { /* offline: try again next time */ });
+		};
+		const timer = setInterval(() => {
+			if (document.visibilityState === 'visible') check();
+		}, VERSION_POLL_MS);
+		const onVisibilityChange = () => {
+			if (document.visibilityState === 'visible' && Date.now() - lastCheck >= VERSION_POLL_MS) check();
+		};
+		document.addEventListener('visibilitychange', onVisibilityChange);
+		return () => {
+			clearInterval(timer);
+			document.removeEventListener('visibilitychange', onVisibilityChange);
+		};
+	});
+
+	// SvelteKit's version check (driven by the effect above) flips
 	// `updated.current` to true when _app/version.json changes — i.e. admin2
 	// (or anything else writing to the SPA's bundle) has been updated under
 	// us. The next intra-app navigation must be a full page load instead of
@@ -376,7 +480,13 @@
 
 <GlobalDialogs />
 <PluginModal />
-<MediaPickerModal />
+<!-- Loaded on first open: the media browser brings the uploader with it, which
+     every other screen can boot without. -->
+{#if mediaPicker.open_}
+	{#await import('$lib/components/media/MediaPickerModal.svelte') then MediaPickerModal}
+		<MediaPickerModal.default />
+	{/await}
+{/if}
 
 {#if isAuthPage}
 	{@render children()}

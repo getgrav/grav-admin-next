@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { replaceState } from '$app/navigation';
-	import { getContext } from 'svelte';
+	import { getContext, untrack } from 'svelte';
 	import FieldRenderer from '../FieldRenderer.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldMatches } from '$lib/utils/field-filter';
@@ -106,6 +106,52 @@
 	const tabKey = $derived(groupKey());
 	let prevTabKey = $state(tabKey);
 
+	// Tabs are mounted on first visit and stay mounted after that, so a big
+	// form (the page blueprint, system config) only builds the fields of the
+	// tab on screen. Nothing reads values from the DOM: validation, the
+	// filter, dirty tracking and saving all work from the form data and the
+	// blueprint, so an unvisited tab's values are saved exactly as loaded.
+	//
+	// The first tab is always mounted too. In a page blueprint it holds the
+	// content editor, which has to exist for a plugin widget that replaces the
+	// content to reach collaborators, and for the editor to keep its undo
+	// history and cursor while another tab is open.
+	let visited = $state<Record<string, boolean>>({});
+	$effect(() => {
+		const name = tabs[activeIndex]?.name;
+		if (name && !untrack(() => visited[name])) visited[name] = true;
+	});
+	function tabMounted(tab: BlueprintField, index: number): boolean {
+		return index === 0 || index === activeIndex || !!visited[tab.name];
+	}
+
+	// Errors live in data too, but their inline messages only render in a
+	// mounted tab, and scrollToFirstError() looks for those. When a save turns
+	// up new errors and none are on the tab being shown, switch to the first
+	// tab that has one so the message renders and can be scrolled to.
+	const getErrors = getContext<(() => Record<string, string>) | undefined>('blueprintErrors');
+	function collectNames(fields: BlueprintField[] | undefined, out: Record<string, true>): Record<string, true> {
+		for (const f of fields ?? []) {
+			if (f.name) out[f.name] = true;
+			if (f.fields?.length) collectNames(f.fields, out);
+		}
+		return out;
+	}
+	const tabFieldNames = $derived(tabs.map((tab) => collectNames(tab.fields, {})));
+	let seenErrors: string[] = [];
+	$effect(() => {
+		const keys = Object.keys(getErrors?.() ?? {});
+		const fresh = keys.filter((k) => !seenErrors.includes(k));
+		seenErrors = keys;
+		if (fresh.length === 0) return;
+		untrack(() => {
+			const names = tabFieldNames;
+			if (keys.some((k) => names[activeIndex]?.[k])) return;
+			const target = names.findIndex((set) => fresh.some((k) => set[k]));
+			if (target >= 0) activeIndex = target;
+		});
+	});
+
 	// Track the tab strip's height so descendants that pin themselves below
 	// the page header (editor toolbar, nested sticky bars) can stack below the
 	// tabs as well. We re-set --sticky-header-height on the content wrapper
@@ -157,8 +203,11 @@
 	$effect(() => {
 		if (tabKey === prevTabKey) return;
 		prevTabKey = tabKey;
+		visited = {};
 		if (tabs.length === 0) return;
 		activeIndex = getInitialIndex();
+		const name = tabs[activeIndex]?.name;
+		if (name) visited = { [name]: true };
 	});
 
 	function setActiveTab(index: number) {
@@ -228,7 +277,7 @@
 				<div class="py-12 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.TABS.NO_FIELDS_MATCH_YOUR_FILTER')}</div>
 			{:else}
 				{#each tabs as tab, i (tab.name)}
-					{#if tab.fields}
+					{#if tab.fields && tabMounted(tab, i)}
 						<div class="space-y-4" class:hidden={i !== activeIndex}>
 							{#each tab.fields as childField (childField.name)}
 								<FieldRenderer
@@ -285,7 +334,7 @@
 			<div class="py-12 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.TABS.NO_FIELDS_MATCH_YOUR_FILTER')}</div>
 		{:else}
 			{#each tabs as tab, i (tab.name)}
-				{#if tab.fields}
+				{#if tab.fields && tabMounted(tab, i)}
 					<div class="space-y-4 pt-4" class:hidden={i !== activeIndex}>
 						{#each tab.fields as childField (childField.name)}
 							<FieldRenderer

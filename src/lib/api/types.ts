@@ -38,7 +38,7 @@ export interface InvalidationEvent {
 	id?: string;
 }
 
-/** Subscriber callback — called once per matched event. */
+/** Subscriber callback — called at most once per emit, with the most specific matched event. */
 export type InvalidationHandler = (event: InvalidationEvent) => void;
 
 /** Returned by subscribe() — call to unsubscribe. */

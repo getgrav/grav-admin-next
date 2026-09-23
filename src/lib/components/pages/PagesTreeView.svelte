@@ -3,7 +3,8 @@
 	import { base } from '$app/paths';
 	import { linkClick } from '$lib/utils/navLink';
 	import { pageCan } from '$lib/utils/permissions';
-	import { reorganizePages, searchPages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
+	import { reorganizePages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
+	import { createPageSearch } from '$lib/utils/page-search.svelte';
 	import type { PageSummary, PageDetail, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount, tick, untrack } from 'svelte';
@@ -75,8 +76,6 @@
 
 	let expandedRoutes = $state<Set<string>>(loadExpandedFromStorage());
 	let rootLoading = $state(true);
-	let searchResults = $state<PageSummary[]>([]);
-	let searchLoading = $state(false);
 	let searchActive = $derived(searchQuery.trim().length > 0);
 	let sortField = $state<SortField>('default');
 	let sortOrder = $state<'asc' | 'desc'>('asc');
@@ -232,31 +231,16 @@
 		});
 	});
 
-	// Server-side search across the whole site (debounced). When the input is
-	// non-empty, render a flat list of server matches instead of the tree.
-	let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-	$effect(() => {
-		const q = searchQuery.trim();
-		if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-		if (!q) {
-			searchResults = [];
-			searchLoading = false;
-			return;
-		}
-		searchLoading = true;
-		searchDebounceTimer = setTimeout(async () => {
-			try {
-				searchResults = await searchPages(q, {
-					lang: lang || undefined,
-					translations: !!lang,
-				});
-			} catch {
-				searchResults = [];
-			} finally {
-				searchLoading = false;
-			}
-		}, 250);
+	// Server-side search across the whole site (debounced, and each keystroke
+	// aborts the request before it). When the input is non-empty, render a
+	// flat list of server matches instead of the tree.
+	const search = createPageSearch({
+		params: () => ({ lang: lang || undefined, translations: !!lang }),
 	});
+	$effect(() => {
+		search.run(searchQuery);
+	});
+	$effect(() => () => search.dispose());
 
 	// Silent refresh: the chunk store auto-invalidates on `pages:*`. All we
 	// need to do is re-bootstrap the affected folders so the user doesn't see
@@ -314,19 +298,20 @@
 			})();
 		}
 
-		const onPages = (e: { id?: string }) => {
-			if (!e.id) {
-				silentRefresh(['/', ...Array.from(expandedRoutes).filter(r => r !== '/')]);
-				return;
-			}
-			const parent = parentRouteOf(e.id);
-			const targets: string[] = [];
-			// Re-bootstrap the affected parent and root.
-			targets.push(parent);
-			if (parent !== '/') targets.push('/');
-			silentRefresh(targets);
+		// The chunk store drops every stream on any `pages:*` event, so every
+		// folder on screen needs its first chunk back, not just the edited
+		// page's parent. The bus calls this once per save (it used to run once
+		// per tag, and the second pass dropped the requests the first had just
+		// started). Collapsed folders reload when they are next expanded.
+		const refreshVisible = () => silentRefresh(['/', ...Array.from(expandedRoutes).filter(r => r !== '/')]);
+		const onPages = () => {
+			refreshVisible();
+			if (searchActive) search.refresh();
 		};
-		const onFocus = () => silentRefresh(['/', ...Array.from(expandedRoutes).filter(r => r !== '/')]);
+		const onFocus = () => {
+			refreshVisible();
+			if (searchActive) search.refresh();
+		};
 		const unsubPages = invalidations.subscribe('pages:*', onPages);
 		const unsubFocus = invalidations.subscribe('*:focus', onFocus);
 		return () => { unsubPages(); unsubFocus(); };
@@ -830,21 +815,35 @@
 	{/snippet}
 
 	{#if searchActive}
-		{#if searchLoading}
+		{#if search.loading}
 			<div class="py-12 text-center text-sm text-muted-foreground">
 				<Loader2 size={16} class="mx-auto mb-2 animate-spin" />
 				{i18n.t('ADMIN_NEXT.PAGES.PAGES_TREE_VIEW.SEARCHING')}
 			</div>
-		{:else if searchResults.length === 0}
+		{:else if search.results.length === 0}
 			<div class="py-12 text-center text-sm text-muted-foreground">
 				{i18n.t('ADMIN_NEXT.PAGES.PAGES_TREE_VIEW.NO_PAGES_MATCH', { query: searchQuery })}
 			</div>
 		{:else}
-			{#each searchResults as page (pageApiRoute(page))}
+			{#each search.results as page (pageApiRoute(page))}
 				{@render treeRow(page, 0, '/', -1)}
 			{/each}
-			<div class="px-4 py-2 text-[0.6875rem] text-muted-foreground">
-				{searchResults.length} match{searchResults.length !== 1 ? 'es' : ''} across all pages
+			<div class="flex items-center gap-3 px-4 py-2 text-[0.6875rem] text-muted-foreground">
+				<span>
+					{search.hasMore
+						? i18n.t('ADMIN_NEXT.PAGES.SEARCH_SHOWING', { shown: search.results.length, total: search.total })
+						: i18n.t('ADMIN_NEXT.PAGES.SEARCH_MATCH_COUNT', { n: search.results.length })}
+				</span>
+				{#if search.hasMore}
+					<button
+						type="button"
+						class="font-medium text-primary hover:underline disabled:opacity-50"
+						disabled={search.loadingMore}
+						onclick={() => search.more()}
+					>
+						{i18n.t('ADMIN_NEXT.PAGES.SEARCH_SHOW_MORE')}
+					</button>
+				{/if}
 			</div>
 		{/if}
 	{:else}

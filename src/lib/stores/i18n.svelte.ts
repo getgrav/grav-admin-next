@@ -1,11 +1,17 @@
+import { untrack } from 'svelte';
 import { IntlMessageFormat } from 'intl-messageformat';
 import { escapeMarkdownParam, renderMarkdownInline } from '$lib/utils/markdown';
-import { getTranslations } from '$lib/api/endpoints/translations';
+import { getTranslations, getTranslationsIfChanged } from '$lib/api/endpoints/translations';
 import { DEFAULT_LANG, getLocalStrings, normalizeLang } from '$lib/i18n';
 import { scopedKey } from '$lib/utils/scopedStorage';
 
-// v2 cache key: shape grew a `dir` field. Old v1 entries (no dir) are ignored.
-const CACHE_KEY = scopedKey('grav_admin_i18n_v2');
+// v3 cache key: the cached checksum is now sent back to the server as
+// If-None-Match, so a hit keeps the cached strings without a re-download. v2
+// entries were always replaced by the first load of a session and may hold a
+// partial set under a checksum that still matches, so they are dropped rather
+// than trusted. (v2 grew a `dir` field over v1.)
+const CACHE_KEY = scopedKey('grav_admin_i18n_v3');
+const LEGACY_CACHE_KEYS = [scopedKey('grav_admin_i18n_v2')];
 const CACHE_CHECKSUM_KEY = scopedKey('grav_admin_i18n_checksum');
 
 const ICU_PREFIX = 'ICU.';
@@ -23,6 +29,8 @@ export type TranslateParams = Record<string, string | number | boolean | Date | 
 
 function loadCached(): CachedTranslations | null {
 	try {
+		// The dictionary runs to several hundred KB; don't keep a dead copy.
+		for (const key of LEGACY_CACHE_KEYS) localStorage.removeItem(key);
 		const raw = localStorage.getItem(CACHE_KEY);
 		return raw ? JSON.parse(raw) : null;
 	} catch {
@@ -48,18 +56,27 @@ function createI18nStore() {
 
 	let lang = $state(cachedLang);
 	let dir = $state<Direction>(cached?.dir ?? 'ltr');
-	let strings = $state<Record<string, string>>({ ...getLocalStrings(cachedLang), ...(cached?.strings ?? {}) });
+	// $state.raw: the dictionary holds thousands of keys and is only ever
+	// replaced wholesale, never edited in place. A deep proxy would build a
+	// signal per key for nothing; a raw value still re-runs every t() reader
+	// when a language switch or reload assigns a new object.
+	let strings = $state.raw<Record<string, string>>({ ...getLocalStrings(cachedLang), ...(cached?.strings ?? {}) });
+	// Checksum of the full server dictionary held in `strings` for `lang`, or
+	// '' when `strings` is not known to be that full set (nothing cached yet,
+	// or only a prefix was merged in). It is what we revalidate with.
 	let checksum = $state(cached?.checksum ?? '');
 	let loading = $state(false);
 	let loaded = $state(!!cached);
-	// True after the first successful network load of this session. Until then
-	// our state is hydrated from localStorage and may be stale in ways the
-	// {lang, dir, checksum} triple doesn't catch — e.g. a prior build that
-	// persisted partial strings under a checksum that coincidentally still
-	// matches the server (the symptom: admin boots with humanized fallbacks
-	// until the user switches language and back). Force a state replace on
-	// the first load so the upgrade path always re-syncs.
-	let freshlyLoaded = false;
+	// Language whose dictionary has been checked against the server this
+	// session (a 200 or a 304), and the load still in flight, per language.
+	// Together they make load() idempotent: the login screen, the boot load
+	// and the preferences check can all ask for the same language and only
+	// one request goes out.
+	let revalidatedLang: string | null = null;
+	const inFlight = new Map<string, Promise<void>>();
+	// The language most recently asked for. A slower reply for a language
+	// asked for earlier must not switch the UI back to it.
+	let wantedLang = cachedLang;
 
 	// Compiled IntlMessageFormat instances, keyed by `${lang}::${icuKey}`.
 	// Cleared whenever language or strings change so stale formatters don't leak.
@@ -310,17 +327,56 @@ function createI18nStore() {
 	}
 
 	/**
-	 * Load translations from the API. Uses checksum to skip if already current.
+	 * Load the full dictionary for a language (default: the current one).
+	 *
+	 * When we already hold that language's full dictionary, its checksum goes
+	 * out as If-None-Match and a 304 keeps the strings we have: no download,
+	 * no re-render. A 200 replaces them. An older API that ignores the header
+	 * answers 200 every time and is handled exactly as before.
+	 *
+	 * Idempotent per session: a language already checked this session, or
+	 * already being loaded, costs no second request.
+	 *
+	 * Untracked, so an effect that calls it doesn't come to depend on `lang`
+	 * and fire again when the reply switches the language.
 	 */
-	async function load(language?: string) {
-		const targetLang = normalizeLang(language ?? lang);
-		loading = true;
+	function load(language?: string): Promise<void> {
+		return untrack(() => {
+			const targetLang = normalizeLang(language ?? lang);
+			wantedLang = targetLang;
+			if (revalidatedLang === targetLang && lang === targetLang) return Promise.resolve();
+			const pending = inFlight.get(targetLang);
+			if (pending) return pending;
 
+			const run = fetchDictionary(targetLang).finally(() => {
+				inFlight.delete(targetLang);
+				loading = inFlight.size > 0;
+			});
+			inFlight.set(targetLang, run);
+			loading = true;
+			return run;
+		});
+	}
+
+	async function fetchDictionary(targetLang: string): Promise<void> {
 		try {
-			const data = await getTranslations(targetLang);
+			// Only a full dictionary for this very language may be revalidated.
+			const known = targetLang === lang ? checksum : '';
+			const data = await getTranslationsIfChanged(targetLang, known);
+			if (targetLang !== wantedLang) return;
 
-			const stateMatches = data.checksum === checksum && data.lang === lang && data.dir === dir;
-			if (!freshlyLoaded || !stateMatches) {
+			if (data === null) {
+				// 304: what we hold is current.
+				revalidatedLang = targetLang;
+				loaded = true;
+				return;
+			}
+
+			const stateMatches = data.checksum === checksum && data.lang === lang && (data.dir ?? 'ltr') === dir;
+			// The first 200 of a session always replaces the state, as it did
+			// before revalidation existed, so an old API (200 every time) keeps
+			// re-syncing a cache the same way it always has.
+			if (revalidatedLang === null || !stateMatches) {
 				const langChanged = data.lang !== lang;
 				lang = data.lang;
 				dir = data.dir ?? 'ltr';
@@ -332,15 +388,29 @@ function createI18nStore() {
 				if (langChanged) notifyLocaleChanged();
 			}
 
-			freshlyLoaded = true;
+			revalidatedLang = data.lang;
 			loaded = true;
 		} catch {
 			if (!loaded && cached) {
 				loaded = true;
 			}
-		} finally {
-			loading = false;
 		}
+	}
+
+	/**
+	 * Accept a checksum the server reported elsewhere (the boot request) as a
+	 * revalidation: when it matches the full dictionary we hold for that
+	 * language, the strings are current and load() for it sends nothing.
+	 * Returns whether it matched.
+	 */
+	function adoptServerChecksum(serverLang: string, serverChecksum: string): boolean {
+		return untrack(() => {
+			if (!serverChecksum || !checksum || serverChecksum !== checksum) return false;
+			if (serverLang !== lang && normalizeLang(serverLang) !== normalizeLang(lang)) return false;
+			revalidatedLang = lang;
+			loaded = true;
+			return true;
+		});
 	}
 
 	/**
@@ -348,12 +418,18 @@ function createI18nStore() {
 	 * Merges with any existing strings without replacing them.
 	 */
 	async function loadPrefix(prefix: string, language?: string) {
-		const targetLang = normalizeLang(language ?? lang);
+		const targetLang = untrack(() => normalizeLang(language ?? lang));
 		try {
 			const data = await getTranslations(targetLang, prefix);
 			const langChanged = data.lang !== lang;
 			lang = data.lang;
 			dir = data.dir ?? 'ltr';
+			// Strings of another language with a slice of this one merged in are
+			// no full dictionary, so there is no checksum to revalidate with.
+			if (langChanged) {
+				checksum = '';
+				revalidatedLang = null;
+			}
 			strings = { ...strings, ...data.strings };
 			resetFormatterCache();
 			applyLocalFallback();
@@ -368,7 +444,7 @@ function createI18nStore() {
 	 * Load all translations in the background (non-blocking).
 	 */
 	function loadAllInBackground(language?: string) {
-		load(language);
+		void load(language);
 	}
 
 	/**
@@ -408,6 +484,8 @@ function createI18nStore() {
 		get dir() { return dir; },
 		get loading() { return loading; },
 		get loaded() { return loaded; },
+		/** Checksum of the full dictionary held for `lang`, or '' when none is. */
+		get checksum() { return checksum; },
 		get count() { return Object.keys(strings).length; },
 		t,
 		tHtml,
@@ -415,6 +493,7 @@ function createI18nStore() {
 		has,
 		isTranslationKey,
 		load,
+		adoptServerChecksum,
 		loadPrefix,
 		loadAllInBackground,
 		setLanguage,

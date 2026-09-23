@@ -80,7 +80,7 @@
 		if (rootPages.length > 0) return;
 		rootLoading = true;
 		try {
-			rootPages = await getChildren('/', 'title', 'asc');
+			rootPages = await getChildren('/', 'title', 'asc', undefined, undefined, { summary: true });
 			childrenCache = { '/': rootPages };
 		} catch { /* handled */ }
 		finally { rootLoading = false; }
@@ -90,7 +90,7 @@
 		if (childrenCache[route]) return;
 		loadingRoutes = new Set([...loadingRoutes, route]);
 		try {
-			const children = await getChildren(route, 'title', 'asc');
+			const children = await getChildren(route, 'title', 'asc', undefined, undefined, { summary: true });
 			childrenCache = { ...childrenCache, [route]: children };
 		} catch {
 			childrenCache = { ...childrenCache, [route]: [] };

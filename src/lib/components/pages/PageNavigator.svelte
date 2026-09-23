@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { getChildren, pageApiRoute } from '$lib/api/endpoints/pages';
-	import type { PageSummary } from '$lib/api/endpoints/pages';
+	import { getChildren, getPageNeighbors, pageApiRoute } from '$lib/api/endpoints/pages';
+	import type { PageNeighbors, PageSummary } from '$lib/api/endpoints/pages';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
@@ -14,8 +14,13 @@
 
 	let { route, hasChildren }: Props = $props();
 
+	// The API's neighbors endpoint answers with just the pages the pad needs.
+	// On an API without it, `siblings` holds the whole folder instead (the
+	// old way), and prev/next come from the current page's position in it.
+	let neighbors = $state<PageNeighbors | null>(null);
 	let siblings = $state<PageSummary[]>([]);
 	let loading = $state(true);
+	let loadToken = 0;
 
 	const parentRoute = $derived(() => {
 		const parts = route.split('/').filter(Boolean);
@@ -24,9 +29,18 @@
 	});
 
 	const currentIndex = $derived(siblings.findIndex(s => s.route === route));
-	const prevSibling = $derived(currentIndex > 0 ? siblings[currentIndex - 1] : null);
-	const nextSibling = $derived(currentIndex >= 0 && currentIndex < siblings.length - 1 ? siblings[currentIndex + 1] : null);
-	const canUp = $derived(parentRoute() !== '/');
+	const prevSibling = $derived(
+		neighbors ? neighbors.prev : currentIndex > 0 ? siblings[currentIndex - 1] : null
+	);
+	const nextSibling = $derived(
+		neighbors
+			? neighbors.next
+			: currentIndex >= 0 && currentIndex < siblings.length - 1 ? siblings[currentIndex + 1] : null
+	);
+	// The endpoint's parent carries its structural route, which is right even
+	// when the home page is hidden from URLs; without it, trim the route.
+	const upTarget = $derived(neighbors?.parent ? pageApiRoute(neighbors.parent) : parentRoute());
+	const canUp = $derived(neighbors ? neighbors.parent !== null && upTarget !== '/' : parentRoute() !== '/');
 	const canDown = $derived(hasChildren);
 	// In RTL the d-pad's left quadrant means "next" and right means "previous".
 	// Keep the chevrons pointing the same physical direction; swap the targets.
@@ -37,18 +51,32 @@
 	const leftLabel = $derived(i18n.dir === 'rtl' ? 'Next' : 'Previous');
 	const rightLabel = $derived(i18n.dir === 'rtl' ? 'Previous' : 'Next');
 
-	// Load siblings on mount / route change
+	// Load the page's neighbors on mount / route change. A reply for a route
+	// the editor has already left is dropped.
 	$effect(() => {
+		const current = route;
 		const parent = parentRoute();
+		const lang = contentLang.activeLang || undefined;
+		const token = ++loadToken;
 		loading = true;
-		getChildren(parent, 'default', 'asc', contentLang.activeLang || undefined)
-			.then(pages => {
-				siblings = pages;
-				loading = false;
+		getPageNeighbors(current, lang)
+			.then(async (found) => {
+				if (token !== loadToken) return;
+				neighbors = found;
+				if (found) {
+					siblings = [];
+					return;
+				}
+				const pages = await getChildren(parent, 'default', 'asc', lang, undefined, { summary: true });
+				if (token === loadToken) siblings = pages;
 			})
 			.catch(() => {
+				if (token !== loadToken) return;
+				neighbors = null;
 				siblings = [];
-				loading = false;
+			})
+			.finally(() => {
+				if (token === loadToken) loading = false;
 			});
 	});
 
@@ -58,8 +86,12 @@
 
 	async function goDown() {
 		if (!hasChildren) return;
+		if (neighbors?.first_child) {
+			navigate(pageApiRoute(neighbors.first_child));
+			return;
+		}
 		try {
-			const children = await getChildren(route, 'default', 'asc', contentLang.activeLang || undefined);
+			const children = await getChildren(route, 'default', 'asc', contentLang.activeLang || undefined, undefined, { summary: true });
 			if (children.length > 0) {
 				navigate(pageApiRoute(children[0]));
 			}
@@ -116,8 +148,8 @@
 		<button
 			class="nav-quadrant nav-up {canUp ? '' : 'nav-disabled'}"
 			disabled={!canUp}
-			onclick={() => navigate(parentRoute())}
-			title={canUp ? `Parent: ${parentRoute()}` : 'No parent'}
+			onclick={() => navigate(upTarget)}
+			title={canUp ? `Parent: ${upTarget}` : 'No parent'}
 		>
 			<ChevronUp size={22} strokeWidth={2.5} />
 		</button>

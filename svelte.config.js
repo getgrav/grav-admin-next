@@ -55,8 +55,10 @@ const config = {
 			base: isPluginBuild ? BASE_PLACEHOLDER : '',
 			relative: true
 		},
-		// Poll _app/version.json every 60s so the SPA detects when admin2 (or
-		// any other plugin) has been updated underneath it. The poll URL is
+		// Check _app/version.json so the SPA detects when admin2 (or any
+		// other plugin) has been updated underneath it. Kit's own timer keeps
+		// polling in hidden tabs, so it is off here and +layout.svelte calls
+		// `updated.check()` every 60s while the tab is visible. The poll URL is
 		// derived from `globalThis.__sveltekit_<nonce>.assets` at runtime;
 		// admin2.php sets that global to the admin route (e.g. `/admin`) so
 		// polls hit the PHP entry point and bypass Grav's `user/*.json`
@@ -64,7 +66,7 @@ const config = {
 		// +layout.svelte, the next intra-app navigation becomes a full page
 		// load — fresh chunks, no 500s from stale hashes.
 		version: {
-			pollInterval: 60_000
+			pollInterval: 0
 		}
 	}
 };

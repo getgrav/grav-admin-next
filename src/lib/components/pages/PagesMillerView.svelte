@@ -3,7 +3,8 @@
 	import { base } from '$app/paths';
 	import { isModifiedClick, linkClick } from '$lib/utils/navLink';
 	import { pageCan } from '$lib/utils/permissions';
-	import { getPage, getPagesList, reorganizePages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
+	import { getPage, reorganizePages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
+	import { createPageSearch } from '$lib/utils/page-search.svelte';
 	import type { PageSummary, PageDetail, ReorganizeOperation } from '$lib/api/endpoints/pages';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
@@ -63,48 +64,38 @@
 	let dropTarget = $state<{ colIndex: number; index: number } | null>(null);
 	let saving = $state(false);
 
-	// Search: build set of visible routes (matches + their ancestors)
-	let allPagesCache = $state<PageSummary[] | null>(null);
-	let visibleRoutes = $state<Set<string> | null>(null);
-	let searchTimer: ReturnType<typeof setTimeout> | null = null;
+	// Search: the server finds the matches across the whole site (100 at a
+	// time, each keystroke aborting the request before it) and the columns
+	// show those pages plus every folder on the way down to them. It used to
+	// filter one client-side copy of the first 500 pages, so later pages could
+	// never match and edits never reached it.
+	const search = createPageSearch({
+		debounceMs: 200,
+		params: () => ({ lang: lang || undefined, translations: !!lang }),
+	});
 
 	const isSearching = $derived(!!searchQuery.trim());
 
 	$effect(() => {
-		const query = searchQuery;
-		if (searchTimer) clearTimeout(searchTimer);
+		search.run(searchQuery);
+	});
+	$effect(() => () => search.dispose());
 
-		if (!query.trim()) {
-			visibleRoutes = null;
-			return;
+	// Matching routes plus all of their ancestors; null while not searching.
+	const visibleRoutes = $derived.by((): Set<string> | null => {
+		if (!isSearching) return null;
+		// Until the first reply lands, keep showing the columns unfiltered
+		// rather than flashing "No matches".
+		if (search.loading && search.results.length === 0) return null;
+		const visible = new Set<string>();
+		for (const page of search.results) {
+			const parts = page.route.split('/').filter(Boolean);
+			for (let i = 1; i <= parts.length; i++) {
+				visible.add('/' + parts.slice(0, i).join('/'));
+			}
+			visible.add(page.route);
 		}
-
-		searchTimer = setTimeout(async () => {
-			// Fetch all pages once and cache
-			if (!allPagesCache) {
-				allPagesCache = await getPagesList({ per_page: 500, sort: 'title', order: 'asc' });
-			}
-
-			const q = query.toLowerCase();
-			const matchingRoutes = allPagesCache.filter(p =>
-				p.title.toLowerCase().includes(q) ||
-				p.route.toLowerCase().includes(q) ||
-				p.template.toLowerCase().includes(q)
-			).map(p => p.route);
-
-			// Build visible set: matching routes + all ancestor routes
-			const visible = new Set<string>();
-			for (const route of matchingRoutes) {
-				visible.add(route);
-				// Add all ancestors
-				const parts = route.split('/').filter(Boolean);
-				for (let i = 1; i <= parts.length; i++) {
-					visible.add('/' + parts.slice(0, i).join('/'));
-				}
-			}
-
-			visibleRoutes = visible;
-		}, 200);
+		return visible;
 	});
 
 	// Filter pages in a column based on search
@@ -324,7 +315,6 @@
 		if (lang !== prevLang) {
 			prevLang = lang;
 			previewPage = null;
-			allPagesCache = null;
 		}
 		const savedPath = untrack(getSavedPath);
 		// All chunk-store calls run untracked: see comment on bootstrapColumn
@@ -349,7 +339,7 @@
 
 	onMount(() => {
 		const onPages = (e: { id?: string; action?: string }) => {
-			allPagesCache = null;
+			if (isSearching) search.refresh();
 			// Drop a stale preview when the previewed page was just deleted
 			// or moved out from under us — otherwise the right pane keeps
 			// showing the now-gone page until the user clicks elsewhere.
@@ -361,21 +351,12 @@
 					previewPage = null;
 				}
 			}
-			if (!e.id) {
-				for (const col of columns) silentRefreshColumn(col.parentRoute);
-				return;
-			}
-			const parent = parentRouteOf(e.id);
-			if (columns.some(c => c.parentRoute === parent)) {
-				silentRefreshColumn(parent);
-			}
-			// Root can also change (new top-level pages) — keep it fresh too.
-			if (parent !== '/' && columns.some(c => c.parentRoute === '/')) {
-				silentRefreshColumn('/');
-			}
+			// The chunk store has just dropped every stream, so each open column
+			// needs its first chunk back. The bus calls this once per save.
+			for (const col of columns) silentRefreshColumn(col.parentRoute);
 		};
 		const onFocus = () => {
-			allPagesCache = null;
+			if (isSearching) search.refresh();
 			for (const col of columns) silentRefreshColumn(col.parentRoute);
 		};
 		const unsubPages = invalidations.subscribe('pages:*', onPages);
@@ -906,6 +887,21 @@
 	</div>
 </div>
 
+{#if isSearching && search.hasMore}
+	<!-- More matches than one search page: the columns only show the loaded ones. -->
+	<div class="flex items-center gap-3 border-b border-border px-4 py-1.5 text-[0.6875rem] text-muted-foreground">
+		<span>{i18n.t('ADMIN_NEXT.PAGES.SEARCH_SHOWING', { shown: search.results.length, total: search.total })}</span>
+		<button
+			type="button"
+			class="font-medium text-primary hover:underline disabled:opacity-50"
+			disabled={search.loadingMore}
+			onclick={() => search.more()}
+		>
+			{i18n.t('ADMIN_NEXT.PAGES.SEARCH_SHOW_MORE')}
+		</button>
+	</div>
+{/if}
+
 <!-- Miller columns + preview -->
 <div class="flex" style="min-height: 500px; max-height: calc(100vh - 220px);">
 	<!-- Scrollable columns area -->
@@ -933,8 +929,8 @@
 						<Loader2 size={16} class="animate-spin text-muted-foreground" />
 					</div>
 				{:else if colTotal === 0}
-					<div class="flex flex-1 items-center justify-center text-xs text-muted-foreground">
-						{isSearching ? 'No matches' : 'Empty'}
+					<div class="flex flex-1 items-center justify-center px-3 text-center text-xs text-muted-foreground">
+						{isSearching ? i18n.t('ADMIN_NEXT.PAGES.NO_MATCH') : i18n.t('ADMIN_NEXT.PAGES.COLUMN_EMPTY')}
 					</div>
 				{:else}
 					<!-- svelte-ignore a11y_no_static_element_interactions -->

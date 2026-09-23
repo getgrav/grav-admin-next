@@ -129,9 +129,12 @@ export interface PageType {
 	label: string;
 }
 
+// Page types and page blueprints are asked for on every editor and new-page
+// visit but only change with a plugin, theme or config change, which clears
+// the client's short cache (see ApiClient.getCached).
 export async function getPageTypes(modular?: boolean): Promise<PageType[]> {
 	const params = modular ? { modular: 'true' } : undefined;
-	return api.get<PageType[]>('/blueprints/pages', params);
+	return api.getCached<PageType[]>('/blueprints/pages', params);
 }
 
 /**
@@ -228,7 +231,7 @@ export function publishedDefault(schema: BlueprintSchema): boolean | undefined {
 }
 
 export async function getPageBlueprint(template: string): Promise<BlueprintSchema> {
-	return api.get<BlueprintSchema>(`/blueprints/pages/${template}`);
+	return api.getCached<BlueprintSchema>(`/blueprints/pages/${template}`);
 }
 
 export async function getPluginBlueprint(plugin: string): Promise<BlueprintSchema> {
