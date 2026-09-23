@@ -4,7 +4,7 @@
 	import { base } from '$app/paths';
 	import { deletePage, duplicatePage, updatePage, pageApiRoute } from '$lib/api/endpoints/pages';
 	import type { PageSummary, PageDetail } from '$lib/api/endpoints/pages';
-	import { getStats, type DashboardStats } from '$lib/api/endpoints/dashboard';
+	import { dashboardStats } from '$lib/stores/dashboardStats.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
 	import { prefs, type PagesViewMode, type PagesChunkSize, PAGES_CHUNK_SIZE_OPTIONS } from '$lib/stores/preferences.svelte';
@@ -39,7 +39,8 @@
 	});
 	let confirmDeleteOpen = $state(false);
 	let pendingDeletePage = $state<PageSummary | null>(null);
-	let stats = $state<DashboardStats['pages'] | null>(null);
+	// Shared with the sidebar badges and the dashboard: one request serves all.
+	const stats = $derived(dashboardStats.value?.pages ?? null);
 
 	// Add dropdown (Page / Folder / Module) — inline implementation; we don't
 	// yet have a shared DropdownMenu primitive, mirrors EnvironmentSwitcher.
@@ -49,14 +50,12 @@
 		goto(`${base}/pages/new?kind=${kind}`);
 	}
 
-	async function loadStats() {
-		try {
-			const s = await getStats();
-			stats = s.pages;
-		} catch { /* non-critical */ }
+	function loadStats() {
+		void dashboardStats.load();
 	}
 
-	$effect(() => { loadStats(); });
+	// Reuse a recent answer (the sidebar badges load it at sign-in).
+	onMount(() => { void dashboardStats.ensure(); });
 
 	// Refresh stats when any page mutation happens.
 	onMount(() => invalidations.subscribe('pages:*', () => loadStats()));

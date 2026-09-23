@@ -26,7 +26,9 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { branding } from '$lib/stores/branding.svelte';
-	import { getPreferences } from '$lib/api/endpoints/preferences';
+	import { getPreferences, type PreferencesResponse } from '$lib/api/endpoints/preferences';
+	import { stableStringify } from '$lib/utils/stable-json';
+	import { scopedKey } from '$lib/utils/scopedStorage';
 	import { migrateLegacyPreferences } from '$lib/stores/_legacyMigration';
 	import { hasPendingSync } from '$lib/stores/_serverSync';
 	import { hasUnsavedChanges } from '$lib/utils/unsaved-guard.svelte';
@@ -191,9 +193,13 @@
 
 	// Preferences lifecycle. Three things in one effect:
 	//   1. Initial fetch (seed stores + run one-time legacy migration)
-	//   2. Periodic poll every 30s while the tab is visible — picks up
+	//   2. Periodic poll every 2 minutes while the tab is visible — picks up
 	//      changes made on another browser/device without a hard refresh.
-	//   3. Immediate refetch on tab focus.
+	//   3. Refetch when the tab becomes visible again.
+	// A payload identical to the last one applied is skipped: re-seeding the
+	// stores rewrites CSS variables and localStorage for nothing. Tabs of
+	// this admin in the same browser share each fetch over a BroadcastChannel,
+	// so two open tabs don't each poll.
 	// The poll doubles as a session keep-alive: every fetch runs through
 	// `ensureFreshToken`, so an idle SPA still refreshes its JWT.
 	// `hasPendingSync()` guards against clobbering the user's in-flight
@@ -201,35 +207,66 @@
 	$effect(() => {
 		if (!auth.isAuthenticated) return;
 
+		const POLL_MS = 120_000;
 		let migrated = false;
 		let lastFetchAt = 0;
+		let lastApplied: string | null = null;
 
-		async function refresh() {
+		function apply(payload: PreferencesResponse, signature: string): void {
+			if (signature === lastApplied) return;
+			// While the user is actively editing (page content or any config
+			// form), do NOT re-seed the preference/theme/branding stores. A
+			// background poll must never disturb the editing surface: re-init
+			// here can churn a store the page editor depends on (e.g.
+			// `collabEnabled`), which tears down and reseeds the collaboration
+			// session and silently loses unsaved work (admin2#83). The fetch
+			// itself still ran, so the JWT stays fresh; we just defer applying
+			// the result until the edit is saved or abandoned.
+			if (hasPendingSync() || hasUnsavedChanges()) return;
+			prefs.init(payload);
+			theme.init(payload);
+			branding.init(payload);
+			lastApplied = signature;
+		}
+
+		let channel: BroadcastChannel | null = null;
+		try {
+			const user = untrack(() => auth.username);
+			channel = new BroadcastChannel(scopedKey(`grav_admin_prefs::${user}`));
+			channel.onmessage = (event: MessageEvent) => {
+				const data = event.data as { signature?: unknown; payload?: PreferencesResponse; at?: unknown } | null;
+				if (!data || typeof data.signature !== 'string' || !data.payload) return;
+				if (typeof data.at === 'number') lastFetchAt = Math.max(lastFetchAt, data.at);
+				apply(data.payload, data.signature);
+			};
+		} catch {
+			// No BroadcastChannel: each tab polls on its own, as before.
+			channel = null;
+		}
+
+		/** Fetch unless this tab, or another one, fetched within `minAgeMs`. */
+		async function refresh(minAgeMs: number) {
 			if (hasPendingSync()) return;
 			const now = Date.now();
-			if (now - lastFetchAt < 5_000) return;
+			if (now - lastFetchAt < minAgeMs) return;
 			lastFetchAt = now;
 			try {
 				const payload = await getPreferences();
-				// While the user is actively editing (page content or any config
-				// form), do NOT re-seed the preference/theme/branding stores. A
-				// background poll must never disturb the editing surface: re-init
-				// here can churn a store the page editor depends on (e.g.
-				// `collabEnabled`), which tears down and reseeds the collaboration
-				// session and silently loses unsaved work (admin2#83). The fetch
-				// itself still ran, so the JWT stays fresh; we just defer applying
-				// the result until the edit is saved or abandoned.
-				if (hasUnsavedChanges()) return;
-				prefs.init(payload);
-				theme.init(payload);
-				branding.init(payload);
-				if (!migrated) {
+				const signature = stableStringify(payload);
+				try {
+					channel?.postMessage({ signature, payload, at: now });
+				} catch {
+					/* a closed channel only loses the sharing */
+				}
+				apply(payload, signature);
+				if (!migrated && lastApplied === signature) {
 					migrated = true;
 					const migratedPayload = await migrateLegacyPreferences(payload);
 					if (migratedPayload) {
 						prefs.init(migratedPayload);
 						theme.init(migratedPayload);
 						branding.init(migratedPayload);
+						lastApplied = stableStringify(migratedPayload);
 					}
 				}
 			} catch (err) {
@@ -237,20 +274,23 @@
 			}
 		}
 
-		void refresh();
+		void refresh(0);
 
+		// Another tab's fetch within the window counts as ours, so of several
+		// visible tabs only one asks the server each time round.
 		const pollTimer = setInterval(() => {
-			if (document.visibilityState === 'visible') void refresh();
-		}, 30_000);
+			if (document.visibilityState === 'visible') void refresh(POLL_MS - 5_000);
+		}, POLL_MS);
 
 		const onVisibilityChange = () => {
-			if (document.visibilityState === 'visible') void refresh();
+			if (document.visibilityState === 'visible') void refresh(30_000);
 		};
 		document.addEventListener('visibilitychange', onVisibilityChange);
 
 		return () => {
 			clearInterval(pollTimer);
 			document.removeEventListener('visibilitychange', onVisibilityChange);
+			channel?.close();
 		};
 	});
 

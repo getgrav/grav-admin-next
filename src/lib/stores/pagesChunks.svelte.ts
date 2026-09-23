@@ -1,6 +1,6 @@
 import { api } from '$lib/api/client';
 import { invalidations } from './invalidation.svelte';
-import type { PageSummary } from '$lib/api/endpoints/pages';
+import { SUMMARY_FIELDS, type PageSummary } from '$lib/api/endpoints/pages';
 
 /**
  * Query shape for a stream. Any combination of filters that the server
@@ -68,7 +68,9 @@ function createPagesChunksStore() {
 	}
 
 	function buildParams(config: StreamConfig, perPage: number, extra: { page?: number; locate?: string }): Record<string, string> {
-		const params: Record<string, string> = { per_page: String(perPage) };
+		// The Tree, List and Columns views read the rows' flattened fields,
+		// never `header`, so they ask for rows without it (about half the size).
+		const params: Record<string, string> = { per_page: String(perPage), fields: SUMMARY_FIELDS };
 		if (config.children_of) params.children_of = config.children_of;
 		if (config.parent) params.parent = config.parent;
 		if (config.root) params.root = 'true';

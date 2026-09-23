@@ -823,7 +823,7 @@
 	 */
 	async function nextSiblingOrder(parentRoute: string): Promise<number> {
 		try {
-			const siblings = await getChildren(parentRoute);
+			const siblings = await getChildren(parentRoute, 'order', 'asc', undefined, undefined, { summary: true });
 			let max = 0;
 			for (const s of siblings) {
 				const n = parseInt(String(s.order ?? ''), 10);
@@ -1044,7 +1044,7 @@
 			// children-of-root listing and redirect so subsequent loads use the
 			// canonical URL.
 			if (route === '/' || route === '') {
-				const roots = await getChildren('/');
+				const roots = await getChildren('/', 'order', 'asc', undefined, undefined, { summary: true });
 				const home = roots.find((p) => p.route === '/' && p.raw_route);
 				if (home?.raw_route) {
 					const target = home.raw_route.startsWith('/') ? home.raw_route.slice(1) : home.raw_route;

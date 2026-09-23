@@ -2,8 +2,8 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import {
-		getStats, getNotifications, getTopNotifications, getPopularity, getFeed, getBackups, getUpdates, getSystemInfoOverview,
-		type DashboardStats, type Notification, type PopularityData,
+		getDashboardNotifications, getPopularity, getFeed, getBackups, getUpdates, getSystemInfoOverview,
+		type Notification, type PopularityData,
 		type FeedItem, type BackupInfo, type UpdatesData, type SystemInfoOverview
 	} from '$lib/api/endpoints/dashboard';
 	import { getWidgets, saveUserLayout, saveSiteLayout } from '$lib/api/endpoints/dashboard-widgets';
@@ -20,7 +20,8 @@
 	import { toast } from 'svelte-sonner';
 	import { usePoll } from '$lib/utils/poll.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
-	import { onMount } from 'svelte';
+	import { dashboardStats } from '$lib/stores/dashboardStats.svelte';
+	import { onMount, untrack } from 'svelte';
 	import { RefreshCw, Loader2 } from 'lucide-svelte';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import TopProgressBar from '$lib/components/ui/TopProgressBar.svelte';
@@ -36,7 +37,8 @@
 	import type { ResolvedWidget, DashboardLayout } from '$lib/dashboard/types';
 	import type { PresetDef } from '$lib/dashboard/presets';
 
-	let stats = $state<DashboardStats | null>(null);
+	// Shared with the sidebar badges and the pages list (one request serves all).
+	const stats = $derived(dashboardStats.value);
 	let systemInfo = $state<SystemInfo | null>(null);
 	let notifications = $state<Notification[]>([]);
 	let topNotifications = $state<Notification[]>([]);
@@ -103,10 +105,13 @@
 	// Probe sensitive storage directories over the web. Kept off the dashboard
 	// payload so a slow or blocked external fetch never delays the rest of the
 	// page, and guarded so repeated Refresh clicks don't stack probe requests.
-	function refreshSecurityHealth() {
+	// The answer is kept for the browser session (each blocked probe is a red
+	// 403 in the console); `force` re-checks, so fixing the server rules and
+	// pressing Refresh clears the banner.
+	function refreshSecurityHealth(force = false) {
 		if (securityCheckRunning) return;
 		securityCheckRunning = true;
-		checkSensitiveFileExposure()
+		checkSensitiveFileExposure(force)
 			.then((result) => {
 				userFolderExposed = result.exposed === true;
 				exposedFiles = result.exposedFiles;
@@ -115,34 +120,52 @@
 			.finally(() => { securityCheckRunning = false; });
 	}
 
+	/**
+	 * Each piece of the dashboard, loaded on its own so an invalidation only
+	 * refetches what it affects. `force` asks the server to skip its caches
+	 * (the Refresh button).
+	 */
+	const loaders = {
+		stats: (force: boolean) => (force ? dashboardStats.load() : dashboardStats.ensure()),
+		systemInfo: () => getSystemInfo().then((v) => { systemInfo = v; }),
+		notifications: (force: boolean) => getDashboardNotifications(force).then((v) => {
+			notifications = v.dashboard;
+			topNotifications = v.top;
+		}),
+		recentPages: () => getRecentPages(8).then((v) => { recentPages = v; }),
+		popularity: () => getPopularity().then((v) => { popularity = v; }),
+		feed: (force: boolean) => getFeed(force).then((v) => { feed = (v as { feed?: FeedItem[] })?.feed ?? []; }),
+		backups: () => getBackups().then((v) => { backups = v; }),
+		updates: (force: boolean) => getUpdates(force).then((v) => { updates = v; }),
+		reports: () => getSystemInfoOverview().then((v) => { reports = v; }),
+		widgets: () => getWidgets().then((v) => {
+			// Never replace a layout the user is in the middle of editing.
+			if (editMode) return;
+			widgets = v.widgets;
+			savedWidgetsSnapshot = JSON.parse(JSON.stringify(widgets));
+			canEditSite = v.can_edit_site;
+		}),
+	} satisfies Record<string, (force: boolean) => Promise<unknown>>;
+
+	type Part = keyof typeof loaders;
+	const ALL_PARTS = Object.keys(loaders) as Part[];
+
+	async function refreshParts(parts: Iterable<Part>, force = false) {
+		await Promise.allSettled([...parts].map((part) => loaders[part](force)));
+	}
+
 	async function loadDashboard(options: LoadDashboardOptions = {}) {
 		const { flushGpm = false, silent = false } = options;
 		if (!silent) loading = true;
-		// Re-probe whenever the operator asks for fresh data, so fixing the server
-		// rules and pressing Refresh clears the banner. Silent refreshes skip it:
-		// the 60s poller should not fire external requests on every tick.
-		if (!silent) refreshSecurityHealth();
+		// Silent refreshes (after an update or a backup) leave the probe alone.
+		if (!silent) refreshSecurityHealth(flushGpm);
 		try {
-			const results = await Promise.allSettled([
-				getStats(), getSystemInfo(), getNotifications(flushGpm), getRecentPages(8),
-				getPopularity(), getFeed(flushGpm), getBackups(), getUpdates(flushGpm),
-				getSystemInfoOverview(), getWidgets(), getTopNotifications(flushGpm),
+			// A silent reload follows a change (an update, an upgrade), so the
+			// stats must be fresh; a first visit may reuse the sidebar's copy.
+			await Promise.allSettled([
+				loaders.stats(flushGpm || silent),
+				refreshParts(ALL_PARTS.filter((part) => part !== 'stats'), flushGpm),
 			]);
-			if (results[0].status === 'fulfilled') stats = results[0].value;
-			if (results[1].status === 'fulfilled') systemInfo = results[1].value;
-			if (results[2].status === 'fulfilled') notifications = results[2].value;
-			if (results[3].status === 'fulfilled') recentPages = results[3].value;
-			if (results[4].status === 'fulfilled') popularity = results[4].value;
-			if (results[5].status === 'fulfilled') feed = (results[5].value as { feed?: FeedItem[] })?.feed ?? [];
-			if (results[6].status === 'fulfilled') backups = results[6].value;
-			if (results[7].status === 'fulfilled') updates = results[7].value;
-			if (results[8].status === 'fulfilled') reports = results[8].value;
-			if (results[9].status === 'fulfilled') {
-				widgets = results[9].value.widgets;
-				savedWidgetsSnapshot = JSON.parse(JSON.stringify(widgets));
-				canEditSite = results[9].value.can_edit_site;
-			}
-			if (results[10].status === 'fulfilled') topNotifications = results[10].value;
 		} finally {
 			if (!silent) {
 				loading = false;
@@ -304,7 +327,8 @@
 		try {
 			const result = await createBackup();
 			toast.success(i18n.t('ADMIN_NEXT.TOASTS.BACKUP_CREATED', { size: formatBytes(result.size) }), { id: toastId });
-			await loadDashboard({ silent: true });
+			// A backup changes the backup list and the stats' last-backup date.
+			await Promise.allSettled([loaders.backups(), dashboardStats.load()]);
 		} catch (err: unknown) {
 			toast.error(`Backup failed: ${err instanceof Error ? err.message : String(err)}`, { id: toastId });
 		} finally {
@@ -312,23 +336,52 @@
 		}
 	}
 
-	$effect(() => { if (auth.isAuthenticated) loadDashboard(); });
+	// Untracked: the loaders read shared stores (the stats' age, for one), and
+	// a change there must not re-run the whole first load.
+	$effect(() => { if (auth.isAuthenticated) untrack(() => loadDashboard()); });
 
-	const poller = usePoll(() => loadDashboard({ silent: true }), 60_000, { runImmediately: false });
+	// Only notifications change on their own, so they are all the timer
+	// fetches: one request a minute instead of eleven. Everything else is
+	// refreshed by the invalidations below, or by the Refresh button.
+	const poller = usePoll(() => loaders.notifications(false), 60_000, { runImmediately: false });
+
+	// Which parts each kind of change can affect. Several tags from one
+	// response are coalesced, so a burst fetches each part once.
+	const PARTS_FOR: Array<[string, Part[]]> = [
+		['pages:*', ['stats', 'recentPages']],
+		['users:*', ['stats']],
+		['media:*', ['stats']],
+		['plugins:*', ['stats', 'systemInfo', 'reports', 'widgets']],
+		['themes:*', ['stats', 'systemInfo']],
+		['gpm:*', ['stats', 'updates', 'systemInfo', 'reports', 'widgets']],
+		['grav:*', ['updates', 'systemInfo']],
+		// Config saves elsewhere in the admin (system.yaml, plugin configs,
+		// etc.) can change cache status and system-health flags.
+		['config:*', ['systemInfo', 'reports']],
+	];
+
 	onMount(() => {
 		poller.start();
-		const unsubPages = invalidations.subscribe('pages:*', () => loadDashboard({ silent: true }));
-		const unsubUsers = invalidations.subscribe('users:*', () => loadDashboard({ silent: true }));
-		const unsubPlugins = invalidations.subscribe('plugins:*', () => loadDashboard({ silent: true }));
-		const unsubGpm = invalidations.subscribe('gpm:*', () => loadDashboard({ silent: true }));
-		// Config saves elsewhere in the admin (system.yaml, plugin configs, etc.)
-		// can change anything the dashboard reads — cache status, language list
-		// shown by widgets, system-health flags. Refetch silently so the
-		// dashboard doesn't strand stale data behind a hard reload.
-		const unsubConfig = invalidations.subscribe('config:update', () => loadDashboard({ silent: true }));
+		const pending = new Set<Part>();
+		let scheduled = false;
+		const queue = (parts: Part[]) => {
+			for (const part of parts) pending.add(part);
+			if (scheduled) return;
+			scheduled = true;
+			queueMicrotask(() => {
+				scheduled = false;
+				const run = [...pending];
+				pending.clear();
+				// Stats may already be on their way from the sidebar badges;
+				// load() joins that request rather than sending another.
+				void refreshParts(run.filter((p) => p !== 'stats'));
+				if (run.includes('stats')) void dashboardStats.load();
+			});
+		};
+		const unsubs = PARTS_FOR.map(([pattern, parts]) => invalidations.subscribe(pattern, () => queue(parts)));
 		return () => {
 			poller.stop();
-			unsubPages(); unsubUsers(); unsubPlugins(); unsubGpm(); unsubConfig();
+			for (const unsub of unsubs) unsub();
 		};
 	});
 </script>

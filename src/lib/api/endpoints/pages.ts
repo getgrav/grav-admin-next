@@ -1,4 +1,4 @@
-import { api } from '../client';
+import { api, ApiRequestError } from '../client';
 
 export interface PageSummary {
 	route: string;
@@ -133,7 +133,20 @@ export interface PageListParams {
 	lang?: string;
 	translations?: boolean;
 	search?: string;
+	/**
+	 * `summary` leaves each row's `header` (the full frontmatter) out of the
+	 * reply. Rows keep every flattened field the lists read; `header` is
+	 * about half of a big listing. APIs older than 1.0.40 ignore it and send
+	 * the header anyway, which is harmless.
+	 */
+	fields?: 'summary';
 }
+
+/**
+ * Rows without `header`, for views that never read it: the page tree, list
+ * and columns, search results, pickers and sibling lookups.
+ */
+export const SUMMARY_FIELDS = 'summary';
 
 /** Strip the last segment of a route to get its parent. Root is '/'. */
 export function parentRouteOf(route: string): string {
@@ -142,7 +155,13 @@ export function parentRouteOf(route: string): string {
 	return '/' + parts.slice(0, -1).join('/');
 }
 
-export async function getChildren(parentRoute: string, sort: string = 'order', order: string = 'asc', lang?: string, translations?: boolean): Promise<PageSummary[]> {
+/**
+ * Every child of a page, fetching further chunks in parallel.
+ *
+ * Pass `summary: true` when nothing reads the rows' `header`: the reply is
+ * about half the size (see SUMMARY_FIELDS).
+ */
+export async function getChildren(parentRoute: string, sort: string = 'order', order: string = 'asc', lang?: string, translations?: boolean, options?: { summary?: boolean }): Promise<PageSummary[]> {
 	const perPage = 200;
 	const baseParams: Record<string, string> = {
 		children_of: parentRoute,
@@ -152,6 +171,7 @@ export async function getChildren(parentRoute: string, sort: string = 'order', o
 	};
 	if (lang) baseParams.lang = lang;
 	if (translations) baseParams.translations = 'true';
+	if (options?.summary) baseParams.fields = SUMMARY_FIELDS;
 
 	type ChildrenBody = {
 		data?: PageSummary[];
@@ -174,6 +194,62 @@ export async function getChildren(parentRoute: string, sort: string = 'order', o
 	}
 
 	return all;
+}
+
+/** A page's place among its siblings, from `GET /pages/{route}/neighbors`. */
+export interface PageNeighbors {
+	parent: PageSummary | null;
+	prev: PageSummary | null;
+	next: PageSummary | null;
+	first_child: PageSummary | null;
+	/** Zero-based position among its siblings. */
+	index: number;
+	total: number;
+}
+
+/** Set once an API has shown it has no neighbors endpoint; lasts until reload. */
+let neighborsUnsupported = false;
+
+/**
+ * The parent, previous and next sibling and first child of a page, in one
+ * small request instead of loading every sibling. Resolves to `null` when the
+ * API predates the endpoint, so callers can fall back to `getChildren()`; the
+ * endpoint is not asked again until the admin reloads. A page that does not
+ * exist rejects with the API's 404.
+ */
+export async function getPageNeighbors(route: string, lang?: string): Promise<PageNeighbors | null> {
+	if (neighborsUnsupported) return null;
+	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
+	if (!cleanRoute) return null;
+	try {
+		const result = await api.get<PageNeighbors>(`/pages/${cleanRoute}/neighbors`, lang ? { lang } : undefined);
+		// An older API with a real child page called `neighbors` answers with
+		// that page instead; it has none of these fields.
+		if (!result || typeof result !== 'object' || !('prev' in result) || !('next' in result)) {
+			neighborsUnsupported = true;
+			return null;
+		}
+		return result;
+	} catch (err) {
+		if (err instanceof ApiRequestError && isMissingEndpoint(err)) {
+			neighborsUnsupported = true;
+			return null;
+		}
+		throw err;
+	}
+}
+
+/**
+ * Tell "this API has no neighbors endpoint" from "this page does not exist".
+ * On an older API `GET /pages/a/b/neighbors` is read as the page
+ * `/a/b/neighbors`, so its 404 names a route ending in `/neighbors`; a
+ * router that has no GET for the path at all answers 405. The endpoint's own
+ * not-found names the page's route, without the suffix.
+ */
+function isMissingEndpoint(err: ApiRequestError): boolean {
+	if (err.status === 405 || err.status === 501) return true;
+	if (err.status !== 404) return false;
+	return /\/neighbors\b/.test(`${err.error.detail ?? ''} ${err.message}`);
 }
 
 export interface CreatePageBody {
@@ -219,6 +295,7 @@ function toParams(p: PageListParams): Record<string, string> {
 	if (p.lang) params.lang = p.lang;
 	if (p.translations) params.translations = 'true';
 	if (p.search) params.search = p.search;
+	if (p.fields) params.fields = p.fields;
 	return params;
 }
 
@@ -259,6 +336,7 @@ export async function searchPages(
 			page: options?.page,
 			lang: options?.lang,
 			translations: options?.translations,
+			fields: SUMMARY_FIELDS,
 		}),
 		signal: options?.signal,
 	});
@@ -271,7 +349,8 @@ export async function getRecentPages(limit = 5): Promise<PageSummary[]> {
 	return api.get<PageSummary[]>('/pages', {
 		sort: 'modified',
 		order: 'desc',
-		per_page: String(limit)
+		per_page: String(limit),
+		fields: SUMMARY_FIELDS,
 	});
 }
 
@@ -359,7 +438,7 @@ export async function duplicatePage(page: Pick<PageSummary, 'route' | 'raw_route
 	const baseSlug = slugMatch?.[1] || page.slug;
 	const startN = slugMatch?.[2] ? Number(slugMatch[2]) + 1 : 2;
 
-	const siblings = await getChildren(parentRoute);
+	const siblings = await getChildren(parentRoute, 'order', 'asc', undefined, undefined, { summary: true });
 	const existingSlugs = new Set(siblings.map((p) => p.slug));
 	let n = startN;
 	while (existingSlugs.has(`${baseSlug}-${n}`)) n++;

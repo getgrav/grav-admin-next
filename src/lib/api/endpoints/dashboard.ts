@@ -53,24 +53,39 @@ interface NotificationsResponse {
 	last_checked: string;
 }
 
-export async function getNotifications(force = false): Promise<Notification[]> {
+export interface DashboardNotifications {
+	/** The dashboard widget's list: `dashboard-row`, then `dashboard`, then `feed`. */
+	dashboard: Notification[];
+	/** The banner above the widgets. */
+	top: Notification[];
+}
+
+/**
+ * Both notification lists from one request. The widget and the top banner
+ * used to ask for the same URL separately, in parallel, on every refresh.
+ */
+export async function getDashboardNotifications(force = false): Promise<DashboardNotifications> {
 	const data = await api.get<NotificationsResponse>(`/dashboard/notifications${force ? '?force=true' : ''}`);
-	// Combine feed and dashboard notifications. Top notifications render in
-	// the banner separately — see getTopNotifications().
 	// `dashboard-row` is a second dashboard list: promos that share a row with
 	// the ones in `dashboard`, drawn first. It lives under its own location so
 	// an admin older than this one, which reads `dashboard` alone, shows one
 	// banner rather than two stacked.
-	return [
-		...(data.notifications?.['dashboard-row'] ?? []),
-		...(data.notifications?.dashboard ?? []),
-		...(data.notifications?.feed ?? []),
-	];
+	return {
+		dashboard: [
+			...(data.notifications?.['dashboard-row'] ?? []),
+			...(data.notifications?.dashboard ?? []),
+			...(data.notifications?.feed ?? []),
+		],
+		top: data.notifications?.top ?? [],
+	};
+}
+
+export async function getNotifications(force = false): Promise<Notification[]> {
+	return (await getDashboardNotifications(force)).dashboard;
 }
 
 export async function getTopNotifications(force = false): Promise<Notification[]> {
-	const data = await api.get<NotificationsResponse>(`/dashboard/notifications${force ? '?force=true' : ''}`);
-	return data.notifications?.top ?? [];
+	return (await getDashboardNotifications(force)).top;
 }
 
 export async function getStats(): Promise<DashboardStats> {

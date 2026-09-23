@@ -11,6 +11,10 @@
  *     update stays in the local Y.Doc and will naturally resync via pull.
  *   - Awareness is piggy-backed on the presence endpoint on a separate,
  *     slower cadence (every 5s idle, every 2s active) since it's chatty.
+ *   - In a hidden tab the pull stops and the heartbeat slows to
+ *     HIDDEN_PRESENCE_MS, which still renews presence (and the editor lock)
+ *     before the server's TTL runs out. Showing the tab pulls at once and
+ *     restores both cadences.
  */
 
 import { api } from '$lib/api/client';
@@ -44,6 +48,18 @@ type PresenceResponse = { peers: Peer[] };
  *  heartbeat. Short enough to feel live, long enough to coalesce the
  *  burst of updates a single keystroke/selection drag can produce. */
 const AWARENESS_DEBOUNCE_MS = 50;
+
+/**
+ * Heartbeat cadence while the tab is hidden. The sync plugin's presence TTL
+ * defaults to 30s (`plugins.sync.presence.ttl_seconds`), so a heartbeat every
+ * 20s keeps this client, and any editor lock it holds, alive with room for a
+ * slow request, while cutting a background tab from ~27 requests a minute to 3.
+ */
+const HIDDEN_PRESENCE_MS = 20_000;
+
+function tabHidden(): boolean {
+	return typeof document !== 'undefined' && document.visibilityState === 'hidden';
+}
 
 function b64ToBytes(b64: string): Uint8Array {
 	const bin = atob(b64);
@@ -106,6 +122,7 @@ export class PollingProvider implements SyncProvider {
 	private status: SyncStatus = 'idle';
 	private editorType: string | null;
 	private unloadHandler: (() => void) | null = null;
+	private visibilityHandler: (() => void) | null = null;
 
 	constructor(opts: SyncProviderOptions) {
 		this.roomId = opts.roomId;
@@ -131,6 +148,7 @@ export class PollingProvider implements SyncProvider {
 		}
 		this.setStatus('connecting');
 		this.installUnloadHandler();
+		this.installVisibilityHandler();
 		try {
 			await this.pullOnce();
 			await this.heartbeatOnce();
@@ -177,6 +195,7 @@ export class PollingProvider implements SyncProvider {
 		}
 		this.detachAwarenessListener();
 		this.uninstallUnloadHandler();
+		this.uninstallVisibilityHandler();
 		// Best-effort leave; ignore errors.
 		try {
 			await api.post(this.presencePath(), { clientId: this.clientId, leave: true, lang: this.lang });
@@ -240,6 +259,34 @@ export class PollingProvider implements SyncProvider {
 		window.removeEventListener('pagehide', this.unloadHandler);
 		window.removeEventListener('beforeunload', this.unloadHandler);
 		this.unloadHandler = null;
+	}
+
+	/**
+	 * Pause the pull and slow the heartbeat while the tab is hidden; pull
+	 * straight away and restore both when it is shown again.
+	 */
+	private installVisibilityHandler(): void {
+		if (typeof document === 'undefined' || this.visibilityHandler) return;
+		const handler = () => {
+			if (this.disposed || isSyncUnavailable()) return;
+			if (tabHidden()) {
+				if (this.pullTimer) clearTimeout(this.pullTimer);
+				this.pullTimer = null;
+				// Re-arm on the slower hidden cadence.
+				this.schedulePresence();
+				return;
+			}
+			this.pullSoon();
+			this.schedulePresence();
+		};
+		this.visibilityHandler = handler;
+		document.addEventListener('visibilitychange', handler);
+	}
+
+	private uninstallVisibilityHandler(): void {
+		if (typeof document === 'undefined' || !this.visibilityHandler) return;
+		document.removeEventListener('visibilitychange', this.visibilityHandler);
+		this.visibilityHandler = null;
 	}
 
 	async push(update: Uint8Array): Promise<void> {
@@ -359,10 +406,10 @@ export class PollingProvider implements SyncProvider {
 	}
 
 	private get presenceIntervalMs(): number {
-		return (
-			(this.hasOtherPeers() ? this.presenceActiveMs : this.presenceIdleMs) *
-			this.backoff(this.presenceFailures)
-		);
+		const base = tabHidden()
+			? HIDDEN_PRESENCE_MS
+			: this.hasOtherPeers() ? this.presenceActiveMs : this.presenceIdleMs;
+		return base * this.backoff(this.presenceFailures);
 	}
 
 	/**
@@ -385,12 +432,18 @@ export class PollingProvider implements SyncProvider {
 	private schedulePull(): void {
 		if (this.disposed) return;
 		if (this.pullTimer) clearTimeout(this.pullTimer);
+		this.pullTimer = null;
+		// Hidden: no pull until the tab is shown (the visibility handler
+		// pulls then). Nobody is looking, and remote edits wait in the log.
+		if (tabHidden()) return;
 		this.pullTimer = setTimeout(() => this.pullLoop(), this.pullIntervalMs);
 	}
 
 	private pullSoon(): void {
 		if (this.disposed) return;
 		if (this.pullTimer) clearTimeout(this.pullTimer);
+		this.pullTimer = null;
+		if (tabHidden()) return;
 		// A local change wants the next pull straight away, but not while the last
 		// few have been failing -- that is how a rate limit gets held open.
 		const delay = this.pullFailures ? this.pullIntervalMs : 0;
