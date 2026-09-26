@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { replaceState } from '$app/navigation';
-	import { getContext, untrack } from 'svelte';
+	import { getContext, untrack, type Snippet } from 'svelte';
 	import FieldRenderer from '../FieldRenderer.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldMatches } from '$lib/utils/field-filter';
@@ -26,6 +26,14 @@
 	const embedded = $derived(hostTabs?.().embedded ?? false);
 	const hostTab = $derived((hostTabs?.().tab ?? '').trim().toLowerCase());
 	const translateLabel = i18n.tMaybe;
+
+	// A hosted form's Save row, when this is the tab group it picked to carry
+	// it: drawn at the end of the strip instead of on a row above it.
+	const hostToolbar = getContext<(() => { field: string; snippet: Snippet } | null) | undefined>('blueprintToolbar');
+	const toolbar = $derived.by(() => {
+		const offer = hostToolbar?.();
+		return offer && offer.field === field.name ? offer.snippet : null;
+	});
 
 	// A real tab needs an explicit `type: tab`, OR a title/label combined with
 	// child fields. Grav blueprints that use `unset@: true` to remove a tab can
@@ -309,25 +317,34 @@
 	<div bind:this={contentWrapEl}>
 		<div
 			bind:this={tabStripEl}
-			class="sticky z-[8] flex gap-1 overflow-x-auto border-b border-border bg-background [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+			class="sticky z-[8] flex gap-2 border-b border-border bg-background"
 			style="top: var(--sticky-header-height-base, 0px)"
-			use:dragScroll
 		>
-			{#each tabs as tab, i (tab.name)}
-				{@const hasMatch = !tabHasMatch || tabHasMatch.has(tab.name)}
-				{#if !filter || hasMatch}
-					<button
-						class="shrink-0 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors
-							{i === activeIndex
-								? 'border-primary text-primary'
-								: 'border-transparent text-muted-foreground hover:text-foreground'}"
-						type="button"
-						onclick={() => setActiveTab(i)}
-					>
-						{translateLabel(tab.title || tab.label || tab.name)}
-					</button>
-				{/if}
-			{/each}
+			<div
+				class="flex min-w-0 flex-1 gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+				use:dragScroll
+			>
+				{#each tabs as tab, i (tab.name)}
+					{@const hasMatch = !tabHasMatch || tabHasMatch.has(tab.name)}
+					{#if !filter || hasMatch}
+						<button
+							class="shrink-0 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors
+								{i === activeIndex
+									? 'border-primary text-primary'
+									: 'border-transparent text-muted-foreground hover:text-foreground'}"
+							type="button"
+							onclick={() => setActiveTab(i)}
+						>
+							{translateLabel(tab.title || tab.label || tab.name)}
+						</button>
+					{/if}
+				{/each}
+			</div>
+			{#if toolbar}
+				<div class="flex shrink-0 items-center justify-end gap-2 self-center">
+					{@render toolbar()}
+				</div>
+			{/if}
 		</div>
 
 		{#if noResults}

@@ -91,6 +91,17 @@
 	// Tab groups inside a hosted form take their tab from the host rather than
 	// the page hash: the hash belongs to whichever router drew the host page.
 	setContext('blueprintTabs', () => ({ embedded: true, tab }));
+
+	// A form that opens into tabs puts its Save row at the end of the tab
+	// strip. Above the strip it was a row of its own holding one button, sat
+	// between the host's navigation and the form's. The first top-level
+	// horizontal tab group takes it; side tabs and untabbed forms keep the row.
+	const toolbarTabs = $derived(
+		hideToolbar
+			? ''
+			: (shownFields.find((f) => f.type === 'tabs' && !f.classes?.includes('side-tabs'))?.name ?? '')
+	);
+	setContext('blueprintToolbar', () => (toolbarTabs ? { field: toolbarTabs, snippet: toolbar } : null));
 	// Bus for leaf fields that defer side effects to the save commit.
 	const formCommit = provideFormCommit();
 
@@ -271,17 +282,21 @@
 	});
 </script>
 
-{#if !hideToolbar && blueprint}
+{#snippet toolbar()}
+	<UnsavedIndicator hasChanges={hasChanges} saving={saving} lastSavedAt={null} autoSaveEnabled={false} />
+	<Button size="sm" onclick={save} disabled={!hasChanges || saving || !canSave}>
+		{#if saving}
+			<Loader2 size={14} class="me-1.5 animate-spin" />
+		{:else}
+			<Save size={14} class="me-1.5" />
+		{/if}
+		Save
+	</Button>
+{/snippet}
+
+{#if !hideToolbar && blueprint && !toolbarTabs}
 	<div class="mb-4 flex items-center justify-end gap-2">
-		<UnsavedIndicator hasChanges={hasChanges} saving={saving} lastSavedAt={null} autoSaveEnabled={false} />
-		<Button size="sm" onclick={save} disabled={!hasChanges || saving || !canSave}>
-			{#if saving}
-				<Loader2 size={14} class="me-1.5 animate-spin" />
-			{:else}
-				<Save size={14} class="me-1.5" />
-			{/if}
-			Save
-		</Button>
+		{@render toolbar()}
 	</div>
 {/if}
 
