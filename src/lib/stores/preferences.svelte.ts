@@ -99,6 +99,8 @@ interface LocalState {
 	sidebarCollapsed: boolean;
 	pageSidebarCollapsed: boolean;
 	pagesChunkSize: PagesChunkSize;
+	/** Ids of page-editor sidebar cards the user has collapsed (e.g. 'page-info'). */
+	collapsedEditorCards: string[];
 }
 
 const LOCAL_DEFAULTS: LocalState = {
@@ -106,6 +108,7 @@ const LOCAL_DEFAULTS: LocalState = {
 	sidebarCollapsed: false,
 	pageSidebarCollapsed: false,
 	pagesChunkSize: 100,
+	collapsedEditorCards: [],
 };
 
 function loadLocal(): LocalState {
@@ -197,6 +200,7 @@ function createPreferencesStore() {
 	let sidebarCollapsed = $state<boolean>(local.sidebarCollapsed);
 	let pageSidebarCollapsed = $state<boolean>(local.pageSidebarCollapsed);
 	let pagesChunkSize = $state<PagesChunkSize>(local.pagesChunkSize);
+	let collapsedEditorCards = $state<string[]>(Array.isArray(local.collapsedEditorCards) ? local.collapsedEditorCards : []);
 
 	// ── Server payload mirrors (read-only via getters) ─────────────────────
 	let siteDefaults = $state<Partial<PreferenceValues>>({});
@@ -213,7 +217,7 @@ function createPreferencesStore() {
 		try {
 			localStorage.setItem(
 				LOCAL_STORAGE_KEY,
-				JSON.stringify({ mediaViewMode, sidebarCollapsed, pageSidebarCollapsed, pagesChunkSize }),
+				JSON.stringify({ mediaViewMode, sidebarCollapsed, pageSidebarCollapsed, pagesChunkSize, collapsedEditorCards }),
 			);
 		} catch {
 			/* quota / unavailable — fine */
@@ -404,6 +408,13 @@ function createPreferencesStore() {
 
 		get pagesChunkSize() { return pagesChunkSize; },
 		set pagesChunkSize(v: PagesChunkSize) { pagesChunkSize = v; persistLocal(); },
+		isEditorCardCollapsed(id: string): boolean { return collapsedEditorCards.includes(id); },
+		toggleEditorCard(id: string): void {
+			collapsedEditorCards = collapsedEditorCards.includes(id)
+				? collapsedEditorCards.filter((c) => c !== id)
+				: [...collapsedEditorCards, id];
+			persistLocal();
+		},
 
 		// ── Server-payload mirrors / metadata ──────────────────────────────
 		get siteDefaults() { return siteDefaults; },

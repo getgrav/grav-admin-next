@@ -319,7 +319,7 @@
 		{:else if prefs.pagesViewMode === 'list'}
 			<PagesListView {searchQuery} {filters} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} onCopy={canEditPages ? handleCopy : undefined} onTogglePublished={canEditPages ? handleTogglePublished : undefined} {copyingRoutes} />
 		{:else if prefs.pagesViewMode === 'miller'}
-			<PagesMillerView {searchQuery} {filters} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} onCopy={canEditPages ? handleCopy : undefined} onTogglePublished={canEditPages ? handleTogglePublished : undefined} {copyingRoutes} />
+			<PagesMillerView {searchQuery} {filters} {reorderMode} lang={contentLang.enabled ? contentLang.activeLang : undefined} onLanguageChange={() => loadStats()} onEdit={handleEdit} onDelete={canEditPages ? handleDelete : undefined} onCopy={canEditPages ? handleCopy : undefined} onTogglePublished={canEditPages ? handleTogglePublished : undefined} {copyingRoutes} />
 		{/if}
 
 		<!-- Footer stats -->

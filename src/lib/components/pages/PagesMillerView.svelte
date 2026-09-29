@@ -31,6 +31,8 @@
 		filters?: PageFilters;
 		reorderMode?: boolean;
 		lang?: string;
+		/** Called after a preview translation chip switches the content language, like the toolbar dropdown's onchange. */
+		onLanguageChange?: (lang: string) => void;
 		onEdit: (route: string) => void;
 		onDelete?: (page: PageSummary) => void;
 		/**
@@ -43,7 +45,7 @@
 		copyingRoutes?: Set<string>;
 	}
 
-	let { searchQuery = '', filters = emptyPageFilters(), reorderMode = false, lang, onEdit, onDelete, onCopy, onTogglePublished, copyingRoutes }: Props = $props();
+	let { searchQuery = '', filters = emptyPageFilters(), reorderMode = false, lang, onLanguageChange, onEdit, onDelete, onCopy, onTogglePublished, copyingRoutes }: Props = $props();
 
 	// Stable key over the active filters. Changing a filter re-points every open
 	// column at a fresh, unloaded stream (the stream key already includes the
@@ -206,7 +208,12 @@
 	async function loadPreview(route: string) {
 		previewLoading = true;
 		try {
-			previewPage = await getPage(route, { summary: true });
+			// The preview's Translations section needs translated_languages, which
+			// the show endpoint only includes on request.
+			previewPage = await getPage(route, {
+				summary: true,
+				translations: contentLang.enabled && contentLang.languages.length > 1,
+			});
 		} catch {
 			previewPage = null;
 		} finally {
@@ -998,17 +1005,28 @@
 												     the tree and list rows do. Shape carries the state, colour
 												     reinforces it. -->
 												<PageStatusIndicator {page} {isActive} size={12} />
+											</div>
+											<!-- Translation badges share the route line in compact form, so the
+											     title keeps the full width: one chip per language pushed the
+											     title to zero width on sites with many xx-xx locales. -->
+											<div class="flex min-w-0 items-center gap-1.5">
+												<div class="min-w-0 flex-1 truncate text-[0.6875rem] {isActive ? 'text-primary-foreground/70' : 'text-muted-foreground'}">{page.route}</div>
 												{#if lang && badgeKeys.length > 0}
 													<TranslationBadges
+														compact
+														inverted={isActive}
+														languages={contentLang.languages.map((l) => l.code)}
 														translated={badgeKeys}
 														currentLang={explicitFiles.includes(lang) ? lang : undefined}
 													/>
 												{/if}
 											</div>
-											<div class="truncate text-[0.6875rem] {isActive ? 'text-primary-foreground/70' : 'text-muted-foreground'}">{page.route}</div>
 										</div>
 										{#if page.has_children}
 											<DirectionalIcon name="chevron-forward" size={12} class="shrink-0 {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground/50'}" />
+										{:else}
+											<!-- Keep the chevron's width so leaf rows' badges line up with folders'. -->
+											<span class="w-3 shrink-0" aria-hidden="true"></span>
 										{/if}
 									</a>
 								</div>
@@ -1142,6 +1160,52 @@
 							</div>
 						{/if}
 					</dl>
+
+					<!-- Translations: the column rows only have room for a count, so the
+					     full translated / not-translated breakdown lives here. -->
+					{#if contentLang.enabled && contentLang.languages.length > 1}
+						{@const previewKeys = Object.keys(previewPage.translated_languages ?? {}).filter(Boolean)}
+						{@const previewDone = previewPage.has_default_file && contentLang.defaultLang && !previewKeys.includes(contentLang.defaultLang)
+							? [contentLang.defaultLang, ...previewKeys]
+							: previewKeys}
+						{@const previewMissing = contentLang.languages.map((l) => l.code).filter((code) => !previewDone.includes(code))}
+						<div class="mt-4 border-t border-border pt-4">
+							<h4 class="mb-2 text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">
+								{i18n.t('ADMIN_NEXT.LANG.TRANSLATIONS')} ({previewDone.length})
+							</h4>
+							<div class="flex flex-wrap items-center gap-1">
+								{#each previewDone as code (code)}
+									{#if code === lang}
+										<span
+											class="inline-flex h-5 items-center whitespace-nowrap rounded bg-primary px-1.5 text-[0.625rem] font-bold uppercase leading-none text-primary-foreground"
+											title={contentLang.getLanguageName(code)}
+											aria-current="true"
+										>{code}</span>
+									{:else}
+										<!-- Same as picking the language in the toolbar dropdown: the
+										     columns and this preview reload in that language. -->
+										<button
+											type="button"
+											class="inline-flex h-5 items-center whitespace-nowrap rounded bg-muted px-1.5 text-[0.625rem] font-bold uppercase leading-none text-foreground transition-colors hover:bg-primary/15 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+											title={contentLang.getLanguageName(code)}
+											onclick={() => { contentLang.setLanguage(code); onLanguageChange?.(code); }}
+										>{code}</button>
+									{/if}
+								{/each}
+							</div>
+							{#if previewMissing.length > 0}
+								<h4 class="mb-2 mt-3 text-[0.6875rem] font-medium uppercase tracking-wider text-warning">{i18n.t('ADMIN_NEXT.LANG.NOT_TRANSLATED')} ({previewMissing.length})</h4>
+								<div class="flex flex-wrap items-center gap-1">
+									{#each previewMissing as code (code)}
+										<span
+											class="inline-flex h-5 items-center whitespace-nowrap rounded border border-dashed border-border px-1.5 text-[0.625rem] font-bold uppercase leading-none text-muted-foreground"
+											title={contentLang.getLanguageName(code)}
+										>{code}</span>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					{/if}
 
 					<!-- Content summary -->
 					{#if previewPage.summary}

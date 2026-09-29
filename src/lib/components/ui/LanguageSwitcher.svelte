@@ -28,7 +28,7 @@
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="relative" onkeydown={handleKeydown}>
 		<button
-			class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-[0.75rem] font-medium transition-colors
+			class="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-border px-2.5 text-[0.75rem] font-medium transition-colors
 				{open ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
 			onclick={() => open = !open}
 			title={i18n.t('ADMIN_NEXT.LANG.SWITCH_LANGUAGE')}

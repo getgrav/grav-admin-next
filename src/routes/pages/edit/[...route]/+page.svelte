@@ -2159,8 +2159,21 @@
 				<div class="space-y-4">
 				<!-- Page Status & Info -->
 				<div class="rounded-lg border border-border bg-card p-4">
-					<h3 class="mb-3 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.PAGES.PAGE_INFO')}</h3>
-					<dl class="space-y-2.5 text-[0.8125rem]">
+					<!-- Collapsible, remembered per device: a long card (translations on a
+					     many-language site) otherwise pushes the rest of the sidebar out of reach. -->
+					<h3 class="text-sm font-semibold text-foreground">
+						<button
+							type="button"
+							class="flex w-full items-center justify-between gap-2 text-start"
+							aria-expanded={!prefs.isEditorCardCollapsed('page-info')}
+							onclick={() => prefs.toggleEditorCard('page-info')}
+						>
+							<span>{i18n.t('ADMIN_NEXT.PAGES.PAGE_INFO')}</span>
+							<ChevronDown size={14} class="shrink-0 text-muted-foreground transition-transform {prefs.isEditorCardCollapsed('page-info') ? 'rtl:rotate-90 -rotate-90' : ''}" />
+						</button>
+					</h3>
+					{#if !prefs.isEditorCardCollapsed('page-info')}
+					<dl class="mt-3 space-y-2.5 text-[0.8125rem]">
 						<!-- Status indicators -->
 						<div class="flex justify-between">
 							<dt class="flex items-center gap-1.5 text-muted-foreground">
@@ -2261,13 +2274,27 @@
 							</div>
 						{/if}
 					</dl>
+					{/if}
 				</div>
 
 				<!-- Translations (shown when multilang enabled) -->
 				{#if contentLang.enabled && (pageData.translated_languages || pageData.untranslated_languages)}
 					<div class="rounded-lg border border-border bg-card p-4">
-						<h3 class="mb-3 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.LANG.TRANSLATIONS')}</h3>
-						<div class="space-y-1.5">
+						<!-- Collapsible, remembered per device: a long card (translations on a
+						     many-language site) otherwise pushes the rest of the sidebar out of reach. -->
+						<h3 class="text-sm font-semibold text-foreground">
+							<button
+								type="button"
+								class="flex w-full items-center justify-between gap-2 text-start"
+								aria-expanded={!prefs.isEditorCardCollapsed('translations')}
+								onclick={() => prefs.toggleEditorCard('translations')}
+							>
+								<span>{i18n.t('ADMIN_NEXT.LANG.TRANSLATIONS')}</span>
+								<ChevronDown size={14} class="shrink-0 text-muted-foreground transition-transform {prefs.isEditorCardCollapsed('translations') ? 'rtl:rotate-90 -rotate-90' : ''}" />
+							</button>
+						</h3>
+						{#if !prefs.isEditorCardCollapsed('translations')}
+						<div class="mt-3 space-y-1.5">
 							{#if pageData.translated_languages}
 								{#each Object.keys(pageData.translated_languages) as lang}
 									<button
@@ -2314,6 +2341,7 @@
 								{/each}
 							{/if}
 						</div>
+						{/if}
 					</div>
 				{/if}
 
