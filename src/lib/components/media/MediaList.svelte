@@ -96,7 +96,7 @@
 				{sortField === 'name' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => toggleSort('name')}
 		>
-			Name
+			{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.SORT_NAME')}
 			{#if sortField === 'name'}
 				{#if sortOrder === 'asc'}<ArrowUp size={11} />{:else}<ArrowDown size={11} />{/if}
 			{/if}
@@ -110,7 +110,7 @@
 				{sortField === 'type' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => toggleSort('type')}
 		>
-			Type
+			{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.SORT_TYPE')}
 			{#if sortField === 'type'}
 				{#if sortOrder === 'asc'}<ArrowUp size={11} />{:else}<ArrowDown size={11} />{/if}
 			{/if}
@@ -124,7 +124,7 @@
 				{sortField === 'size' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => toggleSort('size')}
 		>
-			Size
+			{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.SORT_SIZE')}
 			{#if sortField === 'size'}
 				{#if sortOrder === 'asc'}<ArrowUp size={11} />{:else}<ArrowDown size={11} />{/if}
 			{/if}

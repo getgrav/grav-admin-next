@@ -42,21 +42,22 @@
 		return path.split('/');
 	});
 
-	const typeFilters: { value: TypeFilter; label: string; icon: typeof ImageIcon }[] = [
-		{ value: '', label: 'All', icon: SlidersHorizontal },
-		{ value: 'image', label: 'Images', icon: ImageIcon },
-		{ value: 'video', label: 'Video', icon: Video },
-		{ value: 'audio', label: 'Audio', icon: Music },
-		{ value: 'document', label: 'Docs', icon: FileText },
-	];
+	// Options are rebuilt on render so the labels follow the admin language.
+	const typeFilters = $derived<{ value: TypeFilter; label: string; icon: typeof ImageIcon }[]>([
+		{ value: '', label: i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.FILTER_ALL'), icon: SlidersHorizontal },
+		{ value: 'image', label: i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.FILTER_IMAGES'), icon: ImageIcon },
+		{ value: 'video', label: i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.FILTER_VIDEO'), icon: Video },
+		{ value: 'audio', label: i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.FILTER_AUDIO'), icon: Music },
+		{ value: 'document', label: i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.FILTER_DOCS'), icon: FileText },
+	]);
 
-	const sortOptions: { value: SortField; label: string }[] = [
-		{ value: 'name', label: 'Name' },
-		{ value: 'size', label: 'Size' },
-		{ value: 'modified', label: 'Date' },
-		{ value: 'type', label: 'Type' },
+	const sortOptions = $derived<{ value: SortField; label: string }[]>([
+		{ value: 'name', label: i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.SORT_NAME') },
+		{ value: 'size', label: i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.SORT_SIZE') },
+		{ value: 'modified', label: i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.SORT_DATE') },
+		{ value: 'type', label: i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.SORT_TYPE') },
 		{ value: 'manual', label: i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.CUSTOM_ORDER') },
-	];
+	]);
 
 	const selectionCount = $derived(mediaManager.selectedFiles.size);
 </script>
@@ -72,7 +73,7 @@
 	>
 		<span class="flex items-center gap-1">
 			<FolderOpen size={14} />
-			Media
+			{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.ROOT')}
 		</span>
 	</button>
 	{#each breadcrumbs as segment, i}
@@ -90,7 +91,7 @@
 	{#if mediaManager.isSearching}
 		<DirectionalIcon name="chevron-forward" size={12} class="text-muted-foreground/50" />
 		<span class="text-[0.8125rem] text-muted-foreground">
-			Search: "{mediaManager.searchQuery}"
+			{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.SEARCHING_FOR', { query: mediaManager.searchQuery })}
 		</span>
 	{/if}
 </div>
@@ -197,7 +198,7 @@
 			onclick={ondeleteselected}
 		>
 			<Trash2 size={13} />
-			Delete ({selectionCount})
+			{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.DELETE_SELECTED', { count: selectionCount })}
 		</button>
 	{/if}
 
