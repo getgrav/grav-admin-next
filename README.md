@@ -4,7 +4,7 @@
 
 This repository contains the single-page application that ships inside the `grav-plugin-admin2` plugin. It talks to Grav exclusively through the [Grav API plugin](https://github.com/getgrav/grav-plugin-api) — there is no direct coupling to Grav's PHP render pipeline or Twig.
 
-> **Status: Alpha.** Under active development for Grav 2.0.
+> **Status: Stable.** This is the source for Admin2. It ships inside the admin2 plugin and is released with it.
 
 ## Architecture at a glance
 
