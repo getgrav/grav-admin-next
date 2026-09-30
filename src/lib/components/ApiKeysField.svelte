@@ -11,6 +11,7 @@
 	import { toast } from 'svelte-sonner';
 	import { Loader2, Trash2, KeyRound, Copy, Check, AlertTriangle } from 'lucide-svelte';
 	import { canWrite } from '$lib/utils/permissions';
+	import { auth } from '$lib/stores/auth.svelte';
 
 	interface Props {
 		username: string;
@@ -18,10 +19,13 @@
 
 	let { username }: Props = $props();
 
-	// Generating/revoking a key is a user-write action — issuing a real, working
-	// credential. Gate the controls so a read-only/demo account can't attempt it
-	// (the server hard-blocks it too, but the buttons shouldn't invite the click).
-	const canManageKeys = $derived(canWrite('users'));
+	// Generating/revoking a key issues a real, working credential. The API lets
+	// you manage your own keys with just api.access and needs api.users.write for
+	// anyone else's, so mirror that. Demo accounts get neither (the server
+	// hard-blocks it too, but the buttons shouldn't invite the click).
+	const canManageKeys = $derived(
+		canWrite('users') || (username === auth.username && !auth.demoMode),
+	);
 
 	let keys = $state<ApiKeyInfo[]>([]);
 	let loadingKeys = $state(true);
