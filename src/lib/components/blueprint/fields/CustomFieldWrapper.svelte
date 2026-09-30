@@ -200,12 +200,15 @@
 		containerEl.appendChild(el);
 	}
 
-	// Sync value changes from Svelte → web component
+	// Sync value changes from Svelte → web component. `value` is read before
+	// any early exit: the element is appended after this effect's first run, so
+	// a read behind the `el` check would leave `containerEl` as the only
+	// dependency and the field would never see a new value after mount.
 	$effect(() => {
-		if (!containerEl) return;
-		const el = containerEl.firstElementChild as (HTMLElement & { value?: unknown }) | null;
+		const v = value;
+		const el = containerEl?.firstElementChild as (HTMLElement & { value?: unknown }) | null;
 		if (el && 'value' in el) {
-			el.value = value;
+			el.value = v;
 		}
 	});
 
