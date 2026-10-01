@@ -37,6 +37,7 @@
 	import CustomFieldWrapper from './fields/CustomFieldWrapper.svelte';
 	import FieldOverrideIndicator from './FieldOverrideIndicator.svelte';
 	import FieldLabel from './FieldLabel.svelte';
+	import FieldHelp from './FieldHelp.svelte';
 	import FieldDescription from './FieldDescription.svelte';
 	import PageExistsField from './fields/PageExistsField.svelte';
 	import ColorPickerField from './fields/ColorPickerField.svelte';
@@ -231,7 +232,7 @@
 					<ToggleableCheckbox {toggled} onToggle={() => onchange(toggleValue(field, toggled))} />
 				{/if}
 				<div>
-					<FieldLabel {field} {toggled} />
+					<FieldLabel {field} {toggled} {filter} />
 				</div>
 			</div>
 		{/if}
@@ -389,11 +390,9 @@
 		{#if field.label || field.help}
 			<div>
 				{#if field.label}
-					<label class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{translateLabel(field.label)}{#if field.validate?.required}<span class="text-red-500">*</span>{/if}<FieldOverrideIndicator path={field.name} /></label>
+					<label class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{translateLabel(field.label)}{#if field.validate?.required}<span class="text-red-500">*</span>{/if}<FieldOverrideIndicator path={field.name} /><FieldHelp part="icon" help={field.help} label={field.label} flush /></label>
 				{/if}
-				{#if field.help}
-					<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
-				{/if}
+				<FieldHelp part="text" help={field.help} label={field.label} />
 			</div>
 		{/if}
 		<div class="flex items-center gap-3">
@@ -537,10 +536,9 @@
 			/>
 			<span class="text-sm font-semibold text-foreground">{translateLabel(field.label)}{#if field.validate?.required}<span class="text-red-500">*</span>{/if}</span>
 			<FieldOverrideIndicator path={field.name} />
+			<FieldHelp part="icon" help={field.help} label={field.label} flush />
 		</label>
-		{#if field.help}
-			<p class="mt-0.5 ms-7 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
-		{/if}
+		<FieldHelp part="text" help={field.help} label={field.label} class="mt-0.5 ms-7" />
 	</div>
 
 {:else if field.type === 'checkboxes' && field.options}
@@ -549,11 +547,9 @@
 		{#if field.label || field.help}
 			<div>
 				{#if field.label}
-					<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{translateLabel(field.label)}{#if field.validate?.required}<span class="text-red-500">*</span>{/if}<FieldOverrideIndicator path={field.name} /></span>
+					<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{translateLabel(field.label)}{#if field.validate?.required}<span class="text-red-500">*</span>{/if}<FieldOverrideIndicator path={field.name} /><FieldHelp part="icon" help={field.help} label={field.label} flush /></span>
 				{/if}
-				{#if field.help}
-					<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
-				{/if}
+				<FieldHelp part="text" help={field.help} label={field.label} />
 			</div>
 		{/if}
 		<div class="space-y-1.5">
@@ -591,11 +587,9 @@
 		{#if field.label || field.help}
 			<div>
 				{#if field.label}
-					<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{translateLabel(field.label)}{#if field.validate?.required}<span class="text-red-500">*</span>{/if}<FieldOverrideIndicator path={field.name} /></span>
+					<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{translateLabel(field.label)}{#if field.validate?.required}<span class="text-red-500">*</span>{/if}<FieldOverrideIndicator path={field.name} /><FieldHelp part="icon" help={field.help} label={field.label} flush /></span>
 				{/if}
-				{#if field.help}
-					<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
-				{/if}
+				<FieldHelp part="text" help={field.help} label={field.label} />
 			</div>
 		{/if}
 		<div class="space-y-1">

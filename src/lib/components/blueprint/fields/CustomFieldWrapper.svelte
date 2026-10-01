@@ -1,11 +1,11 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
-	import { sanitizeHtml } from '$lib/utils/markdown';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api/client';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { getContext } from 'svelte';
+	import FieldHelp from '../FieldHelp.svelte';
 
 	/**
 	 * Optional collaborative-editing context. The page editor provides a
@@ -241,9 +241,7 @@
 					{translateLabel(field.label)}
 				</label>
 			{/if}
-			{#if field.help}
-				<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
-			{/if}
+			<FieldHelp help={field.help} label={field.label} />
 		</div>
 	{/if}
 

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
-	import { sanitizeHtml } from '$lib/utils/markdown';
 	import { getChildren, pageApiRoute } from '$lib/api/endpoints/pages';
 	import type { PageSummary } from '$lib/api/endpoints/pages';
 	import { i18n } from '$lib/stores/i18n.svelte';
@@ -9,6 +8,7 @@
 		Loader2, Search, X, ChevronsUpDown, Check
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
+	import FieldHelp from '../FieldHelp.svelte';
 
 	interface Props {
 		field: BlueprintField;
@@ -178,9 +178,7 @@
 					{/if}
 				</label>
 			{/if}
-			{#if field.help}
-				<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
-			{/if}
+			<FieldHelp help={field.help} label={field.label} />
 		</div>
 	{/if}
 

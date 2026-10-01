@@ -1,0 +1,20 @@
+/*
+ * The shadow-DOM styles of <grav-help>, on top of help-tip.css (the icon and
+ * tooltip). The element adds no box of its own: in tooltip mode its icon flows
+ * with the surrounding text, and in below-the-label mode its paragraph is a
+ * block like core's own help.
+ */
+
+:host {
+	display: contents;
+}
+
+/* The same spacing, size and colour as help text under a core field label. */
+.grav-help-text {
+	display: block;
+	margin-top: 0.125rem;
+	font-size: var(--text-xs, 0.75rem);
+	font-weight: 400;
+	line-height: var(--text-xs--line-height, 1.3333);
+	color: var(--muted-foreground);
+}

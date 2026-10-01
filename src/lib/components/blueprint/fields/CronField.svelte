@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
-	import { sanitizeHtml } from '$lib/utils/markdown';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { Clock, ChevronDown } from 'lucide-svelte';
+	import FieldHelp from '../FieldHelp.svelte';
 
 	interface Props {
 		field: BlueprintField;
@@ -143,9 +143,7 @@
 					{translateLabel(field.label)}
 				</label>
 			{/if}
-			{#if field.help}
-				<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
-			{/if}
+			<FieldHelp help={field.help} label={field.label} />
 		</div>
 	{/if}
 

@@ -3,6 +3,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api/client';
 	import { Button } from '$lib/components/ui/button';
+	import FieldHelp from '$lib/components/blueprint/FieldHelp.svelte';
 	import { portal } from '$lib/utils/portal';
 	import { X, Loader2 } from 'lucide-svelte';
 	import {
@@ -237,6 +238,7 @@
 			<label for="modal-field-{field.name}" class="block text-xs font-medium text-muted-foreground">
 				{field.label}
 				{#if field.required}<span class="text-destructive">*</span>{/if}
+				<FieldHelp part="icon" help={field.help} label={field.label} plain />
 			</label>
 		{/if}
 		{#if field.type === 'textarea'}
@@ -282,8 +284,6 @@
 				class="mt-1 h-10 w-full rounded-lg border border-input bg-muted/50 px-3 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 			/>
 		{/if}
-		{#if field.help}
-			<p class="mt-1 text-xs text-muted-foreground">{field.help}</p>
-		{/if}
+		<FieldHelp part="text" help={field.help} label={field.label} plain class="mt-1" />
 	</div>
 {/snippet}

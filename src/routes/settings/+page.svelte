@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { prefs, FONT_OPTIONS, FONT_SIZE_OPTIONS, type FontSize, type EditorKeymap, type MenubarLink, type PagesViewMode, type AccountsViewMode } from '$lib/stores/preferences.svelte';
+	import { prefs, FONT_OPTIONS, FONT_SIZE_OPTIONS, HELP_MODES, type FontSize, type EditorKeymap, type MenubarLink, type PagesViewMode, type AccountsViewMode } from '$lib/stores/preferences.svelte';
 	import { normalizeLang } from '$lib/i18n';
-	import { theme, ACCENT_PRESETS } from '$lib/stores/theme.svelte';
+	import { theme, ACCENT_PRESETS, DARK_SHADES } from '$lib/stores/theme.svelte';
 	import { branding } from '$lib/stores/branding.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { saveSitePreferences, type LogoMode, type PreferenceValues, type SiteSettings } from '$lib/api/endpoints/preferences';
+	import { saveSitePreferences, type DarkShade, type LogoMode, type PreferenceValues, type SiteSettings } from '$lib/api/endpoints/preferences';
 	import { getAdminLanguages, type AdminLanguageInfo } from '$lib/api/endpoints/languages';
 	import { flushNow } from '$lib/stores/_serverSync';
 	import { toast } from 'svelte-sonner';
@@ -123,6 +123,7 @@
 	function setSiteAccent(hue: number, saturation: number) {
 		siteDraft = { ...siteDraft, accentHue: hue, accentSaturation: saturation };
 	}
+	function siteShade(): DarkShade { return siteDraft.darkShade ?? 'graphite'; }
 
 	function resetSiteDraft() {
 		// Build the next draft from a local snapshot, not the $state proxy,
@@ -200,6 +201,7 @@
 				prefs.siteDefaults.accentHue ?? 271,
 				prefs.siteDefaults.accentSaturation ?? 91,
 			);
+			theme.resetDarkShadeToSiteDefault(prefs.siteDefaults.darkShade);
 			toast.success(i18n.t('ADMIN_NEXT.SETTINGS.PREFERENCES_RESET_RELOAD_TO_APPLY'));
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_RESET_PREFERENCES'));
@@ -325,6 +327,33 @@
 					</div>
 				</div>
 
+				<!-- Dark Shade -->
+				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+					<div class="lg:pt-2.5">
+						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DARK_SHADE')}</span>
+						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DARK_SHADE_DESC')}</p>
+					</div>
+					<div class="flex flex-wrap gap-2">
+						{#each DARK_SHADES as shade (shade.value)}
+							{@const isActive = theme.darkShade === shade.value}
+							{@const label = i18n.t(`ADMIN_NEXT.SETTINGS.DARK_SHADE_${shade.value.toUpperCase()}`)}
+							<button
+								type="button"
+								class="group relative flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors
+									{isActive ? 'border-foreground/30 bg-accent text-accent-foreground' : 'border-border text-muted-foreground hover:border-foreground/20 hover:bg-accent/50'}"
+								onclick={() => theme.setDarkShade(shade.value)}
+								title={label}
+								aria-pressed={isActive}
+							>
+								<span class="relative h-4 w-6 shrink-0 overflow-hidden rounded-[3px] ring-1 ring-foreground/25" style="background: {shade.sidebar}">
+									<span class="absolute inset-y-[3px] start-[3px] end-[7px] rounded-[2px]" style="background: {shade.card}"></span>
+								</span>
+								{label}
+							</button>
+						{/each}
+					</div>
+				</div>
+
 				<!-- Font -->
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
@@ -365,6 +394,30 @@
 								title={i18n.t(`ADMIN_NEXT.SETTINGS.FONT_SIZE_${size.value.toUpperCase()}`)}
 							>
 								{i18n.t(`ADMIN_NEXT.SETTINGS.FONT_SIZE_${size.value.toUpperCase()}`)}
+							</button>
+						{/each}
+					</div>
+				</div>
+
+				<!-- Help Text -->
+				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+					<div class="lg:pt-2.5">
+						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.HELP_TEXT')}</span>
+						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.HELP_TEXT_DESC')}</p>
+					</div>
+					<div class="flex flex-wrap gap-2">
+						{#each HELP_MODES as mode (mode)}
+							{@const isActive = prefs.helpMode === mode}
+							{@const label = i18n.t(`ADMIN_NEXT.SETTINGS.HELP_MODE_${mode.toUpperCase()}`)}
+							<button
+								type="button"
+								class="group relative flex h-9 items-center gap-2 rounded-md border px-3 text-sm transition-colors
+									{isActive ? 'border-foreground/30 bg-accent text-accent-foreground' : 'border-border text-muted-foreground hover:border-foreground/20 hover:bg-accent/50'}"
+								onclick={() => prefs.helpMode = mode}
+								title={label}
+								aria-pressed={isActive}
+							>
+								{label}
 							</button>
 						{/each}
 					</div>
@@ -899,6 +952,32 @@
 
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
+										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DARK_SHADE')}</span>
+										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_DARK_SHADE_DESC')}</p>
+									</div>
+									<div class="flex flex-wrap gap-2">
+										{#each DARK_SHADES as shade (shade.value)}
+											{@const isActive = siteShade() === shade.value}
+											{@const label = i18n.t(`ADMIN_NEXT.SETTINGS.DARK_SHADE_${shade.value.toUpperCase()}`)}
+											<button
+												type="button"
+												class="group relative flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors
+													{isActive ? 'border-foreground/30 bg-accent text-accent-foreground' : 'border-border text-muted-foreground hover:border-foreground/20 hover:bg-accent/50'}"
+												onclick={() => siteDraft = { ...siteDraft, darkShade: shade.value }}
+												title={label}
+												aria-pressed={isActive}
+											>
+												<span class="relative h-4 w-6 shrink-0 overflow-hidden rounded-[3px] ring-1 ring-foreground/25" style="background: {shade.sidebar}">
+													<span class="absolute inset-y-[3px] start-[3px] end-[7px] rounded-[2px]" style="background: {shade.card}"></span>
+												</span>
+												{label}
+											</button>
+										{/each}
+									</div>
+								</div>
+
+								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+									<div class="lg:pt-2.5">
 										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.FONT')}</span>
 										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_TYPEFACE_DESC')}</p>
 									</div>
@@ -935,6 +1014,29 @@
 												title={i18n.t(`ADMIN_NEXT.SETTINGS.FONT_SIZE_${size.value.toUpperCase()}`)}
 											>
 												{i18n.t(`ADMIN_NEXT.SETTINGS.FONT_SIZE_${size.value.toUpperCase()}`)}
+											</button>
+										{/each}
+									</div>
+								</div>
+
+								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+									<div class="lg:pt-2.5">
+										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.HELP_TEXT')}</span>
+										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_HELP_TEXT_DESC')}</p>
+									</div>
+									<div class="flex flex-wrap gap-2">
+										{#each HELP_MODES as mode (mode)}
+											{@const isActive = (siteDraft.helpMode ?? 'inline') === mode}
+											{@const label = i18n.t(`ADMIN_NEXT.SETTINGS.HELP_MODE_${mode.toUpperCase()}`)}
+											<button
+												type="button"
+												class="group relative flex h-9 items-center gap-2 rounded-md border px-3 text-sm transition-colors
+													{isActive ? 'border-foreground/30 bg-accent text-accent-foreground' : 'border-border text-muted-foreground hover:border-foreground/20 hover:bg-accent/50'}"
+												onclick={() => siteDraft = { ...siteDraft, helpMode: mode }}
+												title={label}
+												aria-pressed={isActive}
+											>
+												{label}
 											</button>
 										{/each}
 									</div>

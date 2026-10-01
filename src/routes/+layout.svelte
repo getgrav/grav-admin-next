@@ -39,6 +39,7 @@
 	import PluginModal from '$lib/components/ui/PluginModal.svelte';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { defineBlueprintFormElement } from '$lib/elements/blueprint-form.svelte';
+	import { defineHelpElement } from '$lib/elements/help.svelte';
 	import { modals } from '$lib/stores/modals.svelte';
 	import { mediaPicker } from '$lib/stores/mediaPicker.svelte';
 	import { Toaster, toast } from 'svelte-sonner';
@@ -351,6 +352,12 @@
 	// plugin's settings in place instead of sending people to /plugins/<slug>.
 	$effect(() => {
 		defineBlueprintFormElement();
+	});
+
+	// Register <grav-help> so a plugin's own forms can put help text where the
+	// user's Help text setting says: under the label or in a tooltip.
+	$effect(() => {
+		defineHelpElement();
 	});
 
 	// Expose the confirm dialog API to plugin web components via window.__GRAV_DIALOGS

@@ -1,6 +1,6 @@
 import { queueUserPatch } from './_serverSync';
 import { loadBootCache, saveBootCache, bootConfigAppearance } from './_bootCache';
-import type { PreferencesResponse, ColorMode as ServerColorMode } from '$lib/api/endpoints/preferences';
+import type { PreferencesResponse, ColorMode as ServerColorMode, DarkShade } from '$lib/api/endpoints/preferences';
 
 /**
  * Visible color mode applied to the DOM. The server allows '' (empty) which
@@ -29,6 +29,31 @@ export const ACCENT_PRESETS: AccentColor[] = [
 	{ label: 'Zinc',    hue: 240, saturation: 6 },
 ];
 
+/**
+ * How dark mode looks. The real colours live in layout.css under
+ * `.dark[data-dark-shade=...]`; `sidebar` and `card` here only paint the small
+ * swatches on the Settings page (the two tones tell the shades apart better
+ * than background and card), so keep them in step with that file.
+ */
+export interface DarkShadeOption {
+	value: DarkShade;
+	label: string;
+	sidebar: string;
+	card: string;
+}
+
+export const DARK_SHADES: DarkShadeOption[] = [
+	{ value: 'graphite', label: 'Graphite', sidebar: 'hsl(220 4% 11%)',   card: 'hsl(220 4% 18%)' },
+	{ value: 'zinc',     label: 'Onyx',     sidebar: 'hsl(240 5.9% 10%)', card: 'hsl(240 4.5% 13%)' },
+	{ value: 'midnight', label: 'Midnight', sidebar: 'hsl(222 28% 7%)',   card: 'hsl(222 26% 12%)' },
+];
+
+const DEFAULT_SHADE: DarkShade = 'graphite';
+
+function asShade(value: unknown): DarkShade {
+	return DARK_SHADES.some(s => s.value === value) ? (value as DarkShade) : DEFAULT_SHADE;
+}
+
 const DEFAULT_HUE = 271;
 const DEFAULT_SAT = 91;
 
@@ -53,6 +78,7 @@ function createThemeStore() {
 	let colorMode = $state<ColorMode>(resolveColorMode(intent));
 	let accentHue = $state<number>(cache?.accentHue ?? site.accentHue ?? DEFAULT_HUE);
 	let accentSaturation = $state<number>(cache?.accentSaturation ?? site.accentSaturation ?? DEFAULT_SAT);
+	let darkShade = $state<DarkShade>(asShade(cache?.darkShade ?? site.darkShade));
 
 	const isDark = $derived(colorMode === 'dark');
 
@@ -73,8 +99,14 @@ function createThemeStore() {
 		html.style.setProperty('--ring', `hsl(${accentHue} ${accentSaturation}% ${dark ? 60 : 50}%)`);
 	}
 
+	function applyShade(): void {
+		if (typeof document === 'undefined') return;
+		document.documentElement.dataset.darkShade = darkShade;
+	}
+
 	function applyAll(): void {
 		applyColorMode();
+		applyShade();
 		applyAccent();
 	}
 
@@ -97,6 +129,7 @@ function createThemeStore() {
 		intent = payload.effective.colorMode;
 		accentHue = payload.effective.accentHue;
 		accentSaturation = payload.effective.accentSaturation;
+		darkShade = asShade(payload.effective.darkShade);
 		colorMode = resolveColorMode(intent);
 		applyAll();
 		saveBootCache(payload);
@@ -108,6 +141,7 @@ function createThemeStore() {
 		get isDark() { return isDark; },
 		get accentHue() { return accentHue; },
 		get accentSaturation() { return accentSaturation; },
+		get darkShade() { return darkShade; },
 
 		toggleColorMode(): void {
 			const next: ColorMode = colorMode === 'dark' ? 'light' : 'dark';
@@ -138,6 +172,12 @@ function createThemeStore() {
 			queueUserPatch('accentHue', hue);
 		},
 
+		setDarkShade(shade: DarkShade): void {
+			darkShade = asShade(shade);
+			applyShade();
+			queueUserPatch('darkShade', darkShade);
+		},
+
 		resetColorModeToSiteDefault(siteIntent: ServerColorMode | undefined): void {
 			const next = siteIntent ?? '';
 			intent = next;
@@ -156,7 +196,14 @@ function createThemeStore() {
 			colorMode = resolveColorMode(intent);
 			accentHue = site.accentHue ?? DEFAULT_HUE;
 			accentSaturation = site.accentSaturation ?? DEFAULT_SAT;
+			darkShade = asShade(site.darkShade);
 			applyAll();
+		},
+
+		resetDarkShadeToSiteDefault(siteShade: DarkShade | undefined): void {
+			darkShade = asShade(siteShade);
+			applyShade();
+			queueUserPatch('darkShade', null);
 		},
 
 		resetAccentToSiteDefault(siteHue: number | undefined, siteSat: number | undefined): void {

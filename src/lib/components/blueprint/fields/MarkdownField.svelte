@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
-	import { sanitizeHtml } from '$lib/utils/markdown';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import MarkdownEditor from '$lib/components/editors/MarkdownEditor.svelte';
+	import FieldHelp from '../FieldHelp.svelte';
 	import { getContext } from 'svelte';
 	import type * as Y from 'yjs';
 	import type { Awareness } from 'y-protocols/awareness';
@@ -65,7 +65,6 @@
 		yAwareness={collab?.awareness ?? null}
 	/>
 	{/if}
-	{#if field.help}
-		<span class="text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</span>
-	{/if}
+	<!-- This help sits under the editor, not under the label, so it has no icon to hang on and stays inline in every mode. -->
+	<FieldHelp help={field.help} tag="span" class="" />
 </div>

@@ -10,6 +10,7 @@ import {
 	type FlexAfterSave,
 	type FontFamily,
 	type FontSize,
+	type HelpMode,
 	type EditorMode,
 	type EditorKeymap,
 	type MediaUploadSettings,
@@ -29,6 +30,7 @@ export type {
 	FlexAfterSave,
 	FontFamily,
 	FontSize,
+	HelpMode,
 	LogoMode,
 	MediaUploadSettings,
 	MenubarLink,
@@ -88,6 +90,29 @@ function applyFontSize(value: FontSize): void {
 	document.documentElement.style.setProperty('--app-font-size', rootSizeForValue(value));
 }
 
+/**
+ * Field help text goes under its label (`inline`) or behind a small info icon
+ * (`tooltip`). The mode is set on <html> as `data-help-mode`, and a
+ * `grav:help-mode` event (detail: `{ mode }`) fires on `document` whenever it
+ * changes, so a plugin that draws its own help can follow along. See
+ * docs/help-element.md.
+ */
+export const HELP_MODE_EVENT = 'grav:help-mode';
+
+export const HELP_MODES: HelpMode[] = ['inline', 'tooltip'];
+
+function asHelpMode(value: unknown): HelpMode {
+	return value === 'tooltip' ? 'tooltip' : 'inline';
+}
+
+function applyHelpMode(value: HelpMode): void {
+	if (typeof document === 'undefined') return;
+	const root = document.documentElement;
+	if (root.dataset.helpMode === value) return;
+	root.dataset.helpMode = value;
+	document.dispatchEvent(new CustomEvent(HELP_MODE_EVENT, { detail: { mode: value } }));
+}
+
 export type MediaViewMode = 'grid' | 'list';
 
 /** Chunk size used by the pages list/columns/tree views for lazy loading. */
@@ -131,8 +156,10 @@ const BUILTIN_DEFAULTS: EffectivePreferences = {
 	colorMode: '',
 	accentHue: 271,
 	accentSaturation: 91,
+	darkShade: 'graphite',
 	fontFamily: 'google-sans',
 	fontSize: 'normal',
+	helpMode: 'inline',
 	editorMode: 'normal',
 	editorKeymap: 'default',
 	editorStickyToolbar: true,
@@ -174,6 +201,7 @@ function createPreferencesStore() {
 	// boot config cover a first visit and the sign-in screen.
 	let fontFamily = $state<FontFamily>(cache?.fontFamily ?? site.fontFamily ?? BUILTIN_DEFAULTS.fontFamily);
 	let fontSize = $state<FontSize>(cache?.fontSize ?? site.fontSize ?? BUILTIN_DEFAULTS.fontSize);
+	let helpMode = $state<HelpMode>(asHelpMode(cache?.helpMode ?? site.helpMode));
 	let editorMode = $state<EditorMode>(cache?.editorMode ?? BUILTIN_DEFAULTS.editorMode);
 	let editorKeymap = $state<EditorKeymap>(cache?.editorKeymap ?? BUILTIN_DEFAULTS.editorKeymap);
 	let editorStickyToolbar = $state<boolean>(cache?.editorStickyToolbar ?? BUILTIN_DEFAULTS.editorStickyToolbar);
@@ -212,6 +240,7 @@ function createPreferencesStore() {
 
 	applyFont(fontFamily);
 	applyFontSize(fontSize);
+	applyHelpMode(helpMode);
 
 	function persistLocal(): void {
 		try {
@@ -228,6 +257,7 @@ function createPreferencesStore() {
 		// Tier B
 		fontFamily = eff.fontFamily;
 		fontSize = eff.fontSize;
+		helpMode = asHelpMode(eff.helpMode);
 		editorMode = eff.editorMode;
 		editorKeymap = eff.editorKeymap;
 		editorStickyToolbar = eff.editorStickyToolbar;
@@ -248,6 +278,7 @@ function createPreferencesStore() {
 		menubarLinks = Array.isArray(eff.menubarLinks) ? eff.menubarLinks : [];
 		applyFont(fontFamily);
 		applyFontSize(fontSize);
+		applyHelpMode(helpMode);
 	}
 
 	function init(payload: PreferencesResponse): void {
@@ -303,8 +334,10 @@ function createPreferencesStore() {
 		const site = bootConfigAppearance();
 		fontFamily = site.fontFamily ?? BUILTIN_DEFAULTS.fontFamily;
 		fontSize = site.fontSize ?? BUILTIN_DEFAULTS.fontSize;
+		helpMode = asHelpMode(site.helpMode);
 		applyFont(fontFamily);
 		applyFontSize(fontSize);
+		applyHelpMode(helpMode);
 	}
 
 	async function resetToSiteDefault(key: keyof PreferenceValues): Promise<void> {
@@ -313,6 +346,7 @@ function createPreferencesStore() {
 		switch (key) {
 			case 'fontFamily': fontFamily = fallback as FontFamily; applyFont(fontFamily); break;
 			case 'fontSize': fontSize = fallback as FontSize; applyFontSize(fontSize); break;
+			case 'helpMode': helpMode = asHelpMode(fallback); applyHelpMode(helpMode); break;
 			case 'editorMode': editorMode = fallback as EditorMode; break;
 			case 'editorKeymap': editorKeymap = fallback as EditorKeymap; break;
 			case 'editorStickyToolbar': editorStickyToolbar = fallback as boolean; break;
@@ -325,7 +359,7 @@ function createPreferencesStore() {
 			case 'pluginsViewMode': pluginsViewMode = fallback as AccountsViewMode; break;
 			case 'themesViewMode': themesViewMode = fallback as AccountsViewMode; break;
 			case 'flexAfterSave': flexAfterSave = fallback as FlexAfterSave; break;
-			// colorMode / accentHue / accentSaturation live in the theme store.
+			// colorMode / accentHue / accentSaturation / darkShade live in the theme store.
 			default: break;
 		}
 	}
@@ -348,6 +382,9 @@ function createPreferencesStore() {
 
 		get fontSize() { return fontSize; },
 		set fontSize(v: FontSize) { fontSize = v; applyFontSize(v); patchUser('fontSize', v); },
+
+		get helpMode() { return helpMode; },
+		set helpMode(v: HelpMode) { helpMode = asHelpMode(v); applyHelpMode(helpMode); patchUser('helpMode', helpMode); },
 
 		get editorMode() { return editorMode; },
 		set editorMode(v: EditorMode) { editorMode = v; patchUser('editorMode', v); },

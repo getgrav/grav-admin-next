@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
-	import { sanitizeHtml } from '$lib/utils/markdown';
 	import type { MediaItem } from '$lib/api/endpoints/media';
 	import type { PageMediaContext } from '$lib/components/media/types';
 	import { getContext } from 'svelte';
@@ -12,6 +11,7 @@
 		encodeMediaFileUrl,
 		BLUEPRINT_FILES_PAGE_MEDIA_ONLY,
 	} from '$lib/api/endpoints/media';
+	import FieldHelp from '../FieldHelp.svelte';
 
 	interface Props {
 		field: BlueprintField;
@@ -257,9 +257,7 @@
 					{translateLabel(field.label)}
 				</label>
 			{/if}
-			{#if field.help}
-				<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
-			{/if}
+			<FieldHelp help={field.help} label={field.label} />
 		</div>
 	{/if}
 

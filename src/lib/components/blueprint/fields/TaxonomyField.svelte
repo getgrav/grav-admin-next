@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
-	import { sanitizeHtml } from '$lib/utils/markdown';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { api } from '$lib/api/client';
 	import SelectizeField from './SelectizeField.svelte';
+	import FieldHelp from '../FieldHelp.svelte';
 
 	interface Props {
 		field: BlueprintField;
@@ -86,9 +86,7 @@
 					{translateLabel(field.label)}
 				</span>
 			{/if}
-			{#if field.help}
-				<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
-			{/if}
+			<FieldHelp help={field.help} label={field.label} />
 		</div>
 	{/if}
 

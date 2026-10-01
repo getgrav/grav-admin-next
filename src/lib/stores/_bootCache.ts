@@ -2,10 +2,12 @@ import { scopedKey } from '$lib/utils/scopedStorage';
 import type {
 	BrandingUrls,
 	ColorMode,
+	DarkShade,
 	EditorMode,
 	EditorKeymap,
 	FontFamily,
 	FontSize,
+	HelpMode,
 	PreferencesResponse,
 	SiteBranding,
 } from '$lib/api/endpoints/preferences';
@@ -29,8 +31,10 @@ export interface BootCache {
 	colorMode: ColorMode;
 	accentHue: number;
 	accentSaturation: number;
+	darkShade: DarkShade;
 	fontFamily: FontFamily;
 	fontSize: FontSize;
+	helpMode: HelpMode;
 	editorMode: EditorMode;
 	editorKeymap: EditorKeymap;
 	editorStickyToolbar: boolean;
@@ -45,17 +49,19 @@ export interface BootCache {
  * operator's accent, font and colour mode. The boot cache, when there is one,
  * is more specific (it is the user's own last-resolved look) and wins.
  */
-export function bootConfigAppearance(): Partial<Pick<BootCache, 'colorMode' | 'accentHue' | 'accentSaturation' | 'fontFamily' | 'fontSize'>> {
+export function bootConfigAppearance(): Partial<Pick<BootCache, 'colorMode' | 'accentHue' | 'accentSaturation' | 'darkShade' | 'fontFamily' | 'fontSize' | 'helpMode'>> {
 	if (typeof window === 'undefined') return {};
 	const cfg = (window as unknown as { __GRAV_CONFIG__?: { appearance?: Record<string, unknown> } }).__GRAV_CONFIG__;
 	const a = cfg?.appearance;
 	if (!a || typeof a !== 'object') return {};
-	const out: Partial<Pick<BootCache, 'colorMode' | 'accentHue' | 'accentSaturation' | 'fontFamily' | 'fontSize'>> = {};
+	const out: Partial<Pick<BootCache, 'colorMode' | 'accentHue' | 'accentSaturation' | 'darkShade' | 'fontFamily' | 'fontSize' | 'helpMode'>> = {};
 	if (a.colorMode === 'light' || a.colorMode === 'dark' || a.colorMode === '') out.colorMode = a.colorMode as ColorMode;
 	if (typeof a.accentHue === 'number') out.accentHue = a.accentHue;
 	if (typeof a.accentSaturation === 'number') out.accentSaturation = a.accentSaturation;
+	if (a.darkShade === 'graphite' || a.darkShade === 'zinc' || a.darkShade === 'midnight') out.darkShade = a.darkShade;
 	if (typeof a.fontFamily === 'string') out.fontFamily = a.fontFamily as FontFamily;
 	if (typeof a.fontSize === 'string') out.fontSize = a.fontSize as FontSize;
+	if (a.helpMode === 'inline' || a.helpMode === 'tooltip') out.helpMode = a.helpMode;
 	return out;
 }
 
@@ -66,8 +72,10 @@ export function saveBootCache(payload: PreferencesResponse): void {
 			colorMode: payload.effective.colorMode,
 			accentHue: payload.effective.accentHue,
 			accentSaturation: payload.effective.accentSaturation,
+			darkShade: payload.effective.darkShade,
 			fontFamily: payload.effective.fontFamily,
 			fontSize: payload.effective.fontSize,
+			helpMode: payload.effective.helpMode,
 			editorMode: payload.effective.editorMode,
 			editorKeymap: payload.effective.editorKeymap,
 			editorStickyToolbar: payload.effective.editorStickyToolbar,

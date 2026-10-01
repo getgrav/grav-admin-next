@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
-	import { sanitizeHtml } from '$lib/utils/markdown';
 	import { encodeMediaFileUrl, type MediaItem } from '$lib/api/endpoints/media';
 	import type { PageMediaContext, MediaSource } from '$lib/components/media/types';
 	import { getContext, onMount } from 'svelte';
@@ -16,6 +15,7 @@
 	import { uploadErrorMessage } from '$lib/utils/upload-error';
 	import { canWrite } from '$lib/utils/permissions';
 	import { Upload, X } from 'lucide-svelte';
+	import FieldHelp from '../FieldHelp.svelte';
 
 	interface Props {
 		field: BlueprintField;
@@ -500,9 +500,7 @@
 					{translateLabel(field.label)}
 				</label>
 			{/if}
-			{#if field.help}
-				<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
-			{/if}
+			<FieldHelp help={field.help} label={field.label} />
 		</div>
 	{/if}
 

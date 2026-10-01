@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { renderMarkdownInline, sanitizeHtml } from '$lib/utils/markdown';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import FieldHelp from '../FieldHelp.svelte';
 
 	interface Props {
 		field: BlueprintField;
@@ -85,17 +85,8 @@
 					{translateLabel(field.label)}
 				</span>
 			{/if}
-			{#if field.help}
-				<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
-			{/if}
-			{#if field.description}
-				{@const desc = translateLabel(field.description)}
-				{#if field.markdown}
-					<p class="mt-0.5 text-xs text-muted-foreground">{@html renderMarkdownInline(desc)}</p>
-				{:else}
-					<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(desc)}</p>
-				{/if}
-			{/if}
+			<!-- A toggle's description sits under its label like help does, so it follows the Help text setting too. -->
+			<FieldHelp help={field.help} label={field.label} description={field.description} markdown={field.markdown} />
 		</div>
 	{/if}
 

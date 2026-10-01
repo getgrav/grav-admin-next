@@ -1,0 +1,105 @@
+/*
+ * The help icon and its tooltip (HelpTip.svelte), as plain CSS on purpose.
+ *
+ * `<grav-help>` draws the same icon inside its own shadow root, where the
+ * admin's Tailwind classes do not reach. So this file is imported twice: once
+ * into the admin's stylesheet (layout.css), and once as a string that the
+ * element adds to every shadow root it creates. Colours come from the admin's
+ * custom properties, which inherit through shadow boundaries, so both look the
+ * same in light and dark. Nothing here uses a Tailwind utility.
+ */
+
+.grav-help-tip {
+	display: inline-flex;
+	align-items: center;
+	vertical-align: middle;
+	margin-inline-start: 0.375rem;
+	font-weight: 400;
+}
+
+/* Inside a flex label the label's own gap already spaces the icon. */
+.grav-help-tip--flush {
+	margin-inline-start: 0;
+}
+
+.grav-help-tip__button {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1rem;
+	height: 1rem;
+	padding: 0;
+	border: 0;
+	border-radius: 9999px;
+	background: transparent;
+	color: var(--muted-foreground);
+	cursor: help;
+	transition: color 0.15s;
+}
+
+/* A bigger hit area than the icon, for a finger. */
+.grav-help-tip__button::after {
+	content: '';
+	position: absolute;
+	inset: -0.5rem;
+}
+
+.grav-help-tip__button:hover,
+.grav-help-tip__button[aria-expanded='true'] {
+	color: var(--foreground);
+}
+
+.grav-help-tip__button:focus-visible {
+	outline: 2px solid var(--ring);
+	outline-offset: 1px;
+}
+
+.grav-help-tip__icon {
+	width: 0.875rem;
+	height: 0.875rem;
+	pointer-events: none;
+}
+
+/* The tooltip sits in the browser's top layer (popover API), so no scroll
+   container or stacking context can clip or cover it. Its position is set
+   from script, in viewport coordinates. */
+.grav-help-tip__popup {
+	position: fixed;
+	inset: auto;
+	display: none;
+	box-sizing: border-box;
+	width: max-content;
+	max-width: min(20rem, calc(100vw - 1rem));
+	max-height: min(24rem, calc(100vh - 1rem));
+	margin: 0;
+	padding: 0.5rem 0.75rem;
+	overflow: auto;
+	border: 1px solid var(--border);
+	border-radius: 0.5rem;
+	background: var(--popover);
+	color: var(--popover-foreground);
+	box-shadow: 0 4px 12px hsl(0 0% 0% / 0.15), 0 1px 3px hsl(0 0% 0% / 0.1);
+	font-size: var(--text-xs, 0.75rem);
+	font-style: normal;
+	font-weight: 400;
+	line-height: var(--text-xs--line-height, 1.3333);
+	letter-spacing: normal;
+	text-align: start;
+	text-transform: none;
+	white-space: normal;
+	cursor: auto;
+}
+
+.grav-help-tip__popup[data-open] {
+	display: block;
+}
+
+.grav-help-tip__popup p + p {
+	margin-top: 0.375rem;
+}
+
+.grav-help-tip__popup a {
+	color: var(--primary);
+	text-decoration: underline;
+}

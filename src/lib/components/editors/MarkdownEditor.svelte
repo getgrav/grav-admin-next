@@ -268,15 +268,15 @@
 		'.cm-gutters': {
 			backgroundColor: 'transparent',
 			borderRight: 'none',
-			color: 'hsl(240 5% 64.9%)',
+			color: 'var(--muted-foreground)',
 			paddingRight: '8px',
 		},
 		'.cm-activeLineGutter': {
 			backgroundColor: 'transparent',
-			color: 'hsl(0 0% 98%)',
+			color: 'var(--foreground)',
 		},
 		'.cm-activeLine': {
-			backgroundColor: 'hsl(240 3.7% 15.9% / 0.5)',
+			backgroundColor: 'color-mix(in srgb, var(--muted) 50%, transparent)',
 		},
 		'.cm-selectionBackground': {
 			backgroundColor: 'hsl(217 91% 60% / 0.2) !important',
@@ -288,15 +288,15 @@
 			padding: '0 16px',
 		},
 		'.cm-foldPlaceholder': {
-			backgroundColor: 'hsl(240 3.7% 15.9%)',
-			border: '1px solid hsl(240 3.7% 15.9%)',
-			color: 'hsl(240 5% 64.9%)',
+			backgroundColor: 'var(--muted)',
+			border: '1px solid var(--muted)',
+			color: 'var(--muted-foreground)',
 			borderRadius: '4px',
 			padding: '0 6px',
 		},
 		'.cm-tooltip': {
-			backgroundColor: 'hsl(240 10% 3.9%)',
-			border: '1px solid hsl(240 3.7% 15.9%)',
+			backgroundColor: 'var(--popover)',
+			border: '1px solid var(--border)',
 			borderRadius: '6px',
 			boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.3)',
 		},

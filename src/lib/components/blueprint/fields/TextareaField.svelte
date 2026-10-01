@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { sanitizeHtml } from '$lib/utils/markdown';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { lengthConstraint } from '$lib/utils/field-constraints';
@@ -12,6 +11,7 @@
 	import { oneDark } from '@codemirror/theme-one-dark';
 	import jsyaml from 'js-yaml';
 	import { AlertCircle } from 'lucide-svelte';
+	import FieldHelp from '../FieldHelp.svelte';
 
 	interface Props {
 		field: BlueprintField;
@@ -69,8 +69,8 @@
 		'.cm-content': { caretColor: 'hsl(217 91% 60%)', padding: '8px 0', lineHeight: '1.5' },
 		'.cm-cursor': { borderLeftColor: 'hsl(217 91% 60%)', borderLeftWidth: '2px' },
 		'.cm-scroller': { overflow: 'auto' },
-		'.cm-gutters': { backgroundColor: 'transparent', borderRight: 'none', color: 'hsl(240 5% 64.9%)', paddingRight: '4px' },
-		'.cm-activeLine': { backgroundColor: 'hsl(240 3.7% 15.9% / 0.5)' },
+		'.cm-gutters': { backgroundColor: 'transparent', borderRight: 'none', color: 'var(--muted-foreground)', paddingRight: '4px' },
+		'.cm-activeLine': { backgroundColor: 'color-mix(in srgb, var(--muted) 50%, transparent)' },
 		'.cm-selectionBackground': { backgroundColor: 'hsl(217 91% 60% / 0.2) !important' },
 		'.cm-line': { padding: '0 12px' },
 	});
@@ -168,9 +168,7 @@
 					{/if}
 				</label>
 			{/if}
-			{#if field.help}
-				<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
-			{/if}
+			<FieldHelp help={field.help} label={field.label} />
 		</div>
 	{/if}
 

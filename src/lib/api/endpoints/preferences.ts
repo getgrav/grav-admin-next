@@ -1,8 +1,12 @@
 import { api } from '../client';
 
 export type ColorMode = '' | 'light' | 'dark';
+/** How dark mode looks: dark greys, the old near-black, or a blue-black. */
+export type DarkShade = 'graphite' | 'zinc' | 'midnight';
 export type FontFamily = 'inter' | 'google-sans' | 'public-sans' | 'nunito-sans' | 'jost' | 'albert-sans';
 export type FontSize = 'small' | 'normal' | 'large' | 'xlarge';
+/** Where field help text goes: under the label, or in a tooltip behind a small info icon. */
+export type HelpMode = 'inline' | 'tooltip';
 export type EditorMode = 'normal' | 'expert';
 export type EditorKeymap = 'default' | 'vim';
 export type LogoMode = 'default' | 'text' | 'custom';
@@ -49,8 +53,10 @@ export interface PreferenceValues {
 	colorMode: ColorMode;
 	accentHue: number;
 	accentSaturation: number;
+	darkShade: DarkShade;
 	fontFamily: FontFamily;
 	fontSize: FontSize;
+	helpMode: HelpMode;
 	editorMode: EditorMode;
 	editorKeymap: EditorKeymap;
 	editorStickyToolbar: boolean;

@@ -4,6 +4,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { slugify, sanitizeSlugInput } from '$lib/utils/slug';
 	import { RefreshCw } from 'lucide-svelte';
+	import FieldHelp from '../FieldHelp.svelte';
 
 	interface Props {
 		field: BlueprintField;
@@ -44,9 +45,7 @@
 					{/if}
 				</label>
 			{/if}
-			{#if field.help}
-				<p class="mt-0.5 text-xs text-muted-foreground">{@html sanitizeHtml(translateLabel(field.help))}</p>
-			{/if}
+			<FieldHelp help={field.help} label={field.label} />
 		</div>
 	{/if}
 

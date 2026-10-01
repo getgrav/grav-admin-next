@@ -1,12 +1,15 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
-	import { renderMarkdownInline, sanitizeHtml, highlightMatch, highlightMatchInHtml } from '$lib/utils/markdown';
+	import { renderMarkdownInline, highlightMatch } from '$lib/utils/markdown';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import FieldOverrideIndicator from './FieldOverrideIndicator.svelte';
+	import FieldHelp from './FieldHelp.svelte';
 
 	/**
 	 * The label column of a field: label, sublabel, help, the required marker and
-	 * the config-override indicator.
+	 * the config-override indicator. Help is drawn by FieldHelp, which puts it
+	 * under the label or behind an icon after the indicator, per the Help text
+	 * setting; the sublabel stays under the label either way.
 	 *
 	 * Extracted so FieldRenderer and SectionField share one implementation. The
 	 * two used to carry near-identical copies of this markup, which is how
@@ -45,6 +48,7 @@
 		{/if}
 		{#if field.validate?.required}<span class="text-red-500">*</span>{/if}
 		<FieldOverrideIndicator path={field.name} />
+		<FieldHelp part="icon" help={field.help} label={field.label} {filter} flush />
 	</span>
 {/if}
 {#if field.sublabel}
@@ -53,12 +57,4 @@
 		{#if field.markdown}{@html renderMarkdownInline(sublabel)}{:else}{sublabel}{/if}
 	</p>
 {/if}
-{#if field.help}
-	<p class="mt-0.5 text-xs text-muted-foreground">
-		{#if filter}
-			{@html highlightMatchInHtml(i18n.tMaybe(field.help), filter)}
-		{:else}
-			{@html sanitizeHtml(i18n.tMaybe(field.help))}
-		{/if}
-	</p>
-{/if}
+<FieldHelp part="text" help={field.help} label={field.label} {filter} />
