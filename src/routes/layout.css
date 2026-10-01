@@ -64,7 +64,7 @@
 	.dark {
 		color-scheme: dark;
 
-		--background: hsl(220 4% 14%);
+		--background: hsl(220 4% 15%);
 		--foreground: hsl(0 0% 98%);
 		--card: hsl(220 4% 18%);
 		--card-foreground: hsl(0 0% 98%);
@@ -84,12 +84,13 @@
 		--success-foreground: hsl(0 0% 100%);
 		--warning: hsl(38 90% 55%);
 		--warning-foreground: hsl(38 92% 10%);
-		--border: hsl(220 4% 29%);
+		--border: hsl(220 4% 24%);
 		--input: hsl(220 4% 32%);
 		--ring: hsl(217 91% 60%);
-		--sidebar: hsl(220 4% 11%);
+		--sidebar: hsl(220 4% 16%);
 		--sidebar-foreground: hsl(240 4.8% 95.9%);
-		--sidebar-border: hsl(220 4% 19%);
+		/* One line colour everywhere: the sidebar's dividers match the top bar and cards. */
+		--sidebar-border: var(--border);
 		--sidebar-accent: hsl(220 4% 22%);
 		--sidebar-accent-foreground: hsl(0 0% 98%);
 	}
@@ -107,7 +108,6 @@
 		--border: hsl(240 4% 20%);
 		--input: hsl(240 4% 22%);
 		--sidebar: hsl(240 5.9% 10%);
-		--sidebar-border: hsl(240 3.7% 15.9%);
 		--sidebar-accent: hsl(240 3.7% 15.9%);
 	}
 
@@ -124,7 +124,6 @@
 		--border: hsl(222 18% 21%);
 		--input: hsl(222 16% 24%);
 		--sidebar: hsl(222 28% 7%);
-		--sidebar-border: hsl(222 22% 16.5%);
 		--sidebar-accent: hsl(222 22% 16.5%);
 	}
 

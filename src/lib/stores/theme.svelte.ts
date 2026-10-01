@@ -43,7 +43,7 @@ export interface DarkShadeOption {
 }
 
 export const DARK_SHADES: DarkShadeOption[] = [
-	{ value: 'graphite', label: 'Graphite', sidebar: 'hsl(220 4% 11%)',   card: 'hsl(220 4% 18%)' },
+	{ value: 'graphite', label: 'Graphite', sidebar: 'hsl(220 4% 16%)',   card: 'hsl(220 4% 18%)' },
 	{ value: 'zinc',     label: 'Onyx',     sidebar: 'hsl(240 5.9% 10%)', card: 'hsl(240 4.5% 13%)' },
 	{ value: 'midnight', label: 'Midnight', sidebar: 'hsl(222 28% 7%)',   card: 'hsl(222 26% 12%)' },
 ];

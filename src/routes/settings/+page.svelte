@@ -2,6 +2,7 @@
 	import { prefs, FONT_OPTIONS, FONT_SIZE_OPTIONS, HELP_MODES, type FontSize, type EditorKeymap, type MenubarLink, type PagesViewMode, type AccountsViewMode } from '$lib/stores/preferences.svelte';
 	import { normalizeLang } from '$lib/i18n';
 	import { theme, ACCENT_PRESETS, DARK_SHADES } from '$lib/stores/theme.svelte';
+	import FieldHelp from '$lib/components/blueprint/FieldHelp.svelte';
 	import { branding } from '$lib/stores/branding.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -241,8 +242,8 @@
 				<!-- Color Mode -->
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
-						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.COLOR_MODE')}</span>
-						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.CHOOSE_BETWEEN_LIGHT_AND_DARK_APPEARANCE')}</p>
+						<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.COLOR_MODE')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.CHOOSE_BETWEEN_LIGHT_AND_DARK_APPEARANCE')} label={i18n.t('ADMIN_NEXT.SETTINGS.COLOR_MODE')} plain flush /></span>
+						<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.CHOOSE_BETWEEN_LIGHT_AND_DARK_APPEARANCE')} label={i18n.t('ADMIN_NEXT.SETTINGS.COLOR_MODE')} plain />
 					</div>
 					<div>
 						<SegmentedToggle
@@ -259,8 +260,8 @@
 				<!-- Accent Color -->
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
-						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ACCENT_COLOR')}</span>
-						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.PRIMARY_COLOR_USED_FOR_BUTTONS_LINKS')}</p>
+						<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ACCENT_COLOR')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.PRIMARY_COLOR_USED_FOR_BUTTONS_LINKS')} label={i18n.t('ADMIN_NEXT.SETTINGS.ACCENT_COLOR')} plain flush /></span>
+						<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.PRIMARY_COLOR_USED_FOR_BUTTONS_LINKS')} label={i18n.t('ADMIN_NEXT.SETTINGS.ACCENT_COLOR')} plain />
 					</div>
 					<div class="space-y-3">
 						<div class="flex flex-wrap gap-2">
@@ -330,8 +331,8 @@
 				<!-- Dark Shade -->
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
-						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DARK_SHADE')}</span>
-						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DARK_SHADE_DESC')}</p>
+						<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DARK_SHADE')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.DARK_SHADE_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.DARK_SHADE')} plain flush /></span>
+						<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.DARK_SHADE_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.DARK_SHADE')} plain />
 					</div>
 					<div class="flex flex-wrap gap-2">
 						{#each DARK_SHADES as shade (shade.value)}
@@ -357,8 +358,8 @@
 				<!-- Font -->
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
-						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.FONT')}</span>
-						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.TYPEFACE_USED_THROUGHOUT_THE_ADMIN')}</p>
+						<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.FONT')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.TYPEFACE_USED_THROUGHOUT_THE_ADMIN')} label={i18n.t('ADMIN_NEXT.SETTINGS.FONT')} plain flush /></span>
+						<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.TYPEFACE_USED_THROUGHOUT_THE_ADMIN')} label={i18n.t('ADMIN_NEXT.SETTINGS.FONT')} plain />
 					</div>
 					<div class="flex flex-wrap gap-2">
 						{#each FONT_OPTIONS as font (font.value)}
@@ -380,8 +381,8 @@
 				<!-- Font Size -->
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
-						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.FONT_SIZE')}</span>
-						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.TEXT_SIZE_USED_THROUGHOUT_THE_ADMIN')}</p>
+						<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.FONT_SIZE')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.TEXT_SIZE_USED_THROUGHOUT_THE_ADMIN')} label={i18n.t('ADMIN_NEXT.SETTINGS.FONT_SIZE')} plain flush /></span>
+						<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.TEXT_SIZE_USED_THROUGHOUT_THE_ADMIN')} label={i18n.t('ADMIN_NEXT.SETTINGS.FONT_SIZE')} plain />
 					</div>
 					<div class="flex flex-wrap gap-2">
 						{#each FONT_SIZE_OPTIONS as size (size.value)}
@@ -402,8 +403,8 @@
 				<!-- Help Text -->
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
-						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.HELP_TEXT')}</span>
-						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.HELP_TEXT_DESC')}</p>
+						<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.HELP_TEXT')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.HELP_TEXT_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.HELP_TEXT')} plain flush /></span>
+						<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.HELP_TEXT_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.HELP_TEXT')} plain />
 					</div>
 					<div class="flex flex-wrap gap-2">
 						{#each HELP_MODES as mode (mode)}
@@ -434,8 +435,8 @@
 			<div class="space-y-5 px-6 py-5">
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
-						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_VIEW')}</span>
-						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.HOW_PAGES_ARE_DISPLAYED_BY_DEFAULT')}</p>
+						<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_VIEW')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.HOW_PAGES_ARE_DISPLAYED_BY_DEFAULT')} label={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_VIEW')} plain flush /></span>
+						<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.HOW_PAGES_ARE_DISPLAYED_BY_DEFAULT')} label={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_VIEW')} plain />
 					</div>
 					<div>
 						<SegmentedToggle
@@ -517,8 +518,8 @@
 			<div class="space-y-5 px-6 py-5">
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
-						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP')}</span>
-						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP_DESC')}</p>
+						<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP')} plain flush /></span>
+						<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP')} plain />
 					</div>
 					<div>
 						<SegmentedToggle
@@ -533,8 +534,8 @@
 				</div>
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
-						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR')}</span>
-						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR_DESC')}</p>
+						<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR')} plain flush /></span>
+						<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR')} plain />
 					</div>
 					<div>
 						<SegmentedToggle
@@ -549,8 +550,8 @@
 				</div>
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
-						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT')}</span>
-						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT_DESC')}</p>
+						<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT')} plain flush /></span>
+						<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT')} plain />
 					</div>
 					<div class="space-y-3">
 						<SegmentedToggle
@@ -586,8 +587,8 @@
 			<div class="space-y-5 px-6 py-5">
 				<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 					<div class="lg:pt-2.5">
-						<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_LANGUAGE')}</span>
-						<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_LANGUAGE_DESC', { count: i18n.count })}</p>
+						<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_LANGUAGE')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_LANGUAGE_DESC', { count: i18n.count })} label={i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_LANGUAGE')} plain flush /></span>
+						<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_LANGUAGE_DESC', { count: i18n.count })} label={i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_LANGUAGE')} plain />
 					</div>
 					<select
 						class="flex h-9 max-w-48 rounded-md border border-input px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -697,8 +698,8 @@
 						{#if branding.mode === 'text'}
 							<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 								<div class="lg:pt-2.5">
-									<span class="text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.LOGO_TEXT')}</span>
-									<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.THE_FIRST_LETTER_BECOMES_THE_ICON')}</p>
+									<span class="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.LOGO_TEXT')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.THE_FIRST_LETTER_BECOMES_THE_ICON')} label={i18n.t('ADMIN_NEXT.SETTINGS.LOGO_TEXT')} plain flush /></span>
+									<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.THE_FIRST_LETTER_BECOMES_THE_ICON')} label={i18n.t('ADMIN_NEXT.SETTINGS.LOGO_TEXT')} plain />
 								</div>
 								<input
 									type="text"
@@ -755,8 +756,8 @@
 							</div>
 							<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 								<div class="lg:pt-2.5">
-									<span class="text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SIDEBAR_LOGO_HEIGHT')}</span>
-									<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SIDEBAR_LOGO_HEIGHT_DESC')}</p>
+									<span class="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SIDEBAR_LOGO_HEIGHT')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.SIDEBAR_LOGO_HEIGHT_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.SIDEBAR_LOGO_HEIGHT')} plain flush /></span>
+									<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.SIDEBAR_LOGO_HEIGHT_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.SIDEBAR_LOGO_HEIGHT')} plain />
 								</div>
 								<div class="space-y-3">
 									<SegmentedToggle
@@ -787,8 +788,8 @@
 						<div class="space-y-4 border-t border-border/60 pt-4">
 							<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 								<div class="lg:pt-2.5">
-									<span class="text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_TITLE')}</span>
-									<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_TITLE_DESC')}</p>
+									<span class="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_TITLE')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_TITLE_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_TITLE')} plain flush /></span>
+									<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_TITLE_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_TITLE')} plain />
 								</div>
 								<input
 									type="text"
@@ -802,8 +803,8 @@
 
 							<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 								<div class="lg:pt-2.5">
-									<span class="text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.LOGIN_SUBTITLE')}</span>
-									<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.LOGIN_SUBTITLE_DESC')}</p>
+									<span class="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.LOGIN_SUBTITLE')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.LOGIN_SUBTITLE_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.LOGIN_SUBTITLE')} plain flush /></span>
+									<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.LOGIN_SUBTITLE_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.LOGIN_SUBTITLE')} plain />
 								</div>
 								<input
 									type="text"
@@ -817,8 +818,8 @@
 
 							<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 								<div class="lg:pt-2.5">
-									<span class="text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SHOW_POWERED_BY')}</span>
-									<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SHOW_POWERED_BY_DESC')}</p>
+									<span class="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SHOW_POWERED_BY')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.SHOW_POWERED_BY_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.SHOW_POWERED_BY')} plain flush /></span>
+									<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.SHOW_POWERED_BY_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.SHOW_POWERED_BY')} plain />
 								</div>
 								<div>
 									<SegmentedToggle
@@ -834,8 +835,8 @@
 
 							<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 								<div class="lg:pt-2.5">
-									<span class="text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.FAVICON')}</span>
-									<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.FAVICON_DESC')}</p>
+									<span class="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.FAVICON')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.FAVICON_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.FAVICON')} plain flush /></span>
+									<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.FAVICON_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.FAVICON')} plain />
 								</div>
 								<div class="flex items-center gap-3">
 									{#if branding.urlFavicon}
@@ -874,8 +875,8 @@
 
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
-										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.COLOR_MODE')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_COLOR_APPEARANCE_DESC')}</p>
+										<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.COLOR_MODE')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_COLOR_APPEARANCE_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.COLOR_MODE')} plain flush /></span>
+										<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_COLOR_APPEARANCE_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.COLOR_MODE')} plain />
 									</div>
 									<div>
 										<SegmentedToggle
@@ -892,8 +893,8 @@
 
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
-										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ACCENT_COLOR')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_PRIMARY_COLOR_DESC')}</p>
+										<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ACCENT_COLOR')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_PRIMARY_COLOR_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.ACCENT_COLOR')} plain flush /></span>
+										<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_PRIMARY_COLOR_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.ACCENT_COLOR')} plain />
 									</div>
 									<div class="space-y-3">
 										<div class="flex flex-wrap gap-2">
@@ -952,8 +953,8 @@
 
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
-										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DARK_SHADE')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_DARK_SHADE_DESC')}</p>
+										<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DARK_SHADE')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_DARK_SHADE_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.DARK_SHADE')} plain flush /></span>
+										<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_DARK_SHADE_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.DARK_SHADE')} plain />
 									</div>
 									<div class="flex flex-wrap gap-2">
 										{#each DARK_SHADES as shade (shade.value)}
@@ -978,8 +979,8 @@
 
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
-										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.FONT')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_TYPEFACE_DESC')}</p>
+										<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.FONT')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_TYPEFACE_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.FONT')} plain flush /></span>
+										<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_TYPEFACE_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.FONT')} plain />
 									</div>
 									<div class="flex flex-wrap gap-2">
 										{#each FONT_OPTIONS as font (font.value)}
@@ -1000,8 +1001,8 @@
 
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
-										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.FONT_SIZE')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_TEXT_SIZE_DESC')}</p>
+										<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.FONT_SIZE')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_TEXT_SIZE_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.FONT_SIZE')} plain flush /></span>
+										<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_TEXT_SIZE_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.FONT_SIZE')} plain />
 									</div>
 									<div class="flex flex-wrap gap-2">
 										{#each FONT_SIZE_OPTIONS as size (size.value)}
@@ -1021,8 +1022,8 @@
 
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
-										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.HELP_TEXT')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_HELP_TEXT_DESC')}</p>
+										<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.HELP_TEXT')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_HELP_TEXT_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.HELP_TEXT')} plain flush /></span>
+										<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_HELP_TEXT_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.HELP_TEXT')} plain />
 									</div>
 									<div class="flex flex-wrap gap-2">
 										{#each HELP_MODES as mode (mode)}
@@ -1052,8 +1053,8 @@
 
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
-										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_VIEW')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.HOW_PAGES_ARE_DISPLAYED_BY_DEFAULT')}</p>
+										<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_VIEW')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.HOW_PAGES_ARE_DISPLAYED_BY_DEFAULT')} label={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_VIEW')} plain flush /></span>
+										<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.HOW_PAGES_ARE_DISPLAYED_BY_DEFAULT')} label={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_VIEW')} plain />
 									</div>
 									<div>
 										<SegmentedToggle
@@ -1078,8 +1079,8 @@
 								</div>
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
-										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_LANGUAGE')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_INTERFACE_LANGUAGE_DESC')}</p>
+										<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_LANGUAGE')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_INTERFACE_LANGUAGE_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_LANGUAGE')} plain flush /></span>
+										<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_INTERFACE_LANGUAGE_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_LANGUAGE')} plain />
 									</div>
 									<select
 										class="flex h-9 max-w-48 rounded-md border border-input px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -1101,8 +1102,8 @@
 								</div>
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
-										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_MODE')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_FORM_EDITOR_DENSITY')}</p>
+										<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_MODE')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_FORM_EDITOR_DENSITY')} label={i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_MODE')} plain flush /></span>
+										<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.DEFAULT_FORM_EDITOR_DENSITY')} label={i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_MODE')} plain />
 									</div>
 									<div>
 										<SegmentedToggle
@@ -1117,8 +1118,8 @@
 								</div>
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
-										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP_DESC')}</p>
+										<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP')} plain flush /></span>
+										<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_KEYMAP')} plain />
 									</div>
 									<div>
 										<SegmentedToggle
@@ -1133,8 +1134,8 @@
 								</div>
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
-										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR_DESC')}</p>
+										<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR')} plain flush /></span>
+										<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.STICKY_TOOLBAR')} plain />
 									</div>
 									<div>
 										<SegmentedToggle
@@ -1149,8 +1150,8 @@
 								</div>
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
-										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT_DESC')}</p>
+										<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT')} plain flush /></span>
+										<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.EDITOR_HEIGHT')} plain />
 									</div>
 									<div class="space-y-3">
 										<SegmentedToggle
@@ -1185,8 +1186,8 @@
 
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
-										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.AUTO_SAVE')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.AUTOMATICALLY_SAVE_WHEN_YOU_LEAVE_A')}</p>
+										<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.AUTO_SAVE')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.AUTOMATICALLY_SAVE_WHEN_YOU_LEAVE_A')} label={i18n.t('ADMIN_NEXT.SETTINGS.AUTO_SAVE')} plain flush /></span>
+										<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.AUTOMATICALLY_SAVE_WHEN_YOU_LEAVE_A')} label={i18n.t('ADMIN_NEXT.SETTINGS.AUTO_SAVE')} plain />
 									</div>
 									<div>
 										<SegmentedToggle
@@ -1203,8 +1204,8 @@
 								{#if siteDraft.autoSaveEnabled}
 									<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 										<div class="lg:pt-2.5">
-											<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.TOOLBAR_UNDO_BUTTON')}</span>
-											<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SHOW_AN_UNDO_BUTTON_IN_THE_EDITOR')}</p>
+											<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.TOOLBAR_UNDO_BUTTON')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.SHOW_AN_UNDO_BUTTON_IN_THE_EDITOR')} label={i18n.t('ADMIN_NEXT.SETTINGS.TOOLBAR_UNDO_BUTTON')} plain flush /></span>
+											<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.SHOW_AN_UNDO_BUTTON_IN_THE_EDITOR')} label={i18n.t('ADMIN_NEXT.SETTINGS.TOOLBAR_UNDO_BUTTON')} plain />
 										</div>
 										<div>
 											<SegmentedToggle
@@ -1220,8 +1221,8 @@
 
 									<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 										<div class="lg:pt-2.5">
-											<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.UNDO_BATCH_WINDOW')}</span>
-											<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.GROUP_RAPID_FIELD_CHANGES_INTO_A_SINGLE')}</p>
+											<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.UNDO_BATCH_WINDOW')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.GROUP_RAPID_FIELD_CHANGES_INTO_A_SINGLE')} label={i18n.t('ADMIN_NEXT.SETTINGS.UNDO_BATCH_WINDOW')} plain flush /></span>
+											<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.GROUP_RAPID_FIELD_CHANGES_INTO_A_SINGLE')} label={i18n.t('ADMIN_NEXT.SETTINGS.UNDO_BATCH_WINDOW')} plain />
 										</div>
 										<select
 											class="flex h-9 max-w-40 rounded-md border border-input px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -1238,8 +1239,8 @@
 
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
-										<span class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.REAL_TIME_COLLABORATION')}</span>
-										<p class="mt-0.5 text-xs text-muted-foreground">{@html i18n.tHtml('ADMIN_NEXT.SETTINGS.COLLAB_DESCRIPTION')}</p>
+										<span class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.REAL_TIME_COLLABORATION')}<FieldHelp part="icon" help={i18n.tHtml('ADMIN_NEXT.SETTINGS.COLLAB_DESCRIPTION')} label={i18n.t('ADMIN_NEXT.SETTINGS.REAL_TIME_COLLABORATION')} flush /></span>
+										<FieldHelp part="text" help={i18n.tHtml('ADMIN_NEXT.SETTINGS.COLLAB_DESCRIPTION')} label={i18n.t('ADMIN_NEXT.SETTINGS.REAL_TIME_COLLABORATION')} />
 									</div>
 									<div>
 										<SegmentedToggle
