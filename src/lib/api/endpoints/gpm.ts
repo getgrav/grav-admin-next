@@ -87,6 +87,16 @@ export async function getPluginChangelog(slug: string): Promise<string> {
 }
 
 /**
+ * Get what an update to an installed plugin would change: the changelog entries
+ * newer than the installed version. A 404 means there are none to show. An older
+ * API plugin ignores the flag and returns the installed CHANGELOG.md instead.
+ */
+export async function getPluginAvailableChangelog(slug: string): Promise<string> {
+	const result = await api.get<{ content: string }>(`/gpm/plugins/${slug}/changelog`, { available: 'true' });
+	return result.content;
+}
+
+/**
  * Get the Grav core changelog for versions newer than the one installed.
  */
 export async function getGravChangelog(): Promise<string> {
@@ -319,6 +329,14 @@ export async function getThemeReadme(slug: string): Promise<string> {
 
 export async function getThemeChangelog(slug: string): Promise<string> {
 	const result = await api.get<{ content: string }>(`/gpm/themes/${slug}/changelog`);
+	return result.content;
+}
+
+/**
+ * Get what an update to an installed theme would change (see getPluginAvailableChangelog).
+ */
+export async function getThemeAvailableChangelog(slug: string): Promise<string> {
+	const result = await api.get<{ content: string }>(`/gpm/themes/${slug}/changelog`, { available: 'true' });
 	return result.content;
 }
 

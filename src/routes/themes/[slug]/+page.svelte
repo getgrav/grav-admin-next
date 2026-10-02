@@ -6,7 +6,7 @@
 	import { base } from '$app/paths';
 	import { setContext } from 'svelte';
 	import { provideFormCommit } from '$lib/utils/form-commit.svelte';
-	import { getTheme, getThemeConfig, saveThemeConfig, setActiveTheme, removeTheme, getThemeReadme, getThemeChangelog, updatePackage, getRepositoryThemes, type ThemeInfo } from '$lib/api/endpoints/gpm';
+	import { getTheme, getThemeConfig, saveThemeConfig, setActiveTheme, removeTheme, getThemeReadme, getThemeChangelog, getThemeAvailableChangelog, updatePackage, getRepositoryThemes, type ThemeInfo } from '$lib/api/endpoints/gpm';
 	import { reloadIfAdminUpdated } from '$lib/utils/gpm';
 	import { getThemeBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
@@ -14,6 +14,7 @@
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
 	import BlueprintFilter from '$lib/components/blueprint/BlueprintFilter.svelte';
 	import ExtensionMetaLinks from '$lib/components/extensions/ExtensionMetaLinks.svelte';
+	import UpdateChangelogLink from '$lib/components/extensions/UpdateChangelogLink.svelte';
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson } from '$lib/utils/blueprint-validation';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
@@ -131,6 +132,21 @@
 		try {
 			const raw = await getThemeChangelog(slug);
 			modalContent = formatChangelog(raw);
+		} catch {
+			modalContent = '*Changelog not available.*';
+		} finally {
+			modalLoading = false;
+		}
+	}
+
+	// What the available update changes (the changelog entries newer than the installed version)
+	async function showUpdateChangelog() {
+		modalLoading = true;
+		modalTitle = `${theme?.name ?? slug} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: theme?.available_version ?? '' })}`;
+		modalContent = '';
+		modalOpen = true;
+		try {
+			modalContent = formatChangelog(await getThemeAvailableChangelog(slug));
 		} catch {
 			modalContent = '*Changelog not available.*';
 		} finally {
@@ -465,6 +481,7 @@
 			{#if theme}
 				<!-- Update button -->
 				{#if theme.updatable}
+					<UpdateChangelogLink version={theme.available_version} onclick={showUpdateChangelog} />
 					<Button
 						variant="outline"
 						size="sm"

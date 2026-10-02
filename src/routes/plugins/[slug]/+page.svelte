@@ -6,7 +6,7 @@
 	import { base } from '$app/paths';
 	import { setContext } from 'svelte';
 	import { provideFormCommit } from '$lib/utils/form-commit.svelte';
-	import { getPlugin, getPluginConfig, savePluginConfig, setPluginEnabled, removePlugin, getPluginReadme, getPluginChangelog, updatePackage, getRepositoryPlugins, type PluginInfo } from '$lib/api/endpoints/gpm';
+	import { getPlugin, getPluginConfig, savePluginConfig, setPluginEnabled, removePlugin, getPluginReadme, getPluginChangelog, getPluginAvailableChangelog, updatePackage, getRepositoryPlugins, type PluginInfo } from '$lib/api/endpoints/gpm';
 	import { reloadIfAdminUpdated } from '$lib/utils/gpm';
 	import { getPluginBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
@@ -14,6 +14,7 @@
 	import BlueprintFilter from '$lib/components/blueprint/BlueprintFilter.svelte';
 	import TranslationStringsSupersededBanner from '$lib/components/translations/TranslationStringsSupersededBanner.svelte';
 	import ExtensionMetaLinks from '$lib/components/extensions/ExtensionMetaLinks.svelte';
+	import UpdateChangelogLink from '$lib/components/extensions/UpdateChangelogLink.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson } from '$lib/utils/blueprint-validation';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
@@ -100,6 +101,21 @@
 		try {
 			const raw = await getPluginChangelog(slug);
 			modalContent = formatChangelog(raw);
+		} catch {
+			modalContent = '*Changelog not available.*';
+		} finally {
+			modalLoading = false;
+		}
+	}
+
+	// What the available update changes (the changelog entries newer than the installed version)
+	async function showUpdateChangelog() {
+		modalLoading = true;
+		modalTitle = `${plugin?.name ?? slug} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: plugin?.available_version ?? '' })}`;
+		modalContent = '';
+		modalOpen = true;
+		try {
+			modalContent = formatChangelog(await getPluginAvailableChangelog(slug));
 		} catch {
 			modalContent = '*Changelog not available.*';
 		} finally {
@@ -485,6 +501,7 @@
 			{#if plugin}
 				<!-- Update button -->
 				{#if plugin.updatable}
+					<UpdateChangelogLink version={plugin.available_version} onclick={showUpdateChangelog} />
 					<Button
 						variant="outline"
 						size="sm"

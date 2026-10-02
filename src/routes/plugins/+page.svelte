@@ -3,7 +3,7 @@
 	import { sanitizeHtml } from '$lib/utils/markdown';
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
-	import { getInstalledPlugins, setPluginEnabled, checkUpdates, updatePackage, updateAllPackages, removePlugin, getPluginChangelog, type PluginInfo } from '$lib/api/endpoints/gpm';
+	import { getInstalledPlugins, setPluginEnabled, checkUpdates, updatePackage, updateAllPackages, removePlugin, getPluginChangelog, getPluginAvailableChangelog, type PluginInfo } from '$lib/api/endpoints/gpm';
 	import { reloadIfAdminUpdated, pluginSettingsRoute } from '$lib/utils/gpm';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
@@ -19,6 +19,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText, formatChangelog } from '$lib/utils/gpm';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
+	import UpdateChangelogLink from '$lib/components/extensions/UpdateChangelogLink.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { scopedKey } from '$lib/utils/scopedStorage';
 	import { prefs } from '$lib/stores/preferences.svelte';
@@ -72,6 +73,21 @@
 		changelogOpen = true;
 		try {
 			changelogContent = formatChangelog(await getPluginChangelog(plugin.slug));
+		} catch {
+			changelogContent = '*Changelog not available.*';
+		} finally {
+			changelogLoading = false;
+		}
+	}
+
+	// What the available update changes (the changelog entries newer than the installed version)
+	async function showUpdateChangelog(plugin: PluginInfo) {
+		changelogLoading = true;
+		changelogTitle = `${plugin.name} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: plugin.available_version ?? '' })}`;
+		changelogContent = '';
+		changelogOpen = true;
+		try {
+			changelogContent = formatChangelog(await getPluginAvailableChangelog(plugin.slug));
 		} catch {
 			changelogContent = '*Changelog not available.*';
 		} finally {
@@ -558,6 +574,7 @@
 										<span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-600 dark:text-amber-400">
 											{i18n.t('ADMIN_NEXT.UPDATE_AVAILABLE_VERSION', { version: selectedPlugin.available_version })}
 										</span>
+										<UpdateChangelogLink version={selectedPlugin.available_version} onclick={() => selectedPlugin && showUpdateChangelog(selectedPlugin)} />
 									{/if}
 								</div>
 							</div>

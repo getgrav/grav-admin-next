@@ -4,10 +4,11 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
-	import { getInstalledThemes, checkUpdates, updatePackage, updateAllPackages, setActiveTheme, removeTheme, getThemeChangelog, type ThemeInfo } from '$lib/api/endpoints/gpm';
+	import { getInstalledThemes, checkUpdates, updatePackage, updateAllPackages, setActiveTheme, removeTheme, getThemeChangelog, getThemeAvailableChangelog, type ThemeInfo } from '$lib/api/endpoints/gpm';
 	import { reloadIfAdminUpdated, formatChangelog } from '$lib/utils/gpm';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
+	import UpdateChangelogLink from '$lib/components/extensions/UpdateChangelogLink.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import AddThemeModal from '$lib/components/AddThemeModal.svelte';
@@ -119,6 +120,21 @@
 		changelogOpen = true;
 		try {
 			changelogContent = formatChangelog(await getThemeChangelog(theme.slug));
+		} catch {
+			changelogContent = '*Changelog not available.*';
+		} finally {
+			changelogLoading = false;
+		}
+	}
+
+	// What the available update changes (the changelog entries newer than the installed version)
+	async function showUpdateChangelog(theme: ThemeInfo) {
+		changelogLoading = true;
+		changelogTitle = `${theme.name} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: theme.available_version ?? '' })}`;
+		changelogContent = '';
+		changelogOpen = true;
+		try {
+			changelogContent = formatChangelog(await getThemeAvailableChangelog(theme.slug));
 		} catch {
 			changelogContent = '*Changelog not available.*';
 		} finally {
@@ -556,6 +572,7 @@
 										<span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-600 dark:text-amber-400">
 											{i18n.t('ADMIN_NEXT.UPDATE_AVAILABLE_VERSION', { version: selectedTheme.available_version })}
 										</span>
+										<UpdateChangelogLink version={selectedTheme.available_version} onclick={() => selectedTheme && showUpdateChangelog(selectedTheme)} />
 									{/if}
 								</div>
 							</div>
