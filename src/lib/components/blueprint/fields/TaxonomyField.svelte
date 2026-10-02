@@ -4,6 +4,12 @@
 	import { api } from '$lib/api/client';
 	import SelectizeField from './SelectizeField.svelte';
 	import FieldHelp from '../FieldHelp.svelte';
+	import {
+		normalizeTaxonomyMap,
+		parseTaxonomy,
+		taxonomyOptions,
+		withTaxonomyType
+	} from '$lib/utils/taxonomy';
 
 	interface Props {
 		field: BlueprintField;
@@ -18,27 +24,16 @@
 	let taxonomyMap = $state<Record<string, string[]>>({});
 	let loaded = $state(false);
 
-	/** Parse the taxonomy value — expects Record<string, string[]> */
-	function parseTaxonomy(val: unknown): Record<string, string[]> {
-		if (val && typeof val === 'object' && !Array.isArray(val)) {
-			const result: Record<string, string[]> = {};
-			for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
-				if (Array.isArray(v)) result[k] = v.map(String);
-				else if (typeof v === 'string') result[k] = v.split(',').map((s) => s.trim()).filter(Boolean);
-				else result[k] = [];
-			}
-			return result;
-		}
-		return {};
-	}
-
+	/** The page's own values per type, as lists of strings for display. */
 	const taxonomyValue = $derived(parseTaxonomy(value));
 
-	// Fetch taxonomy types and values once
+	// Fetch taxonomy types and values once. The reply is normalised to strings
+	// before anything draws from it: a number in it used to throw while the
+	// field was being drawn and left the placeholder below on screen (admin2#186).
 	$effect(() => {
-		api.get<Record<string, string[]>>('/taxonomy')
+		api.get<unknown>('/taxonomy')
 			.then((data) => {
-				taxonomyMap = data;
+				taxonomyMap = normalizeTaxonomyMap(data);
 				loaded = true;
 			})
 			.catch(() => {
@@ -54,12 +49,9 @@
 	});
 
 	function updateType(type: string, tags: unknown) {
-		const arr = Array.isArray(tags) ? tags.filter(Boolean) : [];
-		// Send the cleared type as an explicit empty array so the server's
-		// list-aware merge overwrites the stored values; emitting `undefined`
-		// was read as "unchanged" and the old value came back (admin2#140).
-		const next = { ...taxonomyValue, [type]: arr as string[] };
-		onchange(next);
+		// Only the edited type changes; the rest of the block goes back as the
+		// author wrote it. A cleared type is an explicit empty list (admin2#140).
+		onchange(withTaxonomyType(value, type, tags));
 	}
 
 	/** Build a pseudo-BlueprintField for each taxonomy type's SelectizeField */
@@ -69,10 +61,7 @@
 			type: 'selectize',
 			label: type.charAt(0).toUpperCase() + type.slice(1),
 			placeholder: `Add ${type}...`,
-			// Alphabetical, so a site's existing tags are easy to scan (admin2#180).
-			options: [...(taxonomyMap[type] ?? [])]
-				.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
-				.map((v) => ({ value: v, label: v })),
+			options: taxonomyOptions(taxonomyMap[type] ?? []),
 			validate: { type: 'array' }
 		};
 	}
