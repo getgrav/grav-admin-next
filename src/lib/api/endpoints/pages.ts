@@ -387,11 +387,13 @@ export async function createPage(body: CreatePageBody): Promise<PageDetail> {
  * (getgrav/grav-plugin-admin2#132).
  */
 export async function getPagePreviewToken(
-	route: string
+	route: string,
+	lang?: string
 ): Promise<{ token: string; expires_in: number; route?: string; anchor?: string | null }> {
 	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
+	const path = lang ? `/pages/${cleanRoute}/preview-token?lang=${encodeURIComponent(lang)}` : `/pages/${cleanRoute}/preview-token`;
 	return api.post<{ token: string; expires_in: number; route?: string; anchor?: string | null }>(
-		`/pages/${cleanRoute}/preview-token`,
+		path,
 		{}
 	);
 }

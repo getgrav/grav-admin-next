@@ -286,7 +286,8 @@
 		previewRoute = null;
 		previewAnchor = null;
 		try {
-			const res = await getPagePreviewToken(pageData.route);
+			const activeLang = contentLang.enabled ? contentLang.activeLang : undefined;
+			const res = await getPagePreviewToken(pageData.route, activeLang);
 			previewToken = res.token ?? null;
 			previewRoute = res.route ?? null;
 			previewAnchor = res.anchor ?? null;
