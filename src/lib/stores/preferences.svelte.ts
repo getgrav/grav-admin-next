@@ -91,8 +91,8 @@ function applyFontSize(value: FontSize): void {
 }
 
 /**
- * Field help text goes under its label (`inline`) or behind a small info icon
- * (`tooltip`). The mode is set on <html> as `data-help-mode`, and a
+ * Field help text goes behind a small info icon (`tooltip`, the default) or
+ * under its label (`inline`). The mode is set on <html> as `data-help-mode`, and a
  * `grav:help-mode` event (detail: `{ mode }`) fires on `document` whenever it
  * changes, so a plugin that draws its own help can follow along. See
  * docs/help-element.md.
@@ -102,7 +102,7 @@ export const HELP_MODE_EVENT = 'grav:help-mode';
 export const HELP_MODES: HelpMode[] = ['inline', 'tooltip'];
 
 function asHelpMode(value: unknown): HelpMode {
-	return value === 'tooltip' ? 'tooltip' : 'inline';
+	return value === 'inline' ? 'inline' : 'tooltip';
 }
 
 function applyHelpMode(value: HelpMode): void {
@@ -159,7 +159,7 @@ const BUILTIN_DEFAULTS: EffectivePreferences = {
 	darkShade: 'graphite',
 	fontFamily: 'google-sans',
 	fontSize: 'normal',
-	helpMode: 'inline',
+	helpMode: 'tooltip',
 	editorMode: 'normal',
 	editorKeymap: 'default',
 	editorStickyToolbar: true,

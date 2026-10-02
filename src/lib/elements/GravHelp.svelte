@@ -23,7 +23,7 @@
 
 	let { host, label }: Props = $props();
 
-	const tooltip = $derived(prefs.helpMode === 'tooltip');
+	const tooltip = $derived(prefs.helpMode !== 'inline');
 
 	// The surrounding label is plain DOM, so there is nothing to react to: read
 	// it when the icon first shows, then once more after the plugin has had a

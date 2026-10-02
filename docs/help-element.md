@@ -2,8 +2,8 @@
 
 Every field in the admin can carry a line of help text. Some people like to read it under the label, and some find a whole form of it cluttered. Settings has a **Help text** choice for each user (and a site default that new users start with), with two options:
 
-- **Below the label** (the default): the help is a small muted paragraph under the field's label, as it has always been.
-- **In a tooltip**: the help is hidden behind a small info icon right after the label. Hovering the icon or tabbing to it shows the help, and a click or tap pins it open so links inside it can be clicked. Escape, or a click or focus move elsewhere, closes it.
+- **In a tooltip** (the default): the help is hidden behind a small info icon right after the label. Hovering the icon or tabbing to it shows the help, and a click or tap pins it open so links inside it can be clicked. Escape, or a click or focus move elsewhere, closes it.
+- **Below the label**: the help is a small muted paragraph under the field's label.
 
 Fields drawn from a blueprint follow the setting on their own. A plugin that draws its own form (a component-mode page, a custom field, a settings screen in its own markup) has to opt in, and `<grav-help>` is how. The admin registers it at boot, so any plugin page can use it, including pages that draw themselves inside a shadow root.
 
@@ -59,12 +59,12 @@ If your plugin already has its own help component, or draws help somewhere `<gra
 - A `grav:help-mode` event fires on `document` whenever the mode changes, with `detail: { mode }`.
 
 ```js
-const apply = (mode) => myForm.classList.toggle('help-in-tooltips', mode === 'tooltip');
+const apply = (mode) => myForm.classList.toggle('help-in-tooltips', mode !== 'inline');
 apply(document.documentElement.dataset.helpMode);
 document.addEventListener('grav:help-mode', (e) => apply(e.detail.mode));
 ```
 
-The attribute can be missing on the very first frame of a page load, so treat a missing value as `inline`.
+The attribute can be missing on the very first frame of a page load, so treat a missing value as `tooltip`, which is the default.
 
 ## Migrating a plugin
 

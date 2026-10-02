@@ -71,7 +71,7 @@
 			textMatches(`${sanitizeHtml(helpText)} ${sanitizeHtml(descriptionText)}`.replace(/<[^>]*>/g, ''), filter)
 	);
 
-	const inline = $derived(prefs.helpMode !== 'tooltip' || !labelText || filterHit);
+	const inline = $derived(prefs.helpMode === 'inline' || !labelText || filterHit);
 
 	const classes = $derived(`text-xs text-muted-foreground ${spacing}`.trim());
 </script>

@@ -1027,7 +1027,7 @@
 									</div>
 									<div class="flex flex-wrap gap-2">
 										{#each HELP_MODES as mode (mode)}
-											{@const isActive = (siteDraft.helpMode ?? 'inline') === mode}
+											{@const isActive = (siteDraft.helpMode ?? 'tooltip') === mode}
 											{@const label = i18n.t(`ADMIN_NEXT.SETTINGS.HELP_MODE_${mode.toUpperCase()}`)}
 											<button
 												type="button"
