@@ -29,6 +29,7 @@
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
+	import { effectivePageLang, pageFallbackState } from '$lib/utils/page-fallback';
 	import MarkdownEditor from '$lib/components/editors/MarkdownEditor.svelte';
 	import CodeEditor from '$lib/components/editors/CodeEditor.svelte';
 	import PageMedia from '$lib/components/media/PageMedia.svelte';
@@ -1010,14 +1011,24 @@
 	let saveAsOpen = $state(false);
 	let headerHeight = $state(0);
 	// Treat null/empty language as the default language (file is e.g. default.md with no .en. extension)
-	const effectiveLang = $derived(pageData?.language || contentLang.defaultLang);
-	let isFallback = $derived(contentLang.enabled && pageData !== null && effectiveLang !== contentLang.activeLang);
+	const effectiveLang = $derived(effectivePageLang(pageData, contentLang.defaultLang));
+	const fallbackState = $derived(pageFallbackState({
+		enabled: contentLang.enabled,
+		activeLang: contentLang.activeLang,
+		defaultLang: contentLang.defaultLang,
+		page: pageData,
+	}));
+	let isFallback = $derived(fallbackState !== 'none');
 	// True when we're viewing a fallback AND the active lang can be created as
 	// a new translation. In this state the Save button creates the translation
 	// (even with no edits — copies fallback content as the seed).
-	let canCreateTranslation = $derived(
-		isFallback && !!pageData?.untranslated_languages?.includes(contentLang.activeLang)
-	);
+	let canCreateTranslation = $derived(fallbackState === 'creatable');
+	// The server answered in another language without listing the active one as
+	// missing (see pageFallbackState). There is no translation to create and a
+	// save would land in whichever file the server picks, so Save stays off and
+	// the notice says why instead of pointing at a button that isn't there
+	// (getgrav/grav#4338).
+	let fallbackUnresolved = $derived(fallbackState === 'unresolved');
 
 	// Languages offered in the "Save as …" dropdown. Combines the page's
 	// untranslated_languages (server view) with an "adopt" entry for the site
@@ -1707,6 +1718,7 @@
 	 *  - Otherwise: normal save path (auto-save force or manual handleSave).
 	 */
 	function triggerSave() {
+		if (fallbackUnresolved) return;
 		if (canCreateTranslation) {
 			handleSaveAsTranslation(contentLang.activeLang);
 			return;
@@ -1882,7 +1894,7 @@
 			<!-- Save button with Save As dropdown -->
 			{#if canUpdatePage}
 			<div class="relative flex">
-				<Button size="sm" class="px-2 lg:px-3 {(hasChanges || canCreateTranslation) ? '' : 'opacity-50 pointer-events-none'} {saveAsLanguages.length > 0 ? 'rounded-e-none' : ''}" title={saving ? i18n.t('ADMIN_NEXT.SAVING') : canCreateTranslation ? i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVE_AS_LANGUAGE', { language: contentLang.getLanguageName(contentLang.activeLang) }) : i18n.t('ADMIN_NEXT.SAVE')} onclick={triggerSave} disabled={saving || loading}>
+				<Button size="sm" class="px-2 lg:px-3 {((hasChanges && !fallbackUnresolved) || canCreateTranslation) ? '' : 'opacity-50 pointer-events-none'} {saveAsLanguages.length > 0 ? 'rounded-e-none' : ''}" title={saving ? i18n.t('ADMIN_NEXT.SAVING') : canCreateTranslation ? i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVE_AS_LANGUAGE', { language: contentLang.getLanguageName(contentLang.activeLang) }) : i18n.t('ADMIN_NEXT.SAVE')} onclick={triggerSave} disabled={saving || loading || fallbackUnresolved}>
 					{#if saving}
 						<Loader2 size={14} class="animate-spin" />
 						<span class="hidden lg:inline">{i18n.t('ADMIN_NEXT.SAVING')}</span>
@@ -1937,14 +1949,16 @@
 		</div>
 	{/if}
 
-	{#if isFallback}
+	{#if isFallback && !loading}
 		<div class="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-300">
 			<Languages size={16} class="shrink-0" />
-			<span>{@html i18n.tHtml('ADMIN_NEXT.PAGES.EDIT.FALLBACK_NOTICE', { active: contentLang.getLanguageName(contentLang.activeLang), effective: contentLang.getLanguageName(effectiveLang) })}</span>
-			{#if pageData?.untranslated_languages?.includes(contentLang.activeLang)}
+			{#if canCreateTranslation}
+				<span>{@html i18n.tHtml('ADMIN_NEXT.PAGES.EDIT.FALLBACK_NOTICE', { active: contentLang.getLanguageName(contentLang.activeLang), effective: contentLang.getLanguageName(effectiveLang) })}</span>
 				<button class="shrink-0 ms-auto text-xs font-medium underline" onclick={() => handleSaveAsTranslation(contentLang.activeLang)}>
 					{i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVE_AS_LANGUAGE', { language: contentLang.getLanguageName(contentLang.activeLang) })}
 				</button>
+			{:else}
+				<span>{@html i18n.tHtml('ADMIN_NEXT.PAGES.EDIT.FALLBACK_NOTICE_UNRESOLVED', { active: contentLang.getLanguageName(contentLang.activeLang), effective: contentLang.getLanguageName(effectiveLang) })}</span>
 			{/if}
 		</div>
 	{/if}
