@@ -3,6 +3,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldSizeClass } from '$lib/utils/field-size';
 	import { resolveDataOptions } from '$lib/api/endpoints/data';
+	import { withoutTaken } from '$lib/utils/select-unique';
 	import { getContext } from 'svelte';
 	import { ChevronsUpDown } from 'lucide-svelte';
 	import FieldHelp from '../FieldHelp.svelte';
@@ -12,9 +13,13 @@
 		value: unknown;
 		onchange: (value: unknown) => void;
 		error?: string;
+		/** Choices to use when the field carries none of its own (a list's `selectunique` set). */
+		fallbackOptions?: Array<{ value: string; label: string }>;
+		/** Values another row of the list already holds; `selectunique` leaves them out. */
+		takenValues?: readonly unknown[];
 	}
 
-	let { field, value, onchange, error }: Props = $props();
+	let { field, value, onchange, error, fallbackOptions, takenValues }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
 	// Page type context (standard vs modular) — used for pageTypes resolution
@@ -60,7 +65,12 @@
 	// and keep a stored value that is not in the list — a hand-written date
 	// format, say — as a real option so it stays selected rather than vanishing.
 	const options = $derived.by(() => {
-		const base = field.options && field.options.length > 0 ? field.options : resolvedOptions;
+		const own = field.options && field.options.length > 0
+			? field.options
+			: fallbackOptions && fallbackOptions.length > 0
+				? fallbackOptions
+				: resolvedOptions;
+		const base = takenValues ? withoutTaken(own, takenValues, effectiveValue) : own;
 		const merged = field.placeholder && !base.some((o) => o.value === '')
 			? [{ value: '', label: String(field.placeholder) }, ...base]
 			: base;

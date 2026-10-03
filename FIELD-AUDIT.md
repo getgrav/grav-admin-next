@@ -69,7 +69,6 @@ These work properly in admin-next:
 | Type | Where Used | What It Does |
 |------|-----------|--------------|
 | `pagemediaselect` | Some page blueprints | Select dropdown populated from page's media files. Extends filepicker |
-| `selectunique` | Niche admin usage | Select where each value can only be used once across a list |
 | `colorscheme` / `colorscheme.color` | Theme configuration | Multi-swatch color scheme editor |
 
 ## Not Needed for Admin-Next (10 types)
@@ -108,7 +107,7 @@ Template: `grav-theme-typhoon/templates/kitchen-sink.html.twig`
 ## Summary (updated 2026-03-30)
 
 - **Implemented:** 37 types (~95% of real-world usage)
-- **Remaining:** selectunique, colorscheme/colorscheme.color (niche)
+- **Remaining:** colorscheme/colorscheme.color (niche)
 - **Permissions/acl_picker:** functional placeholder, needs API endpoint for full permissions tree
 
 ### Implemented in 2026-03-30 batch:

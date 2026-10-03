@@ -75,9 +75,13 @@
 		filter?: string;
 		/** When true, label/help are rendered externally (e.g. by SectionField) — skip internal label */
 		externalLabel?: boolean;
+		/** A list row's `selectunique` sub-field: the choices from the list's own `selectunique` set. */
+		uniqueOptions?: Array<{ value: string; label: string }>;
+		/** A list row's `selectunique` sub-field: the values the list's other rows already hold. */
+		takenValues?: readonly unknown[];
 	}
 
-	let { field, value, onchange, oncommit, getValue, onFieldChange, onFieldCommit, filter = '', externalLabel = false }: Props = $props();
+	let { field, value, onchange, oncommit, getValue, onFieldChange, onFieldCommit, filter = '', externalLabel = false, uniqueOptions, takenValues }: Props = $props();
 
 	// Per-component-instance unique id used to scope browser radio groups so
 	// radios inside list-field items don't collide across siblings. See
@@ -96,7 +100,7 @@
 	]);
 	// Immediate-commit: fields where a single action completes the edit
 	const immediateCommitTypes = new Set([
-		'toggle', 'switch', 'select', 'selectize', 'checkbox', 'checkboxes',
+		'toggle', 'switch', 'select', 'selectunique', 'selectize', 'checkbox', 'checkboxes',
 		'radio', 'datetime', 'dateformat',
 		'filepicker', 'mediapicker', 'pagemediaselect', 'file', 'media',
 		'pages', 'parents', 'taxonomy', 'cron', 'multilevel',
@@ -247,6 +251,8 @@
 				{onFieldCommit}
 				{filter}
 				externalLabel={true}
+				{uniqueOptions}
+				{takenValues}
 			/>
 			<FieldDescription {field} />
 		</div>
@@ -698,6 +704,13 @@
 			error={fieldError}
 		/>
 	</div>
+
+{:else if field.type === 'selectunique'}
+	<!-- A select that leaves out what the list's other rows already use. A plugin's
+	     own `selectunique` web component is matched by the branch above, so this is
+	     only the built-in fallback. Outside a list there are no other rows to
+	     compare with and it is a plain select. -->
+	<SelectField {field} {value} onchange={committingOnchange} error={fieldError} fallbackOptions={uniqueOptions} {takenValues} />
 
 {:else}
 	<!-- Unknown field type — render as raw JSON editor -->

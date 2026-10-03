@@ -6,6 +6,7 @@
 	import { GripVertical, Plus, Trash2, ChevronDown } from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import FieldHelp from '../FieldHelp.svelte';
+	import { uniqueListOptions, takenByOtherRows } from '$lib/utils/select-unique';
 
 	interface Props {
 		field: BlueprintField;
@@ -166,7 +167,14 @@
 		return data;
 	}
 
+	// `selectunique` on the list is the set of values its `selectunique` sub-fields
+	// choose from, each usable once; classic admin also stopped adding rows once
+	// every value was taken (`data-max`).
+	const uniqueOptions = $derived(uniqueListOptions(field.selectunique));
+	const uniqueFull = $derived(uniqueOptions.length > 0 && items.length >= uniqueOptions.length);
+
 	function addItem() {
+		if (uniqueFull) return;
 		const newItem: ListItem = {
 			id: nextId++,
 			key: '',
@@ -408,6 +416,10 @@
 									getValue={(path) => scopedGetValue(item, path)}
 									onFieldChange={(path, val) => scopedFieldChange(item, path, val)}
 									{onFieldCommit}
+									uniqueOptions={childField.type === 'selectunique' ? uniqueOptions : undefined}
+									takenValues={childField.type === 'selectunique'
+										? takenByOtherRows(items.map((it) => it.data), childField.name.split('.').pop() ?? childField.name, items.indexOf(item))
+										: undefined}
 								/>
 							{/each}
 						</div>
@@ -437,8 +449,9 @@
 		{/if}
 		<button
 			type="button"
-			class="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
+			class="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary disabled:pointer-events-none disabled:opacity-50"
 			onclick={addItem}
+			disabled={uniqueFull}
 		>
 			<Plus size={14} />
 			{btnLabel}
