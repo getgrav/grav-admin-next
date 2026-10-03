@@ -4,7 +4,7 @@
 	import { api } from '$lib/api/client';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
-	import { getContext } from 'svelte';
+	import { getContext, untrack } from 'svelte';
 	import FieldHelp from '../FieldHelp.svelte';
 
 	/**
@@ -37,6 +37,12 @@
 		value: unknown;
 		onchange: (value: unknown) => void;
 		oncommit?: (value: unknown) => void;
+		/**
+		 * Reads another value in the form by its blueprint path. Handed to the web
+		 * component as `el.getValue`. Inside a list row it is scoped to that row, so
+		 * a sibling's path (`<list name>.<sibling>`) reads the sibling in the same row.
+		 */
+		getValue?: (path: string) => unknown;
 		/** Plugin or theme slug that provides this custom field */
 		pluginSlug: string;
 		/** Whether the provider is a plugin or a theme (selects the gpm route) */
@@ -55,7 +61,7 @@
 		selfLabeled?: boolean;
 	}
 
-	let { field, value, onchange, oncommit, pluginSlug, providerKind = 'plugins', fieldType, error: fieldError, selfLabeled = false }: Props = $props();
+	let { field, value, onchange, oncommit, getValue, pluginSlug, providerKind = 'plugins', fieldType, error: fieldError, selfLabeled = false }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
 	let containerEl = $state<HTMLDivElement | null>(null);
@@ -153,6 +159,7 @@
 		const el = document.createElement(tagName) as HTMLElement & {
 			field?: BlueprintField;
 			value?: unknown;
+			getValue?: (path: string) => unknown;
 			yFragment?: unknown;
 			yAwareness?: unknown;
 			yUser?: unknown;
@@ -170,8 +177,11 @@
 			el.yUser = collab.user;
 		}
 
-		// Set properties
+		// Set properties. `getValue` goes on before the element connects, like
+		// `field`, so it is there for the first render. It is a live accessor, not a
+		// snapshot: always read it at the moment the value is needed.
 		el.field = field;
+		el.getValue = (path: string) => getValue?.(path);
 		el.value = value;
 
 		// Listen for value changes from the web component. The field's
@@ -210,6 +220,27 @@
 		if (el && 'value' in el) {
 			el.value = v;
 		}
+	});
+
+	// Tell a field when something it reads from the form has changed. A field opts
+	// in by exposing `watch` (blueprint paths; a bare name such as `plugin` means
+	// the sibling with that name) and a `formChanged()` method. It is called when
+	// a watched value changes, not on the first read and not for any other change,
+	// so a field that never opts in costs nothing here.
+	let watchedSnapshot: string | null = null;
+	$effect(() => {
+		if (!loaded || !getValue) return;
+		const el = containerEl?.firstElementChild as
+			| (HTMLElement & { watch?: unknown; formChanged?: () => void })
+			| null;
+		if (!el || typeof el.formChanged !== 'function' || !Array.isArray(el.watch)) return;
+		const base = field.name.includes('.') ? field.name.slice(0, field.name.lastIndexOf('.') + 1) : '';
+		const snapshot = JSON.stringify(
+			el.watch.map((p) => getValue(String(p).includes('.') ? String(p) : base + p) ?? null)
+		);
+		const changed = watchedSnapshot !== null && snapshot !== watchedSnapshot;
+		watchedSnapshot = snapshot;
+		if (changed) untrack(() => el.formChanged?.());
 	});
 
 	// Keep the active content language exposed as a global so custom fields can

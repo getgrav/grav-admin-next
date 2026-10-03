@@ -698,6 +698,7 @@
 			{value}
 			onchange={committingOnchange}
 			{oncommit}
+			{getValue}
 			pluginSlug={provider?.slug ?? ''}
 			providerKind={provider?.kind ?? 'plugins'}
 			fieldType={field.type}
