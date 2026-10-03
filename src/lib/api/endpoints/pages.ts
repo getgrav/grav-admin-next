@@ -85,7 +85,27 @@ export function pageApiRoute(page: { route: string; raw_route?: string | null })
 	return page.raw_route || page.route;
 }
 
+/**
+ * Something a page create or update did that the caller should know about,
+ * though it went through. `template_missing`: a module was created or switched
+ * to a template the site doesn't have (getgrav/grav-plugin-api#55).
+ */
+export interface PageWarning {
+	field: string;
+	code: string;
+	message: string;
+}
+
 export interface PageDetail extends PageSummary {
+	/**
+	 * True for a module whose template doesn't exist on the site, so the page it
+	 * belongs to shows core's "template not found" error. Always false for an
+	 * ordinary page. On single-page details and create/update responses, not on
+	 * lists. API >= 1.0.45.
+	 */
+	template_missing?: boolean;
+	/** Only on create and update responses, and only when there is something to say. API >= 1.0.45. */
+	warnings?: PageWarning[];
 	content?: string;
 	content_html?: string;
 	summary?: string;

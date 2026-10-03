@@ -20,7 +20,7 @@
 	import { toast } from 'svelte-sonner';
 	import {
 		Save, Trash2, Code, Copy as CopyIcon,
-		AlertCircle, ChevronDown, Loader2, Eye, ExternalLink, X, Undo2, Languages, Move
+		AlertCircle, ChevronDown, Loader2, Eye, ExternalLink, X, Undo2, Languages, Move, TriangleAlert
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import PageNavigator from '$lib/components/pages/PageNavigator.svelte';
@@ -30,6 +30,7 @@
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { createAutoSaveManager } from '$lib/utils/auto-save.svelte';
 	import { effectivePageLang, pageFallbackState } from '$lib/utils/page-fallback';
+	import { missingModuleTemplate } from '$lib/utils/module-template';
 	import MarkdownEditor from '$lib/components/editors/MarkdownEditor.svelte';
 	import CodeEditor from '$lib/components/editors/CodeEditor.svelte';
 	import PageMedia from '$lib/components/media/PageMedia.svelte';
@@ -1045,6 +1046,11 @@
 	// (getgrav/grav#4338).
 	let fallbackUnresolved = $derived(fallbackState === 'unresolved');
 
+	// A module whose template doesn't exist on the site: the page it belongs to
+	// shows core's "template not found" error (getgrav/grav-plugin-api#55). Also
+	// covers a template a developer removed or never made outside the admin.
+	const missingTemplate = $derived(missingModuleTemplate(pageData, template));
+
 	// Languages offered in the "Save as …" dropdown. Combines the page's
 	// untranslated_languages (server view) with an "adopt" entry for the site
 	// default language when the page is backed by a bare `default.md` and the
@@ -1982,6 +1988,12 @@
 		<div class="py-20 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.LOADING_PAGE')}</div>
 	{:else if pageData}
 		<TwigContentBanner {route} />
+		{#if missingTemplate}
+			<div class="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-300">
+				<TriangleAlert size={16} class="shrink-0" />
+				<span>{@html i18n.tHtml('ADMIN_NEXT.PAGES.EDIT.TEMPLATE_MISSING_NOTICE', { template: missingTemplate })}</span>
+			</div>
+		{/if}
 		<div class="grid grid-cols-1 gap-4 {prefs.pageSidebarCollapsed ? 'lg:grid-cols-1' : 'lg:grid-cols-[minmax(0,1fr)_280px]'}">
 			<!-- Main content area -->
 			<div class="space-y-4">
