@@ -246,11 +246,22 @@
 	let previewRoute = $state<string | null>(null);
 	let previewAnchor = $state<string | null>(null);
 	const previewTargetRoute = $derived(previewRoute ?? pageData?.route ?? '');
+	// The language the preview was minted for. The server prefixes `route` with
+	// the URL prefix that language is served under (`/fr/...`), which the page's
+	// own route never carries (admin2#188).
+	let previewLang = $state<string | undefined>(undefined);
 	// True when the preview is showing a different page from the one being
-	// edited, i.e. a module rendered inside its parent.
-	const previewIsHostPage = $derived(
-		!!previewRoute && !!pageData && previewRoute !== pageData.route
-	);
+	// edited, i.e. a module rendered inside its parent. The language prefix is
+	// not part of that comparison.
+	const previewIsHostPage = $derived.by(() => {
+		if (!previewRoute || !pageData) return false;
+		if (previewRoute === pageData.route) return false;
+		const prefix = previewLang ? `/${previewLang}` : '';
+		if (prefix && (previewRoute === prefix || previewRoute.startsWith(`${prefix}/`))) {
+			return (previewRoute.slice(prefix.length) || '/') !== pageData.route;
+		}
+		return true;
+	});
 	// `admin_preview` tells the API plugin to render this front-end page without
 	// starting the shared front-end session, so opening the preview (iframe or
 	// new tab) can't rotate or invalidate a visitor's `grav-site` session and log
@@ -288,7 +299,10 @@
 		previewAnchor = null;
 		try {
 			const activeLang = contentLang.enabled ? contentLang.activeLang : undefined;
-			const res = await getPagePreviewToken(pageData.route, activeLang);
+			previewLang = activeLang;
+			// The structural route: the home page's public route is `/`, which
+			// the API can't address as `/pages//preview-token`.
+			const res = await getPagePreviewToken(pageApiRoute(pageData), activeLang);
 			previewToken = res.token ?? null;
 			previewRoute = res.route ?? null;
 			previewAnchor = res.anchor ?? null;
