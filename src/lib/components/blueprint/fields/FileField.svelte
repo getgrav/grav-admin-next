@@ -6,6 +6,7 @@
 	import { Uppy } from '@uppy/core';
 	import XHRUpload from '@uppy/xhr-upload';
 	import { useUploadConstraints } from '$lib/utils/uppyImageConstraints';
+	import { uploadAcceptTypes } from '$lib/utils/media-accept';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
@@ -167,9 +168,11 @@
 		return h;
 	}
 
+	// `accept: ['*']` (the admin-classic way to say "any file") is not a valid
+	// Uppy restriction or HTML accept value, so uploadAcceptTypes() drops it and
+	// the field is left unrestricted client-side.
 	function getAcceptString(): string {
-		if (!field.accept || field.accept.length === 0) return '';
-		return field.accept.join(',');
+		return uploadAcceptTypes(field.accept)?.join(',') ?? '';
 	}
 
 	// Per-field upload settings forwarded to the server so admin-next honors
@@ -180,6 +183,7 @@
 		const meta: Record<string, string> = {};
 		if (field.random_name) meta.random_name = '1';
 		if (field.avoid_overwriting) meta.avoid_overwriting = '1';
+		// The server reads `*` as "anything", so the raw list is safe to send.
 		if (field.accept?.length) meta.accept = field.accept.join(',');
 		if (typeof field.filesize === 'number' && field.filesize > 0) {
 			meta.filesize = String(field.filesize);
@@ -211,7 +215,7 @@
 			autoProceed: true,
 			restrictions: {
 				maxFileSize: Math.min(hardMax, fieldMax),
-				allowedFileTypes: field.accept?.length ? field.accept : undefined,
+				allowedFileTypes: uploadAcceptTypes(field.accept),
 			},
 		});
 
@@ -402,7 +406,9 @@
 			try {
 				uppy.addFile({ name: file.name, type: file.type, data: file, source: 'local' });
 			} catch (err) {
-				console.warn('Could not add file:', err);
+				// Uppy refuses a file that breaks the field's restrictions (type,
+				// size). Say so rather than leaving the drop looking like a no-op.
+				toast.error(err instanceof Error ? err.message : String(err));
 			}
 		}
 	}
@@ -564,9 +570,9 @@
 				<p class="text-xs text-muted-foreground">
 					{dragOver ? 'Drop file here' : 'Drop file or click to upload'}
 				</p>
-				{#if field.accept?.length}
+				{#if uploadAcceptTypes(field.accept)}
 					<p class="text-[0.625rem] text-muted-foreground/60">
-						{field.accept.join(', ')}
+						{uploadAcceptTypes(field.accept)?.join(', ')}
 					</p>
 				{/if}
 			{/if}

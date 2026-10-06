@@ -56,3 +56,28 @@ export function siteMediaTypeFilter(accept?: string[]): string | undefined {
 	const only = [...buckets][0];
 	return only === '' ? undefined : only;
 }
+
+/**
+ * Whether an `accept` entry means "any file". Blueprints written for
+ * admin-classic use a lone star for that (and sometimes star-slash-star or
+ * `.*`); the HTML input and Uppy only understand mime types and `.ext`
+ * entries, so a catch-all must be dropped before it reaches either of them.
+ */
+function isCatchAllAccept(pattern: string): boolean {
+	const p = pattern.trim();
+	return p === '*' || p === '*/*' || p === '.*';
+}
+
+/**
+ * Narrow a blueprint `accept` list to what a browser-side check can enforce.
+ *
+ * Returns undefined (no restriction) for an empty list or any list holding a
+ * catch-all entry, otherwise the trimmed entries. The server still applies the
+ * field's own `accept` allowlist, which treats `*` as "anything".
+ */
+export function uploadAcceptTypes(accept?: string[]): string[] | undefined {
+	if (!accept) return undefined;
+	const patterns = accept.map((p) => String(p).trim()).filter((p) => p !== '');
+	if (patterns.length === 0 || patterns.some(isCatchAllAccept)) return undefined;
+	return patterns;
+}
