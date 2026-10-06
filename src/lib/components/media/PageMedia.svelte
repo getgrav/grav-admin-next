@@ -331,15 +331,54 @@
 
 	function handleDragOver(e: DragEvent) {
 		e.preventDefault();
+		if (draggingIndex !== null) {
+			// An in-grid reorder drag is effectAllowed 'move'; answering it with
+			// 'copy' over the gaps and empty space makes the browser refuse the
+			// drop outright, so the tile snaps back instead of landing. Tiles stop
+			// their own dragover, so this only runs over everything that isn't one.
+			if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+			aimAtNearestTile(e);
+			return;
+		}
 		if (e.dataTransfer) {
 			e.dataTransfer.dropEffect = 'copy';
 		}
+	}
+
+	// Over a gap, the padding or the empty space after the last tile, aim the
+	// insertion line at the closest tile (before or after it by which side of its
+	// centre the pointer is on), so dropping past the last tile puts the item last.
+	function aimAtNearestTile(e: DragEvent) {
+		if (!dropzoneEl) return;
+		let best: { index: number; rect: DOMRect } | null = null;
+		let bestDist = Infinity;
+		for (const el of dropzoneEl.querySelectorAll<HTMLElement>('[data-reorder-tile]')) {
+			const rect = el.getBoundingClientRect();
+			const dx = Math.max(rect.left - e.clientX, 0, e.clientX - rect.right);
+			const dy = Math.max(rect.top - e.clientY, 0, e.clientY - rect.bottom);
+			const dist = dx * dx + dy * dy;
+			if (dist < bestDist) {
+				bestDist = dist;
+				best = { index: Number(el.dataset.reorderTile), rect };
+			}
+		}
+		if (!best) return;
+		dropPos = e.clientX > best.rect.left + best.rect.width / 2 ? 'after' : 'before';
+		dragOverIndex = best.index;
 	}
 
 	function handleDrop(e: DragEvent) {
 		e.preventDefault();
 		dragOver = false;
 		dragCounter = 0;
+		// A reorder drag released over a gap, the padding or the empty space after
+		// the last tile lands where the insertion line shows. Drops straight onto a
+		// tile are handled, and stopped, by the tile itself.
+		if (draggingIndex !== null) {
+			if (dragOverIndex !== null) handleReorderDrop(e, dragOverIndex);
+			else handleReorderEnd();
+			return;
+		}
 		// Uploads are immediate — never accept a drop when media isn't writable.
 		if (readonly) return;
 
@@ -619,6 +658,7 @@
 							? 'cursor-move border-primary/50 ring-1 ring-primary/40'
 							: 'cursor-grab border-border'} {draggingIndex === index ? 'opacity-40' : ''}"
 						draggable="true"
+						data-reorder-tile={index}
 						ondragstart={(e) => handleTileDragStart(e, item, index)}
 						ondragend={handleReorderEnd}
 						ondragover={(e) => handleReorderOver(e, index)}
