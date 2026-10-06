@@ -27,6 +27,8 @@
 
 	let { field, getValue, onFieldChange, onFieldCommit, filter = '' }: Props = $props();
 	const translateLabel = i18n.tMaybe;
+	// Prefix for the ids of the controls whose label column needs a `<label for>`.
+	const uid = $props.id();
 
 	// A collapsible section/fieldset gets a clickable header that toggles its
 	// body. Initial state honours `collapsed`; only collapsible sections can
@@ -138,8 +140,9 @@
 
 	{#if visibleFields.length > 0 && !isCollapsed}
 		<div class="space-y-5 px-6 py-5" transition:slide={{ duration: 200 }}>
-			{#each visibleFields as childField (childField.name)}
+			{#each visibleFields as childField, i (childField.name)}
 				{@const toggled = isToggleOn(childField)}
+				{@const controlId = childField.type === 'checkbox' && showLabelColumn(childField) ? `${uid}-${i}` : undefined}
 
 				{#if isSuppressed(childField)}
 					<!-- Suppressed in admin-next -->
@@ -164,7 +167,7 @@
 									<ToggleableCheckbox {toggled} onToggle={() => toggleField(childField.name, childField)} />
 								{/if}
 								<div>
-									<FieldLabel field={childField} {toggled} {filter} />
+									<FieldLabel field={childField} {toggled} {filter} {controlId} />
 								</div>
 							</div>
 						{/if}
@@ -177,6 +180,7 @@
 								{getValue}
 								{onFieldChange}
 								{onFieldCommit}
+								{controlId}
 							/>
 							<FieldDescription field={childField} />
 						</div>

@@ -75,13 +75,15 @@
 		filter?: string;
 		/** When true, label/help are rendered externally (e.g. by SectionField) — skip internal label */
 		externalLabel?: boolean;
+		/** Id for the field's control, set by whoever draws the label column so its `<label for>` can reach the control. Only a `checkbox` takes one today. */
+		controlId?: string;
 		/** A list row's `selectunique` sub-field: the choices from the list's own `selectunique` set. */
 		uniqueOptions?: Array<{ value: string; label: string }>;
 		/** A list row's `selectunique` sub-field: the values the list's other rows already hold. */
 		takenValues?: readonly unknown[];
 	}
 
-	let { field, value, onchange, oncommit, getValue, onFieldChange, onFieldCommit, filter = '', externalLabel = false, uniqueOptions, takenValues }: Props = $props();
+	let { field, value, onchange, oncommit, getValue, onFieldChange, onFieldCommit, filter = '', externalLabel = false, controlId, uniqueOptions, takenValues }: Props = $props();
 
 	// Per-component-instance unique id used to scope browser radio groups so
 	// radios inside list-field items don't collide across siblings. See
@@ -170,6 +172,12 @@
 	// chrome stays the one place a description is rendered.
 	const useTwoColumn = $derived(isChromeLeaf && (showLabelColumn || !!field.description));
 
+	// A checkbox whose label sits in that column gets an id, so the label can be
+	// a real <label for> pointing at the box.
+	const columnControlId = $derived(
+		field.type === 'checkbox' && showLabelColumn ? `${radioGroupId}-control` : undefined
+	);
+
 	// Fields suppressed in admin-next (handled by the UI directly)
 	// - order fields: reordering is via drag-and-drop in listing views
 	// - enabled: plugin enable/disable is in the toolbar, not the form
@@ -236,7 +244,7 @@
 					<ToggleableCheckbox {toggled} onToggle={() => onchange(toggleValue(field, toggled))} />
 				{/if}
 				<div>
-					<FieldLabel {field} {toggled} {filter} />
+					<FieldLabel {field} {toggled} {filter} controlId={columnControlId} />
 				</div>
 			</div>
 		{/if}
@@ -251,6 +259,7 @@
 				{onFieldCommit}
 				{filter}
 				externalLabel={true}
+				controlId={columnControlId}
 				{uniqueOptions}
 				{takenValues}
 			/>
@@ -533,8 +542,13 @@
 
 {:else if field.type === 'checkbox'}
 	<div>
-		<label class="flex cursor-pointer items-center gap-2.5">
+		<!-- With the label drawn in the column beside it (`controlId` set), the box
+		     drops 14px on wide screens so its centre meets the label text's: the
+		     column's text centre measures 23px below the row top (10px padding, then
+		     a 24px line box), and the 18px box centres at 14 + 9. -->
+		<label class="flex cursor-pointer items-center gap-2.5 {controlId ? 'lg:mt-3.5' : ''}">
 			<input
+				id={controlId}
 				type="checkbox"
 				class="h-[18px] w-[18px] shrink-0 appearance-none rounded border border-input bg-muted/50 checked:border-primary checked:bg-primary checked:bg-[url('data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22white%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M12.207%204.793a1%201%200%20010%201.414l-5%205a1%201%200%2001-1.414%200l-2-2a1%201%200%20011.414-1.414L6.5%209.086l4.293-4.293a1%201%200%20011.414%200z%22%2F%3E%3C%2Fsvg%3E')] checked:bg-no-repeat checked:bg-center"
 				checked={!!value}

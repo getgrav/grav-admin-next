@@ -27,13 +27,22 @@
 		 * trusting whatever a caller passes in.
 		 */
 		filter?: string;
+		/**
+		 * Id of the control this label names. When set the label is a real
+		 * `<label for>`, so a click on it toggles or focuses the control and a
+		 * screen reader announces it as the control's name; otherwise it stays a
+		 * plain `<span>` (a group heading, or a control with no id to point at).
+		 */
+		controlId?: string;
 	}
 
-	let { field, toggled = true, filter }: Props = $props();
+	let { field, toggled = true, filter, controlId }: Props = $props();
 </script>
 
 {#if field.label}
-	<span
+	<svelte:element
+		this={controlId ? 'label' : 'span'}
+		for={controlId}
 		class="inline-flex items-center gap-1.5 text-sm font-semibold {toggled
 			? 'text-foreground'
 			: 'text-muted-foreground'} {field.labelclasses ?? ''}"
@@ -49,7 +58,7 @@
 		{#if field.validate?.required}<span class="text-red-500">*</span>{/if}
 		<FieldOverrideIndicator path={field.name} />
 		<FieldHelp part="icon" help={field.help} label={field.label} {filter} flush />
-	</span>
+	</svelte:element>
 {/if}
 {#if field.sublabel}
 	{@const sublabel = i18n.tMaybe(field.sublabel)}
