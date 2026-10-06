@@ -1,4 +1,5 @@
 import { api, ApiRequestError } from '../client';
+import { extractEtag } from '$lib/utils/etag';
 
 export interface PageSummary {
 	route: string;
@@ -374,7 +375,17 @@ export async function getRecentPages(limit = 5): Promise<PageSummary[]> {
 	});
 }
 
-export async function getPage(route: string, options?: { render?: boolean; summary?: boolean; summary_size?: number; children?: boolean; children_depth?: number; translations?: boolean; lang?: string }): Promise<PageDetail> {
+export interface PageReadOptions {
+	render?: boolean;
+	summary?: boolean;
+	summary_size?: number;
+	children?: boolean;
+	children_depth?: number;
+	translations?: boolean;
+	lang?: string;
+}
+
+function pageReadParams(options?: PageReadOptions): Record<string, string> {
 	const params: Record<string, string> = {};
 	if (options?.render) params.render = 'true';
 	if (options?.summary) params.summary = 'true';
@@ -383,8 +394,25 @@ export async function getPage(route: string, options?: { render?: boolean; summa
 	if (options?.children_depth) params.children_depth = String(options.children_depth);
 	if (options?.translations) params.translations = 'true';
 	if (options?.lang) params.lang = options.lang;
+	return params;
+}
+
+export async function getPage(route: string, options?: PageReadOptions): Promise<PageDetail> {
 	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
-	return api.get<PageDetail>(`/pages/${cleanRoute}`, params);
+	return api.get<PageDetail>(`/pages/${cleanRoute}`, pageReadParams(options));
+}
+
+/**
+ * Load a page together with its ETag, for the editor to send back as
+ * `If-Match` on save. The API hashes the page itself, so the value is the same
+ * whatever the read asked to have added (translations, children, ...).
+ */
+export async function getPageWithEtag(route: string, options?: PageReadOptions): Promise<{ page: PageDetail; etag: string }> {
+	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
+	const { data, headers } = await api.requestWithHeaders<PageDetail>('GET', `/pages/${cleanRoute}`, {
+		params: pageReadParams(options),
+	});
+	return { page: data, etag: extractEtag(headers) };
 }
 
 export async function createPage(body: CreatePageBody): Promise<PageDetail> {
@@ -418,11 +446,18 @@ export async function getPagePreviewToken(
 	);
 }
 
-export async function updatePage(route: string, body: UpdatePageBody, etag?: string, lang?: string): Promise<PageDetail> {
+/**
+ * Save a page. With `etag` the API answers 409 when the page changed since the
+ * ETag was read, instead of overwriting the other writer's changes. The
+ * returned `etag` is the saved page's, or empty when the response carried none.
+ */
+export async function updatePage(route: string, body: UpdatePageBody, etag?: string, lang?: string): Promise<{ page: PageDetail; etag: string }> {
 	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
 	const path = lang ? `/pages/${cleanRoute}?lang=${encodeURIComponent(lang)}` : `/pages/${cleanRoute}`;
-	// TODO: add If-Match header support for ETags
-	return api.patch<PageDetail>(path, body);
+	const headers: Record<string, string> = {};
+	if (etag) headers['If-Match'] = `"${etag}"`;
+	const { data, headers: responseHeaders } = await api.requestWithHeaders<PageDetail>('PATCH', path, { body, headers });
+	return { page: data, etag: extractEtag(responseHeaders) };
 }
 
 export async function deletePage(route: string, options?: { children?: boolean; lang?: string }): Promise<void> {
@@ -435,8 +470,14 @@ export async function deletePage(route: string, options?: { children?: boolean; 
 }
 
 export async function movePage(route: string, body: { parent: string; slug?: string; order?: number | null }): Promise<PageDetail> {
+	return (await movePageWithEtag(route, body)).page;
+}
+
+/** `movePage` plus the moved page's ETag, for the editor that keeps editing it. */
+export async function movePageWithEtag(route: string, body: { parent: string; slug?: string; order?: number | null }): Promise<{ page: PageDetail; etag: string }> {
 	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
-	return api.post<PageDetail>(`/pages/${cleanRoute}/move`, body);
+	const { data, headers } = await api.requestWithHeaders<PageDetail>('POST', `/pages/${cleanRoute}/move`, { body });
+	return { page: data, etag: extractEtag(headers) };
 }
 
 export async function copyPage(route: string, destination: string): Promise<PageDetail> {

@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { setContext, untrack } from 'svelte';
-	import { getPage, updatePage, deletePage, movePage, duplicatePage, getChildren, getPagePreviewToken, pageApiRoute } from '$lib/api/endpoints/pages';
+	import { getPageWithEtag, updatePage, deletePage, movePageWithEtag, duplicatePage, getChildren, getPagePreviewToken, pageApiRoute } from '$lib/api/endpoints/pages';
 	import { createTranslation, syncTranslation, adoptPageLanguage } from '$lib/api/endpoints/languages';
 	import { getPageBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { PageDetail } from '$lib/api/endpoints/pages';
@@ -185,6 +185,10 @@
 	});
 
 	let pageData = $state<PageDetail | null>(null);
+	// The ETag of the page as last loaded or saved, sent back as `If-Match` so a
+	// save made after someone else changed the page is refused (409) instead of
+	// overwriting it (admin2#189). Empty when the server sent none.
+	let pageEtag = $state('');
 
 	// What this user may do to THIS page. A page can grant or deny update/delete
 	// in its own `header.permissions` frontmatter, which the API resolves and
@@ -1093,12 +1097,13 @@
 			// Record what we are loading so the effect can tell a genuine
 			// route/language change from an incidental re-run (admin2#156).
 			loadedIdentity = `${route}::${activeLang ?? ''}`;
-			const data = await getPage(route, { render: false, translations: true, lang: activeLang });
+			const { page: data, etag: loadedEtag } = await getPageWithEtag(route, { render: false, translations: true, lang: activeLang });
 
 			// Stale load — a newer loadPage() was triggered while this one was in flight
 			if (gen !== loadGeneration) return;
 
 			pageData = data;
+			pageEtag = loadedEtag;
 			title = data.title;
 			content = data.content ?? '';
 			template = data.template;
@@ -1274,11 +1279,12 @@
 		if (!pageData) return;
 		try {
 			const activeLang = contentLang.enabled ? contentLang.activeLang : undefined;
-			const refreshed = await getPage(route, { render: false, translations: true, lang: activeLang });
+			const { page: refreshed, etag: refreshedEtag } = await getPageWithEtag(route, { render: false, translations: true, lang: activeLang });
 			refreshed.translated_languages = refreshed.translated_languages ?? pageData.translated_languages;
 			refreshed.untranslated_languages = refreshed.untranslated_languages ?? pageData.untranslated_languages;
 
 			pageData = refreshed;
+			pageEtag = refreshedEtag;
 			originalHeader = JSON.parse(JSON.stringify(refreshed.header ?? {})) as Record<string, unknown>;
 			originalTitle = refreshed.title;
 			originalContent = refreshed.content ?? '';
@@ -1411,11 +1417,15 @@
 			// Phase 1: Save content/header/template changes
 			if (Object.keys(body).length > 0) {
 				const activeLang = contentLang.enabled ? contentLang.activeLang : undefined;
-				const updated = await updatePage(route, body, undefined, activeLang);
+				// In a live collab room the page is merged through Yjs, and the sync
+				// plugin carries an API write into the room, so a peer's or an
+				// agent's change is not a conflict to refuse here.
+				const { page: updated, etag: savedEtag } = await updatePage(route, body, syncReady ? undefined : pageEtag, activeLang);
 				// Preserve translation data since PATCH response doesn't include it
 				updated.translated_languages = updated.translated_languages ?? pageData!.translated_languages;
 				updated.untranslated_languages = updated.untranslated_languages ?? pageData!.untranslated_languages;
 				pageData = updated;
+				pageEtag = savedEtag;
 				title = updated.title;
 				content = updated.content ?? content;
 				template = updated.template;
@@ -1465,10 +1475,11 @@
 				};
 				if (expertSlug !== pageData.slug) moveBody.slug = expertSlug;
 
-				const moved = await movePage(route, moveBody);
+				const { page: moved, etag: movedEtag } = await movePageWithEtag(route, moveBody);
 
 				// Sync all state so hasChanges becomes false
 				pageData = moved;
+				pageEtag = movedEtag;
 				title = moved.title ?? title;
 				content = moved.content ?? content;
 				template = moved.template ?? template;
@@ -1514,11 +1525,12 @@
 					}
 				}
 
-				const moved = await movePage(route, moveBody);
+				const { page: moved, etag: movedEtag } = await movePageWithEtag(route, moveBody);
 
 				const movedParent = pageParentRoute(moved);
 				const movedOrdering = hasNumericPrefix(moved.order);
 				pageData = moved;
+				pageEtag = movedEtag;
 				title = moved.title ?? title;
 				content = moved.content ?? content;
 				template = moved.template ?? template;
@@ -1555,6 +1567,13 @@
 
 			toast.success(i18n.t('ADMIN_NEXT.PAGES.SAVED'));
 		} catch (err: unknown) {
+			// 409: the page was changed (by the API, an agent, another admin) after
+			// this form loaded it, and saving would overwrite that. Nothing was
+			// written; the form keeps the user's edits until they reload.
+			if (err instanceof ApiRequestError && err.status === 409) {
+				toast.error(i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_WAS_MODIFIED_ELSEWHERE_PLEASE'));
+				return;
+			}
 			// 422: the API names each offending field (e.g. `header.process` when a
 			// gated `twig` value is rejected). Map them onto the form for inline
 			// display and call them out in the toast, so the cause is identifiable

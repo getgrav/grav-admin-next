@@ -173,6 +173,8 @@ interface RequestOptions {
 	overrideRetry?: boolean;
 	/** Internal — counts 429 backoff retries so recursion is bounded. */
 	rateAttempt?: number;
+	/** Receives the headers of the successful response (see `requestWithHeaders`). */
+	onHeaders?: (headers: Headers) => void;
 }
 
 /** How long `getCached()` reuses an answer unless told otherwise. */
@@ -572,6 +574,8 @@ class ApiClient {
 			}
 		}
 
+		if (response.ok) options.onHeaders?.(response.headers);
+
 		return this.handleResponse<T>(response, upperMethod, path);
 	}
 
@@ -620,6 +624,27 @@ class ApiClient {
 		// soon as it is spent, whichever landed second came back 401 and put a
 		// re-auth prompt in front of a live session.
 		return authSession.performRefresh();
+	}
+
+	/**
+	 * Same as `get`/`patch`/..., through the same retry, method-override and
+	 * debug-panel handling, and also returns the response headers (for the
+	 * ETag). `headers` is empty when the call was queued behind a re-login
+	 * and replayed, so a caller must treat a missing ETag as "unknown".
+	 */
+	async requestWithHeaders<T>(
+		method: string,
+		path: string,
+		options: { body?: unknown; params?: Record<string, string>; headers?: Record<string, string> } = {},
+	): Promise<{ data: T; headers: Headers }> {
+		let headers = new Headers();
+		const data = await this.request<T>(method, path, {
+			...options,
+			onHeaders: (h) => {
+				headers = h;
+			},
+		});
+		return { data, headers };
 	}
 
 	/**
