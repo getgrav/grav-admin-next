@@ -7,6 +7,7 @@
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import FieldHelp from '../FieldHelp.svelte';
 	import { uniqueListOptions, takenByOtherRows } from '$lib/utils/select-unique';
+	import { listItemTitle } from '$lib/utils/list-item-title';
 
 	interface Props {
 		field: BlueprintField;
@@ -295,8 +296,7 @@
 	// Summary label for collapsed items
 	function itemSummary(item: ListItem): string {
 		if (keyFieldDef && item.key) return item.key;
-		const vals = Object.values(item.data).filter((v) => typeof v === 'string' && v);
-		return vals.length > 0 ? String(vals[0]) : `Item`;
+		return listItemTitle(item.data, valueFieldDefs.map((f) => f.name.split('.').pop() ?? f.name)) || `Item`;
 	}
 
 	// Filter support — match item key or any string-y data value

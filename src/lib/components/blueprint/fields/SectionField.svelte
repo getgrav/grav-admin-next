@@ -123,7 +123,7 @@
 		{#if field.collapsible}
 			<button
 				type="button"
-				class="flex w-full flex-col items-stretch px-6 pt-6 pb-2 text-start"
+				class="flex w-full flex-col items-stretch px-6 text-start {isCollapsed ? 'py-4' : 'pt-6 pb-2'}"
 				aria-expanded={!isCollapsed}
 				onclick={() => (collapsed = !collapsed)}
 			>
