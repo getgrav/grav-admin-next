@@ -40,7 +40,8 @@
 		/**
 		 * Reads another value in the form by its blueprint path. Handed to the web
 		 * component as `el.getValue`. Inside a list row it is scoped to that row, so
-		 * a sibling's path (`<list name>.<sibling>`) reads the sibling in the same row.
+		 * a sibling's path (`<list name>.<sibling>`) reads the sibling in the same row;
+		 * a path the row doesn't hold is read from the enclosing row or the form.
 		 */
 		getValue?: (path: string) => unknown;
 		/** Plugin or theme slug that provides this custom field */

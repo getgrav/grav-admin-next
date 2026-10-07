@@ -235,11 +235,22 @@
 		return rel ? rel.split('.') : [];
 	}
 
+	// A path under this list's own prefix belongs to the row and is answered by
+	// the row alone. Any other path the row can't answer goes to the accessor
+	// this list was given, so a field in a nested list can still read its parent
+	// row (`protected_fields.plugin` from inside `protected_fields.fields`), and
+	// a field in a top-level list can read the rest of the form (#29).
 	function scopedGetValue(item: ListItem, path: string): unknown {
 		let current: unknown = item.data;
 		for (const part of itemRelParts(path)) {
-			if (current === null || current === undefined || typeof current !== 'object') return undefined;
+			if (current === null || current === undefined || typeof current !== 'object') {
+				current = undefined;
+				break;
+			}
 			current = (current as Record<string, unknown>)[part];
+		}
+		if (current === undefined && !(listPrefix && path.startsWith(listPrefix))) {
+			return getValue(path);
 		}
 		return current;
 	}
