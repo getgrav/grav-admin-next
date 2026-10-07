@@ -155,12 +155,29 @@ export interface RepositoryPlugin {
 }
 
 /**
- * Get available plugins from the GPM repository.
- * Uses a large per_page to fetch all in one request.
+ * Fetch every page of a GPM repository listing. The feed outgrew a single
+ * 500-row page (512 plugins in October 2026), and whatever sat past the
+ * cut never showed in the install modal.
+ */
+async function getAllRepositoryPages<T>(path: string): Promise<T[]> {
+	const all: T[] = [];
+	for (let page = 1; ; page++) {
+		const { data, meta } = await api.requestRaw<unknown>('GET', path, {
+			params: { per_page: '500', page: String(page) }
+		});
+		all.push(...expectArray<T>(data, 'GET', path));
+		const totalPages = Number(
+			(meta as { pagination?: { total_pages?: number } } | undefined)?.pagination?.total_pages ?? 1
+		);
+		if (!(page < totalPages)) return all;
+	}
+}
+
+/**
+ * Get available plugins from the GPM repository, every page of them.
  */
 export async function getRepositoryPlugins(): Promise<RepositoryPlugin[]> {
-	const path = '/gpm/repository/plugins';
-	return expectArray<RepositoryPlugin>(await api.get<unknown>(path, { per_page: '500' }), 'GET', path);
+	return getAllRepositoryPages<RepositoryPlugin>('/gpm/repository/plugins');
 }
 
 export interface InstallPackageResult {
@@ -382,8 +399,7 @@ export interface RepositoryTheme {
 }
 
 export async function getRepositoryThemes(): Promise<RepositoryTheme[]> {
-	const path = '/gpm/repository/themes';
-	return expectArray<RepositoryTheme>(await api.get<unknown>(path, { per_page: '500' }), 'GET', path);
+	return getAllRepositoryPages<RepositoryTheme>('/gpm/repository/themes');
 }
 
 export async function installTheme(slug: string): Promise<InstallPackageResult> {
