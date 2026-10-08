@@ -1726,7 +1726,7 @@
 	async function confirmDeletePage() {
 		confirmDeleteOpen = false;
 		try {
-			await deletePage(route, { children: true });
+			await deletePage(route, { children: true, lang: effectiveLang });
 			toast.success(i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_DELETED'));
 			goto(`${base}/pages`);
 		} catch {

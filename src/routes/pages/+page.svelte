@@ -87,8 +87,9 @@
 	// it slower than admin classic's old draft/publish UX.
 	async function handleTogglePublished(page: PageSummary) {
 		const next = !page.published;
+		const activeLang = contentLang.enabled ? contentLang.activeLang : undefined;
 		try {
-			await updatePage(page.route, { published: next });
+			await updatePage(page.route, { published: next }, undefined, activeLang);
 			toast.success(
 				next
 					? i18n.t('ADMIN_NEXT.TOASTS.PAGE_PUBLISHED', { name: page.title })
@@ -106,12 +107,14 @@
 		confirmDeleteOpen = false;
 		pendingDeletePage = null;
 		if (!pg) return;
+
+		const activeLang = contentLang.enabled ? contentLang.activeLang : undefined;
 		try {
 			// Address the page by its structural route (raw_route): a hidden-home
 			// child's public route has the home segment stripped, so pg.route can
 			// point at the wrong page — or nowhere. Matches the editor's delete,
 			// which already uses the raw_route-based URL (admin2#132).
-			await deletePage(pageApiRoute(pg), { children: true });
+			await deletePage(pageApiRoute(pg), { children: true, lang: activeLang });
 			toast.success(i18n.t('ADMIN_NEXT.TOASTS.ITEM_DELETED', { name: pg.title }));
 			loadStats();
 			// Child list views subscribe to `pages:*` invalidations and refetch
