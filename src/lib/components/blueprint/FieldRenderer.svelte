@@ -46,7 +46,7 @@
 	import { fieldMatches } from '$lib/utils/field-filter';
 	import ToggleableCheckbox from './ToggleableCheckbox.svelte';
 	import { isToggleOn, displayValue, toggleValue } from '$lib/utils/toggleable';
-	import { numericConstraint, toNumber, clampToRange } from '$lib/utils/field-constraints';
+	import { numericConstraint, stepConstraint, toNumber, clampToRange } from '$lib/utils/field-constraints';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { getContext } from 'svelte';
 	import EditorLockNotice from '$lib/components/sync/EditorLockNotice.svelte';
@@ -397,7 +397,7 @@
 {:else if field.type === 'range'}
 	{@const rangeMin = numericConstraint(field, 'min') ?? 0}
 	{@const rangeMax = numericConstraint(field, 'max') ?? 100}
-	{@const rangeStep = numericConstraint(field, 'step') ?? 1}
+	{@const rangeStep = stepConstraint(field) ?? 1}
 	{@const rangeValue = clampToRange(toNumber(value) ?? toNumber(field.default) ?? rangeMin, rangeMin, rangeMax)}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="space-y-2" onfocusin={oncommit ? () => { if (!hasBlurBaseline) { blurOldValue = JSON.parse(JSON.stringify(value ?? null)); hasBlurBaseline = true; } } : undefined}

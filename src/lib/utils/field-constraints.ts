@@ -23,12 +23,25 @@ export function toNumber(value: unknown): number | undefined {
 	return Number.isFinite(num) ? num : undefined;
 }
 
-/** min / max / step for a numeric input (number, range). */
-export function numericConstraint(
-	field: BlueprintField,
-	key: 'min' | 'max' | 'step'
-): number | undefined {
+/** min / max for a numeric input (number, range). Step has its own resolver below. */
+export function numericConstraint(field: BlueprintField, key: 'min' | 'max'): number | undefined {
 	return toNumber(field[key]) ?? toNumber(field.validate?.[key]);
+}
+
+/**
+ * step for a number, range or date-like input. Besides a number, HTML takes
+ * `step="any"`, which accepts any value, and blueprints write it as
+ * `validate: { step: any }` for decimals such as a latitude; the classic
+ * admin passes it to the input as written. Read as a number it was dropped,
+ * so the browser fell back to a step of 1 and marked every decimal invalid.
+ */
+export function stepConstraint(field: BlueprintField): number | 'any' | undefined {
+	for (const raw of [field.step, field.validate?.step]) {
+		if (typeof raw === 'string' && raw.trim().toLowerCase() === 'any') return 'any';
+		const num = toNumber(raw);
+		if (num !== undefined) return num;
+	}
+	return undefined;
 }
 
 /**

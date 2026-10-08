@@ -3,7 +3,7 @@
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { fieldSizeClass } from '$lib/utils/field-size';
-	import { numericConstraint, lengthConstraint } from '$lib/utils/field-constraints';
+	import { numericConstraint, stepConstraint, lengthConstraint } from '$lib/utils/field-constraints';
 	import FieldHelp from '../FieldHelp.svelte';
 
 	interface Props {
@@ -31,7 +31,7 @@
 	const maxAttr = $derived(
 		isNumeric ? numericConstraint(field, 'max') : isDateLike ? (field.max ?? field.validate?.max) : undefined
 	);
-	const stepAttr = $derived(isNumeric || isDateLike ? numericConstraint(field, 'step') : undefined);
+	const stepAttr = $derived(isNumeric || isDateLike ? stepConstraint(field) : undefined);
 	const minLengthAttr = $derived(isNumeric || isDateLike ? undefined : lengthConstraint(field, 'minlength'));
 	const maxLengthAttr = $derived(isNumeric || isDateLike ? undefined : lengthConstraint(field, 'maxlength'));
 

@@ -27,7 +27,8 @@ export interface BlueprintField {
 	highlight?: number;
 	min?: number;
 	max?: number;
-	step?: number;
+	/** A number, or `any` for no step (any decimal). */
+	step?: number | string;
 	minlength?: number;
 	maxlength?: number;
 	rows?: number;
@@ -52,7 +53,8 @@ export interface BlueprintField {
 		 */
 		min?: number | string;
 		max?: number | string;
-		step?: number;
+		/** A number, or `any` for no step (any decimal). */
+		step?: number | string;
 		/** Custom validation message from the blueprint, shown instead of the generic required text. */
 		message?: string;
 	};
