@@ -18,6 +18,7 @@
 	import { getPageTypes, type PageType } from '$lib/api/endpoints/blueprints';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
+	import { pageHasLang } from '$lib/utils/page-fallback';
 	import LanguageSwitcher from '$lib/components/ui/LanguageSwitcher.svelte';
 	import {
 		Plus, Search, TreePine, List, Columns3, X, ArrowUpDown, ChevronDown, FilePlus, FolderPlus, LayoutGrid
@@ -142,7 +143,10 @@
 		next.add(page.route);
 		copyingRoutes = next;
 		try {
-			const newPage = await duplicatePage(page);
+			// The copy carries every translation; the language only picks which
+			// file gets the bumped title: the one the row shows.
+			const activeLang = contentLang.enabled ? contentLang.activeLang : undefined;
+			const newPage = await duplicatePage(page, pageHasLang(page, activeLang, contentLang.defaultLang) ? activeLang : undefined);
 			toast.success(i18n.t('ADMIN_NEXT.TOASTS.ITEM_COPIED', { name: page.title, target: newPage.title }));
 			loadStats();
 			return newPage;

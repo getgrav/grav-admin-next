@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { effectivePageLang, pageFallbackState } from '../src/lib/utils/page-fallback.ts';
+import { effectivePageLang, pageFallbackState, pageHasLang } from '../src/lib/utils/page-fallback.ts';
 
 const site = { enabled: true, defaultLang: 'fr' };
 
@@ -38,4 +38,18 @@ test('the default-language file with no translation fields is unresolved', () =>
 test('another language returned while the active one already has a file is unresolved', () => {
 	const page = { language: 'fr', untranslated_languages: [] };
 	assert.equal(pageFallbackState({ ...site, activeLang: 'en', page }), 'unresolved');
+});
+
+test('a row has a file in the languages it lists, and the default for a bare default.md', () => {
+	const listed = { translated_languages: { en: '/en/a', fr: '/fr/a' } };
+	assert.equal(pageHasLang(listed, 'fr', 'en'), true);
+	assert.equal(pageHasLang(listed, 'de', 'en'), false);
+	const bare = { translated_languages: { '': '/a' }, has_default_file: true };
+	assert.equal(pageHasLang(bare, 'en', 'en'), true);
+	assert.equal(pageHasLang(bare, 'fr', 'en'), false);
+});
+
+test('a row without translation info, or with no active language, is never held back', () => {
+	assert.equal(pageHasLang({}, 'fr', 'en'), true);
+	assert.equal(pageHasLang({ translated_languages: { en: '/a' } }, undefined, 'en'), true);
 });

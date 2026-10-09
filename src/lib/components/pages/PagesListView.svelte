@@ -552,7 +552,7 @@
 				<Badge variant="outline" class="max-w-full"><span class="block truncate">{page.template}</span></Badge>
 			</div>
 			<div class="flex w-6 justify-center">
-				{#if onTogglePublished && pageCan(page, 'publish')}
+				{#if onTogglePublished && pageCan(page, 'publish') && !isUntranslated}
 					<button
 						type="button"
 						class="inline-flex h-6 w-6 items-center justify-center rounded transition-colors hover:bg-accent"
@@ -586,7 +586,7 @@
 							{/if}
 						</button>
 					{/if}
-					{#if onDelete && pageCan(page, 'delete')}
+					{#if onDelete && pageCan(page, 'delete') && !isUntranslated}
 						<button
 							class="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
 							onclick={(e) => { e.stopPropagation(); onDelete(page); }}

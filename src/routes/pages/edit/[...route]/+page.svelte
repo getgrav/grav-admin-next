@@ -1740,7 +1740,7 @@
 		if (!pageData || !canUpdatePage || copying) return;
 		copying = true;
 		try {
-			const newPage = await duplicatePage(pageData);
+			const newPage = await duplicatePage(pageData, effectiveLang);
 			toast.success(i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_COPIED'));
 			goto(`${base}/pages/edit${newPage.route}`);
 		} catch (err) {

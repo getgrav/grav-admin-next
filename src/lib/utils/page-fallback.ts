@@ -37,3 +37,22 @@ export function pageFallbackState({ enabled, activeLang, defaultLang, page }: Pa
 
 	return page.untranslated_languages?.includes(activeLang) ? 'creatable' : 'unresolved';
 }
+
+/**
+ * Whether a page row has a file in `lang`. The list answers in the active
+ * language even for a page that only exists in another one (the server falls
+ * back), so the actions that change or delete one language's file must be off
+ * for such a row. A row without translation info (single-language site, older
+ * API) counts as having it.
+ */
+export function pageHasLang(
+	page: { translated_languages?: Record<string, string>; has_default_file?: boolean },
+	lang: string | undefined,
+	defaultLang: string,
+): boolean {
+	if (!lang) return true;
+	const keys = page.translated_languages ? Object.keys(page.translated_languages) : [];
+	const implicitDefault = !!page.has_default_file && !!defaultLang;
+	if (keys.length === 0 && !implicitDefault) return true;
+	return keys.includes(lang) || (implicitDefault && lang === defaultLang);
+}

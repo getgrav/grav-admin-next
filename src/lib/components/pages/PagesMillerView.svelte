@@ -15,6 +15,7 @@
 	import PageStatusIndicator from '$lib/components/pages/PageStatusIndicator.svelte';
 	import { pageStatus, pageStatusToggleLabel } from '$lib/utils/pageStatus';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
+	import { pageHasLang } from '$lib/utils/page-fallback';
 	import { toast } from 'svelte-sonner';
 	import {
 		Folder, File, Loader2, ExternalLink, ArrowUpDown, GripVertical, Copy, Trash2,
@@ -1068,6 +1069,7 @@
 			{:else if previewPage}
 				{@const copyingPreview = copyingRoutes?.has(previewPage.route) ?? false}
 				{@const previewStatus = pageStatus(previewPage)}
+				{@const previewHasLang = pageHasLang(previewPage, lang, contentLang.defaultLang)}
 				<div class="p-5">
 					<!-- Title & edit button -->
 					<div class="flex items-start justify-between gap-2">
@@ -1104,7 +1106,7 @@
 						{/if}
 						{#if (onCopy && pageCan(previewPage, 'update')) || (onDelete && pageCan(previewPage, 'delete')) || (onTogglePublished && pageCan(previewPage, 'publish'))}
 							<div class="ms-auto inline-flex items-center gap-1">
-								{#if onTogglePublished && pageCan(previewPage, 'publish')}
+								{#if onTogglePublished && pageCan(previewPage, 'publish') && previewHasLang}
 									<button
 										type="button"
 										class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -1131,7 +1133,7 @@
 										{/if}
 									</button>
 								{/if}
-								{#if onDelete && pageCan(previewPage, 'delete')}
+								{#if onDelete && pageCan(previewPage, 'delete') && previewHasLang}
 									<button
 										type="button"
 										class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
