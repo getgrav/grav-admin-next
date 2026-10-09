@@ -28,12 +28,49 @@
 		oncancel,
 	}: Props = $props();
 
+	let dialogEl = $state<HTMLDivElement | null>(null);
+
+	// Focus moves into the dialog when it opens, so Tab and Enter answer it
+	// without the mouse. A destructive confirm lands on Cancel (Tab, Enter
+	// deletes); anything else lands on the confirm button. Focus goes back
+	// to where it was when the dialog closes.
+	$effect(() => {
+		if (!open || !dialogEl) return;
+		const previous = document.activeElement as HTMLElement | null;
+		const target = variant === 'destructive' ? '[data-confirm-cancel]' : '[data-confirm-ok]';
+		dialogEl.querySelector<HTMLElement>(target)?.focus();
+		return () => {
+			if (previous && previous.isConnected) previous.focus();
+		};
+	});
+
 	function handleBackdrop(e: MouseEvent) {
 		if (e.target === e.currentTarget) oncancel();
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') oncancel();
+		if (e.key === 'Escape') {
+			oncancel();
+			return;
+		}
+		// Keep Tab inside the dialog rather than wandering off into the page behind it.
+		if (e.key === 'Tab' && dialogEl) {
+			const buttons = Array.from(dialogEl.querySelectorAll<HTMLElement>('button:not([disabled])'));
+			if (buttons.length === 0) return;
+			const first = buttons[0];
+			const last = buttons[buttons.length - 1];
+			const active = document.activeElement as HTMLElement | null;
+			if (!active || !dialogEl.contains(active)) {
+				e.preventDefault();
+				first.focus();
+			} else if (e.shiftKey && active === first) {
+				e.preventDefault();
+				last.focus();
+			} else if (!e.shiftKey && active === last) {
+				e.preventDefault();
+				first.focus();
+			}
+		}
 	}
 </script>
 
@@ -47,7 +84,13 @@
 		class="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/75 p-4 backdrop-blur-sm"
 		onclick={handleBackdrop}
 	>
-		<div class="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-2xl">
+		<div
+			bind:this={dialogEl}
+			role="alertdialog"
+			aria-modal="true"
+			aria-label={title}
+			class="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-2xl"
+		>
 			<div class="flex gap-4">
 				{#if variant === 'destructive'}
 					<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
@@ -70,10 +113,10 @@
 				</div>
 			</div>
 			<div class="mt-5 flex justify-end gap-2">
-				<Button variant="outline" size="sm" onclick={oncancel}>
+				<Button variant="outline" size="sm" onclick={oncancel} data-confirm-cancel>
 					{cancelLabel}
 				</Button>
-				<Button variant={variant === 'destructive' ? 'destructive' : 'default'} size="sm" onclick={onconfirm}>
+				<Button variant={variant === 'destructive' ? 'destructive' : 'default'} size="sm" onclick={onconfirm} data-confirm-ok>
 					{confirmLabel}
 				</Button>
 			</div>

@@ -34,6 +34,7 @@
 	import { hasPendingSync } from '$lib/stores/_serverSync';
 	import { hasUnsavedChanges } from '$lib/utils/unsaved-guard.svelte';
 	import { generateFavicon } from '$lib/utils/favicon';
+	import { trackKeyboardNav } from '$lib/utils/keyboard-nav';
 	import AppShell from '$lib/components/AppShell.svelte';
 	import GlobalDialogs from '$lib/components/ui/GlobalDialogs.svelte';
 	import PluginModal from '$lib/components/ui/PluginModal.svelte';
@@ -66,6 +67,10 @@
 	// recover from). `authSession.start()` takes over once AppShell mounts.
 	let bootResolving = $state(false);
 	let bootAttempted = false;
+
+	// Focus rings on buttons and links show only while the keyboard is being
+	// used to move around; see utils/keyboard-nav.ts.
+	$effect(() => trackKeyboardNav());
 
 	$effect(() => {
 		if (bootAttempted || isAuthPage) return;
