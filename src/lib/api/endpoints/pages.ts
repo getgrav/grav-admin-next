@@ -492,7 +492,7 @@ export async function copyPage(route: string, destination: string): Promise<Page
  * pages list/tree/columns hover actions and by the page editor's Copy button
  * so all four paths yield the same on-disk + frontmatter result.
  */
-export async function duplicatePage(page: Pick<PageSummary, 'route' | 'raw_route' | 'slug' | 'title'>): Promise<PageDetail> {
+export async function duplicatePage(page: Pick<PageSummary, 'route' | 'raw_route' | 'slug' | 'title' | 'language'>): Promise<PageDetail> {
 	const sourceRoute = pageApiRoute(page);
 	const parentRoute = sourceRoute === '/' ? '/' : (sourceRoute.substring(0, sourceRoute.lastIndexOf('/')) || '/');
 
@@ -516,7 +516,7 @@ export async function duplicatePage(page: Pick<PageSummary, 'route' | 'raw_route
 	const titleMatch = page.title.match(/^(.*?)(\d+)\s*$/);
 	const newTitle = titleMatch ? `${titleMatch[1]}${Number(titleMatch[2]) + 1}` : `${page.title} 2`;
 	try {
-		await updatePage(newPage.route, { title: newTitle });
+		await updatePage(newPage.route, { title: newTitle }, undefined, page.language ?? undefined);
 	} catch {
 		/* non-fatal */
 	}
