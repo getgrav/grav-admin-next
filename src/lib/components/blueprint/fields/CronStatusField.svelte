@@ -254,7 +254,7 @@
 									{#if job.enabled}
 										<span class="inline-block rounded-l-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">{i18n.t('ADMIN_NEXT.ENABLED')}</span><span class="inline-block rounded-r-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.DISABLED')}</span>
 									{:else}
-										<span class="inline-block rounded-l-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.ENABLED')}</span><span class="inline-block rounded-r-md bg-destructive px-2.5 py-1 text-xs font-semibold text-destructive-foreground">{i18n.t('ADMIN_NEXT.DISABLED')}</span>
+										<span class="inline-block rounded-l-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.ENABLED')}</span><span class="inline-block rounded-r-md bg-destructive-solid px-2.5 py-1 text-xs font-semibold text-destructive-foreground">{i18n.t('ADMIN_NEXT.DISABLED')}</span>
 									{/if}
 								</td>
 								<td class="px-4 py-3 text-end">

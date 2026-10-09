@@ -161,7 +161,7 @@
 						>{i18n.t('ADMIN_NEXT.CANCEL')}</button>
 						<button
 							type="button"
-							class="h-6 rounded bg-destructive px-2 text-[0.6875rem] font-medium text-destructive-foreground disabled:opacity-50"
+							class="h-6 rounded bg-destructive-solid px-2 text-[0.6875rem] font-medium text-destructive-foreground disabled:opacity-50"
 							disabled={deleting}
 							onclick={() => submitDelete(env.name)}
 						>{deleting ? '…' : i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.DELETE')}</button>

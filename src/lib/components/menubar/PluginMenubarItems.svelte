@@ -23,7 +23,7 @@
 		primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
 		success: 'bg-success text-success-foreground hover:bg-success/90',
 		warning: 'bg-warning text-warning-foreground hover:bg-warning/90',
-		danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+		danger: 'bg-destructive-solid text-destructive-foreground hover:bg-destructive-solid/90',
 	};
 
 	function itemClasses(item: MenubarItem): string {
