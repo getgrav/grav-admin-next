@@ -209,8 +209,10 @@
 		previewLoading = true;
 		try {
 			// The preview's Translations section needs translated_languages, which
-			// the show endpoint only includes on request.
+			// the show endpoint only includes on request. `lang` keeps the preview
+			// in the content language the columns beside it are showing.
 			previewPage = await getPage(route, {
+				lang: lang || undefined,
 				summary: true,
 				translations: contentLang.enabled && contentLang.languages.length > 1,
 			});
@@ -354,7 +356,10 @@
 			// preview itself; without this the user clicks Trash and the
 			// preview just stays there.
 			if (e.id && previewPage && (e.action === 'delete' || e.action === 'move')) {
-				if (e.id === previewPage.route || e.id === `/${previewPage.route.replace(/^\//, '')}`) {
+				// A translated preview's route is its translated slug, so match the
+				// folder route too.
+				const ids = [previewPage.route, pageApiRoute(previewPage)].map((r) => `/${r.replace(/^\//, '')}`);
+				if (ids.includes(`/${e.id.replace(/^\//, '')}`)) {
 					previewPage = null;
 				}
 			}
