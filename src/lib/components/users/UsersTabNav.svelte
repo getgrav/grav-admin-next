@@ -7,6 +7,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import ExtensionIcon from '$lib/components/ui/ExtensionIcon.svelte';
 	import type { IconSpec } from '$lib/utils/icon-spec';
+	import { isActiveRoute } from '$lib/utils/nav-active';
 
 	// "Configuration" writes to user/config/flex/accounts.yaml and requires
 	// admin.super on the API side. Hide the tab for non-super-admins instead
@@ -24,14 +25,12 @@
 	]);
 
 	const active = $derived.by<TabId>(() => {
-		const p = page.url.pathname.replace(base, '');
-		if (p.startsWith('/users/groups')) return 'groups';
+		const on = (route: string) => isActiveRoute(page.url.pathname, `${base}${route}`, base);
+		if (on('/users/groups')) return 'groups';
 		// Both the pending list (/users/invitations) and the create form
-		// (/users/invite) belong to the Invitations tab. Match the shared
-		// '/users/invit' prefix so both routes highlight the tab — '/users/invite'
-		// alone misses '/users/invitations' (they diverge at "invit-e" vs "invit-a").
-		if (p.startsWith('/users/invit')) return 'invitations';
-		if (p.startsWith('/users/config')) return 'config';
+		// (/users/invite) belong to the Invitations tab.
+		if (on('/users/invitations') || on('/users/invite')) return 'invitations';
+		if (on('/users/config')) return 'config';
 		return 'users';
 	});
 

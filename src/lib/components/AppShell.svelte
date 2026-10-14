@@ -36,6 +36,7 @@
 	import PresenceAvatars from '$lib/components/sync/PresenceAvatars.svelte';
 	import SyncStatusBadge from '$lib/components/sync/SyncStatusBadge.svelte';
 	import type { Snippet } from 'svelte';
+	import { isActiveRoute } from '$lib/utils/nav-active';
 	import {
 		LayoutDashboard, FileText, Image, Users, Puzzle, Palette,
 		Settings, Wrench, SlidersHorizontal, Languages,
@@ -221,8 +222,7 @@
 	const settingsItem = { href: `${base}/settings`, labelKey: 'ADMIN_NEXT.NAV.SETTINGS', icon: SlidersHorizontal };
 
 	function isActive(href: string): boolean {
-		if (href === `${base}/`) return page.url.pathname === `${base}/`;
-		return page.url.pathname.startsWith(href);
+		return isActiveRoute(page.url.pathname, href, base);
 	}
 
 	async function handleLogout() {
