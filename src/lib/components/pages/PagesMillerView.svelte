@@ -209,21 +209,29 @@
 		bootstrapColumn('/');
 	}
 
-	async function loadPreview(route: string) {
-		previewLoading = true;
+	// Only the newest request may write the preview, so a slow response for a
+	// page the user has since clicked away from can't replace the newer one.
+	let previewSeq = 0;
+
+	/** `silent` refreshes the page already shown without swapping the pane for the spinner. */
+	async function loadPreview(route: string, { silent = false } = {}) {
+		const seq = ++previewSeq;
+		if (!silent) previewLoading = true;
 		try {
 			// The preview's Translations section needs translated_languages, which
 			// the show endpoint only includes on request. `lang` keeps the preview
 			// in the content language the columns beside it are showing.
-			previewPage = await getPage(route, {
+			const page = await getPage(route, {
 				lang: lang || undefined,
 				summary: true,
 				translations: contentLang.enabled && contentLang.languages.length > 1,
 			});
+			if (seq === previewSeq) previewPage = page;
 		} catch {
-			previewPage = null;
+			// A failed background refresh keeps the copy that's already shown.
+			if (seq === previewSeq && !silent) previewPage = null;
 		} finally {
-			previewLoading = false;
+			if (seq === previewSeq) previewLoading = false;
 		}
 	}
 
@@ -366,10 +374,12 @@
 						// preview itself; without this the user clicks Trash and the
 						// preview just stays there.
 						previewPage = null;
-					} else {
+					} else if (!previewLoading) {
 						// Toggling Publish/Unpublish leaves the preview showing
-						// stale data. Pull a fresh copy.
-						loadPreview(pageApiRoute(previewPage));
+						// stale data. Pull a fresh copy in the background. Skipped
+						// while another page's preview is loading, since the user has
+						// already moved on from this one.
+						loadPreview(pageApiRoute(previewPage), { silent: true });
 					}
 				}
 			}

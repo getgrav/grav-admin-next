@@ -97,7 +97,7 @@
 		const next = !page.published;
 		const activeLang = contentLang.enabled ? contentLang.activeLang : undefined;
 		try {
-			await updatePage(page.route, { published: next }, undefined, activeLang);
+			await updatePage(pageApiRoute(page), { published: next }, undefined, activeLang);
 			toast.success(
 				next
 					? i18n.t('ADMIN_NEXT.TOASTS.PAGE_PUBLISHED', { name: page.title })
