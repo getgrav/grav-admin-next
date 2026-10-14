@@ -15,16 +15,16 @@
 	const baseUrl = $derived(`${auth.serverUrl}`);
 
 	const triggerAllCmd = $derived(
-		`curl -X POST "${baseUrl}/scheduler/webhook" \\\n  -H "X-API-Token: YOUR_TOKEN"`
+		`curl -X POST "${baseUrl}/scheduler/webhook" \\\n  -H "X-Webhook-Token: YOUR_TOKEN"`
 	);
 	const triggerJobCmd = $derived(
-		`curl -X POST "${baseUrl}/scheduler/webhook?job=backup" \\\n  -H "X-API-Token: YOUR_TOKEN"`
+		`curl -X POST "${baseUrl}/scheduler/webhook?job=backup" \\\n  -H "X-Webhook-Token: YOUR_TOKEN"`
 	);
 	const healthCmd = $derived(
 		`curl "${baseUrl}/scheduler/health"`
 	);
 	const ghActionsExample = $derived(
-		`- name: Trigger Scheduler\n  run: |\n    curl -X POST \${{ secrets.SITE_URL }}/scheduler/webhook \\\n      -H "X-API-Token: \${{ secrets.WEBHOOK_TOKEN }}"`
+		`- name: Trigger Scheduler\n  run: |\n    curl -X POST \${{ secrets.SITE_URL }}/scheduler/webhook \\\n      -H "X-Webhook-Token: \${{ secrets.WEBHOOK_TOKEN }}"`
 	);
 </script>
 
