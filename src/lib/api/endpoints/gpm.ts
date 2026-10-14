@@ -158,18 +158,25 @@ export interface RepositoryPlugin {
  * Fetch every page of a GPM repository listing. The feed outgrew a single
  * 500-row page (512 plugins in October 2026), and whatever sat past the
  * cut never showed in the install modal.
+ *
+ * Keyed by slug, so a package that comes back on two pages is listed once.
+ * An API older than 1.0.50 on a site whose api.yaml still caps max_per_page
+ * below 500 overlaps its pages, and a repeated slug crashes the modal's
+ * keyed list (getgrav/grav-admin-next#38).
  */
-async function getAllRepositoryPages<T>(path: string): Promise<T[]> {
-	const all: T[] = [];
+async function getAllRepositoryPages<T extends { slug: string }>(path: string): Promise<T[]> {
+	const bySlug = new Map<string, T>();
 	for (let page = 1; ; page++) {
 		const { data, meta } = await api.requestRaw<unknown>('GET', path, {
 			params: { per_page: '500', page: String(page) }
 		});
-		all.push(...expectArray<T>(data, 'GET', path));
+		for (const pkg of expectArray<T>(data, 'GET', path)) {
+			if (!bySlug.has(pkg.slug)) bySlug.set(pkg.slug, pkg);
+		}
 		const totalPages = Number(
 			(meta as { pagination?: { total_pages?: number } } | undefined)?.pagination?.total_pages ?? 1
 		);
-		if (!(page < totalPages)) return all;
+		if (!(page < totalPages)) return [...bySlug.values()];
 	}
 }
 
