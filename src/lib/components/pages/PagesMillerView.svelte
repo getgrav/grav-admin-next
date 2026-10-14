@@ -353,20 +353,27 @@
 	onMount(() => {
 		const onPages = (e: { id?: string; action?: string }) => {
 			if (isSearching) search.refresh();
-			// Drop a stale preview when the previewed page was just deleted
-			// or moved out from under us — otherwise the right pane keeps
-			// showing the now-gone page until the user clicks elsewhere.
-			// This matters more now that Delete is reachable from inside the
-			// preview itself; without this the user clicks Trash and the
-			// preview just stays there.
-			if (e.id && previewPage && (e.action === 'delete' || e.action === 'move')) {
+			if (e.id && previewPage) {
 				// A translated preview's route is its translated slug, so match the
 				// folder route too.
 				const ids = [previewPage.route, pageApiRoute(previewPage)].map((r) => `/${r.replace(/^\//, '')}`);
 				if (ids.includes(`/${e.id.replace(/^\//, '')}`)) {
-					previewPage = null;
+					if (e.action === 'delete' || e.action === 'move') {
+						// Drop a stale preview when the previewed page was just deleted
+						// or moved out from under us — otherwise the right pane keeps
+						// showing the now-gone page until the user clicks elsewhere.
+						// This matters more now that Delete is reachable from inside the
+						// preview itself; without this the user clicks Trash and the
+						// preview just stays there.
+						previewPage = null;
+					} else {
+						// Toggling Publish/Unpublish leaves the preview showing
+						// stale data. Pull a fresh copy.
+						loadPreview(pageApiRoute(previewPage));
+					}
 				}
 			}
+
 			// The chunk store has just dropped every stream, so each open column
 			// needs its first chunk back. The bus calls this once per save.
 			for (const col of columns) silentRefreshColumn(col.parentRoute);
