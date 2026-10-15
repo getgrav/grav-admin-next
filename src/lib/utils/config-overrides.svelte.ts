@@ -3,6 +3,8 @@ import { toast } from 'svelte-sonner';
 import { i18n } from '$lib/stores/i18n.svelte';
 import { revertConfig } from '$lib/api/endpoints/config';
 import type { ConfigOverridesCtx } from '$lib/components/blueprint/FieldOverrideIndicator.svelte';
+import { provideConfigShadowed, type ConfigShadowedController } from '$lib/utils/config-shadowed.svelte';
+import type { ShadowedEntry } from '$lib/utils/config-shadowed';
 
 /** Dig a dotted path out of a nested object, or undefined if any segment is missing. */
 function getPath(obj: Record<string, unknown>, path: string): unknown {
@@ -19,8 +21,10 @@ export interface ConfigOverridesController {
 	readonly fallback: Record<string, unknown>;
 	readonly reverting: boolean;
 	showResetModal: boolean;
-	/** Record the override map from a config load/save response. */
-	ingest(meta: { overrides: string[]; fallback: Record<string, unknown> }): void;
+	/** Keys a layer above this one sets (markers, banner, save warning). */
+	readonly shadowed: ConfigShadowedController;
+	/** Record the override map (and `shadowed`, when given) from a config load/save response. */
+	ingest(meta: { overrides: string[]; fallback: Record<string, unknown>; shadowed?: ShadowedEntry[] }): void;
 	/** Run the full-scope reset (bind to the confirm modal's onconfirm). */
 	reset(): Promise<void>;
 }
@@ -41,7 +45,20 @@ export function provideConfigOverrides(opts: {
 	applyFieldRevert: (path: string, newValue: unknown, etag: string) => void;
 	/** Replace the whole form after a scope reset. */
 	applyReset: (data: Record<string, unknown>, etag: string) => void;
+	/** A field's display label, for the "saved but overridden" warning. */
+	labelFor?: (path: string) => string;
+	/** Extra refresh after a shadowing environment override is removed. */
+	afterShadowRemove?: () => void | Promise<void>;
 }): ConfigOverridesController {
+	// The opposite direction (a layer above wins) rides along, so every form
+	// that marks its own overrides also marks values it can't change.
+	const shadowed = provideConfigShadowed({
+		scope: opts.scope,
+		canWrite: opts.canWrite,
+		labelFor: opts.labelFor,
+		afterRemove: opts.afterShadowRemove,
+	});
+
 	let overrides = $state<string[]>([]);
 	let fallback = $state<Record<string, unknown>>({});
 	let reverting = $state(false);
@@ -64,6 +81,7 @@ export function provideConfigOverrides(opts: {
 			opts.applyFieldRevert(path, getPath(result.data, path), result.etag);
 			overrides = result.overrides;
 			fallback = result.fallback;
+			shadowed.ingest(result.shadowed);
 			toast.success(i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.REVERTED'));
 		} catch (err) {
 			handleError(err);
@@ -81,6 +99,7 @@ export function provideConfigOverrides(opts: {
 			opts.applyReset(result.data, result.etag);
 			overrides = result.overrides;
 			fallback = result.fallback;
+			shadowed.ingest(result.shadowed);
 			toast.success(i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_DONE'));
 		} catch (err) {
 			handleError(err);
@@ -114,9 +133,11 @@ export function provideConfigOverrides(opts: {
 		set showResetModal(v: boolean) {
 			showResetModal = v;
 		},
+		shadowed,
 		ingest(meta) {
 			overrides = meta.overrides;
 			fallback = meta.fallback;
+			if (meta.shadowed) shadowed.ingest(meta.shadowed);
 		},
 		reset,
 	};

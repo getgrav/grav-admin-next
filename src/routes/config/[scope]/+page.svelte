@@ -12,7 +12,10 @@
 	import { getConfigBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson, fieldLabelFor } from '$lib/utils/blueprint-validation';
+	import { provideConfigShadowed } from '$lib/utils/config-shadowed.svelte';
+	import { changedLeafPaths } from '$lib/utils/config-shadowed';
+	import ConfigShadowedBanner from '$lib/components/config/ConfigShadowedBanner.svelte';
 	import ConfigNav from '$lib/components/config/ConfigNav.svelte';
 	import TwigContentProfile from '$lib/components/config/TwigContentProfile.svelte';
 	import ConfigInfoPage from '$lib/components/config/ConfigInfoPage.svelte';
@@ -85,6 +88,7 @@
 		errorDetail = '';
 		accessDenied = false;
 		blueprint = null;
+		shadow.ingest([]);
 
 		try {
 			if (isInfo) {
@@ -110,6 +114,7 @@
 			etag = configResult.etag;
 			overrides = configResult.overrides;
 			fallback = configResult.fallback;
+			shadow.ingest(configResult.shadowed);
 		} catch (err: unknown) {
 			const status = err && typeof err === 'object' && 'status' in err
 				? (err as { status: number }).status : 0;
@@ -184,6 +189,8 @@
 		error = '';
 
 		try {
+			// What this save changes, to check against keys a layer above wins on.
+			const changed = changedLeafPaths(JSON.parse(originalJson), JSON.parse(stableJson(configData)));
 			const cleanData = stripRedacted(configData);
 			const result = await saveConfig(scope, cleanData, etag);
 			configData = result.data;
@@ -191,8 +198,9 @@
 			etag = result.etag;
 			overrides = result.overrides;
 			fallback = result.fallback;
+			shadow.ingest(result.shadowed);
 			await formCommit.emit();
-			toast.success(i18n.t('ADMIN_NEXT.CONFIG.CONFIGURATION_SAVED_SUCCESSFULLY'));
+			shadow.notifySaved(changed, i18n.t('ADMIN_NEXT.CONFIG.CONFIGURATION_SAVED_SUCCESSFULLY'));
 		} catch (err: unknown) {
 			if (err instanceof ApiRequestError) {
 				if (err.status === 409) {
@@ -278,6 +286,7 @@
 			etag = result.etag;
 			overrides = result.overrides;
 			fallback = result.fallback;
+			shadow.ingest(result.shadowed);
 			toast.success(i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.REVERTED'));
 		} catch (err: unknown) {
 			handleRevertError(err);
@@ -297,6 +306,7 @@
 			etag = result.etag;
 			overrides = result.overrides;
 			fallback = result.fallback;
+			shadow.ingest(result.shadowed);
 			toast.success(i18n.t('ADMIN_NEXT.CONFIG.OVERRIDE.RESET_DONE'));
 		} catch (err: unknown) {
 			handleRevertError(err);
@@ -311,6 +321,16 @@
 		revert: (path: string) => revertField(path),
 		get canRevert() { return canSave; },
 	} satisfies ConfigOverridesCtx);
+
+	// The opposite direction: keys a layer above this one sets (the booted
+	// environment's file, or a GRAV_CONFIG server variable), so saving them
+	// here won't apply. Drives FieldShadowIndicator, the banner and the save
+	// warning.
+	const shadow = provideConfigShadowed({
+		scope: () => scope,
+		canWrite: () => canSave,
+		labelFor: (path) => fieldLabelFor(blueprint?.fields, path),
+	});
 
 	function handleKeydown(e: KeyboardEvent) {
 		if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -489,6 +509,7 @@
 	{:else if isInfo}
 		<ConfigInfoPage {filter} />
 	{:else if blueprint}
+		<ConfigShadowedBanner />
 		{#if scope === 'security' && !filter}
 			<!-- One profile control over the security.twig_content keys; the raw
 			     process_enabled/editor_enabled toggles stay in the form below as

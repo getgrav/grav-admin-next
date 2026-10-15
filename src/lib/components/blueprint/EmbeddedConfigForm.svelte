@@ -23,7 +23,9 @@
 		getPluginConfig, savePluginConfig, getThemeConfig, saveThemeConfig,
 	} from '$lib/api/endpoints/gpm';
 	import BlueprintForm from './BlueprintForm.svelte';
-	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson, fieldLabelFor } from '$lib/utils/blueprint-validation';
+	import { changedLeafPaths } from '$lib/utils/config-shadowed';
+	import ConfigShadowedBanner from '$lib/components/config/ConfigShadowedBanner.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { Button } from '$lib/components/ui/button';
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
@@ -140,7 +142,7 @@
 			configData = cfg.data;
 			originalJson = stableJson(cfg.data);
 			etag = cfg.etag;
-			ovr.ingest({ overrides: cfg.overrides, fallback: cfg.fallback });
+			ovr.ingest({ overrides: cfg.overrides, fallback: cfg.fallback, shadowed: cfg.shadowed });
 			say('ready', { fields: bp?.fields?.length ?? 0 });
 		} catch (err: unknown) {
 			error = err instanceof Error ? err.message : 'The settings could not be loaded.';
@@ -207,6 +209,7 @@
 			originalJson = stableJson(data);
 			etag = newEtag;
 		},
+		labelFor: (path) => fieldLabelFor(blueprint?.fields, path),
 	});
 
 	/** Drop the redaction sentinel so saving never writes it over a real secret. */
@@ -236,6 +239,8 @@
 
 		saving = true;
 		try {
+			// What this save changes, to check against keys a layer above wins on.
+			const changed = changedLeafPaths(JSON.parse(originalJson), JSON.parse(stableJson(configData)));
 			const cleaned = stripRedacted(configData) as Record<string, unknown>;
 			if (kind === 'themes') {
 				await saveThemeConfig(slug, cleaned, etag);
@@ -247,11 +252,11 @@
 			configData = fresh.data;
 			originalJson = stableJson(fresh.data);
 			etag = fresh.etag;
-			ovr.ingest({ overrides: fresh.overrides, fallback: fresh.fallback });
+			ovr.ingest({ overrides: fresh.overrides, fallback: fresh.fallback, shadowed: fresh.shadowed });
 
 			await formCommit.emit();
 
-			toast.success(i18n.t('ADMIN_NEXT.TOASTS.CONFIG_SAVED', { name: slug }));
+			ovr.shadowed.notifySaved(changed, i18n.t('ADMIN_NEXT.TOASTS.CONFIG_SAVED', { name: slug }));
 			say('saved', {});
 			return true;
 		} catch (err: unknown) {
@@ -309,6 +314,7 @@
 		{error}
 	</div>
 {:else if blueprint}
+	<ConfigShadowedBanner class="mb-4" />
 	<BlueprintForm
 		fields={shownFields}
 		data={configData}

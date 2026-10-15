@@ -3,6 +3,8 @@
 	import { base } from '$app/paths';
 	import { linkClick } from '$lib/utils/navLink';
 	import type { PluginInfo } from '$lib/api/endpoints/gpm';
+	import type { EnabledSource } from '$lib/utils/config-shadowed';
+	import ShadowMarker from '$lib/components/config/ShadowMarker.svelte';
 	import { faIconClass, isFirstParty } from '$lib/utils/gpm';
 	import { Puzzle, ArrowUpCircle, BadgeCheck, Loader2, CornerDownRight, ArrowUp, ArrowDown, Settings, Trash2, FileText } from 'lucide-svelte';
 
@@ -19,6 +21,11 @@
 		onUpdate: (plugin: PluginInfo, e: Event) => void;
 		onChangelog: (plugin: PluginInfo, e: Event) => void;
 		onRemove?: (plugin: PluginInfo, e: Event) => void;
+		/** Where `enabled` comes from when a layer above base decides it; null otherwise. */
+		enabledShadow?: (plugin: PluginInfo) => EnabledSource | null;
+		canRemoveOverride?: boolean;
+		removingOverrideSlug?: string | null;
+		onRemoveOverride?: (plugin: PluginInfo) => void;
 	}
 
 	let {
@@ -34,6 +41,10 @@
 		onUpdate,
 		onChangelog,
 		onRemove,
+		enabledShadow,
+		canRemoveOverride = false,
+		removingOverrideSlug = null,
+		onRemoveOverride,
 	}: Props = $props();
 
 	type SortKey = 'name' | 'author' | 'version' | 'enabled';
@@ -134,6 +145,7 @@
 						{/if}
 					</td>
 					<td class="px-4 py-2">
+						<span class="inline-flex items-center gap-1">
 						<button
 							type="button"
 							class="rounded-full px-2.5 py-0.5 text-[0.625rem] font-medium transition-colors
@@ -150,6 +162,17 @@
 								{plugin.enabled ? i18n.t('ADMIN_NEXT.USERS_TABLE.ENABLED') : i18n.t('ADMIN_NEXT.USERS_TABLE.DISABLED')}
 							{/if}
 						</button>
+						{#if enabledShadow?.(plugin)}
+							{@const shadow = enabledShadow(plugin)!}
+							<ShadowMarker
+								source={shadow}
+								variant="enabled"
+								canRemove={canRemoveOverride && shadow.source === 'environment'}
+								busy={removingOverrideSlug === plugin.slug}
+								onremove={() => onRemoveOverride?.(plugin)}
+							/>
+						{/if}
+						</span>
 					</td>
 					<td class="px-4 py-2 text-end">
 						<div class="inline-flex items-center gap-1">

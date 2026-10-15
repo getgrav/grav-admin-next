@@ -24,6 +24,10 @@
 	import { scopedKey } from '$lib/utils/scopedStorage';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import PluginsTableView from '$lib/components/plugins/PluginsTableView.svelte';
+	import ShadowMarker from '$lib/components/config/ShadowMarker.svelte';
+	import { configEnv } from '$lib/stores/configEnvironment.svelte';
+	import { enabledSourceApplies, type EnabledSource } from '$lib/utils/config-shadowed';
+	import { removeEnvironmentOverride, warnShadowedToggle } from '$lib/utils/config-shadowed.svelte';
 
 	const SELECTED_STORAGE_KEY = 'admin-next:plugins:selected-slug';
 
@@ -48,6 +52,8 @@
 	}
 
 	const canWriteGpm = $derived(canWrite('gpm'));
+	// Removing an environment override edits that environment's config file.
+	const canWriteConfig = $derived(canWrite('config'));
 
 	const translateLabel = i18n.tMaybe;
 
@@ -165,6 +171,30 @@
 	// Plugins that cannot be disabled from an API-based admin
 	const PROTECTED_PLUGINS = new Set(['api', 'login']);
 
+	/**
+	 * Where `enabled` comes from when a layer above base decides it (the booted
+	 * environment's file, or a GRAV_CONFIG server variable), so the toggle
+	 * won't change what the site does. Null when the toggle is in charge.
+	 */
+	function enabledShadow(plugin: PluginInfo): EnabledSource | null {
+		return enabledSourceApplies(plugin.enabled_source, configEnv.target) ? plugin.enabled_source ?? null : null;
+	}
+
+	let removingOverrideSlug = $state<string | null>(null);
+
+	async function removeEnabledOverride(plugin: PluginInfo) {
+		const src = plugin.enabled_source;
+		if (!src || removingOverrideSlug) return;
+		removingOverrideSlug = plugin.slug;
+		try {
+			if (await removeEnvironmentOverride('plugins/' + plugin.slug, [{ path: 'enabled', ...src, value: undefined }])) {
+				await loadPlugins();
+			}
+		} finally {
+			removingOverrideSlug = null;
+		}
+	}
+
 	async function toggleEnabled(plugin: PluginInfo, e: Event) {
 		e.stopPropagation();
 		if (plugin.enabled && PROTECTED_PLUGINS.has(plugin.slug)) {
@@ -174,13 +204,24 @@
 		togglingSlug = plugin.slug;
 		const newState = !plugin.enabled;
 		try {
-			await setPluginEnabled(plugin.slug, newState);
+			const { shadowed } = await setPluginEnabled(plugin.slug, newState);
 			plugin.enabled = newState;
 			plugins = [...plugins]; // trigger reactivity
-			toast.success(i18n.t(
-				newState ? 'ADMIN_NEXT.TOASTS.PLUGIN_ENABLED' : 'ADMIN_NEXT.TOASTS.PLUGIN_DISABLED',
-				{ name: plugin.name }
-			));
+			// Warn instead when a layer above decides `enabled`, so the switch
+			// won't change what the site does.
+			const warned = warnShadowedToggle({
+				name: plugin.name,
+				scope: 'plugins/' + plugin.slug,
+				shadowed,
+				canRemove: canWriteConfig,
+				onRemoved: loadPlugins,
+			});
+			if (!warned) {
+				toast.success(i18n.t(
+					newState ? 'ADMIN_NEXT.TOASTS.PLUGIN_ENABLED' : 'ADMIN_NEXT.TOASTS.PLUGIN_DISABLED',
+					{ name: plugin.name }
+				));
+			}
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
 			toast.error(i18n.t(
@@ -447,6 +488,10 @@
 					protectedSlugs={PROTECTED_PLUGINS}
 					onConfigure={openPluginConfig}
 					onToggle={toggleEnabled}
+					{enabledShadow}
+					canRemoveOverride={canWriteConfig}
+					{removingOverrideSlug}
+					onRemoveOverride={removeEnabledOverride}
 					onUpdate={handleUpdatePlugin}
 					onChangelog={showChangelog}
 					onRemove={handleRemovePlugin}
@@ -497,6 +542,16 @@
 						{/if}
 
 						<!-- Enable toggle -->
+						{#if enabledShadow(plugin)}
+							{@const shadow = enabledShadow(plugin)!}
+							<ShadowMarker
+								source={shadow}
+								variant="enabled"
+								canRemove={canWriteConfig && shadow.source === 'environment'}
+								busy={removingOverrideSlug === plugin.slug}
+								onremove={() => removeEnabledOverride(plugin)}
+							/>
+						{/if}
 						<button
 							type="button"
 							class="shrink-0 rounded-full px-2.5 py-0.5 text-[0.625rem] font-medium transition-colors
@@ -683,13 +738,23 @@
 
 							<div>
 								<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.HEADER_STATUS')}</dt>
-								<dd class="mt-0.5 text-sm">
+								<dd class="mt-0.5 flex items-center gap-1.5 text-sm">
 									<span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
 										{selectedPlugin.enabled
 											? 'bg-green-500/15 text-green-600 dark:text-green-400'
 											: 'bg-muted text-muted-foreground'}">
 										{selectedPlugin.enabled ? 'Enabled' : 'Disabled'}
 									</span>
+									{#if enabledShadow(selectedPlugin)}
+										{@const selectedShadow = enabledShadow(selectedPlugin)!}
+										<ShadowMarker
+											source={selectedShadow}
+											variant="enabled"
+											canRemove={canWriteConfig && selectedShadow.source === 'environment'}
+											busy={removingOverrideSlug === selectedPlugin.slug}
+											onremove={() => selectedPlugin && removeEnabledOverride(selectedPlugin)}
+										/>
+									{/if}
 								</dd>
 							</div>
 

@@ -2,10 +2,9 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { configEnv } from '$lib/stores/configEnvironment.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
-	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { hasUnsavedChanges } from '$lib/utils/unsaved-guard.svelte';
+	import { switchEnvironment } from '$lib/utils/switch-environment';
 	import { ChevronDown, Plus, Check, Trash2 } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
 	import { onMount, tick } from 'svelte';
@@ -28,21 +27,8 @@
 
 	async function select(name: string) {
 		open = false;
-		if (name === configEnv.target) return;
-		// Switching the active environment re-runs the whole admin via a full
-		// reload, which would discard any in-progress edit. Confirm first when
-		// something is dirty (the SvelteKit nav guard can't cover a reload).
-		if (hasUnsavedChanges()) {
-			const ok = await dialogs.confirm({
-				title: i18n.t('ADMIN_NEXT.UNSAVED_CHANGES'),
-				message: i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.SWITCH_DISCARDS_UNSAVED'),
-				confirmLabel: i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.SWITCH_AND_RELOAD'),
-				cancelLabel: i18n.t('ADMIN_NEXT.CANCEL'),
-				variant: 'destructive',
-			});
-			if (!ok) return;
-		}
-		configEnv.setTarget(name); // persists the choice and reloads the admin
+		// Confirms first when something is dirty, then reloads under `name`.
+		await switchEnvironment(name);
 	}
 
 	async function showCreate() {

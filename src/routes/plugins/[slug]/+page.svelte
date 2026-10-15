@@ -16,7 +16,12 @@
 	import ExtensionMetaLinks from '$lib/components/extensions/ExtensionMetaLinks.svelte';
 	import UpdateChangelogLink from '$lib/components/extensions/UpdateChangelogLink.svelte';
 	import { canWrite } from '$lib/utils/permissions';
-	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson, fieldLabelFor } from '$lib/utils/blueprint-validation';
+	import { changedLeafPaths, enabledSourceApplies } from '$lib/utils/config-shadowed';
+	import { warnShadowedToggle } from '$lib/utils/config-shadowed.svelte';
+	import { configEnv } from '$lib/stores/configEnvironment.svelte';
+	import ConfigShadowedBanner from '$lib/components/config/ConfigShadowedBanner.svelte';
+	import ShadowMarker from '$lib/components/config/ShadowMarker.svelte';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import UnsavedChangesModal from '$lib/components/ui/UnsavedChangesModal.svelte';
@@ -131,7 +136,7 @@
 			const [pluginResult, blueprintResult, configResult] = await Promise.all([
 				getPlugin(slug),
 				getPluginBlueprint(slug).catch(() => null),
-				getPluginConfig(slug).catch(() => ({ data: {}, etag: '', overrides: [], fallback: {} })),
+				getPluginConfig(slug).catch(() => ({ data: {}, etag: '', overrides: [], fallback: {}, shadowed: [] })),
 			]);
 
 			// The plugin keeps its settings on its own admin page, so this
@@ -149,7 +154,7 @@
 			configData = configResult.data;
 			originalJson = stableJson(configResult.data);
 			etag = configResult.etag;
-			ovr.ingest({ overrides: configResult.overrides, fallback: configResult.fallback });
+			ovr.ingest({ overrides: configResult.overrides, fallback: configResult.fallback, shadowed: configResult.shadowed });
 
 			// Register custom field web components if the plugin provides them
 			if (pluginResult.custom_fields) {
@@ -227,7 +232,35 @@
 			originalJson = stableJson(data);
 			etag = newEtag;
 		},
+		labelFor: (path) => fieldLabelFor(blueprint?.fields, path),
+		afterShadowRemove: refreshEnabledSource,
 	});
+
+	// A layer above base (the booted environment's file, or a GRAV_CONFIG
+	// server variable) decides whether this plugin runs. Marked on the toggle.
+	const enabledShadow = $derived(
+		plugin && enabledSourceApplies(plugin.enabled_source, configEnv.target) ? plugin.enabled_source ?? null : null
+	);
+
+	/** Re-read where `enabled` comes from after an environment override is removed. */
+	async function refreshEnabledSource() {
+		try {
+			const fresh = await getPlugin(slug);
+			if (plugin) plugin = { ...plugin, enabled_source: fresh.enabled_source ?? null };
+		} catch {
+			/* the marker stays until the next load */
+		}
+	}
+
+	/** After removing an override from the toggle's toast: refresh the form's list and the toggle. */
+	async function refreshShadowState() {
+		try {
+			ovr.shadowed.ingest((await getPluginConfig(slug)).shadowed);
+		} catch {
+			/* keep the current list */
+		}
+		await refreshEnabledSource();
+	}
 
 	function stripRedacted(obj: unknown): unknown {
 		if (typeof obj === 'string') return obj === REDACTED ? undefined : obj;
@@ -253,6 +286,8 @@
 
 		saving = true;
 		try {
+			// What this save changes, to check against keys a layer above wins on.
+			const changed = changedLeafPaths(JSON.parse(originalJson), JSON.parse(stableJson(configData)));
 			const cleaned = stripRedacted(configData) as Record<string, unknown>;
 			await savePluginConfig(slug, cleaned, etag);
 
@@ -261,11 +296,11 @@
 			configData = fresh.data;
 			originalJson = stableJson(fresh.data);
 			etag = fresh.etag;
-			ovr.ingest({ overrides: fresh.overrides, fallback: fresh.fallback });
+			ovr.ingest({ overrides: fresh.overrides, fallback: fresh.fallback, shadowed: fresh.shadowed });
 
 			await formCommit.emit();
 
-			toast.success(i18n.t('ADMIN_NEXT.TOASTS.CONFIG_SAVED', { name: plugin?.name ?? slug }));
+			ovr.shadowed.notifySaved(changed, i18n.t('ADMIN_NEXT.TOASTS.CONFIG_SAVED', { name: plugin?.name ?? slug }));
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {
 				toast.error(i18n.t('ADMIN_NEXT.PLUGINS.CONFIGURATION_WAS_MODIFIED_ELSEWHERE'));
@@ -288,24 +323,35 @@
 		toggling = true;
 		const newState = !plugin.enabled;
 		try {
-			await setPluginEnabled(slug, newState);
+			const { shadowed } = await setPluginEnabled(slug, newState);
 			plugin = { ...plugin, enabled: newState };
 			// Reload config/blueprint since enabling may expose new fields
 			if (newState) {
 				const [bp, cfg] = await Promise.all([
 					getPluginBlueprint(slug).catch(() => null),
-					getPluginConfig(slug).catch(() => ({ data: {}, etag: '', overrides: [], fallback: {} })),
+					getPluginConfig(slug).catch(() => ({ data: {}, etag: '', overrides: [], fallback: {}, shadowed: [] })),
 				]);
 				blueprint = bp;
 				configData = cfg.data;
 				originalJson = stableJson(cfg.data);
 				etag = cfg.etag;
-				ovr.ingest({ overrides: cfg.overrides, fallback: cfg.fallback });
+				ovr.ingest({ overrides: cfg.overrides, fallback: cfg.fallback, shadowed: cfg.shadowed });
 			}
-			toast.success(i18n.t(
-				newState ? 'ADMIN_NEXT.TOASTS.PLUGIN_ENABLED' : 'ADMIN_NEXT.TOASTS.PLUGIN_DISABLED',
-				{ name: plugin.name }
-			));
+			// Warn instead when a layer above decides `enabled`, so the switch
+			// won't change what the site does.
+			const warned = warnShadowedToggle({
+				name: plugin.name,
+				scope: 'plugins/' + slug,
+				shadowed,
+				canRemove: canSave,
+				onRemoved: refreshShadowState,
+			});
+			if (!warned) {
+				toast.success(i18n.t(
+					newState ? 'ADMIN_NEXT.TOASTS.PLUGIN_ENABLED' : 'ADMIN_NEXT.TOASTS.PLUGIN_DISABLED',
+					{ name: plugin.name }
+				));
+			}
 		} catch (err: unknown) {
 			const detail = err instanceof Error ? err.message : String(err);
 			toast.error(i18n.t(
@@ -554,6 +600,16 @@
 					{/if}
 					<span class="hidden sm:inline">{plugin.enabled ? 'Disable' : 'Enable'}</span>
 				</Button>
+				{#if enabledShadow}
+					<ShadowMarker
+						source={enabledShadow}
+						variant="enabled"
+						size={14}
+						canRemove={canSave && enabledShadow.source === 'environment'}
+						busy={ovr.shadowed.busy}
+						onremove={() => enabledShadow && ovr.shadowed.remove([{ path: 'enabled', ...enabledShadow, value: undefined }])}
+					/>
+				{/if}
 
 				<!-- Reset overrides -->
 				{#if ovr.overrides.length > 0}
@@ -659,6 +715,7 @@
 
 				<!-- Configuration form -->
 				{#if plugin.enabled && blueprint}
+					<ConfigShadowedBanner />
 					<BlueprintForm
 						fields={blueprint.fields}
 						data={configData}

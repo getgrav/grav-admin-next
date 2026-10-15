@@ -393,6 +393,10 @@ class ApiClient {
 	 *     user/env/default/ folder, so Grav resolves base-only.
 	 *   X-Config-Environment → the explicit config write target; the server maps
 	 *     the `default` sentinel back to a base (user/config) write.
+	 *
+	 * A call's own `headers` are spread after these in request()/requestRaw(),
+	 * so one call can target another layer without touching the session
+	 * (revertConfig's `environment` option relies on this).
 	 */
 	private applyEnvironmentHeaders(h: Record<string, string>): void {
 		const headerEnv = untrack(() => auth.gravEnvironment);
@@ -664,6 +668,7 @@ class ApiClient {
 			params?: Record<string, string>;
 			headers?: Record<string, string>;
 			retry?: boolean;
+			overrideRetry?: boolean;
 			signal?: AbortSignal;
 		} = {}
 	): Promise<{ data: T; meta?: unknown; headers: Headers; status: number }> {
@@ -676,9 +681,18 @@ class ApiClient {
 			url += `?${searchParams.toString()}`;
 		}
 
+		// Same proxy 405 fallback as request(): config saves and the plugin
+		// toggle PATCH through here and need it on hosts that reject PATCH.
+		const upperMethod = method.toUpperCase();
+		const useOverride = OVERRIDABLE_METHODS.has(upperMethod) && methodOverrideNeeded();
+		const headers: Record<string, string> = { ...this.headers, ...options.headers };
+		if (useOverride) {
+			headers['X-HTTP-Method-Override'] = upperMethod;
+		}
+
 		const fetchOptions: RequestInit = {
-			method,
-			headers: { ...this.headers, ...options.headers },
+			method: useOverride ? 'POST' : method,
+			headers,
 			signal: options.signal,
 		};
 
@@ -714,6 +728,16 @@ class ApiClient {
 					reject,
 				});
 			});
+		}
+
+		if (
+			response.status === 405 &&
+			!useOverride &&
+			OVERRIDABLE_METHODS.has(upperMethod) &&
+			options.overrideRetry !== false
+		) {
+			rememberMethodOverride();
+			return this.requestRaw<T>(method, path, { ...options, overrideRetry: false });
 		}
 
 		// Inline body handling (mirrors handleResponse) so callers can read the

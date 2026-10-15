@@ -15,6 +15,7 @@
 	import { getContext } from 'svelte';
 	import { RotateCcw } from 'lucide-svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import FieldShadowIndicator from './FieldShadowIndicator.svelte';
 
 	let { path }: { path: string } = $props();
 
@@ -49,3 +50,6 @@
 		<RotateCcw size={12} strokeWidth={2.25} />
 	</button>
 {/if}
+<!-- The opposite case, drawn beside it: a layer ABOVE this one sets the value,
+     so saving here won't apply. Its own context; nothing outside config forms. -->
+<FieldShadowIndicator {path} />

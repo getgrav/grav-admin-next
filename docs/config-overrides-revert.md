@@ -99,8 +99,8 @@ ETag concurrency; revert never touches a layer other than the active one.
 - Atomic lists / object-bound fields: revert the whole subtree as one unit
   (the delta already treats lists atomically).
 - `GRAV_CONFIG__*` env-var overrides aren't in any file and can't be
-  file-reverted; they're stripped on save / re-applied on read. Phase 3: show a
-  non-revertable "set by environment variable" badge instead of a revert icon.
+  file-reverted; they're stripped on save / re-applied on read. They now get an
+  information-only marker (the `server` source in section 8).
 - Field path <-> config path: match by dotted path (already aligned for scalar
   fields); object-bound fields match by prefix.
 
@@ -110,3 +110,25 @@ ETag concurrency; revert never touches a layer other than the active one.
    shippable.
 2. Frontend: per-field indicator + revert wiring + scope reset button.
 3. Polish: env-var "forced" badge, object/array fields, i18n, a11y.
+
+## 8. Shadowed values (a layer above wins)
+
+The override indicators above look down the stack: "this file overrides the layer beneath". Shadowed values are the opposite direction: a layer *above* the one being written sets the key, so a value saved here is not what the site uses (getgrav/grav-plugin-sync-mercure#1: the picker was on "Default", the plugin was switched on in `user/config`, but `user/env/<host>/config` kept it off and the save looked successful).
+
+Two sources, both reported by the API in `meta.shadowed` on `GET`/`PATCH /config/{scope}` and `POST /config/{scope}/revert` (always present, empty when nothing is shadowed):
+
+- `environment`: only while saving to base. Every leaf the booted environment's file for this scope sets, with `environment` and `file`.
+- `server`: every `GRAV_CONFIG__*` key under the scope, for any target. Wins over every file, so it is listed instead of an environment entry for the same path.
+
+Each entry carries `value`, the value the site actually uses (secrets masked). Installed plugins also carry `enabled_source` (`null` unless `enabled` comes from one of those layers).
+
+What admin-next does with it:
+
+- **Field marker** (`FieldShadowIndicator` -> `ShadowMarker`): a primary-tinted `Layers` icon (environment) or `ServerCog` icon (server) beside the field label, next to where the amber revert arrow sits. It opens a small popover with the explanation, "This site uses <value>", the environment file, and for environment entries "Remove override" (config write permission) and "Switch to <E>". Server entries are information only. An object-valued field is marked when a key nested under it is shadowed.
+- **Banner** (`ConfigShadowedBanner`) above the form when anything is shadowed: one sentence with the count, plus "Switch to <E>".
+- **Save warning**: each host diffs the form before saving (`changedLeafPaths`), intersects the changed paths with `shadowed` (`shadowedHits`) and, on a hit, shows a warning toast instead of the plain success, with a "Remove override" action for environment entries.
+- **Plugin toggle** (Plugins list, table view, detail panel, plugin page): `setPluginEnabled` returns `shadowed`; when `enabled` is in it the toast says the environment (or server variable) keeps the plugin on or off. The toggle carries the same marker when `enabled_source` applies, which for an environment source is only while the picker is on "Default" (`enabledSourceApplies`); on that environment the toggle writes there, and on another one it edits that host's own layer by design.
+- **Remove override** calls `revertConfig(scope, { keys }, undefined, { environment: E })`, which replaces the session's `X-Config-Environment` for that one call (If-Match is optional on revert, so no ETag for E is needed). The response describes E's layer, so the form then re-reads its own scope for a fresh `shadowed`; its data is unchanged because its file was not touched. The plugin list and page re-read `enabled_source`.
+- **Switch to <E>** reuses the environment picker's switch (`switchEnvironment`): it confirms when the form is dirty, then reloads the admin under E.
+
+Wiring: `provideConfigOverrides` creates the shadowed controller itself (`ovr.shadowed`) and its `ingest()` takes `shadowed` along with the override map, so plugin, theme and embedded forms get it for free. The config page, which sets its overrides context by hand, calls `provideConfigShadowed` directly. Pure helpers live in `src/lib/utils/config-shadowed.ts` (tests in `tests/config-shadowed.test.ts`); strings are under `ADMIN_NEXT.CONFIG.SHADOWED.*`.

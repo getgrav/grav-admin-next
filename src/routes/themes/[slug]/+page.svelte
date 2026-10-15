@@ -15,7 +15,9 @@
 	import BlueprintFilter from '$lib/components/blueprint/BlueprintFilter.svelte';
 	import ExtensionMetaLinks from '$lib/components/extensions/ExtensionMetaLinks.svelte';
 	import UpdateChangelogLink from '$lib/components/extensions/UpdateChangelogLink.svelte';
-	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson } from '$lib/utils/blueprint-validation';
+	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson, fieldLabelFor } from '$lib/utils/blueprint-validation';
+	import { changedLeafPaths } from '$lib/utils/config-shadowed';
+	import ConfigShadowedBanner from '$lib/components/config/ConfigShadowedBanner.svelte';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import UnsavedChangesModal from '$lib/components/ui/UnsavedChangesModal.svelte';
@@ -162,7 +164,7 @@
 			const [themeResult, blueprintResult, configResult] = await Promise.all([
 				getTheme(slug),
 				getThemeBlueprint(slug).catch(() => null),
-				getThemeConfig(slug).catch(() => ({ data: {}, etag: '', overrides: [], fallback: {} })),
+				getThemeConfig(slug).catch(() => ({ data: {}, etag: '', overrides: [], fallback: {}, shadowed: [] })),
 			]);
 
 			theme = themeResult;
@@ -173,7 +175,7 @@
 			configData = configResult.data;
 			originalJson = stableJson(configResult.data);
 			etag = configResult.etag;
-			ovr.ingest({ overrides: configResult.overrides, fallback: configResult.fallback });
+			ovr.ingest({ overrides: configResult.overrides, fallback: configResult.fallback, shadowed: configResult.shadowed });
 		} catch {
 			// Theme isn't installed locally — if the slug exists in the GPM
 			// repository, hand off to the themes list with the install modal
@@ -246,6 +248,7 @@
 			originalJson = stableJson(data);
 			etag = newEtag;
 		},
+		labelFor: (path) => fieldLabelFor(blueprint?.fields, path),
 	});
 
 	function stripRedacted(obj: unknown): unknown {
@@ -272,6 +275,8 @@
 
 		saving = true;
 		try {
+			// What this save changes, to check against keys a layer above wins on.
+			const changed = changedLeafPaths(JSON.parse(originalJson), JSON.parse(stableJson(configData)));
 			const cleaned = stripRedacted(configData) as Record<string, unknown>;
 			await saveThemeConfig(slug, cleaned, etag);
 
@@ -279,13 +284,13 @@
 			configData = fresh.data;
 			originalJson = stableJson(fresh.data);
 			etag = fresh.etag;
-			ovr.ingest({ overrides: fresh.overrides, fallback: fresh.fallback });
+			ovr.ingest({ overrides: fresh.overrides, fallback: fresh.fallback, shadowed: fresh.shadowed });
 
 			// Flush deferred field-level side effects now that the save is
 			// persisted (e.g. FileField unlinking files the user removed).
 			await formCommit.emit();
 
-			toast.success(i18n.t('ADMIN_NEXT.TOASTS.CONFIG_SAVED', { name: theme?.name ?? slug }));
+			ovr.shadowed.notifySaved(changed, i18n.t('ADMIN_NEXT.TOASTS.CONFIG_SAVED', { name: theme?.name ?? slug }));
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {
 				toast.error(i18n.t('ADMIN_NEXT.THEMES.CONFIGURATION_WAS_MODIFIED_ELSEWHERE'));
@@ -650,6 +655,7 @@
 
 				<!-- Configuration form -->
 				{#if blueprint}
+					<ConfigShadowedBanner />
 					<BlueprintForm
 						fields={blueprint.fields}
 						data={configData}

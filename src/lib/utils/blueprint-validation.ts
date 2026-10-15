@@ -80,6 +80,15 @@ function findFieldByName(fields: BlueprintField[], name: string): BlueprintField
 	return undefined;
 }
 
+/**
+ * A field's translated label by its dotted data-path, for messages that name a
+ * field (e.g. the "saved, but overridden" warning). Falls back to the path.
+ */
+export function fieldLabelFor(fields: BlueprintField[] | undefined, path: string): string {
+	const field = fields ? findFieldByName(fields, path) : undefined;
+	return field?.label ? i18n.tMaybe(field.label) : path;
+}
+
 /** Collect required leaf fields, recursing through layout containers only. */
 function collectRequired(fields: BlueprintField[], out: BlueprintField[]): void {
 	for (const field of fields) {

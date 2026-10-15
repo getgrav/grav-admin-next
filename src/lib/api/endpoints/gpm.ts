@@ -1,6 +1,7 @@
 import { api, expectArray, ApiRequestError } from '../client';
 import { extractEtag } from '$lib/utils/etag';
 import { readOverrideMeta, type ConfigResponse } from './config';
+import { readShadowed, type EnabledSource, type ShadowedEntry } from '$lib/utils/config-shadowed';
 
 export interface PackageAuthor {
 	name: string | null;
@@ -47,6 +48,12 @@ export interface PluginInfo {
 	 * plugin it extends.
 	 */
 	settings_page?: string;
+	/**
+	 * Set when the live `enabled` value comes from a layer above base: the
+	 * booted environment's file for this plugin, or a GRAV_CONFIG server
+	 * variable. Null (or absent on an older API) when base decides.
+	 */
+	enabled_source?: EnabledSource | null;
 }
 
 /**
@@ -64,10 +71,13 @@ export async function getPlugin(slug: string): Promise<PluginInfo> {
 }
 
 /**
- * Enable or disable a plugin by updating its config.
+ * Enable or disable a plugin by updating its config. Returns the keys a layer
+ * above the write target sets (see ShadowedEntry), so the caller can warn when
+ * `enabled` is one of them and the toggle will not change what the site does.
  */
-export async function setPluginEnabled(slug: string, enabled: boolean): Promise<void> {
-	await api.patch(`/config/plugins/${slug}`, { enabled });
+export async function setPluginEnabled(slug: string, enabled: boolean): Promise<{ shadowed: ShadowedEntry[] }> {
+	const { meta } = await api.requestRaw('PATCH', `/config/plugins/${slug}`, { body: { enabled } });
+	return { shadowed: readShadowed(meta) };
 }
 
 /**
@@ -123,10 +133,11 @@ export async function savePluginConfig(
 	slug: string,
 	config: Record<string, unknown>,
 	etag?: string,
-): Promise<void> {
+): Promise<{ shadowed: ShadowedEntry[] }> {
 	const headers: Record<string, string> = {};
 	if (etag) headers['If-Match'] = `"${etag}"`;
-	await api.requestRaw('PATCH', `/config/plugins/${slug}`, { body: config, headers });
+	const { meta } = await api.requestRaw('PATCH', `/config/plugins/${slug}`, { body: config, headers });
+	return { shadowed: readShadowed(meta) };
 }
 
 // ---------------------------------------------------------------------------
@@ -377,10 +388,11 @@ export async function saveThemeConfig(
 	slug: string,
 	config: Record<string, unknown>,
 	etag?: string,
-): Promise<void> {
+): Promise<{ shadowed: ShadowedEntry[] }> {
 	const headers: Record<string, string> = {};
 	if (etag) headers['If-Match'] = `"${etag}"`;
-	await api.requestRaw('PATCH', `/config/themes/${slug}`, { body: config, headers });
+	const { meta } = await api.requestRaw('PATCH', `/config/themes/${slug}`, { body: config, headers });
+	return { shadowed: readShadowed(meta) };
 }
 
 export interface RepositoryTheme {
