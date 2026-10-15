@@ -222,7 +222,7 @@
 	const settingsItem = { href: `${base}/settings`, labelKey: 'ADMIN_NEXT.NAV.SETTINGS', icon: SlidersHorizontal };
 
 	function isActive(href: string): boolean {
-		return isActiveRoute(page.url.pathname, href, base);
+		return isActiveRoute(page.url.pathname, href, base, page.url.search);
 	}
 
 	async function handleLogout() {
