@@ -26,7 +26,7 @@
 	import PluginsTableView from '$lib/components/plugins/PluginsTableView.svelte';
 	import ShadowMarker from '$lib/components/config/ShadowMarker.svelte';
 	import { configEnv } from '$lib/stores/configEnvironment.svelte';
-	import { enabledSourceApplies, type EnabledSource } from '$lib/utils/config-shadowed';
+	import { enabledSourceApplies, liveEnabledAfterToggle, type EnabledSource } from '$lib/utils/config-shadowed';
 	import { removeEnvironmentOverride, warnShadowedToggle } from '$lib/utils/config-shadowed.svelte';
 
 	const SELECTED_STORAGE_KEY = 'admin-next:plugins:selected-slug';
@@ -205,7 +205,7 @@
 		const newState = !plugin.enabled;
 		try {
 			const { shadowed } = await setPluginEnabled(plugin.slug, newState);
-			plugin.enabled = newState;
+			plugin.enabled = liveEnabledAfterToggle(newState, shadowed);
 			plugins = [...plugins]; // trigger reactivity
 			// Warn instead when a layer above decides `enabled`, so the switch
 			// won't change what the site does.

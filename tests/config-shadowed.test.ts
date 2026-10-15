@@ -4,6 +4,7 @@ import {
 	changedLeafPaths,
 	enabledSourceApplies,
 	formatShadowValue,
+	liveEnabledAfterToggle,
 	readShadowed,
 	shadowForField,
 	shadowedHits,
@@ -91,4 +92,12 @@ test('shadowed values display as on/off, empty, JSON or text', () => {
 	assert.equal(formatShadowValue({ a: 1 }, labels), '{"a":1}');
 	assert.equal(formatShadowValue(587, labels), '587');
 	assert.equal(formatShadowValue('********', labels), '********');
+});
+
+test('after a toggle the plugin shows the state the site uses, not the value just saved', () => {
+	assert.equal(liveEnabledAfterToggle(true, []), true);
+	assert.equal(liveEnabledAfterToggle(false, [env('depth', 3)]), false);
+	assert.equal(liveEnabledAfterToggle(true, [env('enabled', false)]), false);
+	assert.equal(liveEnabledAfterToggle(false, [server('enabled', true)]), true);
+	assert.equal(liveEnabledAfterToggle(true, [env('enabled', 'false')]), false);
 });

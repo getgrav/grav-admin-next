@@ -130,6 +130,18 @@ export function enabledSourceApplies(source: EnabledSource | null | undefined, t
 	return target === '' && !!source.environment;
 }
 
+/**
+ * The plugin's real enabled state after its toggle saved `requested`. When a
+ * layer above the one written decides `enabled`, the site keeps that value, and
+ * the toggle shows it rather than the value that was just saved.
+ */
+export function liveEnabledAfterToggle(requested: boolean, shadowed: ShadowedEntry[]): boolean {
+	const entry = shadowed.find((e) => e.path === 'enabled');
+	if (!entry) return requested;
+	const v = entry.value;
+	return v === true || v === 1 || v === '1' || v === 'true';
+}
+
 /** Render a shadowed value for display. Labels come from the caller (i18n). */
 export function formatShadowValue(
 	value: unknown,

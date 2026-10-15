@@ -17,7 +17,7 @@
 	import UpdateChangelogLink from '$lib/components/extensions/UpdateChangelogLink.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { checkRequiredOrToast, scrollToFirstError, validateFieldAt, stableJson, fieldLabelFor } from '$lib/utils/blueprint-validation';
-	import { changedLeafPaths, enabledSourceApplies } from '$lib/utils/config-shadowed';
+	import { changedLeafPaths, enabledSourceApplies, liveEnabledAfterToggle } from '$lib/utils/config-shadowed';
 	import { warnShadowedToggle } from '$lib/utils/config-shadowed.svelte';
 	import { configEnv } from '$lib/stores/configEnvironment.svelte';
 	import ConfigShadowedBanner from '$lib/components/config/ConfigShadowedBanner.svelte';
@@ -246,7 +246,7 @@
 	async function refreshEnabledSource() {
 		try {
 			const fresh = await getPlugin(slug);
-			if (plugin) plugin = { ...plugin, enabled_source: fresh.enabled_source ?? null };
+			if (plugin) plugin = { ...plugin, enabled: fresh.enabled, enabled_source: fresh.enabled_source ?? null };
 		} catch {
 			/* the marker stays until the next load */
 		}
@@ -324,9 +324,12 @@
 		const newState = !plugin.enabled;
 		try {
 			const { shadowed } = await setPluginEnabled(slug, newState);
-			plugin = { ...plugin, enabled: newState };
+			// Show what the site actually does: a layer above the one just
+			// written may still decide `enabled`.
+			const live = liveEnabledAfterToggle(newState, shadowed);
+			plugin = { ...plugin, enabled: live };
 			// Reload config/blueprint since enabling may expose new fields
-			if (newState) {
+			if (live) {
 				const [bp, cfg] = await Promise.all([
 					getPluginBlueprint(slug).catch(() => null),
 					getPluginConfig(slug).catch(() => ({ data: {}, etag: '', overrides: [], fallback: {}, shadowed: [] })),
