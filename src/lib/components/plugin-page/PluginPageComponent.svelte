@@ -14,9 +14,13 @@
 		 * way a blueprint form drives them. All keys are optional and merged.
 		 */
 		onstate?: (state: { dirty?: boolean; valid?: boolean; busy?: boolean }) => void;
+		/** Sub-path after /plugin/{slug}/, e.g. `orders` or `orders/42` */
+		path?: string;
+		/** Current query string, e.g. `?view=orders` */
+		search?: string;
 	}
 
-	let { slug, onstate }: Props = $props();
+	let { slug, onstate, path = '', search = '' }: Props = $props();
 
 	let containerEl = $state<HTMLDivElement | null>(null);
 	let loaded = $state(false);
@@ -74,18 +78,41 @@
 		}
 	}
 
+	let mounted: HTMLElement | null = null;
+	let lastRoute = '';
+
+	/** Hand the element the current sub-path as a `path` attribute and property. */
+	function applyPath(el: HTMLElement) {
+		el.setAttribute('path', path);
+		(el as HTMLElement & { path?: string }).path = path;
+	}
+
 	function mountElement() {
 		if (!containerEl) return;
 		containerEl.innerHTML = '';
 
 		const el = document.createElement(tagName);
+		applyPath(el);
 		// Mirror the context-panel / floating-widget wiring: let the web component
 		// report state back to the host so it can drive the toolbar action buttons.
 		el.addEventListener('page-state', ((e: CustomEvent) => {
 			onstate?.(e.detail ?? {});
 		}) as EventListener);
 		containerEl.appendChild(el);
+		mounted = el;
+		lastRoute = `${path}${search}`;
 	}
+
+	// Moving between views of the same plugin page (a new sub-path or query
+	// string) keeps the element mounted; it gets the new path and a
+	// `route-change` event instead of having to watch location itself.
+	$effect(() => {
+		const route = `${path}${search}`;
+		if (!mounted || route === lastRoute) return;
+		lastRoute = route;
+		applyPath(mounted);
+		mounted.dispatchEvent(new CustomEvent('route-change', { detail: { path, search } }));
+	});
 
 	onMount(() => {
 		loadComponent();

@@ -38,6 +38,11 @@
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
 	const slug = $derived(page.params.slug ?? '');
+	// Everything after /plugin/{slug}/, so a plugin can address its views by
+	// path (/plugin/shop/orders) instead of ?view= (admin2#196). The rest param
+	// also matches nothing, so /plugin/shop lands here too, and moving between
+	// views keeps this page and the plugin's component mounted.
+	const subPath = $derived(page.params.path ?? '');
 	const isSidebarPage = $derived(sidebarStore.items.some(item => item.plugin === slug));
 
 	let definition = $state<PluginPageDefinition | null>(null);
@@ -550,7 +555,7 @@
 						errors={validationErrors}
 					/>
 				{:else if definition.page_type === 'component'}
-					<PluginPageComponent slug={slug} onstate={handleComponentState} />
+					<PluginPageComponent slug={slug} path={subPath} search={page.url.search} onstate={handleComponentState} />
 				{:else}
 					<div class="rounded-xl border border-dashed border-border p-8 text-center">
 						<p class="text-sm text-muted-foreground">
