@@ -5,7 +5,8 @@
 	import { base } from '$app/paths';
 	import { setContext } from 'svelte';
 	import { provideFormCommit } from '$lib/utils/form-commit.svelte';
-	import { getUser, updateUser, deleteUser, type UserInfo } from '$lib/api/endpoints/users';
+	import { getUser, updateUser, deleteUser, cancelEmailChange, resendEmailChange, type UserInfo } from '$lib/api/endpoints/users';
+	import { emailChangeRefusal, metaMessage } from '$lib/utils/email-change';
 	import { getGroups, type GroupInfo } from '$lib/api/endpoints/groups';
 	import { getUserBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
@@ -29,7 +30,7 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
 	import {
-		Save, Loader2, AlertCircle, Trash2, User, Undo2
+		Save, Loader2, AlertCircle, Trash2, User, Undo2, Mail
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { canWrite } from '$lib/utils/permissions';
@@ -66,6 +67,8 @@
 	let deleting = $state(false);
 	let error = $state('');
 	let confirmDeleteOpen = $state(false);
+	// True while Resend or Cancel for a waiting email change is in flight.
+	let emailChangeBusy = $state(false);
 
 	// Form data from blueprint fields
 	let configData = $state<Record<string, unknown>>({});
@@ -177,6 +180,9 @@
 			extra: _extra,
 			...custom
 		} = u as unknown as Record<string, unknown>;
+		// A waiting email change is shown under the email field, not edited in
+		// the form, so it stays out of the data a save sends back.
+		delete custom.email_pending;
 
 		configData = {
 			...custom,
@@ -305,6 +311,7 @@
 				delete body.groups;
 			}
 
+			const pendingBefore = user?.email_pending ?? '';
 			const result = await updateUser(username, body, etag);
 			user = result.user;
 			etag = result.etag;
@@ -323,14 +330,59 @@
 
 			await formCommit.emit();
 			toast.success(i18n.t('ADMIN_NEXT.TOASTS.USER_SAVED', { username }));
+
+			// A new address for your own account waits for the link mailed to it.
+			// The response still carries the old address, so the form just went back
+			// to it; say why, or the typed address would seem to have been dropped.
+			const newlyPending = result.user.email_pending && result.user.email_pending !== pendingBefore
+				? result.user.email_pending : '';
+			const emailMessage = metaMessage(result.meta)
+				?? (newlyPending ? i18n.t('ADMIN_NEXT.USERS.EMAIL_CHANGE_SENT', { email: newlyPending }) : '');
+			if (emailMessage) toast.info(emailMessage, { duration: 10000 });
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {
 				toast.error(i18n.t('ADMIN_NEXT.USERS.USER_WAS_MODIFIED_ELSEWHERE_PLEASE'));
 			} else {
-				toast.error(i18n.t('ADMIN_NEXT.USERS.FAILED_TO_SAVE_USER'));
+				// A taken address (422) or too many changes (429) comes with its own sentence.
+				toast.error(emailChangeRefusal(err) ?? i18n.t('ADMIN_NEXT.USERS.FAILED_TO_SAVE_USER'));
 			}
 		} finally {
 			saving = false;
+		}
+	}
+
+	// Resend and Cancel for a waiting email change. They return the user, so the
+	// notice updates without reloading and without touching edits in the form.
+	async function handleResendEmailChange() {
+		if (!user || emailChangeBusy) return;
+		emailChangeBusy = true;
+		try {
+			const result = await resendEmailChange(username);
+			user = result.user;
+			etag = result.etag || etag;
+			toast.info(
+				metaMessage(result.meta) ?? i18n.t('ADMIN_NEXT.USERS.EMAIL_CHANGE_SENT', { email: result.user.email_pending ?? '' }),
+				{ duration: 10000 },
+			);
+		} catch (err: unknown) {
+			toast.error(emailChangeRefusal(err) ?? i18n.t('ADMIN_NEXT.USERS.EMAIL_CHANGE_RESEND_FAILED'));
+		} finally {
+			emailChangeBusy = false;
+		}
+	}
+
+	async function handleCancelEmailChange() {
+		if (!user || emailChangeBusy) return;
+		emailChangeBusy = true;
+		try {
+			const result = await cancelEmailChange(username);
+			user = result.user;
+			etag = result.etag || etag;
+			toast.success(i18n.t('ADMIN_NEXT.USERS.EMAIL_CHANGE_CANCELLED'));
+		} catch (err: unknown) {
+			toast.error(emailChangeRefusal(err) ?? i18n.t('ADMIN_NEXT.USERS.EMAIL_CHANGE_CANCEL_FAILED'));
+		} finally {
+			emailChangeBusy = false;
 		}
 	}
 
@@ -417,11 +469,36 @@
 		}, {
 			// Skip self-echo: our own PATCH emits this same event before handleSave
 			// has cleared hasChanges, which would otherwise toast on every save.
-			dirtyGuard: () => saving || autoSave.saving,
+			// Resend and Cancel emit it too, and update the user themselves.
+			dirtyGuard: () => saving || autoSave.saving || emailChangeBusy,
 		});
 		return () => { unsub(); };
 	});
 </script>
+
+{#snippet emailChangeNotice()}
+	{#if user?.email_pending}
+		<!-- A new address that is waiting for the link mailed to it. Resend and
+		     Cancel are the account owner's own, so anyone else editing this user
+		     only sees the notice. -->
+		<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs dark:border-amber-700/60 dark:bg-amber-950/30">
+			<Mail size={14} class="shrink-0 text-amber-700 dark:text-amber-300" />
+			<p class="min-w-0 flex-1 break-all text-amber-900 dark:text-amber-200">
+				{i18n.t('ADMIN_NEXT.USERS.EMAIL_CHANGE_WAITING', { email: user.email_pending })}
+			</p>
+			{#if isSelf}
+				<div class="flex shrink-0 items-center gap-2">
+					<Button variant="outline" size="sm" onclick={handleResendEmailChange} disabled={emailChangeBusy}>
+						{i18n.t('ADMIN_NEXT.USERS.EMAIL_CHANGE_RESEND')}
+					</Button>
+					<Button variant="ghost" size="sm" onclick={handleCancelEmailChange} disabled={emailChangeBusy}>
+						{i18n.t('ADMIN_NEXT.CANCEL')}
+					</Button>
+				</div>
+			{/if}
+		</div>
+	{/if}
+{/snippet}
 
 <svelte:head>
 	<title>{i18n.t('ADMIN_NEXT.USERS.PAGE_TITLE', { name: user?.fullname ?? username })}</title>
@@ -545,6 +622,7 @@
 						onchange={handleBlueprintChange}
 						oncommit={autoSave.oncommit}
 						errors={validationErrors}
+						notices={user.email_pending ? { email: emailChangeNotice } : {}}
 					/>
 				{/if}
 

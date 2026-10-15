@@ -22,6 +22,13 @@ export interface UserInfo {
 	/** Preferred content editor, '' when the user hasn't picked one. */
 	content_editor: string;
 	avatar_url: string | null;
+	/**
+	 * A new address the account owner asked for that is still waiting for the
+	 * link mailed to it to be opened (Login plugin 3.10.0 and API plugin 1.0.50
+	 * or later). `email` keeps the old address until then. Only present while a
+	 * change is waiting.
+	 */
+	email_pending?: string;
 	twofa_enabled: boolean;
 	twofa_secret: boolean;
 	/**
@@ -265,7 +272,7 @@ export async function updateUser(
 	username: string,
 	data: Record<string, unknown>,
 	etag?: string,
-): Promise<{ user: UserInfo; etag: string }> {
+): Promise<{ user: UserInfo; etag: string; meta?: unknown }> {
 	const headers: Record<string, string> = {};
 	if (etag) headers['If-Match'] = `"${etag}"`;
 	const result = await api.requestRaw<UserInfo>('PATCH', `/users/${username}`, {
@@ -275,7 +282,28 @@ export async function updateUser(
 	return {
 		user: result.data,
 		etag: extractEtag(result.headers),
+		meta: result.meta,
 	};
+}
+
+/**
+ * Drop the caller's own waiting email change; the account keeps its current
+ * address. Own account only. Goes through requestRaw so a rate limit answers
+ * at once, instead of waiting out the retries `api.delete()` makes on a 429.
+ */
+export async function cancelEmailChange(
+	username: string,
+): Promise<{ user: UserInfo; etag: string; meta?: unknown }> {
+	const result = await api.requestRaw<UserInfo>('DELETE', `/users/${username}/email-change`);
+	return { user: result.data, etag: extractEtag(result.headers), meta: result.meta };
+}
+
+/** Mail the confirmation link for the caller's own waiting email change again. */
+export async function resendEmailChange(
+	username: string,
+): Promise<{ user: UserInfo; etag: string; meta?: unknown }> {
+	const result = await api.requestRaw<UserInfo>('POST', `/users/${username}/email-change/resend`);
+	return { user: result.data, etag: extractEtag(result.headers), meta: result.meta };
 }
 
 export async function deleteUser(username: string): Promise<void> {

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { setContext } from 'svelte';
+	import type { Snippet } from 'svelte';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import FieldRenderer from './FieldRenderer.svelte';
 	import { fieldMatches } from '$lib/utils/field-filter';
@@ -13,13 +14,17 @@
 		filter?: string;
 		/** Field-path → error message, surfaced inline by each field. */
 		errors?: Record<string, string>;
+		/** Field name → a snippet drawn under that field (and its description), for a notice that needs more than a description line. */
+		notices?: Record<string, Snippet>;
 	}
 
-	let { fields, data, onchange, oncommit, filter = '', errors = {} }: Props = $props();
+	let { fields, data, onchange, oncommit, filter = '', errors = {}, notices = {} }: Props = $props();
 
 	// Expose validation errors to every descendant field (FieldRenderer reads
 	// this by field.name). Passing a getter keeps it reactive across updates.
 	setContext('blueprintErrors', () => errors);
+	// Same for the page's notices; FieldDescription draws them under their field.
+	setContext('fieldNotices', () => notices);
 
 	/**
 	 * Normalize blueprint fields: adopt orphan siblings into bare sections.
