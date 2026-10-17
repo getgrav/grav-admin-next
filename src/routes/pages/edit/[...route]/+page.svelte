@@ -64,6 +64,8 @@
 	import { pageEditorBar } from '$lib/stores/pageEditorBar.svelte';
 	import EditorLockNotice from '$lib/components/sync/EditorLockNotice.svelte';
 	import TwigContentBanner from '$lib/components/pages/TwigContentBanner.svelte';
+	import { pageFolderName } from '$lib/utils/page-folder';
+	import { withFolderSettings } from '$lib/utils/room-snapshot';
 
 	let accessDenied = $state(false);
 
@@ -395,7 +397,7 @@
 
 	// Expert mode tabs & advanced fields
 	let expertTab = $state<'content' | 'advanced'>('content');
-	let expertSlug = $state('');
+	let expertFolder = $state('');
 	let expertParent = $state('');
 
 	// --- Collaborative editing (sync plugin) --------------------------
@@ -618,9 +620,11 @@
 
 					if (newContent !== content) content = newContent;
 					if (newTitle !== title) title = newTitle;
-					const snapJson = JSON.stringify(snap);
-					if (snapJson !== JSON.stringify(headerData)) {
-						headerData = { ...snap };
+					// The folder Settings stay as loaded from disk: the room can
+					// hold a prefix from before a reorder (grav#4361).
+					const nextData = withFolderSettings(snap, headerData);
+					if (JSON.stringify(nextData) !== JSON.stringify(headerData)) {
+						headerData = nextData;
 					}
 					// Do NOT update pageData.content here. pageData is the on-disk
 					// baseline that hasChanges / handleSave diff against; advancing
@@ -901,7 +905,7 @@
 		const currentHeader = { ...((headerData.header as Record<string, unknown>) ?? {}), title };
 		expertFrontmatter = yaml.dump(currentHeader, { lineWidth: -1, noRefs: true }).trimEnd();
 		if (pageData) {
-			expertSlug = pageData.slug.replace(/^\.+/, '');
+			expertFolder = pageFolderName(pageData);
 			expertParent = pageParentRoute(pageData);
 		}
 		expertTab = 'content';
@@ -917,7 +921,7 @@
 				headerData = {
 					header: { ...parsed },
 					content,
-					folder: pageData?.slug ?? '',
+					folder: pageData ? pageFolderName(pageData) : '',
 					name: template,
 					route: originalParent,
 					ordering: originalOrdering,
@@ -973,7 +977,7 @@
 			template !== pageData.template ||
 			(prefs.editorMode === 'expert'
 				? expertFrontmatter !== expertFrontmatterOriginal ||
-				  expertSlug !== pageData.slug ||
+				  expertFolder !== pageFolderName(pageData) ||
 				  expertParent !== pageParentRoute(pageData)
 				: title !== pageData.title || Object.keys(headerChanges).length > 0 || normalMoveDirty)
 		)
@@ -1005,7 +1009,7 @@
 	const autoSave = createAutoSaveManager({
 		save: handleSave,
 		getValue: (path: string) => {
-			if (path === 'expertSlug') return expertSlug;
+			if (path === 'expertFolder') return expertFolder;
 			if (path === 'expertParent') return expertParent;
 			if (path === 'expertFrontmatter') return expertFrontmatter;
 			const parts = path.split('.');
@@ -1017,7 +1021,7 @@
 			return current;
 		},
 		applyChange: (path: string, value: unknown) => {
-			if (path === 'expertSlug') { expertSlug = value as string; return; }
+			if (path === 'expertFolder') { expertFolder = value as string; return; }
 			if (path === 'expertParent') { expertParent = value as string; return; }
 			if (path === 'expertFrontmatter') { expertFrontmatter = value as string; return; }
 			handleBlueprintChange(path, value);
@@ -1113,7 +1117,7 @@
 			headerData = {
 				header: { ...data.header ?? {}, title: data.title },
 				content: data.content ?? '',
-				folder: data.slug,
+				folder: pageFolderName(data),
 				name: data.template,
 				// `route` is the Grav blueprint field name for the parent picker
 				// (type: parents). It's the parent's route, not the page's route.
@@ -1132,15 +1136,15 @@
 			originalTitle = data.title;
 			originalContent = data.content ?? '';
 			originalTemplate = data.template;
-			originalFolder = data.slug;
+			originalFolder = pageFolderName(data);
 			originalParent = initialParent;
 			originalOrdering = initialOrdering;
 			originalOrder = data.order;
 			headerChanges = {};
 			hasLocalEdits = false;
 
-			// Initialize expert advanced state (strip any leading periods from slug)
-			expertSlug = data.slug.replace(/^\.+/, '');
+			// Initialize expert advanced state: the folder name, not the slug
+			expertFolder = pageFolderName(data);
 			expertParent = pageParentRoute(data);
 			expertTab = 'content';
 
@@ -1290,7 +1294,7 @@
 			originalTitle = refreshed.title;
 			originalContent = refreshed.content ?? '';
 			originalTemplate = refreshed.template;
-			originalFolder = refreshed.slug;
+			originalFolder = pageFolderName(refreshed);
 			originalParent = pageParentRoute(refreshed);
 			originalOrdering = refreshed.order !== null && refreshed.order !== '';
 			originalOrder = refreshed.order;
@@ -1389,7 +1393,7 @@
 
 			// Check if a move is also needed (expert mode: slug or parent changed)
 			const expertNeedsMove = prefs.editorMode === 'expert' && pageData && (
-				expertSlug !== pageData.slug ||
+				expertFolder !== pageFolderName(pageData) ||
 				expertParent !== pageParentRoute(pageData)
 			);
 
@@ -1435,7 +1439,7 @@
 				headerData = {
 					header: { ...updated.header ?? {}, title: updated.title },
 					content: updated.content ?? '',
-					folder: updated.slug,
+					folder: pageFolderName(updated),
 					name: updated.template,
 					route: refreshedParent,
 					ordering: refreshedOrdering,
@@ -1449,7 +1453,7 @@
 				originalTitle = updated.title;
 				originalContent = updated.content ?? '';
 				originalTemplate = updated.template;
-				originalFolder = updated.slug;
+				originalFolder = pageFolderName(updated);
 				originalParent = refreshedParent;
 				originalOrdering = refreshedOrdering;
 				originalOrder = updated.order;
@@ -1471,10 +1475,13 @@
 
 			// Phase 2: Move page if slug or parent changed (expert mode)
 			if (expertNeedsMove && pageData) {
+				// `slug` is the folder name. Always send it: an API that is not
+				// given one renames the folder after the page's slug, which a
+				// `slug:` header makes different from the folder (admin-next#40).
 				const moveBody: { parent: string; slug?: string; order?: number | null } = {
 					parent: expertParent,
+					slug: expertFolder,
 				};
-				if (expertSlug !== pageData.slug) moveBody.slug = expertSlug;
 
 				const { page: moved, etag: movedEtag } = await movePageWithEtag(route, moveBody);
 
@@ -1484,7 +1491,7 @@
 				title = moved.title ?? title;
 				content = moved.content ?? content;
 				template = moved.template ?? template;
-				expertSlug = moved.slug;
+				expertFolder = pageFolderName(moved);
 				expertParent = pageParentRoute(moved);
 				expertFrontmatterOriginal = expertFrontmatter;
 				headerChanges = {};
@@ -1509,10 +1516,11 @@
 			// / order changed. Mirrors the expert-mode branch but reads from
 			// the blueprint Settings panel state in headerData.
 			if (normalNeedsMove && pageData) {
+				// Always send the folder name; see the expert-mode branch above.
 				const moveBody: { parent: string; slug?: string; order?: number | null } = {
 					parent: normalParent,
+					slug: normalFolder,
 				};
-				if (normalFolder !== originalFolder) moveBody.slug = normalFolder;
 				if (normalOrdering !== originalOrdering || normalOrder !== originalOrderNum) {
 					if (!normalOrdering) {
 						// Toggling ordering off: drop the numeric prefix from the folder.
@@ -1538,7 +1546,7 @@
 				headerData = {
 					header: { ...moved.header ?? {}, title: moved.title },
 					content: moved.content ?? '',
-					folder: moved.slug,
+					folder: pageFolderName(moved),
 					name: moved.template,
 					route: movedParent,
 					ordering: movedOrdering,
@@ -1546,7 +1554,7 @@
 				};
 				headerChanges = {};
 				hasLocalEdits = false;
-				originalFolder = moved.slug;
+				originalFolder = pageFolderName(moved);
 				originalParent = movedParent;
 				originalOrdering = movedOrdering;
 				originalOrder = moved.order;
@@ -2142,11 +2150,12 @@
 										<input
 											type="text"
 											class="flex h-10 w-full rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-											value={expertSlug}
-											oninput={(e) => { expertSlug = sanitizeSlugInput((e.target as HTMLInputElement).value); hasLocalEdits = true; }}
+											value={expertFolder}
+											oninput={(e) => { expertFolder = sanitizeSlugInput((e.target as HTMLInputElement).value); hasLocalEdits = true; }}
 											onfocusout={() => {
-												if (prefs.autoSaveEnabled && expertSlug && expertSlug !== pageData?.slug) {
-													autoSave.oncommit('expertSlug', expertSlug, pageData?.slug);
+												const savedFolder = pageData ? pageFolderName(pageData) : '';
+												if (prefs.autoSaveEnabled && expertFolder && expertFolder !== savedFolder) {
+													autoSave.oncommit('expertFolder', expertFolder, savedFolder);
 												}
 											}}
 										/>
