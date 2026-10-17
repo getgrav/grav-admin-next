@@ -24,6 +24,8 @@
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { api } from '$lib/api/client';
+	import { createPluginApi } from '$lib/utils/plugin-api';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { branding } from '$lib/stores/branding.svelte';
 	import { getPreferences, type PreferencesResponse } from '$lib/api/endpoints/preferences';
@@ -391,6 +393,14 @@
 			info:    (msg, opts) => toast.info(msg, opts),
 			warning: (msg, opts) => toast.warning(msg, opts),
 		};
+	});
+
+	// Expose Admin2's API client so a plugin's calls get the same token refresh,
+	// environment headers and X-Invalidates handling as Admin2's own: a plugin
+	// endpoint that changes a record refreshes the screen showing it (admin2#197).
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+		window.__GRAV_API = createPluginApi(api);
 	});
 
 	// Expose the admin route base + SPA navigation so plugin web components

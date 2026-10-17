@@ -107,8 +107,13 @@
 		}
 	}
 
-	async function loadData() {
-		loading = true;
+	/**
+	 * `quiet` refetches without the spinner, so the form stays mounted: a change
+	 * made elsewhere refills it in place, keeping the scroll position and the
+	 * custom field that asked for it (admin2#197).
+	 */
+	async function loadData(quiet = false) {
+		if (!quiet) loading = true;
 		error = '';
 		try {
 			const [objectResult, blueprintResult, dirs] = await Promise.all([
@@ -278,7 +283,7 @@
 
 	onMount(() => {
 		const unsub = invalidations.subscribe(`flex-objects:${type}:update:${key}`, () => {
-			if (!hasChanges) loadData();
+			if (!hasChanges) loadData(true);
 			else toast.info(i18n.t('ADMIN_NEXT.FLEX_OBJECTS.OBJECT_CHANGED_ELSEWHERE_SAVE_TO'));
 		}, {
 			// Skip self-echo: our own PATCH emits this same event before handleSave

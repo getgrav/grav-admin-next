@@ -97,6 +97,12 @@ declare global {
 			info: (message: string, options?: Record<string, unknown>) => void;
 			warning: (message: string, options?: Record<string, unknown>) => void;
 		};
+		/**
+		 * Admin2's own API client for plugin code: paths relative to the API
+		 * prefix, resolves `data`, rejects with `status`. Handles token refresh,
+		 * environment headers and `X-Invalidates` (admin2#197).
+		 */
+		__GRAV_API: import('$lib/utils/plugin-api').PluginApi;
 		__GRAV_ADMIN_BASE: string;
 		__GRAV_NAVIGATE: (
 			url: string,
