@@ -2,6 +2,12 @@
 	import { debug, type DebugRequest, type ClockworkData, type ServerTimingPhase } from '$lib/stores/debug.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { Bug, X, Trash2, ChevronRight } from 'lucide-svelte';
+	import { prefs } from '$lib/stores/preferences.svelte';
+
+	// From `lg` up the sidebar is always on screen, so the launcher and panel
+	// sit just past its edge instead of over its footer. The sidebar is 14rem
+	// wide, or 52px collapsed (AppShell).
+	const sidebarOffset = $derived(prefs.sidebarCollapsed ? 'lg:start-[calc(52px+1rem)]' : 'lg:start-[15rem]');
 
 	let selected = $state<DebugRequest | null>(null);
 	let detail = $state<ClockworkData | null>(null);
@@ -158,11 +164,12 @@
 </script>
 
 {#if debug.clockworkSeen}
-	<!-- Launcher: bottom-left (the classic Grav debug-bar spot). Brand-colored so
-	     it stands out against the chrome (admin2#66). Only mounts once a Clockwork
-	     id has been seen, i.e. the Grav debugger is enabled. -->
+	<!-- Launcher: bottom-left (the classic Grav debug-bar spot), next to the
+	     sidebar. Brand-colored so it stands out against the chrome (admin2#66).
+	     Only mounts once a Clockwork id has been seen, i.e. the Grav debugger is
+	     enabled. -->
 	<button
-		class="fixed bottom-4 start-4 z-40 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
+		class="fixed bottom-4 start-4 {sidebarOffset} z-40 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
 		title="Debug panel"
 		onclick={() => debug.toggle()}
 	>
@@ -172,7 +179,7 @@
 
 {#if debug.open}
 	<div
-		class="fixed bottom-16 start-4 z-40 flex max-h-[72vh] w-[440px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-2xl"
+		class="fixed bottom-16 start-4 {sidebarOffset} z-40 flex max-h-[72vh] w-[440px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-2xl"
 	>
 		<!-- Header -->
 		<div class="flex items-center justify-between border-b border-border px-3 py-2">

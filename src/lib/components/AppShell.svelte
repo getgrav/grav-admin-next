@@ -40,8 +40,11 @@
 	import {
 		LayoutDashboard, FileText, Image, Users, Puzzle, Palette,
 		Settings, Wrench, SlidersHorizontal, Languages,
-		Sun, Moon, Menu, Code
+		Sun, Moon, Menu, Code, CodeXml, Heart
 	} from 'lucide-svelte';
+	import { MediaQuery } from 'svelte/reactivity';
+	import { branding } from '$lib/stores/branding.svelte';
+	import { creditParts } from '$lib/utils/credit-parts';
 
 	interface Props { children: Snippet; }
 	let { children }: Props = $props();
@@ -192,8 +195,16 @@
 		};
 	});
 
-	let collapsed = $state(false);
+	// The collapsed sidebar is remembered per browser. It only applies from the
+	// `lg` breakpoint up, where the toggle is shown: below it the sidebar is the
+	// slide-out menu, which has no toggle and must open at full width.
+	const desktop = new MediaQuery('min-width: 1024px');
+	const collapsed = $derived(prefs.sidebarCollapsed && desktop.current);
 	let mobileOpen = $state(false);
+
+	// "Grav was </> with ♥ by Trilby Media." The icons and the company link are
+	// placed where the translation puts their placeholders.
+	const credit = $derived(creditParts(i18n.t, 'ADMIN_NEXT.APP_SHELL.MADE_BY', ['code', 'love', 'company']));
 
 	// `labelKey` is resolved via i18n.t() at render time so the sidebar
 	// follows the active admin language. Plugin-supplied sidebar items
@@ -388,34 +399,63 @@
 			{/if}
 		</div>
 
-		<!-- Versions + Collapse toggle -->
-		<div class="flex items-center gap-2 border-t border-sidebar-border px-4 py-1.5">
-			{#if !collapsed && (auth.gravVersion || auth.adminVersion)}
-				<div class="flex-1 text-xs leading-tight">
-					{#if auth.gravVersion}<div class="text-sidebar-foreground/60">{i18n.t('ADMIN_NEXT.APP_SHELL.GRAV_VERSION', { version: auth.gravVersion })}</div>{/if}
-					{#if auth.adminVersion}<div class="text-sidebar-foreground/50">{i18n.t('ADMIN_NEXT.APP_SHELL.ADMIN_VERSION', { version: auth.adminVersion })}</div>{/if}
-				</div>
+		<!-- Versions, credit + Collapse toggle -->
+		<div class="border-t border-sidebar-border {collapsed ? 'px-2 py-1.5' : 'px-4 pt-1.5 pb-2'}">
+			{#if collapsed && branding.showCredit}
+				<a href="https://trilby.media" target="_blank" rel="noopener"
+					class="group mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-md text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent"
+					title={i18n.t('ADMIN_NEXT.APP_SHELL.MADE_BY_PLAIN')}
+					aria-label={i18n.t('ADMIN_NEXT.APP_SHELL.MADE_BY_PLAIN')}>
+					<Heart size={14} class="fill-current text-rose-500/70 transition-colors group-hover:text-rose-500" aria-hidden="true" />
+				</a>
 			{/if}
-			<button
-				class="ms-auto hidden h-7 w-7 shrink-0 items-center justify-center rounded-md p-1.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground lg:flex {collapsed ? 'mx-auto' : ''}"
-				onclick={() => collapsed = !collapsed}
-				aria-label={collapsed ? i18n.t('ADMIN_NEXT.EXPAND_SIDEBAR') : i18n.t('ADMIN_NEXT.COLLAPSE_SIDEBAR')}>
-				{#if collapsed}
-					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-						<path d="M20 12l-10 0" />
-						<path d="M20 12l-4 4" />
-						<path d="M20 12l-4 -4" />
-						<path d="M4 4l0 16" />
-					</svg>
-				{:else}
-					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-						<path d="M4 12l10 0" />
-						<path d="M4 12l4 4" />
-						<path d="M4 12l4 -4" />
-						<path d="M20 4l0 16" />
-					</svg>
+			<div class="flex items-center gap-2">
+				{#if !collapsed && (auth.gravVersion || auth.adminVersion)}
+					<div class="min-w-0 flex-1 text-xs leading-tight">
+						{#if auth.gravVersion}<span class="text-sidebar-foreground/60">{i18n.t('ADMIN_NEXT.APP_SHELL.GRAV_VERSION', { version: auth.gravVersion })}</span>{/if}
+						{#if auth.gravVersion && auth.adminVersion}<span class="text-sidebar-foreground/30" aria-hidden="true"> · </span>{/if}
+						{#if auth.adminVersion}<span class="whitespace-nowrap text-sidebar-foreground/50">{i18n.t('ADMIN_NEXT.APP_SHELL.ADMIN_VERSION', { version: auth.adminVersion })}</span>{/if}
+					</div>
 				{/if}
-			</button>
+				<button
+					class="ms-auto hidden h-7 w-7 shrink-0 items-center justify-center rounded-md p-1.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground lg:flex {collapsed ? 'mx-auto' : ''}"
+					onclick={() => prefs.sidebarCollapsed = !collapsed}
+					aria-label={collapsed ? i18n.t('ADMIN_NEXT.EXPAND_SIDEBAR') : i18n.t('ADMIN_NEXT.COLLAPSE_SIDEBAR')}>
+					{#if collapsed}
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<path d="M20 12l-10 0" />
+							<path d="M20 12l-4 4" />
+							<path d="M20 12l-4 -4" />
+							<path d="M4 4l0 16" />
+						</svg>
+					{:else}
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<path d="M4 12l10 0" />
+							<path d="M4 12l4 4" />
+							<path d="M4 12l4 -4" />
+							<path d="M20 4l0 16" />
+						</svg>
+					{/if}
+				</button>
+			</div>
+			{#if !collapsed && branding.showCredit}
+				<a href="https://trilby.media" target="_blank" rel="noopener"
+					class="group mt-1 block text-[11px] leading-snug text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground/80"
+					title={i18n.t('ADMIN_NEXT.APP_SHELL.MADE_BY_PLAIN')}
+					aria-label={i18n.t('ADMIN_NEXT.APP_SHELL.MADE_BY_PLAIN')}>
+					{#each credit as part, i (i)}
+						{#if part.slot === 'code'}
+							<CodeXml size={12} strokeWidth={2.25} class="inline-block -mt-px align-middle" aria-hidden="true" />
+						{:else if part.slot === 'love'}
+							<Heart size={11} class="inline-block -mt-px align-middle fill-current text-rose-500/70 transition-colors group-hover:text-rose-500" aria-hidden="true" />
+						{:else if part.slot === 'company'}
+							<span class="font-medium text-sidebar-foreground/70 group-hover:text-primary group-hover:underline">Trilby Media</span>
+						{:else}
+							{part.text}
+						{/if}
+					{/each}
+				</a>
+			{/if}
 		</div>
 	</aside>
 

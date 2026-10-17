@@ -38,6 +38,8 @@ export interface SiteBranding {
 	subtitle: string;
 	/** Show the "Powered by Grav CMS" line on the login/setup screens. */
 	showPoweredBy: boolean;
+	/** Show the Trilby Media credit at the bottom of the sidebar. */
+	showCredit: boolean;
 	/** Custom favicon filename. Empty = the generated accent-coloured favicon. */
 	favicon: string;
 }

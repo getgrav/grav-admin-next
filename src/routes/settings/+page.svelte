@@ -64,6 +64,10 @@
 		try { await branding.save({ showPoweredBy }); } catch { toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_SAVE_BRANDING')); }
 	}
 
+	async function setShowCredit(showCredit: boolean) {
+		try { await branding.save({ showCredit }); } catch { toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_SAVE_BRANDING')); }
+	}
+
 	async function handleFaviconUpload(event: Event) {
 		const input = event.target as HTMLInputElement;
 		const file = input.files?.[0];
@@ -825,6 +829,23 @@
 									<SegmentedToggle
 										value={branding.showPoweredBy}
 										onchange={(v) => setShowPoweredBy(v as boolean)}
+										options={[
+											{ value: true, label: i18n.t('ADMIN_NEXT.SETTINGS.ON') },
+											{ value: false, label: i18n.t('ADMIN_NEXT.SETTINGS.OFF') }
+										]}
+									/>
+								</div>
+							</div>
+
+							<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
+								<div class="lg:pt-2.5">
+									<span class="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.SHOW_CREDIT')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.SHOW_CREDIT_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.SHOW_CREDIT')} plain flush /></span>
+									<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.SHOW_CREDIT_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.SHOW_CREDIT')} plain />
+								</div>
+								<div>
+									<SegmentedToggle
+										value={branding.showCredit}
+										onchange={(v) => setShowCredit(v as boolean)}
 										options={[
 											{ value: true, label: i18n.t('ADMIN_NEXT.SETTINGS.ON') },
 											{ value: false, label: i18n.t('ADMIN_NEXT.SETTINGS.OFF') }

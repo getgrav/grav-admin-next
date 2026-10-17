@@ -55,6 +55,7 @@ function createBrandingStore() {
 	let title = $state<string>(seedB?.title ?? '');
 	let subtitle = $state<string>(seedB?.subtitle ?? '');
 	let showPoweredBy = $state<boolean>(seedB?.showPoweredBy ?? true);
+	let showCredit = $state<boolean>(seedB?.showCredit ?? true);
 	let urlLight = $state<string>(seedUrls?.light ?? '');
 	let urlDark = $state<string>(seedUrls?.dark ?? '');
 	let urlFavicon = $state<string>(seedUrls?.favicon ?? '');
@@ -70,6 +71,7 @@ function createBrandingStore() {
 		title = b?.title ?? '';
 		subtitle = b?.subtitle ?? '';
 		showPoweredBy = b?.showPoweredBy ?? true;
+		showCredit = b?.showCredit ?? true;
 		urlLight = payload.branding_urls?.light ?? '';
 		urlDark = payload.branding_urls?.dark ?? '';
 		urlFavicon = payload.branding_urls?.favicon ?? '';
@@ -116,6 +118,7 @@ function createBrandingStore() {
 		get title() { return title; },
 		get subtitle() { return subtitle; },
 		get showPoweredBy() { return showPoweredBy; },
+		get showCredit() { return showCredit; },
 		get urlLight() { return urlLight; },
 		get urlDark() { return urlDark; },
 		get urlFavicon() { return urlFavicon; },
