@@ -1350,6 +1350,13 @@
 		saving = true;
 		error = '';
 
+		// The editors now show a new `content` from here, so text typed while the
+		// save is in flight would be replaced by the saved copy. Keep it instead;
+		// it stays unsaved and the next save sends it (admin2#198).
+		const sentContent = content;
+		const savedContent = (saved: string | null | undefined) =>
+			content !== sentContent ? content : (saved ?? content);
+
 		try {
 			const body: Record<string, unknown> = {};
 
@@ -1432,7 +1439,7 @@
 				pageData = updated;
 				pageEtag = savedEtag;
 				title = updated.title;
-				content = updated.content ?? content;
+				content = savedContent(updated.content);
 				template = updated.template;
 				const refreshedParent = pageParentRoute(updated);
 				const refreshedOrdering = updated.order !== null && updated.order !== '';
@@ -1446,7 +1453,7 @@
 					order: updated.order,
 				};
 				headerChanges = {};
-				hasLocalEdits = false;
+				hasLocalEdits = content !== sentContent;
 
 				// Reset baselines so subsequent edits diff against the just-saved state
 				originalHeader = JSON.parse(JSON.stringify(updated.header ?? {})) as Record<string, unknown>;
@@ -1489,7 +1496,7 @@
 				pageData = moved;
 				pageEtag = movedEtag;
 				title = moved.title ?? title;
-				content = moved.content ?? content;
+				content = savedContent(moved.content);
 				template = moved.template ?? template;
 				expertFolder = pageFolderName(moved);
 				expertParent = pageParentRoute(moved);
@@ -1541,7 +1548,7 @@
 				pageData = moved;
 				pageEtag = movedEtag;
 				title = moved.title ?? title;
-				content = moved.content ?? content;
+				content = savedContent(moved.content);
 				template = moved.template ?? template;
 				headerData = {
 					header: { ...moved.header ?? {}, title: moved.title },

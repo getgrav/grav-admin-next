@@ -27,6 +27,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { faIconClass } from '$lib/utils/fa-icon';
 	import { onMount, getContext, untrack } from 'svelte';
+	import { externalValue, syncExternalValue } from './external-value.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { mdDestination } from '$lib/api/endpoints/media';
@@ -357,7 +358,8 @@
 
 			// Update handler
 			EditorView.updateListener.of((update: ViewUpdate) => {
-				if (update.docChanged) {
+				// A value the parent just gave us is not an edit to report back.
+				if (update.docChanged && !update.transactions.some((tr) => tr.annotation(externalValue))) {
 					onchange?.(update.state.doc.toString());
 				}
 				// Remember the last-focused editor so a globally-broadcast insert
@@ -815,18 +817,11 @@
 		}
 	}
 
-	// Sync external value changes to editor — but only when yCollab isn't
-	// in charge. With yCollab active, the Y.Text owns the document state
-	// and any view.dispatch driven by an external `value` prop would
+	// Show a new `value` from the parent (a refetched record, a revert) — but
+	// only when yCollab isn't in charge. With yCollab active, the Y.Text owns
+	// the document state and a replacement driven by the `value` prop would
 	// conflict with the CRDT operations the plugin is applying.
-	$effect(() => {
-		if (yText) return;
-		if (view && value !== view.state.doc.toString()) {
-			view.dispatch({
-				changes: { from: 0, to: view.state.doc.length, insert: value ?? '' },
-			});
-		}
-	});
+	syncExternalValue(() => value, () => view, () => !!yText);
 
 	// React to dark mode or keymap-preference changes — untrack to avoid
 	// re-creating on value/prop changes. Preload the keymap module (a no-op

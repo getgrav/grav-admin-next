@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
+	import { externalValue, syncExternalValue } from './external-value.svelte';
 	import {
 		EditorView,
 		keymap,
@@ -148,7 +149,7 @@
 			EditorView.editable.of(!disabled && !isReadonly),
 			EditorState.readOnly.of(!!isReadonly),
 			EditorView.updateListener.of((update) => {
-				if (update.docChanged) {
+				if (update.docChanged && !update.transactions.some((tr) => tr.annotation(externalValue))) {
 					onchange?.(update.state.doc.toString());
 				}
 			}),
@@ -185,14 +186,8 @@
 		});
 	}
 
-	// Sync external value changes into editor
-	$effect(() => {
-		if (view && value !== view.state.doc.toString()) {
-			view.dispatch({
-				changes: { from: 0, to: view.state.doc.length, insert: value ?? '' },
-			});
-		}
-	});
+	// Show a new `value` from the parent (a refetched record, a revert).
+	syncExternalValue(() => value, () => view);
 
 	// Recreate on dark mode or keymap-preference change — untrack to avoid
 	// re-creating on value changes. Preload the keymap module (a no-op unless
