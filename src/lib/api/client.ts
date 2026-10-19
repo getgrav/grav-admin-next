@@ -4,6 +4,7 @@ import { authSession, type PendingRequest } from '$lib/stores/auth-session.svelt
 import { invalidations } from '$lib/stores/invalidation.svelte';
 import { debug, parseServerTiming } from '$lib/stores/debug.svelte';
 import { i18n } from '$lib/stores/i18n.svelte';
+import { SERVER_PAGE_CODE, isServerPageRejection } from '$lib/utils/server-page-error';
 
 import type { ToastHint } from '$lib/utils/toast-hint';
 
@@ -104,8 +105,10 @@ interface ApiEnvelope {
  * somewhere downstream and left their spinners running with no error shown
  * (getgrav/grav-plugin-admin2#173). Now the body is logged, head and tail,
  * because the stray output can sit at either end, and a 2xx rejects with an
- * INVALID_JSON_CODE error. A non-2xx still reads as `null`, so the caller's
- * status-based error applies unchanged.
+ * INVALID_JSON_CODE error. A non-2xx 4xx page that isn't JSON comes back as
+ * a ready-made ApiError naming the web server (see server-page-error.ts); any
+ * other non-2xx still reads as `null`, so the caller's status-based error
+ * applies unchanged.
  */
 async function readJsonBody(response: Response, method: string, path: string): Promise<unknown> {
 	const text = await response.text();
@@ -121,7 +124,19 @@ async function readJsonBody(response: Response, method: string, path: string): P
 				`Content-Type: ${response.headers.get('content-type') ?? 'none'}, ${text.length} characters.`,
 			{ head, tail }
 		);
-		if (!response.ok) return null;
+		if (!response.ok) {
+			// A 4xx page the web server or its firewall wrote, not the API
+			// (getgrav/grav#4362). Becomes the error itself via buildApiError.
+			if (isServerPageRejection(response.status, text)) {
+				return {
+					status: response.status,
+					title: i18n.t('ADMIN_NEXT.API_CLIENT.SERVER_PAGE_TITLE'),
+					detail: i18n.t('ADMIN_NEXT.API_CLIENT.SERVER_PAGE_DETAIL', { status: response.status }),
+					code: SERVER_PAGE_CODE,
+				} satisfies ApiError;
+			}
+			return null;
+		}
 		throw new ApiRequestError(
 			{
 				status: response.status,
