@@ -1445,7 +1445,7 @@
 				const refreshedOrdering = updated.order !== null && updated.order !== '';
 				headerData = {
 					header: { ...updated.header ?? {}, title: updated.title },
-					content: updated.content ?? '',
+					content, // the blueprint form's content field reads this one
 					folder: pageFolderName(updated),
 					name: updated.template,
 					route: refreshedParent,
@@ -1502,7 +1502,7 @@
 				expertParent = pageParentRoute(moved);
 				expertFrontmatterOriginal = expertFrontmatter;
 				headerChanges = {};
-				hasLocalEdits = false;
+				hasLocalEdits = content !== sentContent;
 
 				if (moved.route !== route) {
 					toast.success(i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_SAVED_AND_MOVED'));
@@ -1552,7 +1552,7 @@
 				template = moved.template ?? template;
 				headerData = {
 					header: { ...moved.header ?? {}, title: moved.title },
-					content: moved.content ?? '',
+					content, // the blueprint form's content field reads this one
 					folder: pageFolderName(moved),
 					name: moved.template,
 					route: movedParent,
@@ -1560,7 +1560,7 @@
 					order: moved.order,
 				};
 				headerChanges = {};
-				hasLocalEdits = false;
+				hasLocalEdits = content !== sentContent;
 				originalFolder = pageFolderName(moved);
 				originalParent = movedParent;
 				originalOrdering = movedOrdering;
