@@ -66,6 +66,7 @@
 	import TwigContentBanner from '$lib/components/pages/TwigContentBanner.svelte';
 	import { pageFolderName } from '$lib/utils/page-folder';
 	import { withFolderSettings } from '$lib/utils/room-snapshot';
+	import { setPasteUploadTarget, isPasteUploading } from '$lib/utils/paste-upload';
 
 	let accessDenied = $state(false);
 
@@ -106,6 +107,13 @@
 			}));
 		return () => { delete window.__GRAV_PAGE_MEDIA; };
 	});
+	// Images pasted or dropped into the content editor (markdown or Editor Pro)
+	// upload to this page's media, and the list above picks up the new file
+	// (grav-premium-issues#628). See $lib/utils/paste-upload.ts.
+	$effect(() => setPasteUploadTarget({
+		get route() { return route; },
+		update: updatePageMedia,
+	}));
 	// Expose active content language for plugin scripts (e.g., ai-translate)
 	$effect(() => {
 		window.__GRAV_CONTENT_LANG = contentLang.activeLang;
@@ -1875,14 +1883,15 @@
 	// Refetch when this page is updated elsewhere (with dirty guard). The
 	// dirtyGuard skips our own saves — the server's X-Invalidates fires the
 	// event back at us before handleSave has cleared hasChanges, which would
-	// otherwise toast on every save.
+	// otherwise toast on every save. An image pasted into the editor is
+	// uploaded the same way, and its echo is skipped too.
 	onMount(() => {
 		const unsub = invalidations.subscribe('pages:update', (e) => {
 			if (e.id !== route) return;
 			if (!hasChanges) loadPage();
 			else toast.info(i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_CHANGED_ELSEWHERE_SAVE_TO'));
 		}, {
-			dirtyGuard: () => saving || autoSave.saving,
+			dirtyGuard: () => saving || autoSave.saving || isPasteUploading(),
 		});
 		return () => { unsub(); };
 	});

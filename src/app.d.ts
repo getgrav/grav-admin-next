@@ -37,6 +37,15 @@ declare global {
 		 * or null if cancelled. Used by editor-pro's image insert.
 		 */
 		__GRAV_MEDIA_PICKER?: () => Promise<{ url: string; display: string; alt: string } | null>;
+		/**
+		 * Upload images pasted or dropped into an editor to the open page's
+		 * media. Resolves the uploaded images in order (file name, absolute
+		 * display url, alt text, `![alt](filename)` markdown) for the editor to
+		 * insert; failures and non-page contexts are reported in a toast and
+		 * resolve to fewer items or none. Never rejects. Used by editor-pro
+		 * (grav-premium-issues#628).
+		 */
+		__GRAV_UPLOAD_PAGE_MEDIA?: (files: File[] | FileList) => Promise<import('$lib/utils/paste-upload').PastedImage[]>;
 		/** Set once the root layout mounts; the boot-chunk recovery in app.html stops reloading. */
 		__GRAV_BOOTED__?: boolean;
 		__GRAV_CONTENT_LANG: string;

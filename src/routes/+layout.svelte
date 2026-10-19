@@ -26,6 +26,7 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { api } from '$lib/api/client';
 	import { createPluginApi } from '$lib/utils/plugin-api';
+	import { uploadPastedImages } from '$lib/utils/paste-upload';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { branding } from '$lib/stores/branding.svelte';
 	import { getPreferences, type PreferencesResponse } from '$lib/api/endpoints/preferences';
@@ -417,6 +418,13 @@
 	$effect(() => {
 		if (typeof window === 'undefined') return;
 		window.__GRAV_MEDIA_PICKER = () => mediaPicker.open();
+	});
+
+	// Upload images pasted or dropped into a plugin editor (Editor Pro) to the
+	// open page's media; resolves what to insert (grav-premium-issues#628).
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+		window.__GRAV_UPLOAD_PAGE_MEDIA = (files) => uploadPastedImages(Array.from(files ?? []));
 	});
 
 	// The app has mounted: the boot-chunk recovery in app.html stops reloading

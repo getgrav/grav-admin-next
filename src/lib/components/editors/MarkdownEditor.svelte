@@ -31,6 +31,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { mdDestination } from '$lib/api/endpoints/media';
+	import { uploadPastedImages, isImageFile } from '$lib/utils/paste-upload';
 	import { focusOnDeadZoneClick } from './dead-zone';
 	import { EditorView, keymap, placeholder as cmPlaceholder, drawSelection, type KeyBinding, type ViewUpdate } from '@codemirror/view';
 	import { EditorState, type Extension } from '@codemirror/state';
@@ -363,6 +364,11 @@
 				if (update.docChanged && !update.transactions.some((tr) => tr.annotation(externalValue))) {
 					onchange?.(update.state.doc.toString());
 				}
+				// Keep the spot each pending image upload will land at in step with
+				// edits made while it uploads (typing, a collaborator's change).
+				if (update.docChanged) {
+					for (const slot of pendingImageSlots) slot.pos = update.changes.mapPos(slot.pos);
+				}
 				// Remember the last-focused editor so a globally-broadcast insert
 				// (Page Media, etc.) lands only here and not in every markdown field.
 				if (update.focusChanged && update.view.hasFocus) {
@@ -430,40 +436,26 @@
 						return true;
 					}
 
-					// Fall back to file drops
-					const files = event.dataTransfer?.files;
-					if (!files || files.length === 0) return false;
-
-					const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+					// Image files: upload them to the page media, then insert a
+					// reference to each (grav-premium-issues#628).
+					const imageFiles = Array.from(event.dataTransfer?.files ?? []).filter(isImageFile);
 					if (imageFiles.length === 0) return false;
 
 					event.preventDefault();
+					if (disabled || isReadonly) return true;
 
 					const pos = view?.posAtCoords({ x: event.clientX, y: event.clientY }) ?? view?.state.doc.length ?? 0;
-					const insertions = imageFiles.map(f => `![${f.name}](${mdDestination(f.name)})`).join('\n');
-
-					view?.dispatch({
-						changes: { from: pos, insert: insertions },
-					});
-
+					void insertUploadedImages(imageFiles, pos);
 					return true;
 				},
 				paste(event: ClipboardEvent) {
-					const files = event.clipboardData?.files;
-					if (!files || files.length === 0) return false;
-
-					const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+					const imageFiles = Array.from(event.clipboardData?.files ?? []).filter(isImageFile);
 					if (imageFiles.length === 0) return false;
 
 					event.preventDefault();
+					if (disabled || isReadonly) return true;
 
-					const pos = view?.state.selection.main.head ?? 0;
-					const insertions = imageFiles.map(f => `![${f.name || 'image'}](${mdDestination(f.name || 'pasted-image')})`).join('\n');
-
-					view?.dispatch({
-						changes: { from: pos, insert: insertions },
-					});
-
+					void insertUploadedImages(imageFiles, view?.state.selection.main.head ?? 0);
 					return true;
 				},
 			})
@@ -482,6 +474,31 @@
 		}
 
 		return extensions;
+	}
+
+	// Pending pasted/dropped image uploads: where each one's markdown goes once
+	// it is in the page media. The update listener maps `pos` through every
+	// edit made meanwhile, so the image lands where it was pasted.
+	let pendingImageSlots: Array<{ pos: number }> = [];
+
+	async function insertUploadedImages(files: File[], pos: number) {
+		const slot = { pos };
+		pendingImageSlots.push(slot);
+		try {
+			const images = await uploadPastedImages(files);
+			if (images.length === 0 || !view) return;
+			const text = images.map((img) => img.markdown).join('\n');
+			const at = Math.min(slot.pos, view.state.doc.length);
+			const sel = view.state.selection.main;
+			// Leave the cursor after the image when it is still where the paste was.
+			const cursorHere = sel.empty && sel.head === at;
+			view.dispatch({
+				changes: { from: at, insert: text },
+				...(cursorHere ? { selection: { anchor: at + text.length } } : {}),
+			});
+		} finally {
+			pendingImageSlots = pendingImageSlots.filter((s) => s !== slot);
+		}
 	}
 
 	// Clicks that land in the editor box but outside CodeMirror's contentDOM
