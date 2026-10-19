@@ -31,6 +31,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { mdDestination } from '$lib/api/endpoints/media';
+	import { focusOnDeadZoneClick } from './dead-zone';
 	import { EditorView, keymap, placeholder as cmPlaceholder, drawSelection, type KeyBinding, type ViewUpdate } from '@codemirror/view';
 	import { EditorState, type Extension } from '@codemirror/state';
 	import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
@@ -484,28 +485,11 @@
 	}
 
 	// Clicks that land in the editor box but outside CodeMirror's contentDOM
-	// (CM only listens there) still focus the editor and place the cursor at
-	// the nearest position, so no part of the box is ever dead (admin2#61).
+	// still focus the editor and place the cursor, so no part of the box is
+	// dead (admin2#61). The rules live in ./dead-zone.ts, shared with CodeEditor.
 	function focusFromDeadZone(e: MouseEvent) {
-		if (!view || e.button !== 0 || disabled) return;
-		const target = e.target as Node;
-		if (view.contentDOM.contains(target)) return; // CM handles it
-		// Only the empty parts of the box are dead: the wrapper, the editor
-		// frame and the scroller. Panels (Find/Replace, the vim command line)
-		// and tooltips hold their own inputs and buttons; preventing their
-		// mousedown and refocusing the content stopped the Replace field from
-		// taking focus and moved the cursor before every Find/Replace button
-		// ran (grav-admin-next#24).
-		if (target !== editorContainer && target !== view.dom && !view.scrollDOM.contains(target)) return;
-		// Leave the scroller's own scrollbar alone.
-		if (target === view.scrollDOM) {
-			const r = view.scrollDOM.getBoundingClientRect();
-			if (e.clientX > r.left + view.scrollDOM.clientWidth || e.clientY > r.top + view.scrollDOM.clientHeight) return;
-		}
-		e.preventDefault();
-		const pos = view.posAtCoords({ x: e.clientX, y: e.clientY }, false) ?? view.state.doc.length;
-		view.dispatch({ selection: { anchor: pos } });
-		view.focus();
+		if (disabled) return;
+		focusOnDeadZoneClick(e, view, editorContainer);
 	}
 
 	function createEditor() {

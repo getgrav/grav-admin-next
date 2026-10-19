@@ -27,6 +27,7 @@
 	import { oneDark } from '@codemirror/theme-one-dark';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { ensureKeymapLoaded, keymapExtension } from './keymap';
+	import { focusOnDeadZoneClick } from './dead-zone';
 
 	interface Props {
 		value?: string;
@@ -210,9 +211,13 @@
 	});
 </script>
 
-<!-- dir="ltr" pinned: code never reverses, even in RTL admin language. -->
+<!-- dir="ltr" pinned: code never reverses, even in RTL admin language.
+     The mousedown handler makes the empty space below the last line focus the
+     editor instead of being dead to clicks (admin2#61). -->
 <div
 	bind:this={containerEl}
+	role="presentation"
+	onmousedown={(e) => { if (!disabled) focusOnDeadZoneClick(e, view, containerEl); }}
 	class="overflow-hidden rounded-lg border border-input bg-muted/50 shadow-sm focus-within:ring-1 focus-within:ring-ring {className}"
 	style="{minHeight && minHeight !== 'auto' ? `min-height: ${minHeight};` : ''} max-height: {maxHeight}; overflow-y: auto;"
 	dir="ltr"
