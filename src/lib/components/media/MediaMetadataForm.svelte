@@ -4,6 +4,15 @@
 	import { toast } from 'svelte-sonner';
 	import { ChevronsUpDown, X } from 'lucide-svelte';
 	import type { MediaMetaField, MediaMetaResponse, MediaMetaValues } from '$lib/api/endpoints/media';
+	import {
+		dateInputType,
+		isEmptyFormValue,
+		numberInputType,
+		toFormValue,
+		toStoredValue,
+		type MediaMetaFormValue
+	} from '$lib/utils/media-metadata';
+	import { scrollToFirstError } from '$lib/utils/blueprint-validation';
 
 	interface Props {
 		/** Filename shown for context and used as the reload key. */
@@ -30,7 +39,7 @@
 
 	const isBatch = $derived(batchCount > 1 && !!saveBatch);
 
-	type FieldValue = string | string[];
+	type FieldValue = MediaMetaFormValue;
 
 	let loading = $state(true);
 	let saving = $state(false);
@@ -72,6 +81,50 @@
 		return out;
 	});
 
+	// Inline errors for required fields left empty in the payload, set by the
+	// save handler rather than by disabling Save: a form that opens with an
+	// empty required field must still be able to say why it cannot save
+	// (getgrav/grav-plugin-email#194).
+	let errors = $state<Record<string, string>>({});
+
+	/**
+	 * Required fields that are empty in the payload about to be sent. A
+	 * single-file save sends every field; batch mode sends only the changed
+	 * ones, so a required field left untouched there is not a problem.
+	 */
+	function requiredErrors(sent: Record<string, unknown>): Record<string, string> {
+		const out: Record<string, string> = {};
+		for (const field of meta?.fields ?? []) {
+			if (!field.required || !(field.key in sent)) continue;
+			if (!isEmptyFormValue(sent[field.key])) continue;
+			out[field.key] = i18n.t('ADMIN_NEXT.VALIDATION.FIELD_REQUIRED', { label: field.label });
+		}
+		return out;
+	}
+
+	function clearError(key: string) {
+		if (!(key in errors)) return;
+		const next = { ...errors };
+		delete next[key];
+		errors = next;
+	}
+
+	// Re-check a field the moment it is touched, so clearing a required field
+	// flags it inline and filling it again clears the flag — the same behaviour
+	// as the blueprint form (validateFieldAt), without flagging on load.
+	function refreshError(key: string) {
+		const field = meta?.fields.find((f) => f.key === key);
+		if (!field?.required) {
+			clearError(key);
+			return;
+		}
+		if (isEmptyFormValue(values[key])) {
+			errors[key] = i18n.t('ADMIN_NEXT.VALIDATION.FIELD_REQUIRED', { label: field.label });
+		} else {
+			clearError(key);
+		}
+	}
+
 	// A copy of the loaded metadata with the current edits folded into its
 	// fields — used to notify the parent after a batch save (which returns only
 	// counts, not a fresh MediaMetaResponse) so the markdown snippet updates.
@@ -81,7 +134,7 @@
 			...meta,
 			fields: meta.fields.map((f) => ({
 				...f,
-				value: values[f.key] ?? f.value,
+				value: toStoredValue(f, values[f.key] ?? ''),
 			})),
 		};
 	}
@@ -102,6 +155,12 @@
 		return Array.isArray(v) ? v : [];
 	}
 
+	/** The edit buffer's text for a field, for inputs whose `value` must be a string. */
+	function textValue(key: string): string {
+		const v = values[key];
+		return typeof v === 'string' ? v : '';
+	}
+
 	// A select's choices: the configured options, plus the stored value when it
 	// is no longer one of them so it is shown instead of silently blanked.
 	function selectOptions(field: MediaMetaField): [string, string][] {
@@ -120,11 +179,13 @@
 		const arr = tags(key);
 		if (!arr.some((x) => x.toLowerCase() === t.toLowerCase())) {
 			values[key] = [...arr, t];
+			refreshError(key);
 		}
 	}
 
 	function removeTag(key: string, index: number) {
 		values[key] = tags(key).filter((_, i) => i !== index);
+		refreshError(key);
 	}
 
 	function handleTagKeydown(e: KeyboardEvent, key: string) {
@@ -133,16 +194,20 @@
 			addTag(key, tagDrafts[key] ?? '');
 		} else if (e.key === 'Backspace' && !(tagDrafts[key] ?? '')) {
 			const arr = tags(key);
-			if (arr.length) values[key] = arr.slice(0, -1);
+			if (arr.length) {
+				values[key] = arr.slice(0, -1);
+				refreshError(key);
+			}
 		}
 	}
 
 	function applyMeta(res: MediaMetaResponse) {
 		meta = res;
+		errors = {};
 		const next: Record<string, FieldValue> = {};
 		const drafts: Record<string, string> = {};
 		for (const field of res.fields) {
-			next[field.key] = Array.isArray(field.value) ? [...field.value] : (field.value ?? '');
+			next[field.key] = toFormValue(field);
 			if (field.type === 'tags') drafts[field.key] = '';
 		}
 		values = { ...next };
@@ -167,6 +232,14 @@
 		// Fold any uncommitted tag drafts into their lists before sending.
 		for (const [key, draft] of Object.entries(tagDrafts)) {
 			if (draft.trim()) addTag(key, draft);
+		}
+		const missing = requiredErrors(isBatch ? changedFields : values);
+		errors = missing;
+		const count = Object.keys(missing).length;
+		if (count > 0) {
+			toast.error(i18n.t('ADMIN_NEXT.VALIDATION.FORM_HAS_ERRORS', { count }));
+			scrollToFirstError();
+			return;
 		}
 		saving = true;
 		try {
@@ -203,6 +276,7 @@
 
 	function reset() {
 		values = structuredClone(baseline);
+		errors = {};
 		for (const key of Object.keys(tagDrafts)) tagDrafts[key] = '';
 	}
 
@@ -235,6 +309,9 @@
 						class="text-[0.6875rem] font-medium text-muted-foreground"
 					>
 						{field.label}
+						{#if field.required}
+							<span class="text-red-500" aria-hidden="true">*</span>
+						{/if}
 					</label>
 					{#if field.type === 'tags'}
 						<div
@@ -268,6 +345,7 @@
 									class="min-w-[6rem] flex-1 bg-transparent px-1 py-0.5 text-sm focus:outline-none disabled:opacity-60"
 									placeholder={i18n.t('ADMIN_NEXT.MEDIA.METADATA.TAGS_PLACEHOLDER')}
 									disabled={saving}
+									aria-required={field.required ? 'true' : undefined}
 									bind:value={tagDrafts[field.key]}
 									onkeydown={(e) => handleTagKeydown(e, field.key)}
 									onblur={() => addTag(field.key, tagDrafts[field.key] ?? '')}
@@ -280,8 +358,12 @@
 								id={`meta-${field.key}`}
 								class="flex w-full appearance-none rounded-md border border-input bg-transparent ps-2 pe-8 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60"
 								disabled={readonly || saving}
-								value={typeof values[field.key] === 'string' ? (values[field.key] as string) : ''}
-								onchange={(e) => (values[field.key] = e.currentTarget.value)}
+								aria-required={field.required ? 'true' : undefined}
+								value={textValue(field.key)}
+								onchange={(e) => {
+									values[field.key] = e.currentTarget.value;
+									refreshError(field.key);
+								}}
 							>
 								<option value=""></option>
 								{#each selectOptions(field) as [optValue, optLabel] (optValue)}
@@ -298,18 +380,85 @@
 							class="mt-1 w-full resize-y rounded-md border border-input bg-transparent px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60"
 							rows="2"
 							disabled={readonly || saving}
-							value={typeof values[field.key] === 'string' ? (values[field.key] as string) : ''}
-							oninput={(e) => (values[field.key] = e.currentTarget.value)}
+							value={textValue(field.key)}
+							oninput={(e) => {
+								values[field.key] = e.currentTarget.value;
+								refreshError(field.key);
+							}}
 						></textarea>
+					{:else if field.type === 'boolean'}
+						{#if typeof values[field.key] === 'boolean'}
+							<input
+								id={`meta-${field.key}`}
+								type="checkbox"
+								class="mt-1 h-[18px] w-[18px] shrink-0 appearance-none rounded border border-input bg-muted/50 checked:border-primary checked:bg-primary checked:bg-[url('data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22white%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M12.207%204.793a1%201%200%20010%201.414l-5%205a1%201%200%2001-1.414%200l-2-2a1%201%200%20011.414-1.414L6.5%209.086l4.293-4.293a1%201%200%20011.414%200z%22%2F%3E%3C%2Fsvg%3E')] checked:bg-no-repeat checked:bg-center focus:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60"
+								checked={values[field.key] === true}
+								disabled={readonly || saving}
+								aria-required={field.required ? 'true' : undefined}
+								onchange={(e) => {
+									values[field.key] = e.currentTarget.checked;
+									refreshError(field.key);
+								}}
+							/>
+						{:else}
+							<input
+								id={`meta-${field.key}`}
+								type="text"
+								class="mt-1 w-full rounded-md border border-input bg-transparent px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60"
+								disabled={readonly || saving}
+								aria-required={field.required ? 'true' : undefined}
+								value={textValue(field.key)}
+								oninput={(e) => {
+									values[field.key] = e.currentTarget.value;
+									refreshError(field.key);
+								}}
+							/>
+						{/if}
+					{:else if field.type === 'number'}
+						<input
+							id={`meta-${field.key}`}
+							type={numberInputType(textValue(field.key))}
+							class="mt-1 w-full rounded-md border border-input bg-transparent px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60"
+							step="any"
+							min={field.min}
+							max={field.max}
+							disabled={readonly || saving}
+							aria-required={field.required ? 'true' : undefined}
+							value={textValue(field.key)}
+							oninput={(e) => {
+								values[field.key] = e.currentTarget.value;
+								refreshError(field.key);
+							}}
+						/>
+					{:else if field.type === 'date'}
+						<input
+							id={`meta-${field.key}`}
+							type={dateInputType(textValue(field.key))}
+							class="mt-1 w-full rounded-md border border-input bg-transparent px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60"
+							disabled={readonly || saving}
+							aria-required={field.required ? 'true' : undefined}
+							value={textValue(field.key)}
+							oninput={(e) => {
+								values[field.key] = e.currentTarget.value;
+								refreshError(field.key);
+							}}
+						/>
 					{:else}
 						<input
 							id={`meta-${field.key}`}
 							type="text"
 							class="mt-1 w-full rounded-md border border-input bg-transparent px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60"
 							disabled={readonly || saving}
-							value={typeof values[field.key] === 'string' ? (values[field.key] as string) : ''}
-							oninput={(e) => (values[field.key] = e.currentTarget.value)}
+							aria-required={field.required ? 'true' : undefined}
+							value={textValue(field.key)}
+							oninput={(e) => {
+								values[field.key] = e.currentTarget.value;
+								refreshError(field.key);
+							}}
 						/>
+					{/if}
+					{#if errors[field.key]}
+						<p data-field-error class="mt-1 text-xs text-destructive">{errors[field.key]}</p>
 					{/if}
 				</div>
 			{/each}

@@ -227,15 +227,24 @@ export async function setSiteMediaOrder(path: string, order: string[]): Promise<
 
 // ── Media metadata (.meta.yaml sidecars) ────────────────────────────────
 
+/** A stored value for one metadata field. */
+export type MediaMetaFieldValue = string | string[] | number | boolean;
+
 /** One editable metadata field, as defined by the API's plugin config. */
 export interface MediaMetaField {
 	key: string;
 	label: string;
-	type: 'text' | 'textarea' | 'tags' | 'select';
+	type: 'text' | 'textarea' | 'tags' | 'select' | 'number' | 'date' | 'boolean';
 	/** Select fields only: allowed stored value mapped to its display label. */
 	options?: Record<string, string>;
-	/** String for text/textarea/select; array of strings for a tags field. */
-	value: string | string[];
+	/** Number fields only: the smallest accepted value, when configured. */
+	min?: number;
+	/** Number fields only: the largest accepted value, when configured. */
+	max?: number;
+	/** When true, a save cannot leave this field empty. */
+	required?: boolean;
+	/** String for text/textarea/select/date, number for number, boolean for boolean, array for tags. */
+	value: MediaMetaFieldValue;
 }
 
 /** A media file's metadata: editable fields plus read-only stored keys. */
@@ -248,7 +257,7 @@ export interface MediaMetaResponse {
 }
 
 /** Map of field key → value, as sent when saving metadata. */
-export type MediaMetaValues = Record<string, string | string[]>;
+export type MediaMetaValues = Record<string, MediaMetaFieldValue>;
 
 // -- Page media metadata --
 
