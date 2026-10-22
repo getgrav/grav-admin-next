@@ -3,12 +3,13 @@
  *
  * Strategy:
  *   - On connect, do a single HTTP pull from the sync API to load any
- *     state we missed before the EventSource opens (this is also our
+ *     state we missed before the stream opens (this is also our
  *     only-when-empty seed mechanism — same as PollingProvider).
- *   - Open one EventSource subscription per channel: `:doc` for Y.Doc
- *     updates and `:aw` for awareness deltas. The server publishes
- *     every push and presence-with-awarenessUpdate event to those
- *     channels via grav-plugin-sync-mercure.
+ *   - Open one SSE subscription for both topics: `:doc` for Y.Doc
+ *     updates and `:aw` for awareness deltas (each envelope names its
+ *     channel). The server publishes every push and
+ *     presence-with-awarenessUpdate event to them via
+ *     grav-plugin-sync-mercure.
  *   - Pushes still go through the PHP push endpoint — that endpoint
  *     persists the update to the file/sqlite log AND publishes to
  *     the hub. We don't bypass the durable storage path.
@@ -16,12 +17,14 @@
  *     endpoint (server publishes to hub on receipt). Polling-style
  *     presence list also remains the source of truth for "who's here".
  *
- * Auth: EventSource doesn't support custom headers in browsers. We pass
- * the JWT issued by /sync/mercure/token as a query string parameter,
- * which the Mercure hub honors.
+ * Auth: the JWT issued by /sync/mercure/token goes in the Authorization
+ * header of a streaming fetch (see mercureStream.ts). Mercure 1.x dropped
+ * the `authorization` query parameter EventSource relied on; the header
+ * works on 0.x hubs too.
  */
 
 import { api } from '$lib/api/client';
+import { openMercureStream, type MercureStream } from './mercureStream';
 import type { Awareness } from 'y-protocols/awareness';
 import { encodeAwarenessUpdate, applyAwarenessUpdate } from 'y-protocols/awareness';
 import type { Peer, RemoteUpdateHandler, StatusHandler, SyncProvider, SyncProviderOptions, PeersHandler, SyncStatus } from './SyncProvider';
@@ -41,6 +44,8 @@ interface TokenResponse {
 	jwt: string;
 	expires_in: number;
 	room: string;
+	/** 1 = Mercure 1.x hub (`match=`), 0 or absent = 0.x (`topic=`). */
+	protocol?: number;
 }
 
 interface HubEnvelope {
@@ -76,6 +81,10 @@ const PRESENCE_INTERVAL_MS = 10_000;
  *  burst of updates a single keystroke/selection drag can produce. */
 const AWARENESS_DEBOUNCE_MS = 50;
 
+/** Ceiling for the wait before re-minting a token the hub keeps refusing
+ *  (a misconfigured issuer or audience would otherwise loop straight away). */
+const AUTH_RETRY_MAX_MS = 60_000;
+
 export class MercureProvider implements SyncProvider {
 	readonly roomId: string;
 
@@ -96,8 +105,9 @@ export class MercureProvider implements SyncProvider {
 	// move, leaving cursors invisible to a freshly-loaded tab.
 	private pendingAwUpdates: Uint8Array[] = [];
 
-	private docSource: EventSource | null = null;
-	private awSource: EventSource | null = null;
+	private stream: MercureStream | null = null;
+	private authFailures = 0;
+	private authRetryTimer: ReturnType<typeof setTimeout> | null = null;
 	private presenceTimer: ReturnType<typeof setTimeout> | null = null;
 	private tokenRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 	private refreshingToken = false;
@@ -132,7 +142,7 @@ export class MercureProvider implements SyncProvider {
 		this.installUnloadHandler();
 		try {
 			// Initial HTTP pull catches us up on anything we missed before
-			// the EventSource opens. Same shape as PollingProvider.pullOnce.
+			// the stream opens. Works like PollingProvider.pullOnce.
 			await this.pullOnce();
 
 			// Get the subscriber JWT and topic URLs.
@@ -141,8 +151,7 @@ export class MercureProvider implements SyncProvider {
 				lang: this.lang,
 			});
 
-			this.openStream(token, 'doc');
-			this.openStream(token, 'aw');
+			this.openStream(token);
 			this.scheduleTokenRefresh(token.expires_in);
 
 			// Send first awareness/presence heartbeat right away so
@@ -159,9 +168,10 @@ export class MercureProvider implements SyncProvider {
 
 	async disconnect(): Promise<void> {
 		this.disposed = true;
-		this.docSource?.close();
-		this.awSource?.close();
-		this.docSource = this.awSource = null;
+		this.stream?.close();
+		this.stream = null;
+		if (this.authRetryTimer) clearTimeout(this.authRetryTimer);
+		this.authRetryTimer = null;
 		if (this.presenceTimer) clearTimeout(this.presenceTimer);
 		this.presenceTimer = null;
 		if (this.tokenRefreshTimer) clearTimeout(this.tokenRefreshTimer);
@@ -401,50 +411,59 @@ export class MercureProvider implements SyncProvider {
 		this.schedulePresence();
 	}
 
-	private openStream(token: TokenResponse, channel: 'doc' | 'aw'): void {
-		const topic = channel === 'doc' ? token.topic_doc : token.topic_aw;
-		const url = new URL(token.hub);
-		url.searchParams.append('topic', topic);
-		// Mercure accepts the JWT via query string; lacking custom-header
-		// support in EventSource leaves us little choice.
-		url.searchParams.set('authorization', token.jwt);
+	private openStream(token: TokenResponse): void {
+		// Carry the resume point over, so a re-minted token's stream picks
+		// up where the old one stopped.
+		const lastEventId = this.stream?.lastEventId;
+		this.stream?.close();
+		this.stream = openMercureStream({
+			hub: token.hub,
+			topics: [token.topic_doc, token.topic_aw],
+			jwt: token.jwt,
+			protocol: token.protocol,
+			lastEventId,
+			onMessage: (data) => this.handleEnvelope(data),
+			onOpen: () => {
+				this.authFailures = 0;
+				if (!this.disposed) this.setStatus('connected');
+			},
+			onError: () => {
+				if (!this.disposed) this.setStatus('connecting', 'mercure stream reconnecting');
+			},
+			// Expired or rejected token: re-mint it and reopen. A hub that
+			// refuses fresh tokens too (wrong issuer or audience) is retried
+			// with a growing wait instead of in a tight loop.
+			onAuthError: () => {
+				if (this.disposed) return;
+				this.setStatus('connecting', 'mercure stream reconnecting');
+				const wait = this.authFailures === 0 ? 0 : Math.min(AUTH_RETRY_MAX_MS, 1000 * 2 ** this.authFailures);
+				this.authFailures++;
+				if (this.authRetryTimer) clearTimeout(this.authRetryTimer);
+				this.authRetryTimer = setTimeout(() => {
+					this.authRetryTimer = null;
+					void this.refreshToken();
+				}, wait);
+			},
+		});
+	}
 
-		const es = new EventSource(url.toString());
-		es.onmessage = (ev) => {
-			let env: HubEnvelope;
-			try { env = JSON.parse(ev.data); } catch { return; }
-			if (typeof env.bytes !== 'string' || env.bytes === '') return;
-			const bytes = b64ToBytes(env.bytes);
-			if (env.channel === 'doc') {
-				for (const h of this.remoteUpdateHandlers) h(bytes);
-			} else if (env.channel === 'aw') {
-				if (this.awareness) {
-					try {
-						applyAwarenessUpdate(this.awareness, bytes, 'mercure');
-					} catch { /* skip malformed */ }
-				} else {
-					// Buffer until setAwareness() lands, then drain.
-					this.pendingAwUpdates.push(bytes);
-				}
+	private handleEnvelope(data: string): void {
+		let env: HubEnvelope;
+		try { env = JSON.parse(data); } catch { return; }
+		if (typeof env.bytes !== 'string' || env.bytes === '') return;
+		const bytes = b64ToBytes(env.bytes);
+		if (env.channel === 'doc') {
+			for (const h of this.remoteUpdateHandlers) h(bytes);
+		} else if (env.channel === 'aw') {
+			if (this.awareness) {
+				try {
+					applyAwarenessUpdate(this.awareness, bytes, 'mercure');
+				} catch { /* skip malformed */ }
+			} else {
+				// Buffer until setAwareness() lands, then drain.
+				this.pendingAwUpdates.push(bytes);
 			}
-		};
-		es.onerror = () => {
-			if (this.disposed) return;
-			this.setStatus('connecting', 'mercure stream reconnecting');
-			// Browsers auto-reconnect EventSources after transient network
-			// failures (readyState stays CONNECTING). For hard failures —
-			// notably a 401 once the JWT in the URL has expired — Chrome
-			// closes the source (CLOSED). Re-mint the token and reopen.
-			if (es.readyState === EventSource.CLOSED) {
-				void this.refreshToken();
-			}
-		};
-		es.onopen = () => {
-			if (!this.disposed) this.setStatus('connected');
-		};
-
-		if (channel === 'doc') this.docSource = es;
-		else this.awSource = es;
+		}
 	}
 
 	private emitPeers(peers: Peer[]): void {
@@ -453,10 +472,9 @@ export class MercureProvider implements SyncProvider {
 	}
 
 	/**
-	 * Re-fetch the subscriber JWT and reopen both SSE streams. Called
-	 * proactively before `expires_in` elapses, and reactively when an
-	 * EventSource closes hard (Chrome closes on 401). Coalesces concurrent
-	 * callers via `refreshingToken`.
+	 * Re-fetch the subscriber JWT and reopen the SSE stream. Called
+	 * proactively before `expires_in` elapses, and reactively when the hub
+	 * answers 401/403. Coalesces concurrent callers via `refreshingToken`.
 	 */
 	private async refreshToken(): Promise<void> {
 		if (this.disposed || this.refreshingToken) return;
@@ -467,11 +485,7 @@ export class MercureProvider implements SyncProvider {
 				lang: this.lang,
 			});
 			if (this.disposed) return;
-			this.docSource?.close();
-			this.awSource?.close();
-			this.docSource = this.awSource = null;
-			this.openStream(token, 'doc');
-			this.openStream(token, 'aw');
+			this.openStream(token);
 			this.scheduleTokenRefresh(token.expires_in);
 		} catch (e) {
 			if (!this.disposed) this.setStatus('error', (e as Error).message);
