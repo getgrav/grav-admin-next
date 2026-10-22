@@ -9,12 +9,12 @@ import type { MediaMetaField, MediaMetaFieldValue } from '$lib/api/endpoints/med
 export type MediaMetaFormValue = string | string[] | boolean;
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
-const NUMBER_TEXT = /^-?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
+const NUMBER_TEXT = /^-?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][+-]?\d+)?$/;
 
 /**
  * Whether a stored value can be shown by a `number` input. The check mirrors
- * the input's own rule, not `Number()`: that also accepts `0x10` and `0b101`,
- * which a number input renders as empty.
+ * the input's own rule, not `Number()`: that also accepts `0x10`, `0b101` and
+ * `5.`, which a number input renders as empty.
  */
 export function isNumericText(value: string): boolean {
 	return NUMBER_TEXT.test(value) && Number.isFinite(Number(value));

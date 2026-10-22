@@ -247,7 +247,9 @@
 				const res = await saveBatch({ ...changedFields });
 				// The inspected file received the same write as the rest of the
 				// selection, so the current edit buffer is now the saved state.
-				baseline = structuredClone(values);
+				// A snapshot, not structuredClone: `values` is a $state proxy,
+				// which structuredClone rejects after the write has gone through.
+				baseline = $state.snapshot(values);
 				if (res.failed > 0) {
 					toast.error(
 						i18n.t('ADMIN_NEXT.MEDIA.METADATA.BATCH_PARTIAL', {
@@ -275,7 +277,7 @@
 	}
 
 	function reset() {
-		values = structuredClone(baseline);
+		values = $state.snapshot(baseline);
 		errors = {};
 		for (const key of Object.keys(tagDrafts)) tagDrafts[key] = '';
 	}

@@ -121,6 +121,7 @@ test('a number input is used for numeric text and falls back to text for a hand-
 	// `Number()` accepts these, a number input does not.
 	assert.equal(isNumericText('0x10'), false);
 	assert.equal(isNumericText('0b101'), false);
+	assert.equal(isNumericText('5.'), false);
 
 	assert.equal(numberInputType(''), 'number');
 	assert.equal(numberInputType('4.5'), 'number');
