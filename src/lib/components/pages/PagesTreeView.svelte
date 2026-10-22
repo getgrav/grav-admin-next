@@ -23,6 +23,7 @@
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { pagesChunks, streamKey, type StreamConfig } from '$lib/stores/pagesChunks.svelte';
 	import { emptyPageFilters, pageFilterStreamFields, type PageFilters } from '$lib/utils/pageFilters';
+	import { toggleFolder } from '$lib/utils/tree-expand';
 
 	type SortField = 'default' | 'order' | 'title' | 'modified' | 'date' | 'slug';
 
@@ -107,7 +108,21 @@
 		return streamKey(streamConfigFor(parentRoute, all), chunkSize);
 	}
 
-	async function bootstrapFolder(parentRoute: string): Promise<void> {
+	// Open folders whose first chunk failed to load. They show a retry in
+	// place of their rows instead of a spinner that never stops.
+	let failedFolders = $state<Set<string>>(new Set());
+
+	function markFolderFailed(parentRoute: string, failed: boolean) {
+		if (failedFolders.has(parentRoute) === failed) return;
+		const next = new Set(failedFolders);
+		if (failed) next.add(parentRoute);
+		else next.delete(parentRoute);
+		failedFolders = next;
+	}
+
+	/** Load a folder's first chunk. False when the request failed. */
+	async function bootstrapFolder(parentRoute: string): Promise<boolean> {
+		markFolderFailed(parentRoute, false);
 		try {
 			await pagesChunks.ensureChunkForIndex(
 				streamKeyFor(parentRoute),
@@ -115,7 +130,11 @@
 				chunkSize,
 				0,
 			);
-		} catch { /* surfaced upstream */ }
+			return true;
+		} catch {
+			markFolderFailed(parentRoute, true);
+			return false;
+		}
 	}
 
 	function loadedPagesFor(parentRoute: string, all = false): PageSummary[] {
@@ -175,16 +194,17 @@
 		bootstrapFolder('/');
 	}
 
-	async function toggleExpand(route: string) {
-		const next = new Set(expandedRoutes);
-		if (next.has(route)) {
-			next.delete(route);
-		} else {
-			next.add(route);
-			await bootstrapFolder(route);
-		}
-		expandedRoutes = next;
-		saveExpandedToStorage(next);
+	// The folder opens (and its chevron spins) before its first chunk is
+	// requested, and closing it mid-request keeps it closed (admin2#200).
+	function toggleExpand(route: string) {
+		void toggleFolder(route, {
+			expanded: () => expandedRoutes,
+			setExpanded: (next) => {
+				expandedRoutes = next;
+				saveExpandedToStorage(next);
+			},
+			load: bootstrapFolder,
+		});
 	}
 
 	function formatDate(dateStr: string): string {
@@ -618,6 +638,29 @@
 		</div>
 	{/snippet}
 
+	<!-- An open folder whose first chunk hasn't arrived: loading, or a retry
+	     when the request failed. -->
+	{#snippet folderPending(parentRoute: string, depth: number)}
+		<div
+			class="flex items-center gap-2 border-b border-border/40 py-2 pe-4 text-[0.75rem] text-muted-foreground"
+			style="padding-inline-start: {16 + depth * 20}px"
+		>
+			{#if failedFolders.has(parentRoute)}
+				<span class="text-destructive">{i18n.t('ADMIN_NEXT.PAGES.LOAD_CHILDREN_FAILED')}</span>
+				<button
+					type="button"
+					class="font-medium text-primary hover:underline"
+					onclick={() => bootstrapFolder(parentRoute)}
+				>
+					{i18n.t('ADMIN_NEXT.RETRY')}
+				</button>
+			{:else}
+				<Loader2 size={12} class="animate-spin" />
+				{i18n.t('ADMIN_NEXT.LOADING')}
+			{/if}
+		</div>
+	{/snippet}
+
 	<!-- Move mode: a thin strip at the start and end of every open folder's
 	     child list (and the top level). Hovering one draws the same line a row
 	     draws above itself, so a page can land first or last in any folder. -->
@@ -697,8 +740,9 @@
 						<button
 							class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
 							onclick={() => toggleExpand(apiRoute)}
+							aria-expanded={expandedRoutes.has(apiRoute)}
 						>
-							{#if expandedRoutes.has(apiRoute) && totalChildren(apiRoute) === null}
+							{#if expandedRoutes.has(apiRoute) && totalChildren(apiRoute) === null && !failedFolders.has(apiRoute)}
 								<Loader2 size={13} class="animate-spin" />
 							{:else if expandedRoutes.has(apiRoute)}
 								<ChevronDown size={14} />
@@ -816,7 +860,9 @@
 
 			{#if !searchActive && (page.has_children || reorderMode) && expandedRoutes.has(apiRoute)}
 				{@const totalAtRoute = totalChildren(apiRoute)}
-				{#if reorderMode && totalAtRoute === 0}
+				{#if totalAtRoute === null}
+					{@render folderPending(apiRoute, depth + 1)}
+				{:else if reorderMode && totalAtRoute === 0}
 					{@render dropInside(page, apiRoute, depth + 1)}
 				{:else}
 					{#if reorderMode && totalAtRoute}{@render dropLine(apiRoute, 0, depth + 1)}{/if}
