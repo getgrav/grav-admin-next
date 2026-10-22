@@ -432,6 +432,9 @@ class ApiClient {
 			.filter(Boolean);
 		if (tags.length > 0) {
 			invalidations.emit(tags);
+			// Plugin web components can't reach the bus, so they get the same tags
+			// on window: a field can refresh what it shows after the page is saved.
+			window.dispatchEvent(new CustomEvent('grav:invalidate', { detail: { tags } }));
 		}
 	}
 
