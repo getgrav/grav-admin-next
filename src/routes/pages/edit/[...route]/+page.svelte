@@ -24,6 +24,7 @@
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import PageNavigator from '$lib/components/pages/PageNavigator.svelte';
+	import ModuleList from '$lib/components/pages/ModuleList.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
@@ -179,7 +180,8 @@
 		};
 	});
 	// Provide page type context (standard vs modular) for template selectors
-	setContext('pageType', () => template?.startsWith('modular') ? 'modular' : 'standard');
+	// (`modular/<name>` is a module; the `modular` template itself is an ordinary page).
+	setContext('pageType', () => template?.startsWith('modular/') ? 'modular' : 'standard');
 	// Provide shared media list + updater so file pickers see uploads without saving
 	setContext('pageMediaItems', {
 		get items() { return pageMediaItems; },
@@ -2084,6 +2086,8 @@
 		<div class="grid grid-cols-1 gap-4 {prefs.pageSidebarCollapsed ? 'lg:grid-cols-1' : 'lg:grid-cols-[minmax(0,1fr)_280px]'}">
 			<!-- Main content area -->
 			<div class="space-y-4">
+				<!-- A modular page lists its modules above its own form (nothing for any other page). -->
+				<ModuleList page={pageData} />
 				{#if prefs.editorMode === 'expert'}
 					<!-- Expert mode tabs -->
 					<Tabs
