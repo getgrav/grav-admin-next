@@ -60,7 +60,7 @@ These work properly in admin-next:
 | `conditional` | User accounts blueprint | Shows/hides fields based on another field's value. Important for dynamic forms |
 | `frontmatter` | Raw page editing mode (`pages/raw.yaml`) | Raw YAML editor for page frontmatter. Uses CodeMirror |
 | `codemirror` | Raw page editing, expert mode | Generic code editor (YAML, JSON, etc.) — distinct from markdown editor |
-| `iconpicker` | Theme modular blueprints (features), plugins | Font Awesome icon browser/selector |
+| `iconpicker` | Theme modular blueprints (features), plugins | Font Awesome icon browser/selector, or a theme's own icon set with `icons: <set>` (see docs/IconSpec.md) |
 | `permissions` | User groups, user accounts | Hierarchical permission tree with checkboxes. Critical for user management |
 | `acl_picker` | Page security partials | Access control list picker for page-level permissions |
 

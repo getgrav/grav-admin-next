@@ -50,3 +50,44 @@ Advanced SVG icons can declare multiple whitelisted elements:
 ```
 
 Raw SVG markup is not accepted. SVG icons are rendered from structured data only, with tag and attribute whitelists, so plugin-provided values cannot inject event handlers, scripts, or arbitrary markup.
+
+The allowed shapes are `path`, `circle`, `ellipse`, `rect`, `line`, `polyline` and `polygon`. Icons are drawn as line icons: no fill, stroked in the current text color.
+
+## Icon sets for the `iconpicker` field
+
+On its own the `iconpicker` blueprint field lists Font Awesome and saves Font Awesome class names. A theme or plugin that draws its own icons can give the field its own set instead, so the owner picks from the icons the site actually draws. The field names the set:
+
+```yaml
+header.hero.icon:
+  type: iconpicker
+  label: Icon
+  icons: encore
+```
+
+and the set's owner registers it on the API plugin's `onApiIconSets` event:
+
+```php
+public static function getSubscribedEvents(): array
+{
+    return ['onApiIconSets' => ['onApiIconSets', 0]];
+}
+
+public function onApiIconSets(Event $event): void
+{
+    $sets = $event['sets'];
+    $sets['encore'] = [
+        'label' => 'Encore',
+        // name => SVG markup (a whole <svg>, or what goes inside one on a
+        // 24px grid) or any IconSpec value
+        'icons' => [
+            'search' => '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+            'clock' => 'fa:clock',
+        ],
+        // or, instead of 'icons', a YAML file of name: markup lines:
+        // 'file' => 'theme://icons.yaml',
+    ];
+    $event['sets'] = $sets;
+}
+```
+
+The picker then shows that set, with each icon's name under it, and saves the icon's name (`search`), which is what the theme's own icon macro takes. The API turns markup into the structured SVG form above before it is sent, so the safety rules here apply to every set. A field that names a set nobody registered says so in its dropdown. The full description is in the API plugin's README, under "Icon sets for the `iconpicker` field".

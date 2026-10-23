@@ -1,6 +1,6 @@
 import { FA_FAMILY_CLASS, faIconClass } from '$lib/utils/fa-icon';
 
-export type SvgIconTag = 'path' | 'circle' | 'rect' | 'line' | 'polyline' | 'polygon';
+export type SvgIconTag = 'path' | 'circle' | 'ellipse' | 'rect' | 'line' | 'polyline' | 'polygon';
 
 export interface SvgIconElement {
 	tag: SvgIconTag;
@@ -44,7 +44,7 @@ type ResolvedIcon =
 	| { type: 'class'; className: string }
 	| { type: 'svg'; viewBox: string; elements: { tag: SvgIconTag; attrs: Record<string, string> }[] };
 
-const SVG_TAGS = new Set<SvgIconTag>(['path', 'circle', 'rect', 'line', 'polyline', 'polygon']);
+const SVG_TAGS = new Set<SvgIconTag>(['path', 'circle', 'ellipse', 'rect', 'line', 'polyline', 'polygon']);
 const SVG_ATTRS = new Set([
 	'd',
 	'cx',

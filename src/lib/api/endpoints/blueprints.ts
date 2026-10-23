@@ -1,4 +1,5 @@
 import { api } from '../client';
+import type { IconSpec } from '$lib/utils/icon-spec';
 
 export interface BlueprintField {
 	name: string;
@@ -81,6 +82,13 @@ export interface BlueprintField {
 	collapsible?: boolean;
 	/** section/fieldset — FontAwesome icon name shown before the title. */
 	icon?: string;
+	/**
+	 * iconpicker — the icon set to list instead of Font Awesome (`icons: encore`).
+	 * A theme or plugin registers the set on the API's `onApiIconSets` event.
+	 */
+	icons?: string;
+	/** iconpicker — the set named by `icons`, sent along by the API when it is registered. */
+	icon_set?: IconSet;
 	sort?: boolean;
 	btnLabel?: string;
 	placement?: string;
@@ -114,6 +122,13 @@ export interface BlueprintField {
 	 * #RRGGBB hex (matches Grav's classic colorpicker convention). Defaults
 	 * to true so the slider is shown and 8-digit #RRGGBBAA may be emitted. */
 	alpha?: boolean;
+}
+
+/** An icon set for the iconpicker field, in the order its owner listed the icons. */
+export interface IconSet {
+	name: string;
+	label: string;
+	icons: Array<{ name: string; icon: IconSpec }>;
 }
 
 export interface BlueprintSchema {

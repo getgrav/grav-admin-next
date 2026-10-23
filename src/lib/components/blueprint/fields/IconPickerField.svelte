@@ -6,6 +6,7 @@
 	import { X, ChevronDown, Search } from 'lucide-svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import FieldHelp from '../FieldHelp.svelte';
+	import ExtensionIcon from '$lib/components/ui/ExtensionIcon.svelte';
 
 	interface Props {
 		field: BlueprintField;
@@ -43,6 +44,32 @@
 	const selected = $derived(parseFaIconValue(currentValue));
 	const selectedName = $derived(selected.name);
 	const selectedFamily = $derived(selected.family ?? (selectedName ? inferFaFamily(selectedName) : null));
+
+	// `icons: <set>` lists a theme's or plugin's own icon set instead of Font
+	// Awesome (registered on the API's `onApiIconSets`). The value saved is the
+	// icon's name, which is what the theme's own icon macro takes.
+	const setName = $derived(typeof field.icons === 'string' ? field.icons.trim() : '');
+	const iconSet = $derived(setName ? (field.icon_set ?? null) : null);
+	const setIcons = $derived(iconSet?.icons ?? []);
+	const selectedSetIcon = $derived(setName ? (setIcons.find((icon) => icon.name === currentValue) ?? null) : null);
+
+	/** `shopping_bag` → "Shopping bag", for the tooltip and the caption. */
+	function iconLabel(name: string): string {
+		const words = name.replace(/[-_]+/g, ' ').trim();
+		return words ? words.charAt(0).toUpperCase() + words.slice(1) : name;
+	}
+
+	const filteredSetIcons = $derived.by(() => {
+		if (!search) return setIcons;
+		const q = search.toLowerCase();
+		return setIcons.filter((icon) => icon.name.toLowerCase().includes(q) || iconLabel(icon.name).toLowerCase().includes(q));
+	});
+
+	function selectSetIcon(name: string) {
+		onchange(name);
+		open = false;
+		search = '';
+	}
 
 	const filteredIcons = $derived.by(() => {
 		const pool = family === 'all' ? FA_ICONS : FA_ICONS.filter((icon) => icon.f === family);
@@ -88,8 +115,15 @@
 		<div class="flex min-h-[40px] items-center rounded-lg border border-input bg-muted/50 shadow-sm transition-colors focus-within:ring-1 focus-within:ring-ring">
 			{#if currentValue && !open}
 				<div class="flex flex-1 items-center gap-2.5 px-3">
-					<i class="{faIconClass(currentValue)} text-base text-foreground"></i>
-					<span class="text-sm text-foreground">{currentValue}</span>
+					{#if setName}
+						{#if selectedSetIcon}
+							<ExtensionIcon icon={selectedSetIcon.icon} class="h-4 w-4 shrink-0 text-foreground" />
+						{/if}
+						<span class="text-sm text-foreground">{iconLabel(currentValue)}</span>
+					{:else}
+						<i class="{faIconClass(currentValue)} text-base text-foreground"></i>
+						<span class="text-sm text-foreground">{currentValue}</span>
+					{/if}
 				</div>
 				<button
 					type="button"
@@ -138,6 +172,33 @@
 					{/if}
 				</div>
 
+				{#if setName}
+					<!-- The set's own icons, with their names: a theme's set is small
+					     enough to show whole, and the names tell look-alikes apart. -->
+					<div class="grid max-h-64 grid-cols-4 gap-1 overflow-y-auto p-2 sm:grid-cols-5">
+						{#each filteredSetIcons as icon (icon.name)}
+							<button
+								type="button"
+								class="flex min-w-0 flex-col items-center gap-1 rounded-md px-1 py-2 transition-colors
+									{currentValue === icon.name
+										? 'bg-primary text-primary-foreground'
+										: 'text-foreground hover:bg-accent'}"
+								title={iconLabel(icon.name)}
+								onmousedown={(e) => { e.preventDefault(); selectSetIcon(icon.name); }}
+							>
+								<ExtensionIcon icon={icon.icon} class="h-5 w-5 shrink-0" />
+								<span class="w-full truncate text-center text-[0.6875rem]">{iconLabel(icon.name)}</span>
+							</button>
+						{/each}
+						{#if filteredSetIcons.length === 0}
+							<div class="col-span-full py-4 text-center text-sm text-muted-foreground">
+								{iconSet
+									? i18n.t('ADMIN_NEXT.FIELDS.ICON_PICKER.NO_ICONS_FOUND')
+									: i18n.t('ADMIN_NEXT.FIELDS.ICON_PICKER.SET_MISSING', { set: setName })}
+							</div>
+						{/if}
+					</div>
+				{:else}
 				<!-- Family filter -->
 				<div class="flex items-center gap-1 border-b border-border px-2 py-1.5">
 					{#each FAMILY_TABS as tab (tab.value)}
@@ -180,6 +241,7 @@
 					<div class="border-t border-border px-3 py-1.5 text-center text-[0.625rem] text-muted-foreground">
 						{i18n.t('ADMIN_NEXT.FIELDS.ICON_PICKER.SHOWING_FIRST_200_RESULTS_TYPE_TO_NARROW')}
 					</div>
+				{/if}
 				{/if}
 			</div>
 		{/if}
