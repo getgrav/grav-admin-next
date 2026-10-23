@@ -4,22 +4,20 @@
  * Items are named by id: core items by name (`pages`), plugin items as
  * `plugin:<id>`, and `divider` for the line between the core and plugin
  * groups. A layout saves the full order plus the hidden ids; an empty order
- * means the built-in one. A plugin item can offer sub-items (`children`),
- * named `plugin:<id>/<child id>`; they show under it only once listed in
- * `shown`.
+ * means the built-in one. A plugin item can list sub-items (`children`),
+ * named `plugin:<id>/<child id>`, which show under it unless hidden.
  */
 
 export interface SidebarLayout {
 	order: string[];
+	/** Hidden items, sub-items included. */
 	hidden: string[];
-	/** Sub-items switched on. */
-	shown: string[];
 }
 
 export const DIVIDER_ID = 'divider';
 export const PLUGIN_PREFIX = 'plugin:';
 
-export const EMPTY_SIDEBAR_LAYOUT: SidebarLayout = { order: [], hidden: [], shown: [] };
+export const EMPTY_SIDEBAR_LAYOUT: SidebarLayout = { order: [], hidden: [] };
 
 export function childId(parentId: string, id: string): string {
 	return `${parentId}/${id}`;
@@ -28,7 +26,7 @@ export function childId(parentId: string, id: string): string {
 export function asSidebarLayout(value: unknown): SidebarLayout {
 	const v = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
 	const ids = (list: unknown) => (Array.isArray(list) ? list.filter((id): id is string => typeof id === 'string') : []);
-	return { order: ids(v.order), hidden: ids(v.hidden), shown: ids(v.shown) };
+	return { order: ids(v.order), hidden: ids(v.hidden) };
 }
 
 /**
@@ -93,13 +91,11 @@ export function visibleSidebarIds(order: string[], hidden: string[]): string[] {
  * The layout to store for an order the user arranged: an empty order when it
  * is the built-in one, so the sidebar keeps following the built-in order (and
  * places new items) instead of a frozen copy of it. `children` are the
- * sub-item ids the sidebar has; switched-on ones it doesn't have are dropped.
+ * sub-item ids the sidebar has; hidden ids it doesn't have are dropped.
  */
-export function layoutToSave(defaults: string[], order: string[], hidden: string[], shown: string[] = [], children: string[] = []): SidebarLayout {
-	const keptHidden = hidden.filter((id) => order.includes(id));
-	const keptShown = children.filter((id) => shown.includes(id));
-	if (keptHidden.length === 0 && sameIds(order, defaults)) return { order: [], hidden: [], shown: keptShown };
-	return { order: [...order], hidden: keptHidden, shown: keptShown };
+export function layoutToSave(defaults: string[], order: string[], hidden: string[], children: string[] = []): SidebarLayout {
+	const keptHidden = [...order, ...children].filter((id) => hidden.includes(id));
+	return { order: sameIds(order, defaults) ? [] : [...order], hidden: keptHidden };
 }
 
 export function sameIds(a: string[], b: string[]): boolean {
@@ -107,14 +103,11 @@ export function sameIds(a: string[], b: string[]): boolean {
 }
 
 /**
- * Whether two layouts draw the same sidebar for these items. Hidden ids the
- * sidebar doesn't have don't count.
+ * Whether two layouts draw the same sidebar for these items (and sub-items).
+ * Hidden ids the sidebar doesn't have don't count.
  */
 export function sameSidebar(defaults: string[], a: SidebarLayout, b: SidebarLayout, children: string[] = []): boolean {
 	if (!sameIds(resolveSidebarOrder(defaults, a.order), resolveSidebarOrder(defaults, b.order))) return false;
-	const hiddenA = defaults.filter((id) => a.hidden.includes(id));
-	const hiddenB = defaults.filter((id) => b.hidden.includes(id));
-	const shownA = children.filter((id) => a.shown.includes(id));
-	const shownB = children.filter((id) => b.shown.includes(id));
-	return sameIds(hiddenA, hiddenB) && sameIds(shownA, shownB);
+	const all = [...defaults, ...children];
+	return sameIds(all.filter((id) => a.hidden.includes(id)), all.filter((id) => b.hidden.includes(id)));
 }

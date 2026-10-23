@@ -30,7 +30,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import {
 		LayoutDashboard, FileText, Image, Users, Puzzle, Palette, Settings, Wrench, Languages,
-		GripVertical, Eye, EyeOff, Globe, RotateCcw, Undo2, ChevronRight,
+		GripVertical, Eye, EyeOff, Globe, RotateCcw, Undo2, ChevronRight, ChevronDown,
 	} from 'lucide-svelte';
 
 	interface Props {
@@ -101,24 +101,22 @@
 	// ── Edit mode ────────────────────────────────────────────────────────
 	let draftOrder = $state<string[]>([]);
 	let draftHidden = $state<string[]>([]);
-	let draftShown = $state<string[]>([]);
 	/** Plugin items whose sub-item list is open in edit mode. */
 	let expanded = $state<string[]>([]);
 	let saving = $state(false);
 	let announcement = $state('');
 	// Re-resolved so a plugin item that loads mid-edit still shows up.
 	const editOrder = $derived(resolveSidebarOrder(defaults, draftOrder));
-	const isBuiltIn = $derived(sameIds(editOrder, defaults) && !draftHidden.some((id) => entries.has(id)) && !draftShown.some((id) => allChildIds.includes(id)));
+	const isBuiltIn = $derived(sameIds(editOrder, defaults) && !draftHidden.some((id) => entries.has(id) || allChildIds.includes(id)));
 	const hasOwnLayout = $derived(prefs.isUserOverridden('sidebarLayout'));
 
 	let wasEditing = false;
 	$effect.pre(() => {
 		if (editing && !wasEditing) {
 			draftOrder = resolveSidebarOrder(defaults, layout.order);
-			draftHidden = layout.hidden.filter((id) => entries.has(id));
-			draftShown = allChildIds.filter((id) => layout.shown.includes(id));
-			// A plugin with sub-items already switched on opens with its list showing.
-			expanded = [...entries.values()].filter((e) => childrenOf(e).some((c) => draftShown.includes(c.id))).map((e) => e.id);
+			draftHidden = layout.hidden.filter((id) => entries.has(id) || allChildIds.includes(id));
+			// A plugin with sub-items already hidden opens with its list showing.
+			expanded = [...entries.values()].filter((e) => childrenOf(e).some((c) => draftHidden.includes(c.id))).map((e) => e.id);
 			announcement = '';
 		}
 		wasEditing = editing;
@@ -134,10 +132,6 @@
 		draftHidden = draftHidden.includes(id) ? draftHidden.filter((h) => h !== id) : [...draftHidden, id];
 	}
 
-	function toggleShown(id: string) {
-		draftShown = draftShown.includes(id) ? draftShown.filter((s) => s !== id) : [...draftShown, id];
-	}
-
 	function toggleExpanded(id: string) {
 		expanded = expanded.includes(id) ? expanded.filter((e) => e !== id) : [...expanded, id];
 	}
@@ -148,7 +142,7 @@
 	}
 
 	async function save() {
-		const next = layoutToSave(defaults, editOrder, draftHidden, draftShown, allChildIds);
+		const next = layoutToSave(defaults, editOrder, draftHidden, allChildIds);
 		const siteDefault = asSidebarLayout(prefs.effectiveDefault('sidebarLayout'));
 		saving = true;
 		try {
@@ -176,11 +170,11 @@
 			confirmLabel: i18n.t('ADMIN_NEXT.SIDEBAR_EDIT.SAVE_FOR_EVERYONE'),
 		});
 		if (!ok) return;
-		const next = layoutToSave(defaults, editOrder, draftHidden, draftShown, allChildIds);
+		const next = layoutToSave(defaults, editOrder, draftHidden, allChildIds);
 		saving = true;
 		try {
 			// `null` drops the site's layout, so the built-in order applies.
-			const sidebarLayout = next.order.length === 0 && next.shown.length === 0 ? null : next;
+			const sidebarLayout = next.order.length === 0 && next.hidden.length === 0 ? null : next;
 			prefs.init(await saveSitePreferences({ sidebarLayout } as unknown as Partial<PreferenceValues>));
 			// Your own layout would hide the one you just set for everyone.
 			if (prefs.isUserOverridden('sidebarLayout')) {
@@ -213,7 +207,6 @@
 	function restoreBuiltIn() {
 		draftOrder = [...defaults];
 		draftHidden = [];
-		draftShown = [];
 	}
 
 	// ── Dragging ─────────────────────────────────────────────────────────
@@ -334,7 +327,7 @@
 	}
 
 	function shownChildren(entry: Entry) {
-		return childrenOf(entry).filter((c) => layout.shown.includes(c.id));
+		return childrenOf(entry).filter((c) => !layout.hidden.includes(c.id));
 	}
 
 	const linkClass = 'flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium transition-colors';
@@ -391,22 +384,35 @@
 				{:else if entry?.kind === 'plugin'}
 					{@const href = `${base}${entry.item.route}`}
 					{@const subItems = collapsed ? [] : shownChildren(entry)}
-					<!-- The item itself stays plain while one of its own sub-items is the active one. -->
-					{@const active = isActive(href) && !subItems.some((c) => isChildActive(c.child.route))}
+					{@const open = subItems.length > 0 && prefs.isSidebarGroupOpen(id)}
+					<!-- The item itself stays plain while one of its own sub-items, on show, is the active one. -->
+					{@const active = isActive(href) && !(open && subItems.some((c) => isChildActive(c.child.route)))}
 					<li>
-						<a {href} class="{linkClass} {active ? activeClass : idleClass}"
-							onclick={onnavigate}
-							title={collapsed ? label(entry) : undefined}>
-							{@render entryIcon(entry, active)}
-							{#if !collapsed}
-								<span>{label(entry)}</span>
-								{@const badge = sidebarStore.badges[entry.item.id] ?? entry.item.badge}
-								{#if badge != null}
-									<span class="ms-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">{badge}</span>
+						<div class="flex items-center gap-0.5">
+							<a {href} class="{linkClass} min-w-0 flex-1 {active ? activeClass : idleClass}"
+								onclick={onnavigate}
+								title={collapsed ? label(entry) : undefined}>
+								{@render entryIcon(entry, active)}
+								{#if !collapsed}
+									<span class="truncate">{label(entry)}</span>
+									{@const badge = sidebarStore.badges[entry.item.id] ?? entry.item.badge}
+									{#if badge != null}
+										<span class="ms-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">{badge}</span>
+									{/if}
 								{/if}
+							</a>
+							{#if subItems.length > 0}
+								<button type="button"
+									class="flex h-7 w-6 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+									aria-expanded={open}
+									aria-label={i18n.t(open ? 'ADMIN_NEXT.SIDEBAR_EDIT.FOLD' : 'ADMIN_NEXT.SIDEBAR_EDIT.UNFOLD', { label: label(entry) })}
+									title={i18n.t(open ? 'ADMIN_NEXT.SIDEBAR_EDIT.FOLD' : 'ADMIN_NEXT.SIDEBAR_EDIT.UNFOLD', { label: label(entry) })}
+									onclick={() => prefs.toggleSidebarGroup(id)}>
+									<ChevronDown size={14} class="transition-transform {open ? '' : '-rotate-90 rtl:rotate-90'}" />
+								</button>
 							{/if}
-						</a>
-						{#if subItems.length > 0}
+						</div>
+						{#if open}
 							<ul class="ms-[1.15rem] mt-0.5 space-y-0.5 border-s border-sidebar-border ps-1.5">
 								{#each subItems as { id: subId, child } (subId)}
 									{@const subActive = isChildActive(child.route)}
@@ -469,7 +475,7 @@
 						{@const subItems = childrenOf(entry)}
 						{#if subItems.length > 0 && !hidden}
 							{@const open = expanded.includes(id)}
-							{@const onCount = subItems.filter((c) => draftShown.includes(c.id)).length}
+							{@const onCount = subItems.filter((c) => !draftHidden.includes(c.id)).length}
 							<li class="ms-6">
 								<button type="button" class="flex w-full items-center gap-1 rounded px-1 py-0.5 text-start text-[0.6875rem] text-sidebar-foreground/60 hover:text-sidebar-foreground"
 									aria-expanded={open}
@@ -480,7 +486,7 @@
 								{#if open}
 									<ul class="mt-0.5 space-y-0.5 border-s border-sidebar-border ps-1.5">
 										{#each subItems as { id: subId, child } (subId)}
-											{@const on = draftShown.includes(subId)}
+											{@const on = !draftHidden.includes(subId)}
 											<li class="flex items-center gap-1.5 rounded-md py-0.5 pe-1 ps-1.5 text-[0.75rem] font-medium {on ? 'text-sidebar-foreground/80' : 'text-sidebar-foreground/40'}">
 												<span class="min-w-0 flex-1 truncate">{child.label}</span>
 												<button type="button"
@@ -488,7 +494,7 @@
 													aria-pressed={on}
 													aria-label={i18n.t(on ? 'ADMIN_NEXT.SIDEBAR_EDIT.HIDE' : 'ADMIN_NEXT.SIDEBAR_EDIT.SHOW', { label: child.label })}
 													title={i18n.t(on ? 'ADMIN_NEXT.SIDEBAR_EDIT.HIDE' : 'ADMIN_NEXT.SIDEBAR_EDIT.SHOW', { label: child.label })}
-													onclick={() => toggleShown(subId)}>
+													onclick={() => toggleHidden(subId)}>
 													{#if on}<Eye size={13} />{:else}<EyeOff size={13} />{/if}
 												</button>
 											</li>

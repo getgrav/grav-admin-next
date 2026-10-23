@@ -61,29 +61,29 @@ test('a divider is drawn only between two items', () => {
 
 const CHILDREN = ['plugin:kahunacart/orders', 'plugin:kahunacart/customers'];
 
-test('the built-in order with nothing hidden saves as an empty layout', () => {
-	assert.deepEqual(layoutToSave(DEFAULTS, [...DEFAULTS], []), { order: [], hidden: [], shown: [] });
-	assert.deepEqual(layoutToSave(DEFAULTS, [...DEFAULTS], ['users']), { order: DEFAULTS, hidden: ['users'], shown: [] });
+test('the built-in order saves as an empty order', () => {
+	assert.deepEqual(layoutToSave(DEFAULTS, [...DEFAULTS], []), { order: [], hidden: [] });
+	assert.deepEqual(layoutToSave(DEFAULTS, [...DEFAULTS], ['users']), { order: [], hidden: ['users'] });
 	const moved = moveSidebarItem(DEFAULTS, 'plugin:kahunacart', 1);
-	assert.deepEqual(layoutToSave(DEFAULTS, moved, ['gone']), { order: moved, hidden: [], shown: [] });
+	assert.deepEqual(layoutToSave(DEFAULTS, moved, ['gone']), { order: moved, hidden: [] });
 });
 
-test('switched-on sub-items are saved in the order the plugin offers them, and only ones it has', () => {
+test('hidden sub-items are saved, and only ones the sidebar has', () => {
 	assert.deepEqual(
-		layoutToSave(DEFAULTS, [...DEFAULTS], [], ['plugin:kahunacart/customers', 'plugin:gone/x', 'plugin:kahunacart/orders'], CHILDREN),
-		{ order: [], hidden: [], shown: CHILDREN },
+		layoutToSave(DEFAULTS, [...DEFAULTS], ['plugin:kahunacart/customers', 'plugin:gone/x', 'users'], CHILDREN),
+		{ order: [], hidden: ['users', 'plugin:kahunacart/customers'] },
 	);
 });
 
 test('two layouts that draw the same sidebar are the same', () => {
-	const empty = { order: [], hidden: [], shown: [] };
-	assert.equal(sameSidebar(DEFAULTS, empty, { order: DEFAULTS, hidden: ['plugin:gone'], shown: ['plugin:gone/x'] }, CHILDREN), true);
-	assert.equal(sameSidebar(DEFAULTS, empty, { order: [], hidden: ['pages'], shown: [] }), false);
-	assert.equal(sameSidebar(DEFAULTS, empty, { order: ['plugin:kahunacart'], hidden: [], shown: [] }), false);
-	assert.equal(sameSidebar(DEFAULTS, empty, { order: [], hidden: [], shown: ['plugin:kahunacart/orders'] }, CHILDREN), false);
+	const empty = { order: [], hidden: [] };
+	assert.equal(sameSidebar(DEFAULTS, empty, { order: DEFAULTS, hidden: ['plugin:gone', 'plugin:gone/x'] }, CHILDREN), true);
+	assert.equal(sameSidebar(DEFAULTS, empty, { order: [], hidden: ['pages'] }), false);
+	assert.equal(sameSidebar(DEFAULTS, empty, { order: ['plugin:kahunacart'], hidden: [] }), false);
+	assert.equal(sameSidebar(DEFAULTS, empty, { order: [], hidden: ['plugin:kahunacart/orders'] }, CHILDREN), false);
 });
 
 test('a layout from the server is read defensively', () => {
-	assert.deepEqual(asSidebarLayout(null), { order: [], hidden: [], shown: [] });
-	assert.deepEqual(asSidebarLayout({ order: ['a', 3, 'b'], hidden: 'x', shown: ['c'] }), { order: ['a', 'b'], hidden: [], shown: ['c'] });
+	assert.deepEqual(asSidebarLayout(null), { order: [], hidden: [] });
+	assert.deepEqual(asSidebarLayout({ order: ['a', 3, 'b'], hidden: 'x' }), { order: ['a', 'b'], hidden: [] });
 });
