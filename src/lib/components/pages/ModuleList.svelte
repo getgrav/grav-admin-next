@@ -9,7 +9,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { toast } from 'svelte-sonner';
-	import { ChevronDown, GripVertical, Loader2, Plus } from 'lucide-svelte';
+	import { AlertCircle, ChevronDown, GripVertical, Loader2, Plus, RefreshCw } from 'lucide-svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
@@ -41,6 +41,10 @@
 	let types = $state<PageType[]>([]);
 	let loaded = $state(false);
 	let loading = $state(false);
+	/** The last load failed. Rows from an earlier load of this page stay on show beside the message. */
+	let loadError = $state(false);
+	/** The page and language `children` were loaded for. */
+	let loadedFor = '';
 	let saving = $state(false);
 	let togglingRoutes = $state<Set<string>>(new Set());
 
@@ -60,17 +64,24 @@
 		// first module; the list then only offers "Add module".
 		if (!shown || !page.has_children) {
 			children = [];
+			loadError = false;
 			loaded = true;
 			return;
 		}
-		loading = !loaded;
+		const key = `${forRoute}\0${lang ?? ''}`;
+		loading = (!loaded || loadError) && (children.length === 0 || loadedFor !== key);
 		try {
 			const rows = await getChildren(forRoute, 'order', 'asc', lang, undefined, { summary: true });
 			if (id !== loadId) return;
 			children = rows;
+			loadedFor = key;
+			loadError = false;
 		} catch {
 			if (id !== loadId) return;
-			children = [];
+			// Keep what an earlier load of this same page showed; rows of another
+			// page or language would be wrong beside the message.
+			if (loadedFor !== key) children = [];
+			loadError = true;
 		} finally {
 			if (id === loadId) {
 				loading = false;
@@ -246,9 +257,21 @@
 						<Loader2 size={14} class="animate-spin" />
 						{i18n.t('ADMIN_NEXT.PAGES.LOADING')}
 					</div>
-				{:else if modules.length === 0}
+				{:else if modules.length === 0 && !loadError}
 					<p class="px-4 py-5 text-center text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.MODULES.EMPTY')}</p>
 				{:else}
+					{#if loadError}
+						<div class="flex items-center justify-between gap-3 px-4 py-3 text-sm {modules.length > 0 ? 'border-b border-border/60' : ''}" role="alert">
+							<span class="flex min-w-0 items-center gap-2 text-destructive">
+								<AlertCircle size={14} class="shrink-0" />
+								<span>{i18n.t('ADMIN_NEXT.PAGES.MODULES.LOAD_FAILED')}</span>
+							</span>
+							<Button size="sm" variant="outline" onclick={() => void load()}>
+								<RefreshCw size={14} class="me-1.5" />
+								{i18n.t('ADMIN_NEXT.RETRY')}
+							</Button>
+						</div>
+					{/if}
 					<ol class="divide-y divide-border/60 {saving ? 'pointer-events-none opacity-60' : ''}" ondragleave={(e) => { if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node)) dropIndex = null; }}>
 						{#each modules as module, index (pageApiRoute(module))}
 							{@const moduleRoute = pageApiRoute(module)}
