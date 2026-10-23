@@ -84,6 +84,15 @@
 		search = '';
 	}
 
+	/**
+	 * Picking happens on click, so Enter and Space on a focused icon select it
+	 * too. A press only has to leave the search box focused, which the default
+	 * action of mousedown would otherwise take away.
+	 */
+	function keepFocus(e: MouseEvent) {
+		e.preventDefault();
+	}
+
 	function clearValue() {
 		onchange('');
 	}
@@ -184,7 +193,8 @@
 										? 'bg-primary text-primary-foreground'
 										: 'text-foreground hover:bg-accent'}"
 								title={iconLabel(icon.name)}
-								onmousedown={(e) => { e.preventDefault(); selectSetIcon(icon.name); }}
+								onmousedown={keepFocus}
+								onclick={() => selectSetIcon(icon.name)}
 							>
 								<ExtensionIcon icon={icon.icon} class="h-5 w-5 shrink-0" />
 								<span class="w-full truncate text-center text-[0.6875rem]">{iconLabel(icon.name)}</span>
@@ -208,7 +218,8 @@
 								{family === tab.value
 									? 'bg-primary text-primary-foreground'
 									: 'text-muted-foreground hover:bg-accent hover:text-foreground'}"
-							onmousedown={(e) => { e.preventDefault(); family = tab.value; }}
+							onmousedown={keepFocus}
+							onclick={() => { family = tab.value; }}
 						>
 							{i18n.t(tab.key)}
 						</button>
@@ -225,7 +236,8 @@
 									? 'bg-primary text-primary-foreground'
 									: 'text-foreground hover:bg-accent'}"
 							title={icon.f === 's' ? icon.n : `${icon.n} (${familyLabel(icon.f)})`}
-							onmousedown={(e) => { e.preventDefault(); selectIcon(icon.n, icon.f); }}
+							onmousedown={keepFocus}
+							onclick={() => selectIcon(icon.n, icon.f)}
 						>
 							<i class="{FA_FAMILY_CLASS[icon.f]} fa-{icon.n} text-sm"></i>
 						</button>
