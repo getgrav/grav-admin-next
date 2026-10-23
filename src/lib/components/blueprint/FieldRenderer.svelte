@@ -637,7 +637,7 @@
 	<!-- Skip non-visible system fields -->
 
 {:else if field.type === 'pagemedia'}
-	<PageMediaField />
+	<PageMediaField {field} />
 
 {:else if field.type === 'media'}
 	<MediaField {field} {value} onchange={committingOnchange} />

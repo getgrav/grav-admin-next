@@ -57,9 +57,11 @@
 		onOrderChange?: (filenames: string[]) => void;
 		/** True when the page already has a `media_order` in effect, so uploads/deletes keep it synced. */
 		orderActive?: boolean;
+		/** Heading in place of "Page Media", e.g. a blueprint field's own `label`. */
+		title?: string;
 	}
 
-	let { route = '/', apiBase, invalidationKeys, onMediaChange, externalItems, onOrderChange, orderActive = false }: Props = $props();
+	let { route = '/', apiBase, invalidationKeys, onMediaChange, externalItems, onOrderChange, orderActive = false, title }: Props = $props();
 
 	// True when this instance addresses a non-page source via apiBase. The
 	// `apiBase` prop being present (even if null) signals flex/object mode.
@@ -557,7 +559,7 @@
 <div class="space-y-3">
 	<div class="flex items-center justify-between">
 		<h3 class="text-sm font-semibold text-foreground">
-			{i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.PAGE_MEDIA')}
+			{title || i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.PAGE_MEDIA')}
 			{#if mediaItems.length > 0}
 				<span class="ms-1 font-normal text-muted-foreground">({mediaItems.length})</span>
 			{/if}
