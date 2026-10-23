@@ -37,6 +37,12 @@ export interface UserInfo {
 	 * set on single-user detail responses, not the list endpoint.
 	 */
 	twofa_global_enabled?: boolean;
+	/**
+	 * Whether the account has a password of its own. One created by a sign-in
+	 * service may not, and then changing your own password needs no current
+	 * one. Only on single-user responses (API plugin 1.0.58 or later).
+	 */
+	has_password?: boolean;
 	created: string | null;
 	modified: string | null;
 	/**
@@ -325,8 +331,13 @@ export interface TwoFactorData {
 	qr_code: string;
 }
 
-export async function generate2fa(username: string): Promise<TwoFactorData> {
-	return api.post<TwoFactorData>(`/users/${username}/2fa`);
+/**
+ * Make a new 2FA secret. Replacing your own while 2FA is on takes the current
+ * `code` (API plugin 1.0.58 or later); the new secret switches 2FA off until a
+ * code for it is verified.
+ */
+export async function generate2fa(username: string, code?: string): Promise<TwoFactorData> {
+	return api.post<TwoFactorData>(`/users/${username}/2fa`, code ? { code } : undefined);
 }
 
 export async function enable2fa(username: string, code: string): Promise<{ twofa_enabled: true }> {

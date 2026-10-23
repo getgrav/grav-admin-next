@@ -32,6 +32,9 @@
 	let disableCode = $state('');
 	let busy = $state(false);
 	let showDisable = $state(false);
+	// Replacing an active secret on your own account asks for the current code.
+	let showRegenerate = $state(false);
+	let regenerateCode = $state('');
 
 	// Sync stage with props. Runs on mount and whenever props change, but
 	// skips while a user-initiated transition is in flight so we don't
@@ -79,6 +82,35 @@
 					? String((err as { message: string }).message)
 					: 'Invalid code';
 			toast.error(msg);
+		} finally {
+			busy = false;
+		}
+	}
+
+	async function handleRegenerate() {
+		if (!/^\d{6}$/.test(regenerateCode.trim())) {
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.TOTP_CODE_REQUIRED'));
+			return;
+		}
+		busy = true;
+		try {
+			twoFaData = await generate2fa(username, regenerateCode.trim());
+			regenerateCode = '';
+			showRegenerate = false;
+			enrollCode = '';
+			// The new secret has 2FA off until a code for it is verified.
+			stage = 'pending';
+			onstatechange?.(false);
+			toast.success(i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.SCAN_THE_QR_CODE_WITH_YOUR'));
+		} catch (err: unknown) {
+			const status = (err as { status?: number })?.status ?? 0;
+			toast.error(
+				status === 422
+					? i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.CURRENT_CODE_WRONG')
+					: status === 429
+						? i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.TOO_MANY_CODES')
+						: i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.FAILED_TO_GENERATE_2FA_SECRET'),
+			);
 		} finally {
 			busy = false;
 		}
@@ -197,12 +229,48 @@
 						{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.A_ONE_TIME_CODE_IS_REQUIRED_WHENEVER')}
 					</p>
 				</div>
-				{#if !showDisable}
+				{#if !showDisable && !showRegenerate}
+					{#if !isAdminActor}
+						<Button variant="outline" size="sm" onclick={() => (showRegenerate = true)} disabled={busy}>
+							{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.REGENERATE')}
+						</Button>
+					{/if}
 					<Button variant="outline" size="sm" onclick={() => (showDisable = true)} disabled={busy}>
 						{i18n.t('ADMIN_NEXT.DISABLE')}
 					</Button>
 				{/if}
 			</div>
+
+			{#if showRegenerate}
+				<div class="space-y-1.5 rounded-md border border-border bg-background px-3 py-3">
+					<label for="regenerate-code" class="text-xs font-medium text-foreground">
+						{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.ENTER_CODE_TO_REGENERATE')}
+					</label>
+					<div class="flex gap-2">
+						<input
+							id="regenerate-code"
+							type="text"
+							inputmode="numeric"
+							autocomplete="one-time-code"
+							pattern="[0-9]*"
+							maxlength="6"
+							placeholder="000000"
+							class="flex h-9 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-center font-mono text-sm tracking-[0.3em] shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+							bind:value={regenerateCode}
+							disabled={busy}
+						/>
+						<Button size="sm" onclick={handleRegenerate} disabled={busy}>
+							{#if busy}
+								<Loader2 size={13} class="animate-spin" />
+							{/if}
+							{i18n.t('ADMIN_NEXT.TWO_FACTOR_FIELD.REGENERATE')}
+						</Button>
+						<Button variant="outline" size="sm" onclick={() => { showRegenerate = false; regenerateCode = ''; }} disabled={busy}>
+							{i18n.t('ADMIN_NEXT.CANCEL')}
+						</Button>
+					</div>
+				</div>
+			{/if}
 
 			{#if showDisable}
 				{#if isAdminActor}

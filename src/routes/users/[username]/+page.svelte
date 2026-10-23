@@ -16,6 +16,7 @@
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
 	import TwoFactorField from '$lib/components/TwoFactorField.svelte';
 	import ApiKeysField from '$lib/components/ApiKeysField.svelte';
+	import ChangePasswordField from '$lib/components/ChangePasswordField.svelte';
 	import UserAvatarCard from '$lib/components/UserAvatarCard.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import UnsavedChangesModal from '$lib/components/ui/UnsavedChangesModal.svelte';
@@ -69,6 +70,8 @@
 	let confirmDeleteOpen = $state(false);
 	// True while Resend or Cancel for a waiting email change is in flight.
 	let emailChangeBusy = $state(false);
+	// True while the Password card is saving.
+	let passwordBusy = $state(false);
 
 	// Form data from blueprint fields
 	let configData = $state<Record<string, unknown>>({});
@@ -109,6 +112,10 @@
 				// No Status select on your own account: the API refuses to let you
 				// disable yourself (api#49). The unchanged value still goes back on save.
 				if (isSelf && f.name === 'state') return false;
+				// The account's own password field gives way to the Password card,
+				// which asks for the current password on your own account and
+				// saves apart from the form.
+				if (f.name === 'password' && f.type === 'password') return false;
 				return true;
 			})
 			.map((f) => {
@@ -175,6 +182,7 @@
 			twofa_enabled: _twofaEnabled,
 			twofa_secret: _twofaSecret,
 			twofa_global_enabled: _twofaGlobalEnabled,
+			has_password: _hasPassword,
 			created: _created,
 			modified: _modified,
 			extra: _extra,
@@ -469,8 +477,9 @@
 		}, {
 			// Skip self-echo: our own PATCH emits this same event before handleSave
 			// has cleared hasChanges, which would otherwise toast on every save.
-			// Resend and Cancel emit it too, and update the user themselves.
-			dirtyGuard: () => saving || autoSave.saving || emailChangeBusy,
+			// Resend, Cancel and the Password card emit it too, and update the
+			// user themselves.
+			dirtyGuard: () => saving || autoSave.saving || emailChangeBusy || passwordBusy,
 		});
 		return () => { unsub(); };
 	});
@@ -623,6 +632,21 @@
 						oncommit={autoSave.oncommit}
 						errors={validationErrors}
 						notices={user.email_pending ? { email: emailChangeNotice } : {}}
+					/>
+				{/if}
+
+				<!-- Password — your own needs the current one; someone else's needs
+				     api.users.write. Saves on its own, apart from the form above. -->
+				{#if isSelf || canEditUsers}
+					<ChangePasswordField
+						{user}
+						{isSelf}
+						onsavingchange={(busy) => { passwordBusy = busy; }}
+						onchanged={(updated, newEtag) => {
+							// Only the user and its ETag: edits waiting in the form stay.
+							user = updated;
+							if (newEtag) etag = newEtag;
+						}}
 					/>
 				{/if}
 
