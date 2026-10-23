@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { faIconClass } from '$lib/utils/fa-icon';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -13,7 +12,6 @@
 	import { api } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import type { InvalidationEvent } from '$lib/api/types';
-	import { can } from '$lib/utils/permissions';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
 	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
 	import EnvironmentSwitcher from '$lib/components/ui/EnvironmentSwitcher.svelte';
@@ -25,6 +23,7 @@
 	import { resetBoot } from '$lib/stores/boot';
 	import { sidebarStore } from '$lib/stores/sidebar.svelte';
 	import { navBadges } from '$lib/stores/navBadges.svelte';
+	import SidebarNav from '$lib/components/sidebar/SidebarNav.svelte';
 	import { floatingWidgetStore } from '$lib/stores/floatingWidgets.svelte';
 	import FloatingWidgetLoader from '$lib/components/floating-widgets/FloatingWidgetLoader.svelte';
 	import DebugPanel from '$lib/components/debug/DebugPanel.svelte';
@@ -38,8 +37,7 @@
 	import type { Snippet } from 'svelte';
 	import { isActiveRoute } from '$lib/utils/nav-active';
 	import {
-		LayoutDashboard, FileText, Image, Users, Puzzle, Palette,
-		Settings, Wrench, SlidersHorizontal, Languages,
+		FileText, SlidersHorizontal, Pencil,
 		Sun, Moon, Menu, Code, CodeXml, Heart
 	} from 'lucide-svelte';
 	import { MediaQuery } from 'svelte/reactivity';
@@ -199,36 +197,15 @@
 	// `lg` breakpoint up, where the toggle is shown: below it the sidebar is the
 	// slide-out menu, which has no toggle and must open at full width.
 	const desktop = new MediaQuery('min-width: 1024px');
-	const collapsed = $derived(prefs.sidebarCollapsed && desktop.current);
+	// Editing the sidebar's order needs the labels, so it shows at full width.
+	let sidebarEditing = $state(false);
+	const collapsed = $derived(prefs.sidebarCollapsed && desktop.current && !sidebarEditing);
 	let mobileOpen = $state(false);
+	$effect(() => { if (!auth.isAuthenticated) sidebarEditing = false; });
 
 	// "Grav was </> with ♥ by Trilby Media." The icons and the company link are
 	// placed where the translation puts their placeholders.
 	const credit = $derived(creditParts(i18n.t, 'ADMIN_NEXT.APP_SHELL.MADE_BY', ['code', 'love', 'company']));
-
-	// `labelKey` is resolved via i18n.t() at render time so the sidebar
-	// follows the active admin language. Plugin-supplied sidebar items
-	// (see visiblePluginItems below) keep arriving as pre-translated plain
-	// text from the API server — that contract is documented separately.
-	const navItems: { href: string; labelKey: string; icon: typeof LayoutDashboard; badgeKey?: string; permission?: string }[] = [
-		{ href: `${base}/`, labelKey: 'ADMIN_NEXT.NAV.DASHBOARD', icon: LayoutDashboard },
-		{ href: `${base}/config`, labelKey: 'ADMIN_NEXT.NAV.CONFIGURATION', icon: Settings, permission: 'api.config.read' },
-		{ href: `${base}/users`, labelKey: 'ADMIN_NEXT.NAV.USERS', icon: Users, badgeKey: 'users', permission: 'api.users.read' },
-		{ href: `${base}/pages`, labelKey: 'ADMIN_NEXT.NAV.PAGES', icon: FileText, badgeKey: 'pages', permission: 'api.pages.read' },
-		{ href: `${base}/media`, labelKey: 'ADMIN_NEXT.NAV.MEDIA', icon: Image, badgeKey: 'media', permission: 'api.media.read' },
-		{ href: `${base}/plugins`, labelKey: 'ADMIN_NEXT.NAV.PLUGINS', icon: Puzzle, badgeKey: 'plugins', permission: 'api.gpm.read' },
-		{ href: `${base}/themes`, labelKey: 'ADMIN_NEXT.NAV.THEMES', icon: Palette, badgeKey: 'themes', permission: 'api.gpm.read' },
-		{ href: `${base}/translations`, labelKey: 'ADMIN_NEXT.NAV.TRANSLATIONS', icon: Languages, permission: 'api.translations.read' },
-		{ href: `${base}/tools`, labelKey: 'ADMIN_NEXT.NAV.TOOLS', icon: Wrench, permission: 'api.system.read' },
-	];
-
-	const visibleNavItems = $derived(
-		navItems.filter(item => !item.permission || can(item.permission))
-	);
-
-	const visiblePluginItems = $derived(
-		sidebarStore.items
-	);
 
 	const settingsItem = { href: `${base}/settings`, labelKey: 'ADMIN_NEXT.NAV.SETTINGS', icon: SlidersHorizontal };
 
@@ -281,68 +258,7 @@
 			<BrandLogo size="sidebar" showLabel={!collapsed} />
 		</div>
 
-		<nav class="flex-1 overflow-y-auto px-2 py-2">
-			<ul class="space-y-0.5">
-				{#each visibleNavItems as item}
-					<li>
-						<a href={item.href}
-							class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium transition-colors
-								{isActive(item.href)
-									? 'bg-primary/10 text-primary'
-									: 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
-							onclick={() => mobileOpen = false}
-							title={collapsed ? i18n.t(item.labelKey) : undefined}>
-							<item.icon size={16} strokeWidth={isActive(item.href) ? 2 : 1.5} />
-							{#if !collapsed}
-								<span>{i18n.t(item.labelKey)}</span>
-								{#if item.badgeKey}
-									{@const total = navBadges.counts[item.badgeKey]}
-									{@const upd = navBadges.updates[item.badgeKey] ?? 0}
-									{#if total != null || upd > 0}
-										<!-- Joined capsule: update count (left) fused to the muted total
-										     count (right). Collapses to just the total when there are
-										     no updates, matching the classic admin sidebar badges. -->
-										<span class="ms-auto inline-flex items-center overflow-hidden rounded-full text-[0.625rem] font-semibold">
-											{#if upd > 0}
-												<!-- Accent, not amber: an available update is an invitation to act,
-												     not a problem, so it uses the same colour as the action buttons. -->
-												<span class="bg-primary px-1.5 py-0.5 text-primary-foreground" title={i18n.t('ADMIN_NEXT.NAV.UPDATES_AVAILABLE', { count: upd })}>{upd}</span>
-											{/if}
-											{#if total != null}
-												<span class="bg-sidebar-accent px-1.5 py-0.5 text-sidebar-foreground">{total}</span>
-											{/if}
-										</span>
-									{/if}
-								{/if}
-							{/if}
-						</a>
-					</li>
-				{/each}
-				{#if visiblePluginItems.length > 0}
-					<li class="my-1 border-t border-sidebar-border"></li>
-					{#each visiblePluginItems as item (item.id)}
-						<li>
-							<a href="{base}{item.route}"
-								class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium transition-colors
-									{isActive(`${base}${item.route}`)
-										? 'bg-primary/10 text-primary'
-										: 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
-								onclick={() => mobileOpen = false}
-								title={collapsed ? item.label : undefined}>
-								<i class="{faIconClass(item.icon)} w-4 text-center text-[0.8125rem]"></i>
-								{#if !collapsed}
-									<span>{item.label}</span>
-									{@const badge = sidebarStore.badges[item.id] ?? item.badge}
-									{#if badge != null}
-										<span class="ms-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">{badge}</span>
-									{/if}
-								{/if}
-							</a>
-						</li>
-					{/each}
-				{/if}
-			</ul>
-		</nav>
+		<SidebarNav {collapsed} bind:editing={sidebarEditing} onnavigate={() => mobileOpen = false} />
 
 		<!-- Settings link -->
 		<div class="border-t border-sidebar-border px-2 pt-2">
@@ -417,8 +333,17 @@
 						{#if auth.adminVersion}<span class="whitespace-nowrap text-sidebar-foreground/50">{i18n.t('ADMIN_NEXT.APP_SHELL.ADMIN_VERSION', { version: auth.adminVersion })}</span>{/if}
 					</div>
 				{/if}
+				{#if !collapsed && !sidebarEditing}
+					<button
+						class="ms-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-md p-1.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+						onclick={() => sidebarEditing = true}
+						title={i18n.t('ADMIN_NEXT.SIDEBAR_EDIT.CUSTOMIZE')}
+						aria-label={i18n.t('ADMIN_NEXT.SIDEBAR_EDIT.CUSTOMIZE')}>
+						<Pencil size={15} />
+					</button>
+				{/if}
 				<button
-					class="ms-auto hidden h-7 w-7 shrink-0 items-center justify-center rounded-md p-1.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground lg:flex {collapsed ? 'mx-auto' : ''}"
+					class="{collapsed || sidebarEditing ? 'ms-auto' : ''} hidden h-7 w-7 shrink-0 items-center justify-center rounded-md p-1.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground lg:flex {collapsed ? 'mx-auto' : ''}"
 					onclick={() => prefs.sidebarCollapsed = !collapsed}
 					aria-label={collapsed ? i18n.t('ADMIN_NEXT.EXPAND_SIDEBAR') : i18n.t('ADMIN_NEXT.COLLAPSE_SIDEBAR')}>
 					{#if collapsed}

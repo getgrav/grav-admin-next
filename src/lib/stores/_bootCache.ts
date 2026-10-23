@@ -9,6 +9,7 @@ import type {
 	FontSize,
 	HelpMode,
 	PreferencesResponse,
+	SidebarLayout,
 	SiteBranding,
 } from '$lib/api/endpoints/preferences';
 
@@ -39,6 +40,8 @@ export interface BootCache {
 	editorKeymap: EditorKeymap;
 	editorStickyToolbar: boolean;
 	editorFixedHeight: number;
+	/** Missing in caches written before the sidebar could be arranged. */
+	sidebarLayout?: SidebarLayout;
 	branding: SiteBranding;
 	brandingUrls: BrandingUrls;
 }
@@ -80,6 +83,7 @@ export function saveBootCache(payload: PreferencesResponse): void {
 			editorKeymap: payload.effective.editorKeymap,
 			editorStickyToolbar: payload.effective.editorStickyToolbar,
 			editorFixedHeight: payload.effective.editorFixedHeight,
+			sidebarLayout: payload.effective.sidebarLayout,
 			branding: payload.branding,
 			brandingUrls: payload.branding_urls,
 		};

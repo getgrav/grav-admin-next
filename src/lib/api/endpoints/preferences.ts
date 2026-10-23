@@ -1,4 +1,7 @@
 import { api } from '../client';
+import type { SidebarLayout } from '$lib/utils/sidebar-layout';
+
+export type { SidebarLayout } from '$lib/utils/sidebar-layout';
 
 export type ColorMode = '' | 'light' | 'dark';
 /** How dark mode looks: dark greys, the old near-black, or a blue-black. */
@@ -71,6 +74,8 @@ export interface PreferenceValues {
 	pluginsViewMode: AccountsViewMode;
 	themesViewMode: AccountsViewMode;
 	flexAfterSave: FlexAfterSave;
+	/** Sidebar order and hidden items. An empty order is the built-in one. */
+	sidebarLayout: SidebarLayout;
 }
 
 /** Tier A2 — site-only behavioral settings (not per-user). */

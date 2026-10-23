@@ -2,6 +2,7 @@ import { scopedKey } from '$lib/utils/scopedStorage';
 import { queueUserPatch, onPreferencesUpdated } from './_serverSync';
 import { loadBootCache, saveBootCache, bootConfigAppearance } from './_bootCache';
 import { normalizeLang } from '$lib/i18n/normalize';
+import { asSidebarLayout, type SidebarLayout } from '$lib/utils/sidebar-layout';
 import {
 	getPreferences,
 	resetUserPreferences as apiResetUserPreferences,
@@ -172,6 +173,7 @@ const BUILTIN_DEFAULTS: EffectivePreferences = {
 	pluginsViewMode: 'cards',
 	themesViewMode: 'cards',
 	flexAfterSave: '',
+	sidebarLayout: { order: [], hidden: [], shown: [] },
 	// Tier A2 (site-only behavioral)
 	autoSaveEnabled: false,
 	autoSaveToolbarUndo: true,
@@ -214,6 +216,9 @@ function createPreferencesStore() {
 	let pluginsViewMode = $state<AccountsViewMode>(BUILTIN_DEFAULTS.pluginsViewMode);
 	let themesViewMode = $state<AccountsViewMode>(BUILTIN_DEFAULTS.themesViewMode);
 	let flexAfterSave = $state<FlexAfterSave>(BUILTIN_DEFAULTS.flexAfterSave);
+	// Cached so the sidebar paints in the user's order instead of jumping once
+	// the preferences arrive.
+	let sidebarLayout = $state<SidebarLayout>(asSidebarLayout(cache?.sidebarLayout));
 
 	// ── Tier A2: site-only behavioral — read-only mirrors of `effective` ──
 	// No setters; admins modify these via the Site Defaults editor.
@@ -270,6 +275,7 @@ function createPreferencesStore() {
 		pluginsViewMode = eff.pluginsViewMode;
 		themesViewMode = eff.themesViewMode;
 		flexAfterSave = eff.flexAfterSave;
+		sidebarLayout = asSidebarLayout(eff.sidebarLayout);
 		// Tier A2
 		autoSaveEnabled = eff.autoSaveEnabled;
 		autoSaveToolbarUndo = eff.autoSaveToolbarUndo;
@@ -359,6 +365,7 @@ function createPreferencesStore() {
 			case 'pluginsViewMode': pluginsViewMode = fallback as AccountsViewMode; break;
 			case 'themesViewMode': themesViewMode = fallback as AccountsViewMode; break;
 			case 'flexAfterSave': flexAfterSave = fallback as FlexAfterSave; break;
+			case 'sidebarLayout': sidebarLayout = asSidebarLayout(fallback); break;
 			// colorMode / accentHue / accentSaturation / darkShade live in the theme store.
 			default: break;
 		}
@@ -425,6 +432,9 @@ function createPreferencesStore() {
 
 		get flexAfterSave() { return flexAfterSave; },
 		set flexAfterSave(v: FlexAfterSave) { flexAfterSave = v; patchUser('flexAfterSave', v); },
+
+		get sidebarLayout() { return sidebarLayout; },
+		set sidebarLayout(v: SidebarLayout) { sidebarLayout = v; patchUser('sidebarLayout', v); },
 
 		// ── Tier A2: site-only — read-only ─────────────────────────────────
 		get autoSaveEnabled() { return autoSaveEnabled; },
