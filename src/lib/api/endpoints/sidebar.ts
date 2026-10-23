@@ -1,10 +1,12 @@
 import { api } from '../client';
 
-/** A shortcut a user can switch on under its item. */
+/** A shortcut a user can star to show under its item. */
 export interface SidebarChild {
 	id: string;
 	label: string;
 	route: string;
+	/** Shown until the user picks their own shortcuts. */
+	default?: boolean;
 	icon?: string;
 }
 
@@ -19,7 +21,7 @@ export interface SidebarItem {
 	badge?: string | number | null;
 	/** API path returning `{ count: N }` for a dynamically-refreshed badge. */
 	badgeEndpoint?: string;
-	/** Shortcuts the user can add under this item when customizing the sidebar. */
+	/** Shortcuts the user can star to show under this item. */
 	children?: SidebarChild[];
 }
 

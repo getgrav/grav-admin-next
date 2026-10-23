@@ -100,6 +100,20 @@ declare global {
 				useStandardHeader?: boolean;
 			}) => Promise<unknown>;
 		};
+		/**
+		 * The shortcuts under a plugin's sidebar item, for the plugin's own
+		 * page. Items are named by their own id (`kahunacart`), children by
+		 * theirs. `children` lists the ones the item offers this user and
+		 * `shortcuts` the ones showing. `setShortcut` saves to the user's
+		 * sidebar layout and ignores a child the item doesn't offer. A
+		 * `grav:sidebar:shortcuts` event on `window`
+		 * ({ shortcuts: { [itemId]: childIds } }) says when they change.
+		 */
+		__GRAV_SIDEBAR?: {
+			children: (item: string) => string[];
+			shortcuts: (item: string) => string[];
+			setShortcut: (item: string, child: string, on: boolean) => Promise<void>;
+		};
 		__GRAV_TOAST: {
 			success: (message: string, options?: Record<string, unknown>) => void;
 			error: (message: string, options?: Record<string, unknown>) => void;

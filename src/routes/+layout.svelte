@@ -35,6 +35,8 @@
 	import { scopedKey } from '$lib/utils/scopedStorage';
 	import { migrateLegacyPreferences } from '$lib/stores/_legacyMigration';
 	import { hasPendingSync } from '$lib/stores/_serverSync';
+	import { sidebarStore } from '$lib/stores/sidebar.svelte';
+	import { allSidebarShortcuts, setSidebarShortcut, sidebarChildren, sidebarShortcuts } from '$lib/stores/sidebarShortcuts';
 	import { hasUnsavedChanges } from '$lib/utils/unsaved-guard.svelte';
 	import { generateFavicon } from '$lib/utils/favicon';
 	import { trackKeyboardNav } from '$lib/utils/keyboard-nav';
@@ -381,6 +383,28 @@
 			form: (options) => modals.form(options),
 			open: (options) => modals.open({ ...options, kind: 'component' }),
 		};
+	});
+
+	// Let a plugin's own page star its screens as shortcuts under its sidebar
+	// item, and tell it when they change (from the sidebar's pencil, too).
+	// `grav:sidebar:shortcuts` carries every plugin item's showing shortcuts,
+	// by item id, and fires once the sidebar has loaded.
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+		window.__GRAV_SIDEBAR = {
+			children: (item) => sidebarChildren(item),
+			shortcuts: (item) => sidebarShortcuts(item),
+			setShortcut: (item, child, on) => setSidebarShortcut(item, child, on),
+		};
+	});
+	let shortcutsSent = '';
+	$effect(() => {
+		if (typeof window === 'undefined' || !sidebarStore.loaded) return;
+		const shortcuts = allSidebarShortcuts();
+		const key = stableStringify(shortcuts);
+		if (key === shortcutsSent) return;
+		shortcutsSent = key;
+		window.dispatchEvent(new CustomEvent('grav:sidebar:shortcuts', { detail: { shortcuts } }));
 	});
 
 	// Expose the svelte-sonner toast API to plugin web components so they can post

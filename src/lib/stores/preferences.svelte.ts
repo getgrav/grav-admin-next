@@ -127,8 +127,6 @@ interface LocalState {
 	pagesChunkSize: PagesChunkSize;
 	/** Ids of page-editor sidebar cards the user has collapsed (e.g. 'page-info'). */
 	collapsedEditorCards: string[];
-	/** Sidebar items whose shortcuts the user has folded away (e.g. 'plugin:kahunacart'). */
-	closedSidebarGroups: string[];
 }
 
 const LOCAL_DEFAULTS: LocalState = {
@@ -137,7 +135,6 @@ const LOCAL_DEFAULTS: LocalState = {
 	pageSidebarCollapsed: false,
 	pagesChunkSize: 100,
 	collapsedEditorCards: [],
-	closedSidebarGroups: [],
 };
 
 function loadLocal(): LocalState {
@@ -176,7 +173,7 @@ const BUILTIN_DEFAULTS: EffectivePreferences = {
 	pluginsViewMode: 'cards',
 	themesViewMode: 'cards',
 	flexAfterSave: '',
-	sidebarLayout: { order: [], hidden: [] },
+	sidebarLayout: { order: [], hidden: [], shortcuts: {} },
 	// Tier A2 (site-only behavioral)
 	autoSaveEnabled: false,
 	autoSaveToolbarUndo: true,
@@ -237,7 +234,6 @@ function createPreferencesStore() {
 	let pageSidebarCollapsed = $state<boolean>(local.pageSidebarCollapsed);
 	let pagesChunkSize = $state<PagesChunkSize>(local.pagesChunkSize);
 	let collapsedEditorCards = $state<string[]>(Array.isArray(local.collapsedEditorCards) ? local.collapsedEditorCards : []);
-	let closedSidebarGroups = $state<string[]>(Array.isArray(local.closedSidebarGroups) ? local.closedSidebarGroups : []);
 
 	// ── Server payload mirrors (read-only via getters) ─────────────────────
 	let siteDefaults = $state<Partial<PreferenceValues>>({});
@@ -255,7 +251,7 @@ function createPreferencesStore() {
 		try {
 			localStorage.setItem(
 				LOCAL_STORAGE_KEY,
-				JSON.stringify({ mediaViewMode, sidebarCollapsed, pageSidebarCollapsed, pagesChunkSize, collapsedEditorCards, closedSidebarGroups }),
+				JSON.stringify({ mediaViewMode, sidebarCollapsed, pageSidebarCollapsed, pagesChunkSize, collapsedEditorCards }),
 			);
 		} catch {
 			/* quota / unavailable — fine */
@@ -464,13 +460,6 @@ function createPreferencesStore() {
 			collapsedEditorCards = collapsedEditorCards.includes(id)
 				? collapsedEditorCards.filter((c) => c !== id)
 				: [...collapsedEditorCards, id];
-			persistLocal();
-		},
-		isSidebarGroupOpen(id: string): boolean { return !closedSidebarGroups.includes(id); },
-		toggleSidebarGroup(id: string): void {
-			closedSidebarGroups = closedSidebarGroups.includes(id)
-				? closedSidebarGroups.filter((g) => g !== id)
-				: [...closedSidebarGroups, id];
 			persistLocal();
 		},
 
