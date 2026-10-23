@@ -131,7 +131,16 @@
 	}
 </script>
 
-<form class="rounded-xl border border-border bg-card p-5" onsubmit={handleSubmit} novalidate>
+{#snippet row(id: string, label: string)}
+	<label for={id} class="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">
+		{label}
+	</label>
+{/snippet}
+
+<!-- Laid out like the blueprint sections around it (SectionField): the same card,
+     title and label-left, field-right rows, with fields at the `large` width the
+     account blueprint gives its password field. -->
+<form class="rounded-xl border border-border bg-muted/30" onsubmit={handleSubmit} novalidate>
 	<!-- A username field lets password managers tell which account the new password is for. -->
 	<input
 		type="text"
@@ -142,81 +151,106 @@
 		readonly
 	/>
 
-	<h2 class="text-sm font-semibold text-foreground">
-		{i18n.t('ADMIN_NEXT.USERS.PASSWORD.TITLE')}
-	</h2>
-	<p class="mt-1 text-xs text-muted-foreground">
-		{#if !isSelf}
-			{i18n.t('ADMIN_NEXT.USERS.PASSWORD.OTHER_HELP', { name })}
-		{:else if needsCurrent}
-			{i18n.t('ADMIN_NEXT.USERS.PASSWORD.OWN_HELP')}
-		{:else}
-			{i18n.t('ADMIN_NEXT.USERS.PASSWORD.NO_PASSWORD_HELP')}
-		{/if}
-	</p>
-
-	<div class="mt-4 grid max-w-md gap-4">
-		{#if needsCurrent}
-			<PasswordField
-				id="current-password"
-				name="current-password"
-				label={i18n.t('ADMIN_NEXT.USERS.PASSWORD.CURRENT')}
-				value={current}
-				onchange={(v) => {
-					current = v;
-					clearError('current');
-				}}
-				policy={null}
-				autocomplete="current-password"
-				showMeter={false}
-				showHint={false}
-				invalid={!!errors.current}
-				invalidMessage={errors.current}
-				disabled={saving}
-			/>
-		{/if}
-		<PasswordField
-			id="new-password"
-			name="new-password"
-			label={i18n.t('ADMIN_NEXT.USERS.PASSWORD.NEW')}
-			value={next}
-			onchange={(v) => {
-				next = v;
-				clearError('next');
-			}}
-			policy={passwordPolicy.current}
-			autocomplete="new-password"
-			invalid={!!errors.next}
-			invalidMessage={errors.next}
-			disabled={saving}
-		/>
-		<PasswordField
-			id="confirm-password"
-			name="confirm-password"
-			label={i18n.t('ADMIN_NEXT.USERS.PASSWORD.CONFIRM')}
-			value={confirm}
-			onchange={(v) => {
-				confirm = v;
-				clearError('confirm');
-			}}
-			policy={null}
-			autocomplete="new-password"
-			showMeter={false}
-			showHint={false}
-			invalid={!!errors.confirm}
-			invalidMessage={errors.confirm}
-			disabled={saving}
-		/>
+	<div class="px-6 pt-6 pb-2">
+		<h3 class="text-base font-bold text-foreground">
+			{i18n.t('ADMIN_NEXT.USERS.PASSWORD.TITLE')}
+		</h3>
+		<p class="mt-1 text-sm text-muted-foreground">
+			{#if !isSelf}
+				{i18n.t('ADMIN_NEXT.USERS.PASSWORD.OTHER_HELP', { name })}
+			{:else if needsCurrent}
+				{i18n.t('ADMIN_NEXT.USERS.PASSWORD.OWN_HELP')}
+			{:else}
+				{i18n.t('ADMIN_NEXT.USERS.PASSWORD.NO_PASSWORD_HELP')}
+			{/if}
+		</p>
 	</div>
 
-	<div class="mt-4">
-		<Button type="submit" size="sm" disabled={!canSubmit}>
-			{#if saving}
-				<Loader2 size={14} class="me-1.5 animate-spin" />
-			{/if}
-			{isSelf && needsCurrent
-				? i18n.t('ADMIN_NEXT.USERS.PASSWORD.CHANGE')
-				: i18n.t('ADMIN_NEXT.USERS.PASSWORD.SET')}
-		</Button>
+	<div class="space-y-5 px-6 py-5">
+		{#if needsCurrent}
+			<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_2fr] lg:items-start lg:gap-x-6">
+				<div class="flex items-start gap-2 lg:pt-2.5">
+					{@render row('current-password', i18n.t('ADMIN_NEXT.USERS.PASSWORD.CURRENT'))}
+				</div>
+				<div class="max-w-[28rem]">
+					<PasswordField
+						id="current-password"
+						name="current-password"
+						label=""
+						value={current}
+						onchange={(v) => {
+							current = v;
+							clearError('current');
+						}}
+						policy={null}
+						autocomplete="current-password"
+						showMeter={false}
+						showHint={false}
+						invalid={!!errors.current}
+						invalidMessage={errors.current}
+						disabled={saving}
+					/>
+				</div>
+			</div>
+		{/if}
+		<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_2fr] lg:items-start lg:gap-x-6">
+			<div class="flex items-start gap-2 lg:pt-2.5">
+				{@render row('new-password', i18n.t('ADMIN_NEXT.USERS.PASSWORD.NEW'))}
+			</div>
+			<div class="max-w-[28rem]">
+				<PasswordField
+					id="new-password"
+					name="new-password"
+					label=""
+					value={next}
+					onchange={(v) => {
+						next = v;
+						clearError('next');
+					}}
+					policy={passwordPolicy.current}
+					autocomplete="new-password"
+					invalid={!!errors.next}
+					invalidMessage={errors.next}
+					disabled={saving}
+				/>
+			</div>
+		</div>
+		<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_2fr] lg:items-start lg:gap-x-6">
+			<div class="flex items-start gap-2 lg:pt-2.5">
+				{@render row('confirm-password', i18n.t('ADMIN_NEXT.USERS.PASSWORD.CONFIRM'))}
+			</div>
+			<div class="max-w-[28rem]">
+				<PasswordField
+					id="confirm-password"
+					name="confirm-password"
+					label=""
+					value={confirm}
+					onchange={(v) => {
+						confirm = v;
+						clearError('confirm');
+					}}
+					policy={null}
+					autocomplete="new-password"
+					showMeter={false}
+					showHint={false}
+					invalid={!!errors.confirm}
+					invalidMessage={errors.confirm}
+					disabled={saving}
+				/>
+			</div>
+		</div>
+		<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_2fr] lg:gap-x-6">
+			<div class="max-lg:hidden"></div>
+			<div>
+				<Button type="submit" size="sm" disabled={!canSubmit}>
+					{#if saving}
+						<Loader2 size={14} class="me-1.5 animate-spin" />
+					{/if}
+					{isSelf && needsCurrent
+						? i18n.t('ADMIN_NEXT.USERS.PASSWORD.CHANGE')
+						: i18n.t('ADMIN_NEXT.USERS.PASSWORD.SET')}
+				</Button>
+			</div>
+		</div>
 	</div>
 </form>
