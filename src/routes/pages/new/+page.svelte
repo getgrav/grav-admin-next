@@ -42,7 +42,11 @@
 	let title = $state(initialParams.get('title') ?? '');
 	let slug = $state(initialParams.get('title') ? slugify(initialParams.get('title') as string, i18n.lang) : '');
 	let slugManuallyEdited = $state(false);
-	let parentRoute = $state(initialParams.get('parent') || '/');
+	// A module only shows inside the modular page above it, so it never
+	// starts at (or can pick) the site root: it starts with no parent until
+	// one is chosen, unless the link that opened the form names one.
+	const initialParent = initialParams.get('parent') || '/';
+	let parentRoute = $state(initialParams.get('kind') === 'module' && initialParent === '/' ? '' : initialParent);
 	let template = $state(initialParams.get('template') || 'default');
 	const templateLocked = initialParams.has('template');
 	// Set once the author touches the template selector. From then on their
@@ -73,9 +77,11 @@
 	// ── Derived ─────────────────────────────────────────────────────
 	// Folder kind has no Title field (no .md, no frontmatter); page/module do
 	// and also need a template.
+	const needsModularParent = $derived(kind === 'module' && (parentRoute === '' || parentRoute === '/'));
 	const canSave = $derived(
 		canWrite('pages')
 		&& slug.trim().length > 0
+		&& !needsModularParent
 		&& (kind === 'folder' || (title.trim().length > 0 && template.length > 0))
 	);
 
@@ -89,6 +95,7 @@
 	);
 
 	const parentLabel = $derived(() => {
+		if (parentRoute === '') return i18n.t('ADMIN_NEXT.PAGES.NEW.PICK_MODULAR_PAGE');
 		if (parentRoute === '/') return '<root> /';
 		const found = findPageTitle([...rootPages], parentRoute);
 		return found ? `${parentRoute} — ${found}` : parentRoute;
@@ -112,6 +119,9 @@
 			// Module: drop the unsupported 'yes' option.
 			if (kind === 'module' && visible === 'yes') visible = 'auto';
 		}
+		// Switching to a module (the kind can change without a reload) drops
+		// the root as its parent.
+		if (kind === 'module' && untrack(() => parentRoute) === '/') parentRoute = '';
 	});
 
 	async function loadPageTypes(modular: boolean) {
@@ -192,7 +202,7 @@
 		// has picked for themselves, nothing overrides them.
 		if (templateLocked || templatePickedByUser || kind === 'folder') return;
 		// `/` is the pages root, not a page — there is no parent to ask.
-		if (route === '/') return;
+		if (route === '/' || route === '') return;
 
 		const childType = await resolveChildType(route);
 		// A newer parent selection started while this one was in flight.
@@ -371,7 +381,7 @@
 
 	// ── Create ──────────────────────────────────────────────────────
 	async function handleCreate() {
-		if (!canSave || saving) return;
+		if (!canSave || saving || needsModularParent) return;
 		saving = true;
 		try {
 			const route = parentRoute === '/' ? `/${slug}` : `${parentRoute}/${slug}`;
@@ -574,7 +584,7 @@
 								class="flex h-10 w-full items-center justify-between rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm shadow-sm transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 								onclick={handleParentOpen}
 							>
-								<span class="text-foreground">{parentLabel()}</span>
+								<span class={parentRoute === '' ? 'text-muted-foreground' : 'text-foreground'}>{parentLabel()}</span>
 								<ChevronsUpDown size={14} class="shrink-0 text-muted-foreground" />
 							</button>
 
@@ -607,7 +617,9 @@
 												{i18n.t('ADMIN_NEXT.PAGES.LOADING')}
 											</div>
 										{:else}
-											<!-- Root option -->
+											<!-- Root option. Not offered for a module: nothing draws a
+											     module that has no modular page above it. -->
+											{#if kind !== 'module'}
 											<button
 												type="button"
 												class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
@@ -620,6 +632,7 @@
 													<Check size={14} class="ms-auto shrink-0 text-primary" />
 												{/if}
 											</button>
+											{/if}
 
 											{#each filterPages(rootPages) as pg (pageApiRoute(pg))}
 												{@render parentNode(pg, 0)}
@@ -633,6 +646,9 @@
 								</div>
 							{/if}
 						</div>
+						{#if needsModularParent}
+							<p class="mt-1 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.NEW.MODULE_NEEDS_PARENT')}</p>
+						{/if}
 					</div>
 
 					{#if kind !== 'folder'}
