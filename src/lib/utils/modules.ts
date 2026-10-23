@@ -18,23 +18,35 @@ export function isModule(page: PageLike): boolean {
 }
 
 /**
+ * Every collection source a `content.items` value names, as the strings core
+ * reads them: `'@self.modular'`, a list of them (`['@self.modular']`), the
+ * selector map `{ '@self': 'modular' }` (read as `@self.modular`), or a list of
+ * those. A list is walked the same way at any depth.
+ */
+function itemSources(items: unknown): string[] {
+	if (typeof items === 'string') return [items];
+	if (Array.isArray(items)) return items.flatMap(itemSources);
+	if (items && typeof items === 'object') {
+		return Object.entries(items as Record<string, unknown>).flatMap(([key, value]) => [
+			key,
+			...(typeof value === 'string' ? [`${key}.${value}`] : []),
+		]);
+	}
+	return [];
+}
+
+/**
  * Whether a page draws modules: its template is `modular`, or its collection
  * is its own modules (`content: items: '@self.modular'`, or the older
- * `self@.modular`). Told from the page alone, so the editor never has to load
- * a big blog's children to find out.
+ * `self@.modular`, alone or in a list). Told from the page alone, so the editor
+ * never has to load a big blog's children to find out.
  */
 export function isModularPage(page: PageLike | null | undefined): boolean {
 	if (!page || isModule(page)) return false;
 	if (page.template === 'modular') return true;
 	const content = page.header?.content;
 	const items = content && typeof content === 'object' ? (content as Record<string, unknown>).items : undefined;
-	// `items: '@self.modular'`, or the object form `items: { '@self': modular }`.
-	const sources = typeof items === 'string'
-		? [items]
-		: items && typeof items === 'object'
-			? Object.entries(items as Record<string, unknown>).flatMap(([key, value]) => [key, `${key}.${String(value)}`])
-			: [];
-	return sources.some((source) => /^(@self|self@)\.modular$/.test(source.trim()));
+	return itemSources(items).some((source) => /^(@self|self@)\.modular$/.test(source.trim()));
 }
 
 /** `featured_product` → "Featured product", the name core gives a type with no blueprint title. */

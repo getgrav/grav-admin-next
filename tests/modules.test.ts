@@ -16,6 +16,17 @@ test('a modular page is told by its template or its collection', () => {
 	assert.equal(isModularPage({ template: 'home', slug: 'home', header: { content: { items: 'self@.modular' } } }), true);
 	assert.equal(isModularPage({ template: 'home', slug: 'home', header: { content: { items: { '@self': 'modular' } } } }), true);
 	assert.equal(isModularPage({ template: 'blog', slug: 'blog', header: { content: { items: '@self.children' } } }), false);
+	// The list forms core takes: a list of sources, a list of selector maps, either one nested.
+	const withItems = (items: unknown) => ({ template: 'home', slug: 'home', header: { content: { items } } });
+	assert.equal(isModularPage(withItems(['@self.modular'])), true);
+	assert.equal(isModularPage(withItems(['self@.modular'])), true);
+	assert.equal(isModularPage(withItems([{ '@self': 'modular' }])), true);
+	assert.equal(isModularPage(withItems([['@self.modular']])), true);
+	assert.equal(isModularPage(withItems(['@taxonomy.tag', '@self.modular'])), true);
+	assert.equal(isModularPage(withItems(['@self.children'])), false);
+	assert.equal(isModularPage(withItems([{ '@self': 'children' }])), false);
+	assert.equal(isModularPage(withItems([])), false);
+	assert.equal(isModularPage(withItems([null, 7])), false);
 	assert.equal(isModularPage({ template: 'default', slug: 'about' }), false);
 	// A module is not a modular page, even with the modular template's name.
 	assert.equal(isModularPage({ template: 'modular/text', folder: '01._text' }), false);
