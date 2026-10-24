@@ -83,6 +83,22 @@
 
 	const predefinedOptions = $derived(resolvedOptions.map((opt) => opt.value));
 
+	// `selectize: create: false`, as in classic selectize.js: only the listed
+	// options can be added. Typed text becomes the option whose value or label
+	// it names, ignoring case, and anything else is dropped rather than saved.
+	const strict = $derived(
+		!!field.selectize && typeof field.selectize === 'object' &&
+		(field.selectize as Record<string, unknown>).create === false &&
+		resolvedOptions.length > 0
+	);
+	function optionFor(text: string): string | null {
+		const needle = text.trim().toLowerCase();
+		if (!needle) return null;
+		const hit = resolvedOptions.find((opt) => opt.value.toLowerCase() === needle) ??
+			resolvedOptions.find((opt) => translateLabel(opt.label || opt.value).toLowerCase() === needle);
+		return hit ? hit.value : null;
+	}
+
 	// Stored tags are option *values* (e.g. group keys like `procras`), but we
 	// display the option *label* (`Procrastinators`) when one exists — matching
 	// classic selectize, which renders the readable name while submitting the
@@ -128,7 +144,7 @@
 	function addTags(newTags: string[]) {
 		const next = [...tags];
 		for (const tag of newTags) {
-			const trimmed = tag.trim();
+			const trimmed = strict ? (optionFor(tag) ?? '') : tag.trim();
 			if (trimmed && !next.includes(trimmed)) next.push(trimmed);
 		}
 		if (next.length > tags.length) emitChange(next);
@@ -201,11 +217,12 @@
 			if (highlightedIndex >= 0 && highlightedIndex < suggestions.length) {
 				e.preventDefault();
 				addTag(suggestions[highlightedIndex]);
-			} else if (e.key === 'Tab' && typed.trim() && suggestions.length > 0) {
+			} else if ((e.key === 'Tab' || strict) && typed.trim() && suggestions.length > 0) {
 				// Tab completes to the best match, as classic admin did; Enter
-				// and comma keep exactly what was typed.
+				// and comma keep exactly what was typed, unless only listed
+				// options are allowed, when they take the best match too.
 				e.preventDefault();
-				addTag(suggestions[0]);
+				addTag(optionFor(typed) ?? suggestions[0]);
 			} else if (typed.trim()) {
 				e.preventDefault();
 				addTag(typed);
