@@ -42,6 +42,8 @@ export interface BootCache {
 	editorFixedHeight: number;
 	/** Missing in caches written before the sidebar could be arranged. */
 	sidebarLayout?: SidebarLayout;
+	/** Missing in caches written before the sidebar's shortcuts could fold. */
+	sidebarFolded?: string[];
 	branding: SiteBranding;
 	brandingUrls: BrandingUrls;
 }
@@ -84,6 +86,7 @@ export function saveBootCache(payload: PreferencesResponse): void {
 			editorStickyToolbar: payload.effective.editorStickyToolbar,
 			editorFixedHeight: payload.effective.editorFixedHeight,
 			sidebarLayout: payload.effective.sidebarLayout,
+			sidebarFolded: payload.effective.sidebarFolded,
 			branding: payload.branding,
 			brandingUrls: payload.branding_urls,
 		};

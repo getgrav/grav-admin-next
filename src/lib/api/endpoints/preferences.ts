@@ -76,6 +76,8 @@ export interface PreferenceValues {
 	flexAfterSave: FlexAfterSave;
 	/** Sidebar order and hidden items. An empty order is the built-in one. */
 	sidebarLayout: SidebarLayout;
+	/** Plugin items (`plugin:<id>`) whose shortcuts are folded away under them. */
+	sidebarFolded: string[];
 }
 
 /** Tier A2 — site-only behavioral settings (not per-user). */

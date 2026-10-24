@@ -31,7 +31,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import {
 		LayoutDashboard, FileText, Image, Users, Puzzle, Palette, Settings, Wrench, Languages,
-		GripVertical, Eye, EyeOff, Globe, RotateCcw, Undo2, ChevronRight, Star,
+		GripVertical, Eye, EyeOff, Globe, RotateCcw, Undo2, ChevronRight, ChevronDown, Star,
 	} from 'lucide-svelte';
 
 	interface Props {
@@ -393,22 +393,35 @@
 				{:else if entry?.kind === 'plugin'}
 					{@const href = `${base}${entry.item.route}`}
 					{@const subItems = collapsed ? [] : shownChildren(entry)}
-					<!-- The item itself stays plain while one of its own shortcuts is the active one. -->
-					{@const active = isActive(href) && !subItems.some((c) => isChildActive(c.route))}
+					{@const open = subItems.length > 0 && prefs.isSidebarGroupOpen(id)}
+					<!-- The item itself stays plain while one of its own shortcuts, on show, is the active one. -->
+					{@const active = isActive(href) && !(open && subItems.some((c) => isChildActive(c.route)))}
 					<li>
-						<a {href} class="{linkClass} {active ? activeClass : idleClass}"
-							onclick={onnavigate}
-							title={collapsed ? label(entry) : undefined}>
-							{@render entryIcon(entry, active)}
-							{#if !collapsed}
-								<span class="truncate">{label(entry)}</span>
-								{@const badge = sidebarStore.badges[entry.item.id] ?? entry.item.badge}
-								{#if badge != null}
-									<span class="ms-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">{badge}</span>
+						<div class="flex items-center gap-0.5">
+							<a {href} class="{linkClass} min-w-0 flex-1 {active ? activeClass : idleClass}"
+								onclick={onnavigate}
+								title={collapsed ? label(entry) : undefined}>
+								{@render entryIcon(entry, active)}
+								{#if !collapsed}
+									<span class="truncate">{label(entry)}</span>
+									{@const badge = sidebarStore.badges[entry.item.id] ?? entry.item.badge}
+									{#if badge != null}
+										<span class="ms-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">{badge}</span>
+									{/if}
 								{/if}
+							</a>
+							{#if subItems.length > 0}
+								<button type="button"
+									class="flex h-7 w-6 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+									aria-expanded={open}
+									aria-label={i18n.t(open ? 'ADMIN_NEXT.SIDEBAR_EDIT.FOLD' : 'ADMIN_NEXT.SIDEBAR_EDIT.UNFOLD', { label: label(entry) })}
+									title={i18n.t(open ? 'ADMIN_NEXT.SIDEBAR_EDIT.FOLD' : 'ADMIN_NEXT.SIDEBAR_EDIT.UNFOLD', { label: label(entry) })}
+									onclick={() => prefs.toggleSidebarGroup(id)}>
+									<ChevronDown size={14} class="transition-transform {open ? '' : '-rotate-90 rtl:rotate-90'}" />
+								</button>
 							{/if}
-						</a>
-						{#if subItems.length > 0}
+						</div>
+						{#if open}
 							<ul class="ms-[1.15rem] mt-0.5 space-y-0.5 border-s border-sidebar-border ps-1.5">
 								{#each subItems as child (child.id)}
 									{@const subActive = isChildActive(child.route)}

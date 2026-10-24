@@ -174,6 +174,7 @@ const BUILTIN_DEFAULTS: EffectivePreferences = {
 	themesViewMode: 'cards',
 	flexAfterSave: '',
 	sidebarLayout: { order: [], hidden: [], shortcuts: {} },
+	sidebarFolded: [],
 	// Tier A2 (site-only behavioral)
 	autoSaveEnabled: false,
 	autoSaveToolbarUndo: true,
@@ -192,6 +193,10 @@ const NO_MEDIA_CONSTRAINTS: MediaUploadSettings = {
 	maxWidth: 0,
 	maxHeight: 0,
 };
+
+function asIdList(value: unknown): string[] {
+	return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [];
+}
 
 function createPreferencesStore() {
 	const local = loadLocal();
@@ -219,6 +224,7 @@ function createPreferencesStore() {
 	// Cached so the sidebar paints in the user's order instead of jumping once
 	// the preferences arrive.
 	let sidebarLayout = $state<SidebarLayout>(asSidebarLayout(cache?.sidebarLayout));
+	let sidebarFolded = $state<string[]>(asIdList(cache?.sidebarFolded));
 
 	// ── Tier A2: site-only behavioral — read-only mirrors of `effective` ──
 	// No setters; admins modify these via the Site Defaults editor.
@@ -276,6 +282,7 @@ function createPreferencesStore() {
 		themesViewMode = eff.themesViewMode;
 		flexAfterSave = eff.flexAfterSave;
 		sidebarLayout = asSidebarLayout(eff.sidebarLayout);
+		sidebarFolded = asIdList(eff.sidebarFolded);
 		// Tier A2
 		autoSaveEnabled = eff.autoSaveEnabled;
 		autoSaveToolbarUndo = eff.autoSaveToolbarUndo;
@@ -366,6 +373,7 @@ function createPreferencesStore() {
 			case 'themesViewMode': themesViewMode = fallback as AccountsViewMode; break;
 			case 'flexAfterSave': flexAfterSave = fallback as FlexAfterSave; break;
 			case 'sidebarLayout': sidebarLayout = asSidebarLayout(fallback); break;
+			case 'sidebarFolded': sidebarFolded = asIdList(fallback); break;
 			// colorMode / accentHue / accentSaturation / darkShade live in the theme store.
 			default: break;
 		}
@@ -435,6 +443,13 @@ function createPreferencesStore() {
 
 		get sidebarLayout() { return sidebarLayout; },
 		set sidebarLayout(v: SidebarLayout) { sidebarLayout = v; patchUser('sidebarLayout', v); },
+
+		get sidebarFolded() { return sidebarFolded; },
+		isSidebarGroupOpen(id: string): boolean { return !sidebarFolded.includes(id); },
+		toggleSidebarGroup(id: string): void {
+			sidebarFolded = sidebarFolded.includes(id) ? sidebarFolded.filter((g) => g !== id) : [...sidebarFolded, id];
+			patchUser('sidebarFolded', sidebarFolded);
+		},
 
 		// ── Tier A2: site-only — read-only ─────────────────────────────────
 		get autoSaveEnabled() { return autoSaveEnabled; },
