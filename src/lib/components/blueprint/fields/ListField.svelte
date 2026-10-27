@@ -17,9 +17,11 @@
 		onFieldChange: (path: string, value: unknown) => void;
 		onFieldCommit?: (path: string, value: unknown, oldValue?: unknown) => void;
 		filter?: string;
+		/** A required sub-field a row left empty, from the form's save check. */
+		error?: string;
 	}
 
-	let { field, value, onchange, getValue, onFieldChange, onFieldCommit, filter = '' }: Props = $props();
+	let { field, value, onchange, getValue, onFieldChange, onFieldCommit, filter = '', error }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
 	const childFields = $derived(field.fields ?? []);
@@ -438,6 +440,10 @@
 				</div>
 			{/each}
 		</div>
+	{/if}
+
+	{#if error}
+		<p class="text-xs font-medium text-destructive" data-field-error>{error}</p>
 	{/if}
 
 	<!-- Actions bar -->

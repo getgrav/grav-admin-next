@@ -623,7 +623,7 @@
 	</div>
 
 {:else if field.type === 'list' && field.fields}
-	<ListField {field} {value} {onchange} {getValue} {onFieldChange} {onFieldCommit} {filter} />
+	<ListField {field} {value} {onchange} {getValue} {onFieldChange} {onFieldCommit} {filter} error={fieldError} />
 
 {:else if field.type === 'array'}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->

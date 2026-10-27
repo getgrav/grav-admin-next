@@ -1,6 +1,7 @@
 import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 import { i18n } from '$lib/stores/i18n.svelte';
 import { toast } from 'svelte-sonner';
+import { missingInListRows, requiredRowFields } from '$lib/utils/list-required';
 
 /**
  * Client-side blueprint validation.
@@ -18,6 +19,7 @@ import { toast } from 'svelte-sonner';
 // Layout containers whose children share the parent's data namespace — recurse
 // into these. NOT list/array/elements: their children are per-item templates
 // with relative names (e.g. `.class`) that aren't real top-level data paths.
+// A list's required sub-fields are checked row by row instead (list-required.ts).
 const RECURSE_TYPES = new Set([
 	'tabs', 'tab', 'section', 'fieldset', 'columns', 'column', 'conditional', 'page-exists',
 ]);
@@ -49,11 +51,32 @@ export function isEmpty(value: unknown): boolean {
 	return false;
 }
 
+/** A list's error names the first row that leaves a required sub-field empty. */
+function listRowErrorFor(
+	field: BlueprintField,
+	data: Record<string, unknown> | undefined,
+): string | null {
+	const [first] = missingInListRows(field, getByPath(data, field.name));
+	if (!first) return null;
+	const label = first.field.label
+		? i18n.tMaybe(first.field.label)
+		: (first.field.name.split('.').pop() ?? first.field.name);
+	return i18n.t('ADMIN_NEXT.VALIDATION.LIST_ROW_REQUIRED', { row: first.row, label });
+}
+
+/** True for a field the required check covers: a required leaf, or a list with required sub-fields. */
+function isChecked(field: BlueprintField): boolean {
+	if (SUPPRESSED_NAMES.has(field.name) || SUPPRESSED_TYPES.has(field.type)) return false;
+	if (field.type === 'list') return requiredRowFields(field).length > 0;
+	return field.validate?.required === true;
+}
+
 /** Build the inline error message for a single required field, or null if it's filled. */
 function requiredErrorFor(
 	field: BlueprintField,
 	data: Record<string, unknown> | undefined,
 ): string | null {
+	if (field.type === 'list') return listRowErrorFor(field, data);
 	const value = getByPath(data, field.name);
 	// A field showing its blueprint default isn't empty — the default is what gets saved.
 	const effective = isEmpty(value) ? field.default : value;
@@ -93,12 +116,7 @@ export function fieldLabelFor(fields: BlueprintField[] | undefined, path: string
 function collectRequired(fields: BlueprintField[], out: BlueprintField[]): void {
 	for (const field of fields) {
 		const isContainer = RECURSE_TYPES.has(field.type);
-		if (
-			field.validate?.required === true
-			&& !isContainer
-			&& !SUPPRESSED_NAMES.has(field.name)
-			&& !SUPPRESSED_TYPES.has(field.type)
-		) {
+		if (!isContainer && isChecked(field)) {
 			out.push(field);
 		}
 		if (field.fields?.length && isContainer) {
@@ -138,12 +156,7 @@ export function validateFieldAt(
 	data: Record<string, unknown> | undefined,
 ): string | null {
 	const field = findFieldByName(fields, path);
-	if (
-		!field
-		|| field.validate?.required !== true
-		|| SUPPRESSED_NAMES.has(field.name)
-		|| SUPPRESSED_TYPES.has(field.type)
-	) {
+	if (!field || !isChecked(field)) {
 		return null;
 	}
 	return requiredErrorFor(field, data);
