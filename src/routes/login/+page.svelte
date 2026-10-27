@@ -86,6 +86,9 @@
 	let setupChecked = $state(!(auth.hasGravConfig || auth.serverUrl));
 	let waitedLongEnough = $state(false);
 	const ready = $derived(waitedLongEnough || (setupChecked && i18n.loaded));
+	// A custom logo already carries the site's name, so the heading under it
+	// would only repeat it. It stays in the page for screen readers.
+	const logoNamesSite = $derived(branding.mode === 'custom' && !!(branding.urlLight || branding.urlDark));
 	onMount(() => {
 		const timer = setTimeout(() => (waitedLongEnough = true), 4000);
 		return () => clearTimeout(timer);
@@ -291,7 +294,7 @@
 				<div class="mb-4">
 					<BrandLogo size="login" />
 				</div>
-				<h1 class="text-2xl font-semibold tracking-tight text-foreground">{branding.title || i18n.t('ADMIN_NEXT.LOGIN.GRAV_ADMIN')}</h1>
+				<h1 class={logoNamesSite ? 'sr-only' : 'text-2xl font-semibold tracking-tight text-foreground'}>{branding.title || i18n.t('ADMIN_NEXT.LOGIN.GRAV_ADMIN')}</h1>
 				<p class="mt-1 text-[0.8125rem] text-muted-foreground">
 					{#if stage === '2fa'}
 						{i18n.t('ADMIN_NEXT.LOGIN.TWOFA_SUBTITLE')}
