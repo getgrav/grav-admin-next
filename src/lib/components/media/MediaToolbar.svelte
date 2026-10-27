@@ -96,11 +96,12 @@
 	{/if}
 </div>
 
-<!-- Toolbar -->
-<div class="flex items-center gap-2 border-b border-border px-4 py-2">
+<!-- Toolbar: wraps on narrow screens so the actions drop to a second row
+	 instead of being clipped off the edge (admin2#202). -->
+<div class="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2">
 	<!-- Search -->
-	<div class="relative flex-1">
-		<Search size={14} class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+	<div class="relative min-w-[12rem] flex-1">
+		<Search size={14} class="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
 		<input
 			type="text"
 			class="h-8 w-full rounded-md border border-input bg-muted/50 ps-9 pe-8 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
@@ -110,7 +111,7 @@
 		/>
 		{#if searchInput}
 			<button
-				class="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+				class="absolute end-2 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground"
 				onclick={clearSearch}
 				aria-label={i18n.t('ADMIN_NEXT.CLEAR_SEARCH')}
 			>
@@ -146,79 +147,86 @@
 		{/each}
 	</select>
 
-	<!-- View toggle -->
-	<div class="inline-flex rounded-md border border-border shadow-sm">
+	<!-- View, arrange and file actions stay together and keep to the end
+		 edge, so Upload is always reachable when the row wraps. -->
+	<div class="ms-auto flex flex-wrap items-center gap-2">
+		<!-- View toggle -->
+		<div class="inline-flex rounded-md border border-border shadow-sm">
+			<button
+				class="inline-flex h-8 w-8 items-center justify-center transition-colors first:rounded-l-md last:rounded-r-md
+					{mediaManager.viewMode === 'grid'
+						? 'bg-accent text-accent-foreground'
+						: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+				onclick={() => mediaManager.viewMode = 'grid'}
+				aria-label={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.GRID_VIEW')}
+			>
+				<LayoutGrid size={14} />
+			</button>
+			<button
+				class="inline-flex h-8 w-8 items-center justify-center transition-colors first:rounded-l-md last:rounded-r-md
+					{mediaManager.viewMode === 'list'
+						? 'bg-accent text-accent-foreground'
+						: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+				onclick={() => mediaManager.viewMode = 'list'}
+				aria-label={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.LIST_VIEW')}
+			>
+				<List size={14} />
+			</button>
+		</div>
+
+		<!-- Reorder toggle: turns the whole card/row into a drag-to-arrange source -->
+		{#if !readonly && !mediaManager.isSearching && mediaManager.files.length > 1}
+			<button
+				class="inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-md px-2 text-xs transition-colors {mediaManager.reordering
+					? 'bg-primary text-primary-foreground hover:bg-primary/90'
+					: 'border border-input bg-muted/50 text-muted-foreground hover:bg-accent hover:text-foreground'}"
+				aria-pressed={mediaManager.reordering}
+				title={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.REORDER')}
+				aria-label={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.REORDER')}
+				onclick={() => mediaManager.setReordering()}
+			>
+				<ArrowUpDown size={14} />
+				<span class="hidden sm:inline">
+					{mediaManager.reordering
+						? i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.REORDER_DONE')
+						: i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.REORDER_MODE')}
+				</span>
+			</button>
+		{/if}
+
+		<!-- Separator -->
+		<div class="hidden h-5 w-px bg-border sm:block"></div>
+
+		{#if !readonly}
+		<!-- Bulk actions -->
+		{#if selectionCount > 0}
+			<button
+				class="inline-flex h-8 items-center gap-1.5 rounded-md border border-destructive/30 bg-destructive/10 px-3 text-[0.75rem] font-medium text-destructive transition-colors hover:bg-destructive/20"
+				onclick={ondeleteselected}
+			>
+				<Trash2 size={13} />
+				{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.DELETE_SELECTED', { count: selectionCount })}
+			</button>
+		{/if}
+
+		<!-- New folder -->
 		<button
-			class="inline-flex h-8 w-8 items-center justify-center transition-colors first:rounded-l-md last:rounded-r-md
-				{mediaManager.viewMode === 'grid'
-					? 'bg-accent text-accent-foreground'
-					: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
-			onclick={() => mediaManager.viewMode = 'grid'}
-			aria-label={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.GRID_VIEW')}
+			class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-[0.75rem] font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+			onclick={onnewfolder}
+			aria-label={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.NEW_FOLDER')}
 		>
-			<LayoutGrid size={14} />
+			<FolderPlus size={14} />
+			<span class="hidden md:inline">{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.FOLDER')}</span>
 		</button>
+
+		<!-- Upload -->
 		<button
-			class="inline-flex h-8 w-8 items-center justify-center transition-colors first:rounded-l-md last:rounded-r-md
-				{mediaManager.viewMode === 'list'
-					? 'bg-accent text-accent-foreground'
-					: 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
-			onclick={() => mediaManager.viewMode = 'list'}
-			aria-label={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.LIST_VIEW')}
+			class="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-[0.75rem] font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+			onclick={onupload}
 		>
-			<List size={14} />
+			<Upload size={13} />
+			<span class="hidden md:inline">{i18n.t('ADMIN_NEXT.UPLOAD')}</span>
 		</button>
+		{/if}
 	</div>
-
-	<!-- Reorder toggle: turns the whole card/row into a drag-to-arrange source -->
-	{#if !readonly && !mediaManager.isSearching && mediaManager.files.length > 1}
-		<button
-			class="inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs transition-colors {mediaManager.reordering
-				? 'bg-primary text-primary-foreground hover:bg-primary/90'
-				: 'border border-input bg-muted/50 text-muted-foreground hover:bg-accent hover:text-foreground'}"
-			aria-pressed={mediaManager.reordering}
-			title={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.REORDER')}
-			onclick={() => mediaManager.setReordering()}
-		>
-			<ArrowUpDown size={14} />
-			{mediaManager.reordering
-				? i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.REORDER_DONE')
-				: i18n.t('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.REORDER_MODE')}
-		</button>
-	{/if}
-
-	<!-- Separator -->
-	<div class="h-5 w-px bg-border"></div>
-
-	{#if !readonly}
-	<!-- Bulk actions -->
-	{#if selectionCount > 0}
-		<button
-			class="inline-flex h-8 items-center gap-1.5 rounded-md border border-destructive/30 bg-destructive/10 px-3 text-[0.75rem] font-medium text-destructive transition-colors hover:bg-destructive/20"
-			onclick={ondeleteselected}
-		>
-			<Trash2 size={13} />
-			{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.DELETE_SELECTED', { count: selectionCount })}
-		</button>
-	{/if}
-
-	<!-- New folder -->
-	<button
-		class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-[0.75rem] font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-		onclick={onnewfolder}
-		aria-label={i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.NEW_FOLDER')}
-	>
-		<FolderPlus size={14} />
-		<span class="hidden md:inline">{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_TOOLBAR.FOLDER')}</span>
-	</button>
-
-	<!-- Upload -->
-	<button
-		class="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-[0.75rem] font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-		onclick={onupload}
-	>
-		<Upload size={13} />
-		<span class="hidden md:inline">{i18n.t('ADMIN_NEXT.UPLOAD')}</span>
-	</button>
-	{/if}
 </div>
