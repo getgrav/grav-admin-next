@@ -16,18 +16,27 @@ const customJobs = {
 };
 
 const missing = (value: unknown) =>
-	missingInListRows(customJobs, value).map((m) => `${m.row}:${m.field.name.split('.').pop()}`);
+	missingInListRows(customJobs, value).map((m) => {
+		const where = m.key === undefined ? m.row : (m.key ?? 'new');
+		return `${where}:${m.field.name.split('.').pop()}`;
+	});
 
 test('a row added and saved untouched is caught (grav-plugin-scheduler-webhook#10)', () => {
-	assert.deepEqual(missing({ 1: { output_mode: 'append' } }), ['1:command', '1:at']);
+	assert.deepEqual(missing({ 1: { output_mode: 'append' } }), ['new:command', 'new:at']);
 });
 
-test('a filled row passes, and rows are counted from 1 in list order', () => {
+test('a filled row passes, and a keyed row is named by its key', () => {
 	const value = {
 		backup: { command: 'bin/grav', at: '0 3 * * *' },
 		nightly: { command: '  ', at: '* * * * *' },
 	};
-	assert.deepEqual(missing(value), ['2:command']);
+	assert.deepEqual(missing(value), ['nightly:command']);
+});
+
+test('an unnamed row added after named ones is reported as new, not by position', () => {
+	// JS lists the integer key `2` before `foo-bar`, so a position would point at the wrong row.
+	const value = { 'foo-bar': { command: 'ls', at: '* * * * *' }, 2: { output_mode: 'append' } };
+	assert.deepEqual(missing(value), ['new:command', 'new:at']);
 });
 
 test('an array-mode list and a missing or empty value are read the same way', () => {

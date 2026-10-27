@@ -61,7 +61,9 @@ function listRowErrorFor(
 	const label = first.field.label
 		? i18n.tMaybe(first.field.label)
 		: (first.field.name.split('.').pop() ?? first.field.name);
-	return i18n.t('ADMIN_NEXT.VALIDATION.LIST_ROW_REQUIRED', { row: first.row, label });
+	if (first.key === undefined) return i18n.t('ADMIN_NEXT.VALIDATION.LIST_ROW_REQUIRED', { row: first.row, label });
+	if (first.key === null) return i18n.t('ADMIN_NEXT.VALIDATION.LIST_NEW_ROW_REQUIRED', { label });
+	return i18n.t('ADMIN_NEXT.VALIDATION.LIST_KEY_REQUIRED', { key: first.key, label });
 }
 
 /** True for a field the required check covers: a required leaf, or a list with required sub-fields. */

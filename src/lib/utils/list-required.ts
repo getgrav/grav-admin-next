@@ -14,8 +14,14 @@ import type { BlueprintField } from '$lib/api/endpoints/blueprints';
  * Nested lists are left out too.
  */
 export interface MissingInRow {
-	/** Position of the row in the list, from 1. */
+	/** Position of the row in the list, from 1. Only meaningful for an array-mode list. */
 	row: number;
+	/**
+	 * For a list stored keyed by its `key` sub-field: the row's name, or null for
+	 * a row with no name yet. ListField stores those under a number, and JS puts
+	 * integer keys ahead of named ones, so `row` doesn't match the order on screen.
+	 */
+	key?: string | null;
 	field: BlueprintField;
 }
 
@@ -45,15 +51,20 @@ export function missingInListRows(field: BlueprintField, value: unknown): Missin
 	const required = requiredRowFields(field);
 	if (!required.length || value === null || typeof value !== 'object') return [];
 
-	const rows = Array.isArray(value) ? value : Object.values(value as Record<string, unknown>);
+	const keyed = !Array.isArray(value);
+	const entries = keyed ? Object.entries(value as Record<string, unknown>) : (value as unknown[]).map((row, i) => [String(i), row] as const);
 	const missing: MissingInRow[] = [];
-	rows.forEach((row, index) => {
+	entries.forEach(([name, row], index) => {
 		const data = row !== null && typeof row === 'object' ? (row as Record<string, unknown>) : {};
 		for (const child of required) {
 			const stored = data[leafName(child)];
 			// A sub-field showing its blueprint default isn't empty: the default is what gets saved.
 			if (isBlank(isBlank(stored) ? child.default : stored)) {
-				missing.push({ row: index + 1, field: child });
+				missing.push(
+					keyed
+						? { row: index + 1, key: /^\d+$/.test(name) ? null : name, field: child }
+						: { row: index + 1, field: child },
+				);
 			}
 		}
 	});
