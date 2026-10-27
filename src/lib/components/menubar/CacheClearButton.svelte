@@ -1,13 +1,11 @@
-<script lang="ts">
+<script lang="ts" module>
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { api } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
-	import { RefreshCcwDot, ChevronDown, Loader2 } from 'lucide-svelte';
 
-	let open = $state(false);
-	let clearing = $state(false);
-
-	const scopes = [
+	// Shared with the phone overflow menu in AppShell, which lists the same
+	// scopes as rows.
+	export const CACHE_SCOPES = [
 		{ value: 'standard', label: 'Standard Cache' },
 		{ value: 'all', label: 'All Caches' },
 		{ value: 'assets', label: 'Assets Only' },
@@ -15,14 +13,29 @@
 		{ value: 'tmp', label: 'Tmp Only' },
 	];
 
-	async function clearCache(scope: string) {
-		open = false;
-		clearing = true;
+	export async function clearCacheScope(scope: string): Promise<void> {
 		try {
 			await api.delete(`/cache?scope=${scope}`);
 			toast.success(i18n.t('ADMIN_NEXT.TOASTS.CACHE_CLEARED', { scope }));
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.CACHE_CLEAR_BUTTON.FAILED_TO_CLEAR_CACHE'));
+		}
+	}
+</script>
+
+<script lang="ts">
+	import { RefreshCcwDot, ChevronDown, Loader2 } from 'lucide-svelte';
+
+	let open = $state(false);
+	let clearing = $state(false);
+
+	const scopes = CACHE_SCOPES;
+
+	async function clearCache(scope: string) {
+		open = false;
+		clearing = true;
+		try {
+			await clearCacheScope(scope);
 		} finally {
 			clearing = false;
 		}

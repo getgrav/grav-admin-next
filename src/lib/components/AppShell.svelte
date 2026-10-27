@@ -19,6 +19,7 @@
 	import MenubarLinks from '$lib/components/menubar/MenubarLinks.svelte';
 	import PluginMenubarItems from '$lib/components/menubar/PluginMenubarItems.svelte';
 	import ViewSiteButton from '$lib/components/menubar/ViewSiteButton.svelte';
+	import MenubarOverflowMenu from '$lib/components/menubar/MenubarOverflowMenu.svelte';
 	import { menubar } from '$lib/stores/menubar.svelte';
 	import { resetBoot } from '$lib/stores/boot';
 	import { sidebarStore } from '$lib/stores/sidebar.svelte';
@@ -197,6 +198,9 @@
 	// `lg` breakpoint up, where the toggle is shown: below it the sidebar is the
 	// slide-out menu, which has no toggle and must open at full width.
 	const desktop = new MediaQuery('min-width: 1024px');
+	// Below `md` the top bar keeps only the essentials and moves the plugin
+	// buttons, quick links and core actions into the ⋯ menu.
+	const wideBar = new MediaQuery('min-width: 768px');
 	// Editing the sidebar's order needs the labels, so it shows at full width.
 	let sidebarEditing = $state(false);
 	const collapsed = $derived(prefs.sidebarCollapsed && desktop.current && !sidebarEditing);
@@ -386,8 +390,11 @@
 
 	<!-- Main -->
 	<div class="flex min-w-0 flex-1 flex-col overflow-hidden">
-		<header class="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-background px-4">
-			<button class="text-muted-foreground lg:hidden" onclick={() => mobileOpen = !mobileOpen} aria-label={i18n.t('ADMIN_NEXT.TOGGLE_MENU')}>
+		<!-- Below `md` (phones) the bar keeps the menu toggle, the env switcher,
+			 the page-editor controls and a ⋯ menu; everything else moves into
+			 that menu (MenubarOverflowMenu), so the bar never overflows. -->
+		<header class="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background px-3 md:gap-3 md:px-4">
+			<button class="shrink-0 text-muted-foreground lg:hidden" onclick={() => mobileOpen = !mobileOpen} aria-label={i18n.t('ADMIN_NEXT.TOGGLE_MENU')}>
 				<Menu size={18} />
 			</button>
 
@@ -397,8 +404,8 @@
 				 by the page edit route while the doc is connected. -->
 			{#if pageEditorBar.presence}
 				{@const p = pageEditorBar.presence}
-				<div class="flex items-center gap-2 border-s border-border ps-3">
-					<PresenceAvatars peers={p.peers} clientId={p.clientId} />
+				<div class="flex min-w-0 items-center gap-2 border-s border-border ps-2 md:ps-3">
+					<PresenceAvatars peers={p.peers} clientId={p.clientId} max={wideBar.current ? 5 : 2} />
 					<SyncStatusBadge
 						status={p.status}
 						detail={p.detail}
@@ -410,7 +417,7 @@
 			<!-- Plugin toolbar — start zone. The open space on the left, kept well
 				 clear of the destructive Clear Cache action (admin2#81). -->
 			{#if startMenubarItems.length > 0}
-				<div class="flex items-center gap-1 border-s border-border ps-3">
+				<div class="hidden items-center gap-1 border-s border-border ps-3 md:flex">
 					<PluginMenubarItems placement="start" />
 				</div>
 			{/if}
@@ -420,7 +427,7 @@
 			<!-- Page-editor Normal/Expert toggle. Only set on page edit route. -->
 			{#if pageEditorBar.modeToggle}
 				{@const mt = pageEditorBar.modeToggle}
-				<div class="inline-flex rounded-md border border-border shadow-sm">
+				<div class="inline-flex shrink-0 rounded-md border border-border shadow-sm">
 					<button
 						class="inline-flex h-7 items-center gap-1.5 rounded-l-md px-2 text-[0.75rem] font-medium transition-colors sm:px-2.5
 							{prefs.editorMode === 'normal'
@@ -449,7 +456,7 @@
 			{/if}
 
 			<!-- Menubar -->
-			<div class="flex items-center gap-1">
+			<div class="hidden items-center gap-1 md:flex">
 				<!-- Custom group: plugin buttons that opted into the end zone, plus
 					 the user's own quick links. A divider sets them apart from the
 					 core actions so it's clear which buttons are system controls. -->
@@ -463,13 +470,19 @@
 				<CacheClearButton />
 			</div>
 
-			<div class="h-5 w-px bg-border"></div>
+			<div class="hidden h-5 w-px bg-border md:block"></div>
 
 			<!-- Color mode toggle -->
-			<button class="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+			<button class="hidden h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground md:flex"
 				onclick={() => theme.toggleColorMode()} aria-label={i18n.t('ADMIN_NEXT.TOGGLE_DARK_MODE')}>
 				{#if theme.isDark}<Sun size={15} />{:else}<Moon size={15} />{/if}
 			</button>
+
+			<!-- Phones: the plugin buttons, quick links, View site, Clear cache
+				 and the colour mode toggle, as rows of one menu. -->
+			<div class="flex shrink-0 md:hidden">
+				<MenubarOverflowMenu />
+			</div>
 		</header>
 
 		<DemoModeBanner />

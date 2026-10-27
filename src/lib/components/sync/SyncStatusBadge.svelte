@@ -62,5 +62,6 @@
 	{:else}
 		<Cloud class="h-3.5 w-3.5 opacity-50" />
 	{/if}
-	<span>{label}</span>
+	<!-- Phones keep the icon; the label stays for screen readers and in the tooltip. -->
+	<span class="max-md:sr-only">{label}</span>
 </span>

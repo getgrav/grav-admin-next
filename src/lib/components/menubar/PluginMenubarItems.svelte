@@ -1,13 +1,7 @@
 <script lang="ts">
-	import { i18n } from '$lib/stores/i18n.svelte';
 	import { faIconClass } from '$lib/utils/fa-icon';
-	import { goto } from '$app/navigation';
-	import { base } from '$app/paths';
-	import { executeMenubarAction, type MenubarItem, type MenubarPlacement } from '$lib/api/endpoints/menubar';
+	import type { MenubarItem, MenubarPlacement } from '$lib/api/endpoints/menubar';
 	import { menubar } from '$lib/stores/menubar.svelte';
-	import { modals } from '$lib/stores/modals.svelte';
-	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
-	import { toast } from 'svelte-sonner';
 	import { Loader2 } from 'lucide-svelte';
 
 	// Which toolbar zone this instance renders. The shared menubar store is
@@ -37,69 +31,7 @@
 	}
 
 	const items = $derived(menubar.forPlacement(placement));
-	let executing = $state<string | null>(null);
-	let confirmOpen = $state(false);
-	let pendingItem = $state<MenubarItem | null>(null);
-
-	async function handleAction(item: MenubarItem) {
-		if (item.confirm) {
-			pendingItem = item;
-			confirmOpen = true;
-			return;
-		}
-		await runItem(item);
-	}
-
-	// Client-side intents (route navigation, modal) take precedence over the
-	// server action. This is what lets a plugin offer e.g. a "New Article"
-	// button that deep-links to /pages/new with a preset parent + template, or
-	// opens its own modal — without a server round-trip.
-	async function runItem(item: MenubarItem) {
-		if (item.route) {
-			goto(`${base}${item.route}`);
-			return;
-		}
-		if (item.modal) {
-			await modals.open({
-				kind: 'component',
-				plugin: item.plugin,
-				component: item.modal.component,
-				title: item.modal.title ?? item.label,
-				props: item.modal.props,
-				size: item.modal.size,
-				useStandardHeader: item.modal.useStandardHeader,
-			});
-			return;
-		}
-		await doAction(item);
-	}
-
-	async function doAction(item: MenubarItem) {
-		executing = item.id;
-		try {
-			const result = await executeMenubarAction(item.plugin, item.action);
-			if (result.status === 'success') {
-				toast.success(result.message);
-			} else {
-				toast.error(result.message);
-			}
-		} catch (err: unknown) {
-			const detail = err instanceof Error ? err.message : 'Action failed';
-			toast.error(detail);
-		} finally {
-			executing = null;
-		}
-	}
 </script>
-
-<ConfirmModal
-	open={confirmOpen}
-	title={i18n.t('ADMIN_NEXT.CONFIRM_ACTION')}
-	message={pendingItem?.confirm ?? ''}
-	confirmLabel="Continue"
-	onconfirm={() => { confirmOpen = false; if (pendingItem) runItem(pendingItem); pendingItem = null; }}
-	oncancel={() => { confirmOpen = false; pendingItem = null; }}
-/>
 
 {#each items as item (item.id)}
 	{#if item.href}
@@ -125,10 +57,10 @@
 		<button
 			class={itemClasses(item)}
 			title={item.label}
-			onclick={() => handleAction(item)}
-			disabled={executing === item.id}
+			onclick={() => menubar.run(item)}
+			disabled={menubar.executing === item.id}
 		>
-			{#if executing === item.id}
+			{#if menubar.executing === item.id}
 				<Loader2 size={14} class="animate-spin" />
 			{:else if item.icon}
 				<i class="{faIconClass(item.icon)} text-sm"></i>

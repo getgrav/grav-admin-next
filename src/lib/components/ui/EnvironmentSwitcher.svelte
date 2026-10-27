@@ -106,10 +106,10 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="relative" onkeydown={handleKeydown}>
+<div class="relative max-md:min-w-0" onkeydown={handleKeydown}>
 	<button
 		type="button"
-		class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[0.8125rem] font-medium transition-colors
+		class="inline-flex max-w-full items-center gap-1.5 rounded-md px-2.5 py-1 text-[0.8125rem] font-medium transition-colors
 			{targetIsMissing
 				? 'bg-destructive/10 text-destructive hover:bg-destructive/15'
 				: configEnv.target === ''
@@ -118,9 +118,11 @@
 		onclick={() => open = !open}
 		title={i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.SELECT_WHERE_CONFIG_WRITES_ARE_SAVED')}
 	>
-		<span class="opacity-75">{i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.PREFIX')}</span>
-		<span>{badgeLabel}</span>
-		<ChevronDown size={13} class="transition-transform {open ? 'rotate-180' : ''}" />
+		<!-- Phones drop the "Env:" prefix and truncate a long env name, so the
+			 top bar never overflows. -->
+		<span class="opacity-75 max-sm:hidden">{i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.PREFIX')}</span>
+		<span class="max-md:max-w-[9rem] max-md:truncate">{badgeLabel}</span>
+		<ChevronDown size={13} class="shrink-0 transition-transform {open ? 'rotate-180' : ''}" />
 	</button>
 
 	{#if open}
