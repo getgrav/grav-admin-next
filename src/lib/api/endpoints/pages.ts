@@ -1,4 +1,5 @@
 import { api, ApiRequestError } from '../client';
+import type { PageDeleteResult } from '$lib/utils/page-delete';
 import { extractEtag } from '$lib/utils/etag';
 
 export interface PageSummary {
@@ -65,6 +66,12 @@ export interface PageSummary {
 	 * `pageCan()` in `$lib/utils/permissions` does.
 	 */
 	permissions?: PagePermissions;
+	/**
+	 * True when a plugin keeps deleted pages so they can be restored (the
+	 * API's `onApiPageDeleteInfo`), so a delete confirmation can say so.
+	 * API >= 1.1.3; absent before.
+	 */
+	delete_recoverable?: boolean;
 }
 
 /** Per-page capabilities, as resolved by the API for the current user. */
@@ -460,13 +467,17 @@ export async function updatePage(route: string, body: UpdatePageBody, etag?: str
 	return { page: data, etag: extractEtag(responseHeaders) };
 }
 
-export async function deletePage(route: string, options?: { children?: boolean; lang?: string }): Promise<void> {
+/**
+ * Delete a page, or one language of it. Resolves `{ undo }` when a plugin
+ * (a trash) attached a way to undo the delete, otherwise nothing (204).
+ */
+export async function deletePage(route: string, options?: { children?: boolean; lang?: string }): Promise<PageDeleteResult | undefined> {
 	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
 	const queryParts: string[] = [];
 	if (options?.children !== undefined) queryParts.push(`children=${options.children}`);
 	if (options?.lang) queryParts.push(`lang=${encodeURIComponent(options.lang)}`);
 	const path = queryParts.length ? `/pages/${cleanRoute}?${queryParts.join('&')}` : `/pages/${cleanRoute}`;
-	return api.delete(path, undefined);
+	return api.delete<PageDeleteResult | undefined>(path, undefined);
 }
 
 export async function movePage(route: string, body: { parent: string; slug?: string; order?: number | null }): Promise<PageDetail> {

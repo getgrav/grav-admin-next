@@ -23,6 +23,12 @@ export interface SidebarItem {
 	badgeEndpoint?: string;
 	/** Shortcuts the user can star to show under this item. */
 	children?: SidebarChild[];
+	/**
+	 * `footer` shows the item in the sidebar's bottom group, above Settings,
+	 * for site-wide tools (such as a trash) rather than a plugin's own screens.
+	 * Footer items aren't part of the arrangeable list. Default `main`.
+	 */
+	placement?: 'main' | 'footer';
 }
 
 export async function getSidebarItems(): Promise<SidebarItem[]> {

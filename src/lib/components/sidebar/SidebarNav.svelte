@@ -80,6 +80,8 @@
 		}
 		map.set(DIVIDER_ID, { id: DIVIDER_ID, kind: 'divider' });
 		for (const item of sidebarStore.items) {
+			// Footer items are drawn above Settings by AppShell.
+			if (item.placement === 'footer') continue;
 			const id = PLUGIN_PREFIX + item.id;
 			map.set(id, { id, kind: 'plugin', item });
 		}

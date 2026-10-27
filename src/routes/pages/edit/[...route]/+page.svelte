@@ -41,6 +41,7 @@
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import { pageEditUrl } from '$lib/utils/pageEditUrl';
+	import { deleteUndo, runDeleteUndo, pageDeleteText, displayLanguageName } from '$lib/utils/page-delete';
 	import { sanitizeSlugInput } from '$lib/utils/slug';
 	import Tabs from '$lib/components/ui/Tabs.svelte';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
@@ -1753,11 +1754,49 @@
 		confirmDeleteOpen = true;
 	}
 
+	// Which language goes, whether the others stay, and whether the page can
+	// be restored afterwards (a plugin keeps deleted pages in a trash).
+	const deleteText = $derived(pageDeleteText({
+		title: pageData?.title ?? '',
+		route,
+		lang: contentLang.enabled ? effectiveLang : null,
+		languages: contentLang.enabled && pageData?.translated_languages ? Object.keys(pageData.translated_languages) : null,
+		recoverable: !!pageData?.delete_recoverable,
+		languageName: (code) => contentLang.getLanguageName(code),
+	}));
+
 	async function confirmDeletePage() {
 		confirmDeleteOpen = false;
+		const deletedLang = contentLang.enabled ? effectiveLang : null;
+		const translationOnly = !!deletedLang && Object.keys(pageData?.translated_languages ?? {}).length > 1;
 		try {
-			await deletePage(route, { children: true, lang: effectiveLang });
-			toast.success(i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_DELETED'));
+			const result = await deletePage(route, { children: true, lang: effectiveLang });
+			const undo = deleteUndo(result);
+			toast.success(
+				translationOnly
+					? i18n.t('ADMIN_NEXT.PAGES.TRANSLATION_DELETED', { language: displayLanguageName(deletedLang!, contentLang.getLanguageName) })
+					: i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_DELETED'),
+				undo ? {
+					duration: 10000,
+					action: {
+						label: undo.label || i18n.t('ADMIN_NEXT.UNDO'),
+						onClick: async () => {
+							try {
+								const restored = await runDeleteUndo(undo);
+								toast.success(translationOnly
+									? i18n.t('ADMIN_NEXT.PAGES.TRANSLATION_RESTORED', { language: displayLanguageName(deletedLang!, contentLang.getLanguageName) })
+									: i18n.t('ADMIN_NEXT.PAGES.DELETE_UNDONE'));
+								// Back to the page that was deleted, in the language that was deleted
+								goto(pageEditUrl(restored?.route || route, deletedLang ?? undefined));
+							} catch (err) {
+								toast.error(i18n.t('ADMIN_NEXT.PAGES.DELETE_UNDO_FAILED', {
+									detail: err instanceof Error ? err.message : String(err),
+								}));
+							}
+						},
+					},
+				} : undefined,
+			);
 			goto(`${base}/pages`);
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.PAGES.DELETE_FAILED'));
@@ -2494,9 +2533,9 @@
 
 <ConfirmModal
 	open={confirmDeleteOpen}
-	title={i18n.t('ADMIN_NEXT.PAGES.EDIT.DELETE_PAGE')}
-	message={`Delete "${pageData?.title}" at ${route}? This cannot be undone.`}
-	confirmLabel="Delete"
+	title={deleteText.title}
+	message={deleteText.message}
+	confirmLabel={i18n.t('ADMIN_NEXT.DELETE')}
 	variant="destructive"
 	onconfirm={confirmDeletePage}
 	oncancel={() => { confirmDeleteOpen = false; }}

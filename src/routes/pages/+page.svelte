@@ -3,7 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { pageEditUrl } from '$lib/utils/pageEditUrl';
-	import { deletePage, duplicatePage, updatePage, pageApiRoute } from '$lib/api/endpoints/pages';
+	import { deletePage, duplicatePage, updatePage, pageApiRoute, getPage } from '$lib/api/endpoints/pages';
+	import { deleteUndo, runDeleteUndo, pageDeleteText, displayLanguageName } from '$lib/utils/page-delete';
 	import type { PageSummary, PageDetail } from '$lib/api/endpoints/pages';
 	import { dashboardStats } from '$lib/stores/dashboardStats.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
@@ -85,10 +86,35 @@
 		goto(pageEditUrl(route));
 	}
 
-	function handleDelete(page: PageSummary) {
-		pendingDeletePage = page;
+	async function handleDelete(page: PageSummary) {
+		// The confirmation names the language that goes and how many stay, so
+		// a row read without its translations gets them first.
+		let pg = page;
+		const activeLang = contentLang.enabled ? contentLang.activeLang : undefined;
+		if (activeLang && (!pg.translated_languages || pg.delete_recoverable === undefined)) {
+			try {
+				const detail = await getPage(pageApiRoute(pg), { summary: true, translations: true, lang: activeLang });
+				pg = {
+					...pg,
+					translated_languages: detail.translated_languages ?? pg.translated_languages,
+					delete_recoverable: detail.delete_recoverable ?? pg.delete_recoverable,
+				};
+			} catch {
+				// The plain wording still works without them
+			}
+		}
+		pendingDeletePage = pg;
 		confirmDeleteOpen = true;
 	}
+
+	const deleteText = $derived(pendingDeletePage ? pageDeleteText({
+		title: pendingDeletePage.title ?? '',
+		route: pendingDeletePage.route ?? '',
+		lang: contentLang.enabled ? contentLang.activeLang : null,
+		languages: contentLang.enabled && pendingDeletePage.translated_languages ? Object.keys(pendingDeletePage.translated_languages) : null,
+		recoverable: !!pendingDeletePage.delete_recoverable,
+		languageName: (code) => contentLang.getLanguageName(code),
+	}) : { title: i18n.t('ADMIN_NEXT.PAGES.DELETE_PAGE'), message: '' });
 
 	// Flip the published flag with a single PATCH. No confirm modal — the
 	// action is reversible (just click again) and a confirm step would make
@@ -122,8 +148,32 @@
 			// child's public route has the home segment stripped, so pg.route can
 			// point at the wrong page — or nowhere. Matches the editor's delete,
 			// which already uses the raw_route-based URL (admin2#132).
-			await deletePage(pageApiRoute(pg), { children: true, lang: activeLang });
-			toast.success(i18n.t('ADMIN_NEXT.TOASTS.ITEM_DELETED', { name: pg.title }));
+			const result = await deletePage(pageApiRoute(pg), { children: true, lang: activeLang });
+			const undo = deleteUndo(result);
+			const translationOnly = !!activeLang && Object.keys(pg.translated_languages ?? {}).length > 1;
+			toast.success(
+				translationOnly
+					? i18n.t('ADMIN_NEXT.PAGES.TRANSLATION_DELETED_OF', { language: displayLanguageName(activeLang!, contentLang.getLanguageName), name: pg.title })
+					: i18n.t('ADMIN_NEXT.TOASTS.ITEM_DELETED', { name: pg.title }),
+				undo ? {
+					duration: 10000,
+					action: {
+						label: undo.label || i18n.t('ADMIN_NEXT.UNDO'),
+						onClick: async () => {
+							try {
+								// The restore's X-Invalidates refreshes the list views
+								await runDeleteUndo(undo);
+								toast.success(i18n.t('ADMIN_NEXT.PAGES.DELETE_UNDONE_NAMED', { name: pg.title }));
+								loadStats();
+							} catch (err) {
+								toast.error(i18n.t('ADMIN_NEXT.PAGES.DELETE_UNDO_FAILED', {
+									detail: err instanceof Error ? err.message : String(err),
+								}));
+							}
+						},
+					},
+				} : undefined,
+			);
 			loadStats();
 			// Child list views subscribe to `pages:*` invalidations and refetch
 			// automatically when the X-Invalidates header fires — no need to force
@@ -352,8 +402,8 @@
 
 <ConfirmModal
 	open={confirmDeleteOpen}
-	title={i18n.t('ADMIN_NEXT.PAGES.DELETE_PAGE')}
-	message={i18n.t('ADMIN_NEXT.CONFIRM_DELETE', { title: pendingDeletePage?.title ?? '', route: pendingDeletePage?.route ?? '' })}
+	title={deleteText.title}
+	message={deleteText.message}
 	confirmLabel={i18n.t('ADMIN_NEXT.DELETE')}
 	variant="destructive"
 	onconfirm={confirmDelete}

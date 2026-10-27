@@ -13,6 +13,7 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import type { InvalidationEvent } from '$lib/api/types';
 	import { resolveAvatarUrl } from '$lib/utils/avatar';
+	import { faIconClass } from '$lib/utils/fa-icon';
 	import BrandLogo from '$lib/components/ui/BrandLogo.svelte';
 	import EnvironmentSwitcher from '$lib/components/ui/EnvironmentSwitcher.svelte';
 	import CacheClearButton from '$lib/components/menubar/CacheClearButton.svelte';
@@ -212,6 +213,7 @@
 	const credit = $derived(creditParts(i18n.t, 'ADMIN_NEXT.APP_SHELL.MADE_BY', ['code', 'love', 'company']));
 
 	const settingsItem = { href: `${base}/settings`, labelKey: 'ADMIN_NEXT.NAV.SETTINGS', icon: SlidersHorizontal };
+	const footerItems = $derived(sidebarStore.items.filter((item) => item.placement === 'footer'));
 
 	function isActive(href: string): boolean {
 		return isActiveRoute(page.url.pathname, href, base, page.url.search);
@@ -264,8 +266,28 @@
 
 		<SidebarNav {collapsed} bind:editing={sidebarEditing} onnavigate={() => mobileOpen = false} />
 
-		<!-- Settings link -->
-		<div class="border-t border-sidebar-border px-2 pt-2">
+		<!-- Plugin footer items (placement: footer), then the Settings link -->
+		<div class="space-y-0.5 border-t border-sidebar-border px-2 pt-2">
+			{#each footerItems as item (item.id)}
+				{@const href = `${base}${item.route}`}
+				{@const active = isActive(href)}
+				{@const badge = sidebarStore.badges[item.id] ?? item.badge}
+				<a {href}
+					class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium transition-colors
+						{active
+							? 'bg-primary/10 text-primary'
+							: 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
+					onclick={() => mobileOpen = false}
+					title={collapsed ? item.label : undefined}>
+					<i class="{faIconClass(item.icon)} w-4 shrink-0 text-center text-[0.8125rem]"></i>
+					{#if !collapsed}
+						<span class="truncate">{item.label}</span>
+						{#if badge != null}
+							<span class="ms-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">{badge}</span>
+						{/if}
+					{/if}
+				</a>
+			{/each}
 			<a href={settingsItem.href}
 				class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium transition-colors
 					{isActive(settingsItem.href)
