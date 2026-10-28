@@ -23,6 +23,14 @@
 		openUrl?: string;
 		load: () => Promise<MediaMetaResponse>;
 		save: (values: MediaMetaValues) => Promise<MediaMetaResponse>;
+		/**
+		 * Number of files the save applies to. When >1 the form switches to batch
+		 * mode: Save is labelled "Apply to N files" and only the changed fields are
+		 * pushed to every file via {@link saveBatch}.
+		 */
+		batchCount?: number;
+		/** Apply only the changed fields to every selected file at once. */
+		saveBatch?: (changed: MediaMetaValues) => Promise<{ successful: number; failed: number }>;
 		readonly?: boolean;
 		onclose: () => void;
 		onsaved?: (meta: MediaMetaResponse) => void;
@@ -37,6 +45,8 @@
 		openUrl,
 		load,
 		save,
+		batchCount = 1,
+		saveBatch,
 		readonly = false,
 		onclose,
 		onsaved,
@@ -73,7 +83,11 @@
 							? i18n.t('ADMIN_NEXT.MEDIA.FILE_DETAILS.TITLE')
 							: i18n.t('ADMIN_NEXT.MEDIA.METADATA.TITLE')}
 					</h3>
-					<p class="mt-0.5 truncate text-xs text-muted-foreground">{filename}</p>
+					<p class="mt-0.5 truncate text-xs text-muted-foreground">
+						{batchCount > 1
+							? i18n.t('ADMIN_NEXT.MEDIA.SELECTED_COUNT', { count: batchCount })
+							: filename}
+					</p>
 				</div>
 				<button
 					class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -84,6 +98,11 @@
 				</button>
 			</div>
 			<div class="overflow-y-auto p-4">
+				{#if batchCount > 1}
+					<p class="mb-3 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-[0.6875rem] leading-snug text-primary">
+						{i18n.t('ADMIN_NEXT.MEDIA.METADATA.BATCH_EDITING', { n: batchCount })}
+					</p>
+				{/if}
 				{#if file}
 					<!-- Side by side where there is room: the facts are a narrow column, so
 					     stacking them above the form made for a very tall dialog. Below the
@@ -96,11 +115,11 @@
 							<h4 class="mb-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground">
 								{i18n.t('ADMIN_NEXT.MEDIA.METADATA.TITLE')}
 							</h4>
-							<MediaMetadataForm {filename} {load} {save} {readonly} {onsaved} />
+							<MediaMetadataForm {filename} {load} {save} {batchCount} {saveBatch} {readonly} {onsaved} />
 						</div>
 					</div>
 				{:else}
-					<MediaMetadataForm {filename} {load} {save} {readonly} {onsaved} />
+					<MediaMetadataForm {filename} {load} {save} {batchCount} {saveBatch} {readonly} {onsaved} />
 				{/if}
 			</div>
 		</div>
