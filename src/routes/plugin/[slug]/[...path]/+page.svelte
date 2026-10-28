@@ -349,6 +349,8 @@
 	}
 
 	const guard = createUnsavedGuard(() => {
+		// Component pages have no form here; they report unsaved edits via `page-state`.
+		if (definition?.page_type === 'component') return componentState.dirty;
 		if (prefs.autoSaveEnabled) {
 			return hasChanges || autoSave.saving || autoSave.undoStack.some(e => !e.savedToServer);
 		}
