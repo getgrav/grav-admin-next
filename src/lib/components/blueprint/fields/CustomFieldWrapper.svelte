@@ -18,6 +18,8 @@
 		fragment: unknown;
 		awareness: unknown;
 		user: { name: string; color: string };
+		prepareFragment?: () => void;
+		markFragmentSynced?: (markdown: string) => void;
 	}
 	type CollabCtx = (fieldName: string) => EditorCollab | null;
 	const collabCtx = getContext<CollabCtx | undefined>('editorCollab');
@@ -173,6 +175,9 @@
 		// y-prosemirror extension from the start.
 		const collab = collabCtx?.(field.name);
 		if (collab) {
+			// Drop a fragment that Expert mode or a CodeMirror peer has left
+			// behind Y.Text, so the editor seeds from the current markdown.
+			collab.prepareFragment?.();
 			el.yFragment = collab.fragment;
 			el.yAwareness = collab.awareness;
 			el.yUser = collab.user;
@@ -197,6 +202,7 @@
 		// element itself, not native ones bubbling up from inner controls.
 		el.addEventListener('change', ((e: CustomEvent) => {
 			if (e.target !== el) return;
+			if (collab && typeof e.detail === 'string') collab.markFragmentSynced?.(e.detail);
 			onchange(e.detail);
 			// Treat change as a commit for custom fields (immediate action)
 			oncommit?.(e.detail);

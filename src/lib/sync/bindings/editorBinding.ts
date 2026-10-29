@@ -10,7 +10,8 @@
  * unrelated classes and the plugin wouldn't recognize our fragment.
  *
  * The fragment is separate from the Y.Text('content') FormBinding
- * maintains; they don't auto-cross-sync. Live CRDT merging and live
+ * maintains; they don't auto-cross-sync. Y.Text is the source of truth:
+ * see `prepareFragment()` for how a stale fragment is replaced. Live CRDT merging and live
  * cursors only work when all peers are using editor-pro — a mixed
  * editor-pro + CodeMirror session falls back to the Y.Text-based
  * coarse sync. Fine for MVP; a full bidirectional bridge is scope
@@ -46,6 +47,17 @@ export interface EditorCollab {
 	yText: Y.Text;
 	awareness: Awareness;
 	user: { name: string; color: string };
+	/**
+	 * Call right before a fragment-bound editor (editor-pro) mounts. Y.Text is
+	 * the content that gets saved; the fragment is only a copy of it, and it is
+	 * stale whenever Y.Text was written by anything other than that editor
+	 * (Expert mode, the CodeMirror field, a peer using either). When Y.Text has
+	 * moved on since the fragment last produced it, the fragment is emptied so
+	 * the editor seeds it again from the current markdown. (admin-next#43)
+	 */
+	prepareFragment(): void;
+	/** Record the markdown the fragment-bound editor just produced. */
+	markFragmentSynced(markdown: string): void;
 }
 
 /**
@@ -92,6 +104,11 @@ export function createEditorBinding(opts: CreateEditorBindingOptions): EditorBin
 	exposeSharedYjs();
 	const { doc, clientId, userName, contentText, fragmentKey = 'content:xml' } = opts;
 	const fragment = doc.getXmlFragment(fragmentKey);
+	// The markdown the fragment was last in step with. Lives in the shared doc
+	// (so it persists in the room log with the fragment) and in its own root
+	// map, so FormBinding's seed-or-adopt check on `form` never sees it.
+	const meta = doc.getMap<string>('editor');
+	const basisKey = `${fragmentKey}:basis`;
 	const awareness = new Awareness(doc);
 	awareness.setLocalStateField('user', { name: userName, color: clientColor(clientId), colorLight: clientColor(clientId, .3) });
 
@@ -101,6 +118,17 @@ export function createEditorBinding(opts: CreateEditorBindingOptions): EditorBin
 			yText: contentText,
 			awareness,
 			user: { name: userName, color: clientColor(clientId) },
+			prepareFragment() {
+				const markdown = contentText.toString();
+				if (meta.get(basisKey) === markdown) return;
+				doc.transact(() => {
+					if (fragment.length > 0) fragment.delete(0, fragment.length);
+					meta.set(basisKey, markdown);
+				});
+			},
+			markFragmentSynced(markdown: string) {
+				if (meta.get(basisKey) !== markdown) meta.set(basisKey, markdown);
+			},
 		},
 		dispose() {
 			awareness.destroy();
