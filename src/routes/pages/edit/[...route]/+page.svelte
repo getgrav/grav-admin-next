@@ -59,6 +59,8 @@
 	import { createFormBinding, type FormBinding } from '$lib/sync/bindings/formBinding';
 	import { createEditorBinding, type EditorCollab } from '$lib/sync/bindings/editorBinding';
 	import { tryInitRoom } from '$lib/sync/initRoom';
+	import { activeEditorType, contentFieldType, nextEditorSince, resolveEditorLock } from '$lib/sync/editorLock';
+	import { markSaved, reconcileWithDisk, recordSave, type DiskState } from '$lib/sync/savedState';
 	import { isSyncUnavailable, markSyncUnavailable, isNotFoundError } from '$lib/sync/availability';
 	import { subscribePageSaved, type PageSavedSubscriber } from '$lib/sync/pageSavedSubscriber';
 	import type { Peer, SyncProvider, SyncStatus } from '$lib/sync/SyncProvider';
@@ -451,38 +453,72 @@
 	 */
 	let applyingRemote = false;
 
-	// Identity for the editor-type lock. Mirror of FieldRenderer's resolution
-	// rule: a registered custom-field preference (e.g. editor-pro) wins,
-	// otherwise we fall back to the built-in CodeMirror MarkdownEditor.
+	// The preferred content editor. Mirror of FieldRenderer's resolution rule:
+	// a registered custom-field preference (e.g. editor-pro) wins, otherwise
+	// the built-in CodeMirror MarkdownEditor.
 	const myEditorType = $derived.by(() => {
 		const pref = auth.contentEditor || '';
 		if (pref && pref !== 'default' && customFieldRegistry.has(pref)) return pref;
 		return 'codemirror';
 	});
+	// The editor actually writing the content right now, which is what the lock
+	// keys on: Expert mode is CodeMirror on Y.Text whatever the preference.
+	const myActiveEditorType = $derived(activeEditorType(
+		prefs.editorMode,
+		myEditorType,
+		blueprint ? contentFieldType(blueprint.fields) : null,
+		(t) => customFieldRegistry.has(t),
+	));
+	// Set when this client switched editor during the session; its place in the
+	// lock queue from then on (see editorLock.ts). Null: the server's joinedAt.
+	let myEditorSince = $state<number | null>(null);
+	// The provider of the live room, so a mode switch can re-advertise the type.
+	let syncProvider: SyncProvider | null = null;
+	let advertisedEditorType: string | null = null;
+	// Records a save in the live room (see savedState.ts). Null without a room.
+	let syncRecordSave: ((disk: DiskState) => void) | null = null;
 
-	// First-joiner-wins lock. We sort peers by joinedAt (with clientId as
-	// tiebreaker) and pick the first one whose meta declares an editorType;
-	// if it isn't us and they're using a different editor, we're locked out.
+	/** The page as the server has it, in the form the room stores it. */
+	function diskStateOf(page: PageDetail): DiskState {
+		return { content: page.content ?? '', header: { ...(page.header ?? {}), title: page.title } };
+	}
+
 	// Mixed CRDT shapes (Y.Text vs Y.XmlFragment) can't cross-sync at the
-	// character level, so allowing both editors in the same room would
-	// silently split-brain — better to gate the late joiner with an
-	// explicit notice than to let edits diverge.
+	// character level, so only one kind of editor may write the content at a
+	// time; anyone using another kind gets the read-only view with a notice.
+	// The owner is whoever has been on their current editor the longest, so the
+	// user who switches into a conflict (e.g. to Expert mode while a peer is in
+	// Editor Pro) is the one locked, immediately, from local state.
 	const editorLock = $derived.by((): { ownerType: string; ownerName: string } | null => {
 		if (!prefs.collabEnabled || !syncReady || syncPeers.length === 0) return null;
-		const sorted = [...syncPeers].sort((a, b) => {
-			const ja = a.joinedAt ?? 0;
-			const jb = b.joinedAt ?? 0;
-			if (ja !== jb) return ja - jb;
-			return a.clientId.localeCompare(b.clientId);
+		// A switch not yet re-advertised by the effect below already takes the
+		// back of the queue here, so the editor never mounts writable first.
+		const switching = advertisedEditorType !== null && myActiveEditorType !== advertisedEditorType;
+		const since = switching
+			? nextEditorSince(syncPeers, { clientId: syncClientId, editorType: advertisedEditorType!, editorSince: myEditorSince })
+			: myEditorSince;
+		return resolveEditorLock(syncPeers, {
+			clientId: syncClientId,
+			editorType: myActiveEditorType,
+			editorSince: since,
 		});
-		for (const p of sorted) {
-			const t = (p.meta as Record<string, unknown> | undefined)?.editorType;
-			if (typeof t !== 'string' || t.length === 0) continue;
-			if (p.clientId === syncClientId) return null; // we're the owner
-			if (t === myEditorType) return null;          // someone matches us — keep going? no, owner is first
-			return { ownerType: t, ownerName: (p.user as string) || 'another user' };
-		}
-		return null;
+	});
+
+	// Re-advertise the editor when the user switches it mid-session (Normal ↔
+	// Expert, or a preference change), taking the back of the lock queue.
+	$effect(() => {
+		const type = myActiveEditorType;
+		if (!syncReady) return;
+		untrack(() => {
+			if (!syncProvider || type === advertisedEditorType) return;
+			myEditorSince = nextEditorSince(syncPeers, {
+				clientId: syncClientId,
+				editorType: advertisedEditorType ?? type,
+				editorSince: myEditorSince,
+			});
+			advertisedEditorType = type;
+			syncProvider.setEditorType?.(type, myEditorSince);
+		});
 	});
 
 	// Expose to descendant components (FieldRenderer reads this so the
@@ -590,10 +626,12 @@
 				lang: currentLang,
 				clientId: syncClientId,
 				user: auth.fullname || auth.username || null,
-				editorType: myEditorType,
+				editorType: myActiveEditorType,
 				presenceTtlMs,
 			};
 			provider = useMercure ? new MercureProvider(providerOpts) : new PollingProvider(providerOpts);
+			advertisedEditorType = providerOpts.editorType;
+			myEditorSince = null;
 			provider.onStatus((s, d) => { syncStatus = s; syncDetail = d; });
 			provider.onPeers((p) => { syncPeers = p; });
 
@@ -708,6 +746,7 @@
 					// the template "changed", and flip us out of this room
 					// in a tight loop.
 					tempBinding.seed({ ...headerData, content, name: currentTemplate });
+					if (pageData) markSaved(tempDoc, diskStateOf(pageData));
 					const seedBytes = Y.encodeStateAsUpdate(tempDoc);
 					tempBinding.dispose();
 					tempDoc.destroy();
@@ -724,6 +763,19 @@
 				}
 				// Whether we won, lost, or the room was already populated,
 				// the live doc now reflects the canonical state.
+				// Bring in what changed in the page file since the room last
+				// saved it (git pull, a text editor, an API write elsewhere):
+				// adopted where the room has no unsaved edits. Where it has
+				// unsaved edits AND the file changed too, the room is kept, since
+				// unsaved work wins, and the user is warned that saving replaces
+				// the file's version; nothing is merged. (savedState.ts)
+				if (pageData) {
+					const liveBinding = binding;
+					const outcome = reconcileWithDisk(mgr.doc, diskStateOf(pageData), (p) => liveBinding.isText(p), mgr.localOrigin);
+					if (outcome.content === 'conflict' || outcome.headerConflicts.length > 0) {
+						toast.warning(i18n.t('ADMIN_NEXT.PAGES.EDIT.COLLAB_UNSAVED_DIFFERS_FROM_FILE'), { duration: 20000 });
+					}
+				}
 				replaying = false;
 				await applyRemoteSnapshot(binding.getValue());
 				const contentText = binding.getText('content');
@@ -738,6 +790,11 @@
 					provider.setAwareness?.(editorBoundary.collab.awareness);
 				}
 				syncBinding = binding;
+				syncProvider = provider;
+				const liveDoc = mgr.doc;
+				const liveOrigin = mgr.localOrigin;
+				const savedBinding = binding;
+				syncRecordSave = (disk) => recordSave(liveDoc, disk, (p) => savedBinding.isText(p), liveOrigin);
 				syncReady = true;
 			} catch (e) {
 				// Connect/seed failed (commonly 403 from missing api.pages.*).
@@ -756,6 +813,10 @@
 			syncReady = false;
 			syncFailed = false;
 			syncBinding = null;
+			syncProvider = null;
+			syncRecordSave = null;
+			advertisedEditorType = null;
+			myEditorSince = null;
 			editorCollab = null;
 			syncStatus = 'idle';
 			syncPeers = [];
@@ -1437,15 +1498,21 @@
 			// Phase 1: Save content/header/template changes
 			if (Object.keys(body).length > 0) {
 				const activeLang = contentLang.enabled ? contentLang.activeLang : undefined;
-				// In a live collab room the page is merged through Yjs, and the sync
-				// plugin carries an API write into the room, so a peer's or an
-				// agent's change is not a conflict to refuse here.
+				// In a live collab room the save carries the merged Yjs state, which
+				// peers' edits are already part of, so the ETag check is skipped.
+				// Nothing on the server writes a file change into the room; a
+				// change made to the file outside the admin is brought in when the
+				// room connects (reconcileWithDisk), or warned about there when the
+				// room also has unsaved edits.
 				const { page: updated, etag: savedEtag } = await updatePage(route, body, syncReady ? undefined : pageEtag, activeLang);
 				// Preserve translation data since PATCH response doesn't include it
 				updated.translated_languages = updated.translated_languages ?? pageData!.translated_languages;
 				updated.untranslated_languages = updated.untranslated_languages ?? pageData!.untranslated_languages;
 				pageData = updated;
 				pageEtag = savedEtag;
+				// Mark the room as saved at this file, so the next open can tell
+				// its unsaved edits from a change made to the file elsewhere.
+				syncRecordSave?.(diskStateOf(updated));
 				title = updated.title;
 				content = savedContent(updated.content);
 				template = updated.template;
@@ -2157,7 +2224,7 @@
 								 the lock owner's edits flow in live. Frontmatter
 								 above stays editable since that's a separate
 								 surface from the content body lock. -->
-							<EditorLockNotice ownerType={editorLock.ownerType} ownerName={editorLock.ownerName} />
+							<EditorLockNotice ownerType={editorLock.ownerType} ownerName={editorLock.ownerName} expert />
 						{/if}
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<!-- Drop overflow-hidden when the editor's sticky toolbar is active
@@ -2172,6 +2239,8 @@
 									<span class="animate-pulse">{i18n.t('ADMIN_NEXT.PAGES.EDIT.CONNECTING_TO_COLLAB')}</span>
 								</div>
 							{:else}
+								<!-- Remount when the lock changes: the editor reads `readonly` only when it is created. -->
+								{#key !!editorLock}
 								<MarkdownEditor
 									value={content}
 									onchange={(v) => { content = v; if (!applyingRemote && !valuesEqual(v, originalContent)) hasLocalEdits = true; }}
@@ -2183,6 +2252,7 @@
 									yAwareness={editorCollab?.awareness ?? null}
 									primary
 								/>
+								{/key}
 							{/if}
 						</div>
 						<div class="rounded-lg border border-border bg-card p-4">
@@ -2308,6 +2378,7 @@
 							<span class="animate-pulse">{i18n.t('ADMIN_NEXT.PAGES.EDIT.CONNECTING_TO_COLLAB')}</span>
 						</div>
 					{:else}
+						{#key !!editorLock}
 						<MarkdownEditor
 							value={content}
 							onchange={(v) => { content = v; if (!applyingRemote && !valuesEqual(v, originalContent)) hasLocalEdits = true; }}
@@ -2318,6 +2389,7 @@
 							yAwareness={editorCollab?.awareness ?? null}
 							primary
 						/>
+						{/key}
 					{/if}
 				{/if}
 			</div>

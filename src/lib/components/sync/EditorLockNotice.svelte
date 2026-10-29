@@ -2,7 +2,8 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	/**
 	 * Slim inline notice rendered above the read-only content viewer when
-	 * a peer using a different editor type joined the room first.
+	 * a peer is writing the content with a different editor type (Expert
+	 * mode counts as the built-in markdown editor). See sync/editorLock.ts.
 	 *
 	 * Mixed editor types (CodeMirror's Y.Text vs editor-pro's Y.XmlFragment)
 	 * can't share state at the CRDT level, so the late joiner can't write
@@ -19,9 +20,11 @@
 	interface Props {
 		ownerType: string;
 		ownerName: string;
+		/** Locked in Expert mode: the way out is back to Normal mode, not the preference. */
+		expert?: boolean;
 	}
 
-	let { ownerType, ownerName }: Props = $props();
+	let { ownerType, ownerName, expert = false }: Props = $props();
 
 	const ownerLabel = $derived(
 		ownerType === 'codemirror'
@@ -33,7 +36,7 @@
 <div class="flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs dark:border-amber-700/60 dark:bg-amber-950/30">
 	<Lock size={13} class="shrink-0 text-amber-700 dark:text-amber-300" />
 	<p class="text-amber-900 dark:text-amber-200">
-		{@html i18n.tHtml('ADMIN_NEXT.SYNC.EDITOR_LOCK_NOTICE.LOCKED', {
+		{@html i18n.tHtml(expert ? 'ADMIN_NEXT.SYNC.EDITOR_LOCK_NOTICE.LOCKED_EXPERT' : 'ADMIN_NEXT.SYNC.EDITOR_LOCK_NOTICE.LOCKED', {
 			owner: ownerName,
 			editor: ownerLabel,
 			href: `${base}/users/${auth.username}`,

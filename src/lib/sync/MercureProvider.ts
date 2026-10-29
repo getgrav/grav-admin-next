@@ -125,6 +125,7 @@ export class MercureProvider implements SyncProvider {
 	private statusHandlers = new Set<StatusHandler>();
 	private status: SyncStatus = 'idle';
 	private editorType: string | null;
+	private editorSince: number | null = null;
 	private unloadHandler: (() => void) | null = null;
 
 	constructor(opts: SyncProviderOptions) {
@@ -255,6 +256,13 @@ export class MercureProvider implements SyncProvider {
 		}
 	}
 
+	/** The user switched editor (e.g. Normal ↔ Expert mode): advertise it now. */
+	setEditorType(editorType: string, since: number | null): void {
+		this.editorType = editorType;
+		this.editorSince = since;
+		if (this.hasOtherPeers()) this.scheduleAwarenessPush();
+	}
+
 	updateAwareness(meta: Record<string, unknown> | null): void {
 		this.awarenessMeta = meta;
 	}
@@ -380,6 +388,9 @@ export class MercureProvider implements SyncProvider {
 		const meta: Record<string, unknown> = { ...(this.awarenessMeta ?? {}) };
 		if (this.editorType) {
 			meta.editorType = this.editorType;
+		}
+		if (this.editorSince !== null) {
+			meta.editorSince = this.editorSince;
 		}
 		if (this.awareness) {
 			try {

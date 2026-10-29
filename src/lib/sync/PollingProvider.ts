@@ -124,6 +124,7 @@ export class PollingProvider implements SyncProvider {
 	private statusHandlers = new Set<StatusHandler>();
 	private status: SyncStatus = 'idle';
 	private editorType: string | null;
+	private editorSince: number | null = null;
 	private unloadHandler: (() => void) | null = null;
 	private visibilityHandler: (() => void) | null = null;
 
@@ -310,6 +311,13 @@ export class PollingProvider implements SyncProvider {
 			this.setStatus('error', (e as Error).message);
 			// Let the pull loop drive recovery — don't throw.
 		}
+	}
+
+	/** The user switched editor (e.g. Normal ↔ Expert mode): advertise it now. */
+	setEditorType(editorType: string, since: number | null): void {
+		this.editorType = editorType;
+		this.editorSince = since;
+		if (this.hasOtherPeers()) this.scheduleAwarenessPush();
 	}
 
 	updateAwareness(meta: Record<string, unknown> | null): void {
@@ -525,6 +533,9 @@ export class PollingProvider implements SyncProvider {
 		const meta: Record<string, unknown> = { ...(this.awarenessMeta ?? {}) };
 		if (this.editorType) {
 			meta.editorType = this.editorType;
+		}
+		if (this.editorSince !== null) {
+			meta.editorSince = this.editorSince;
 		}
 		if (this.awareness) {
 			try {

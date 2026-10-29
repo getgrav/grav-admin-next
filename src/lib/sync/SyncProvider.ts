@@ -43,10 +43,10 @@ export interface SyncProviderOptions {
 	clientId: string;
 	/** Display name to advertise in presence. */
 	user?: string | null;
-	/** Editor type this client is using for the content field
-	 *  (e.g. 'editor-pro' or 'codemirror'). Sent in presence meta so
-	 *  peers can detect mixed-editor sessions and lock to the
-	 *  first-joiner's choice. */
+	/** Editor type this client is using for the content field right now
+	 *  (e.g. 'editor-pro' or 'codemirror'; Expert mode is 'codemirror').
+	 *  Sent in presence meta so peers can detect mixed-editor sessions
+	 *  and lock all but one editor type. See editorLock.ts. */
 	editorType?: string | null;
 	/** Initial cadence hints from capabilities. Provider may override. */
 	idleIntervalMs?: number;
@@ -75,6 +75,12 @@ export interface SyncProvider {
 	 * when they don't need a separate awareness channel.
 	 */
 	setAwareness?(awareness: import('y-protocols/awareness').Awareness): void;
+
+	/**
+	 * Change the editor type advertised in presence mid-session, with the
+	 * position (`editorSince`) it takes in the editor lock. See editorLock.ts.
+	 */
+	setEditorType?(editorType: string, since: number | null): void;
 
 	onRemoteUpdate(handler: RemoteUpdateHandler): void;
 	onPeers(handler: PeersHandler): void;

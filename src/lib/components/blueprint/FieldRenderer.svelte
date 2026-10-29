@@ -51,8 +51,8 @@
 	import { getContext } from 'svelte';
 	import EditorLockNotice from '$lib/components/sync/EditorLockNotice.svelte';
 
-	// Page editor publishes this when the current room's first joiner
-	// is using a different content editor than us — see +page.svelte for
+	// Page editor publishes this when the peer writing the content uses a
+	// different editor than the one we'd use — see sync/editorLock.ts for
 	// why we can't safely cross-sync mixed editor types.
 	type EditorLockState = { ownerType: string; ownerName: string } | null;
 	const editorLockCtx = getContext<(() => EditorLockState) | undefined>('editorLock');
@@ -456,8 +456,10 @@
 		<TextField {field} {value} {onchange} error={fieldError} />
 	</div>
 
-{:else if (field.type === 'markdown' || field.type === 'editor') && field.name === 'content' && contentLock}
-	<!-- Locked: a peer with a different editor type joined first.
+{:else if field.name === 'content' && contentLock && (field.type === 'markdown' || field.type === 'editor' || customFieldRegistry.has(field.type))}
+	<!-- Locked: a peer is writing the content with a different editor type.
+		 The content field can arrive as a custom type: editor-pro rewrites
+		 `markdown` to `editor-pro` in the blueprint for its users.
 		 We render a CodeMirror viewer (regardless of the user's editor
 		 preference) bound to Y.Text via the editorCollab context, so
 		 owner edits flow in live. CodeMirror is a universal "read this"

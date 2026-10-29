@@ -153,29 +153,6 @@ export function createFormBinding(opts: FormBindingOptions): FormBinding {
 		return cursor;
 	}
 
-	/** Apply a diff-based string update to a Y.Text inside a transaction. */
-	function applyTextDiff(ytext: Y.Text, newValue: string): void {
-		const oldValue = ytext.toString();
-		if (oldValue === newValue) return;
-
-		let prefix = 0;
-		const minLen = Math.min(oldValue.length, newValue.length);
-		while (prefix < minLen && oldValue[prefix] === newValue[prefix]) prefix++;
-
-		let suffix = 0;
-		while (
-			suffix < oldValue.length - prefix &&
-			suffix < newValue.length - prefix &&
-			oldValue[oldValue.length - 1 - suffix] === newValue[newValue.length - 1 - suffix]
-		) suffix++;
-
-		const deleteLen = oldValue.length - prefix - suffix;
-		const insertStr = newValue.slice(prefix, newValue.length - suffix);
-
-		if (deleteLen > 0) ytext.delete(prefix, deleteLen);
-		if (insertStr.length > 0) ytext.insert(prefix, insertStr);
-	}
-
 	function pushLocal(path: string, value: unknown): void {
 		const target = resolveForWrite(path);
 		if (!target) return;
@@ -294,25 +271,8 @@ export function createFormBinding(opts: FormBindingOptions): FormBinding {
 		if (next.length > 0) yarr.push(next.map(cloneJson));
 	}
 
-	/**
-	 * Serialize a Y tree back into a plain JS object. Y.Text → string,
-	 * Y.Map → object, Y.Array → array, scalars → themselves.
-	 */
-	function serialize(value: unknown): unknown {
-		if (value instanceof Y.Text) return value.toString();
-		if (value instanceof Y.Map) {
-			const out: Record<string, unknown> = {};
-			(value as Y.Map<unknown>).forEach((v, k) => { out[k] = serialize(v); });
-			return out;
-		}
-		if (value instanceof Y.Array) {
-			return (value as Y.Array<unknown>).toArray().map(serialize);
-		}
-		return value;
-	}
-
 	function getValue(): Record<string, unknown> {
-		return serialize(map) as Record<string, unknown>;
+		return serializeY(map) as Record<string, unknown>;
 	}
 
 	/**
@@ -328,22 +288,7 @@ export function createFormBinding(opts: FormBindingOptions): FormBinding {
 
 	function seedInto(target: Y.Map<unknown>, data: Record<string, unknown>, prefix: string): void {
 		for (const [k, v] of Object.entries(data)) {
-			const path = prefix ? `${prefix}.${k}` : k;
-			if (isText(path) && typeof v === 'string') {
-				const t = new Y.Text();
-				t.insert(0, v);
-				target.set(k, t);
-			} else if (Array.isArray(v)) {
-				const arr = new Y.Array<unknown>();
-				target.set(k, arr);
-				if (v.length > 0) arr.push(v.map(cloneJson));
-			} else if (v && typeof v === 'object') {
-				const child = new Y.Map<unknown>();
-				target.set(k, child);
-				seedInto(child, v as Record<string, unknown>, path);
-			} else {
-				target.set(k, cloneJson(v));
-			}
+			target.set(k, toYValue(v, prefix ? `${prefix}.${k}` : k, isText));
 		}
 	}
 
@@ -385,6 +330,73 @@ export function createFormBinding(opts: FormBindingOptions): FormBinding {
 }
 
 // ---- helpers -----------------------------------------------------------
+
+/** Apply a diff-based string update to a Y.Text (call inside a transaction). */
+export function applyTextDiff(ytext: Y.Text, newValue: string): void {
+	const oldValue = ytext.toString();
+	if (oldValue === newValue) return;
+
+	let prefix = 0;
+	const minLen = Math.min(oldValue.length, newValue.length);
+	while (prefix < minLen && oldValue[prefix] === newValue[prefix]) prefix++;
+
+	let suffix = 0;
+	while (
+		suffix < oldValue.length - prefix &&
+		suffix < newValue.length - prefix &&
+		oldValue[oldValue.length - 1 - suffix] === newValue[newValue.length - 1 - suffix]
+	) suffix++;
+
+	const deleteLen = oldValue.length - prefix - suffix;
+	const insertStr = newValue.slice(prefix, newValue.length - suffix);
+
+	if (deleteLen > 0) ytext.delete(prefix, deleteLen);
+	if (insertStr.length > 0) ytext.insert(prefix, insertStr);
+}
+
+/**
+ * The Y value a form value is stored as at `path`: Y.Text for rich-text
+ * paths, Y.Array for arrays, a nested Y.Map for objects, the plain value
+ * otherwise. Seeding and anything else that writes whole values into the
+ * `form` map use this, so the stored structure is the same either way.
+ */
+export function toYValue(v: unknown, path: string, isText: (path: string) => boolean): unknown {
+	if (isText(path) && typeof v === 'string') {
+		const t = new Y.Text();
+		t.insert(0, v);
+		return t;
+	}
+	if (Array.isArray(v)) {
+		const arr = new Y.Array<unknown>();
+		if (v.length > 0) arr.push(v.map(cloneJson));
+		return arr;
+	}
+	if (v && typeof v === 'object') {
+		const child = new Y.Map<unknown>();
+		for (const [k, cv] of Object.entries(v as Record<string, unknown>)) {
+			child.set(k, toYValue(cv, `${path}.${k}`, isText));
+		}
+		return child;
+	}
+	return cloneJson(v);
+}
+
+/**
+ * Serialize a Y tree back into a plain JS object. Y.Text → string,
+ * Y.Map → object, Y.Array → array, scalars → themselves.
+ */
+export function serializeY(value: unknown): unknown {
+	if (value instanceof Y.Text) return value.toString();
+	if (value instanceof Y.Map) {
+		const out: Record<string, unknown> = {};
+		(value as Y.Map<unknown>).forEach((v, k) => { out[k] = serializeY(v); });
+		return out;
+	}
+	if (value instanceof Y.Array) {
+		return (value as Y.Array<unknown>).toArray().map(serializeY);
+	}
+	return value;
+}
 
 function cloneJson<T>(v: T): T {
 	if (v === null || typeof v !== 'object') return v;
