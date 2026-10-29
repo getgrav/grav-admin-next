@@ -249,7 +249,11 @@ export function reconcileWithDisk(
 	// Only now: Yjs gives a doc a new client id if an applied update already
 	// carries its own, which would happen here when an earlier identical
 	// adoption is in the log.
-	scratch.clientID = (cyrb53(stableJson([roomContent, roomHeader, saved, disk])) % 4294967295) + 1;
+	// The room's state vector is part of the key: two editors whose rooms read
+	// the same but hold different histories must not write different structs
+	// under one client id, which would corrupt the room.
+	const stateVector = Array.from(Y.encodeStateVector(doc)).join(',');
+	scratch.clientID = (cyrb53(stableJson([roomContent, roomHeader, saved, disk, stateVector])) % 4294967295) + 1;
 	scratch.transact(() => {
 		const sForm = scratch.getMap<unknown>('form');
 		if (content === 'adopt') {
