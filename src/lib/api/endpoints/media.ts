@@ -283,6 +283,37 @@ export async function clearPageMediaMeta(route: string, filename: string): Promi
 	return api.delete(`/pages/${cleanRoute}/media/${encodeURIComponent(filename)}/meta`);
 }
 
+/** Per-file outcome of a page batch metadata write (rows carry `filename`). */
+export interface PageBatchMetaFileResult {
+	filename: string;
+	status: 'success' | 'error';
+	message?: string;
+}
+
+/** Aggregate result of applying metadata to several files on one page. */
+export interface PageBatchMetaResult {
+	results: PageBatchMetaFileResult[];
+	total: number;
+	successful: number;
+	failed: number;
+}
+
+/**
+ * Apply the same metadata fields to several media files on one page at once.
+ * Only the passed fields are written to each file; every file keeps its other
+ * sidecar values, so a batch that changes just `tags` leaves each file's own
+ * `alt`/`title` intact. Filenames are flat names on the page.
+ */
+export async function batchSavePageMediaMeta(
+	route: string,
+	files: string[],
+	fields: MediaMetaValues,
+): Promise<PageBatchMetaResult> {
+	const cleanRoute = normalizePageRoute(route);
+	if (cleanRoute === null) throw new Error('Cannot save media metadata: route is not resolved yet.');
+	return api.post<PageBatchMetaResult>(`/pages/${cleanRoute}/media/batch/meta`, { files, fields });
+}
+
 // -- Site media metadata (addressed by ?path=) --
 
 export async function getSiteMediaMeta(filePath: string): Promise<MediaMetaResponse> {

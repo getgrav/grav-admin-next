@@ -28,11 +28,11 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
-	import { getPageMedia, deletePageMedia, getObjectMedia, deleteObjectMedia, getPageMediaMeta, savePageMediaMeta, encodeMediaFileUrl, mediaMarkdown, type MediaItem, type MediaMetaResponse } from '$lib/api/endpoints/media';
+	import { getPageMedia, deletePageMedia, getObjectMedia, deleteObjectMedia, getPageMediaMeta, savePageMediaMeta, batchSavePageMediaMeta, encodeMediaFileUrl, mediaMarkdown, type MediaItem, type MediaMetaResponse, type MediaMetaValues } from '$lib/api/endpoints/media';
 	import { toast } from 'svelte-sonner';
 	import { uploadErrorMessage } from '$lib/utils/upload-error';
 	import { canWrite } from '$lib/utils/permissions';
-	import { Upload, X, ImagePlus, ArrowUpDown, Info, Plus } from 'lucide-svelte';
+	import { Upload, X, ImagePlus, ArrowUpDown, Info, Plus, Check } from 'lucide-svelte';
 	import MediaMetadataModal from './MediaMetadataModal.svelte';
 
 	interface Props {
@@ -117,6 +117,49 @@
 	// only — not for flex/object media sources, which have no such endpoint.
 	let metaItem = $state<MediaItem | null>(null);
 	const canEditMeta = $derived(!objectMode && route !== '/' && route !== '');
+
+	// Batch metadata: the filenames selected on the tiles. One file opens the
+	// usual editor; two or more switch the form to "apply the changed fields to
+	// all", the same flow site media uses. Page mode only, like the editor.
+	let selectedFiles = $state<string[]>([]);
+	const selectionCount = $derived(selectedFiles.length);
+
+	// Drop names that no longer exist (deleted here or in another browser).
+	$effect(() => {
+		const names = new Set(mediaItems.map((item) => item.filename));
+		if (selectedFiles.some((name) => !names.has(name))) {
+			selectedFiles = selectedFiles.filter((name) => names.has(name));
+		}
+	});
+
+	function isSelected(filename: string): boolean {
+		return selectedFiles.includes(filename);
+	}
+
+	function toggleSelected(filename: string): void {
+		selectedFiles = isSelected(filename)
+			? selectedFiles.filter((name) => name !== filename)
+			: [...selectedFiles, filename];
+	}
+
+	function clearSelection(): void {
+		selectedFiles = [];
+	}
+
+	/** Open the editor on the first selected file; the form does the rest. */
+	function openSelectedMeta(): void {
+		const first = mediaItems.find((item) => selectedFiles.includes(item.filename));
+		if (first) metaItem = first;
+	}
+
+	/** Apply only the changed fields to every selected file in one request. */
+	async function saveBatchMeta(values: MediaMetaValues) {
+		const files = [...selectedFiles];
+		if (files.length < 2 || !canEditMeta) return { successful: 0, failed: 0 };
+		const result = await batchSavePageMediaMeta(route, files, values);
+		await loadMedia(true);
+		return result;
+	}
 
 	// Uppy instance
 	let uppy: Uppy | undefined;
@@ -573,7 +616,10 @@
 						: 'text-muted-foreground hover:bg-accent hover:text-foreground'}"
 					aria-pressed={reordering}
 					title={i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.REORDER')}
-					onclick={() => (reordering = !reordering)}
+					onclick={() => {
+						reordering = !reordering;
+						if (reordering) clearSelection();
+					}}
 				>
 					<ArrowUpDown size={13} />
 					{reordering
@@ -600,6 +646,32 @@
 			onchange={handleFileInput}
 		/>
 	</div>
+
+	{#if canEditMeta && !readonly && selectionCount > 0}
+		<div class="flex items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5">
+			<span class="text-[0.6875rem] leading-snug text-primary">
+				{i18n.t('ADMIN_NEXT.MEDIA.SELECTED_COUNT', { count: selectionCount })}
+			</span>
+			<div class="flex items-center gap-1">
+				<button
+					type="button"
+					class="inline-flex h-6 items-center gap-1 rounded-md bg-primary px-2 text-[0.6875rem] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+					onclick={openSelectedMeta}
+				>
+					<Info size={12} />
+					{i18n.t('ADMIN_NEXT.MEDIA.METADATA.EDIT')}
+				</button>
+				<button
+					type="button"
+					class="inline-flex h-6 w-6 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10"
+					aria-label={i18n.t('ADMIN_NEXT.CANCEL')}
+					onclick={clearSelection}
+				>
+					<X size={12} />
+				</button>
+			</div>
+		</div>
+	{/if}
 
 	{#if inReorderMode}
 		<p class="-mt-1 text-xs text-muted-foreground">
@@ -669,6 +741,26 @@
 							? i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.REORDER')
 							: `${item.filename} (${formatSize(item.size)}) — ${i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.DRAG_INTO_EDITOR')}`}
 					>
+						{#if canEditMeta && !readonly && !inReorderMode}
+							<button
+								type="button"
+								class="absolute left-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded border-2 shadow-md transition-colors {isSelected(
+									item.filename
+								)
+									? 'border-primary bg-primary text-primary-foreground opacity-100'
+									: 'border-foreground/60 bg-background/85 opacity-0 group-hover:opacity-100'}"
+								aria-pressed={isSelected(item.filename)}
+								aria-label={item.filename}
+								title={i18n.t('ADMIN_NEXT.MEDIA.SELECTED_COUNT', { count: selectionCount })}
+								onclick={(e) => {
+									e.stopPropagation();
+									toggleSelected(item.filename);
+								}}
+							>
+								{#if isSelected(item.filename)}<Check size={12} strokeWidth={3} />{/if}
+							</button>
+						{/if}
+
 						{#if isImage(item)}
 							<img
 								src={getThumbnailUrl(item)}
@@ -708,7 +800,7 @@
 										<button
 											type="button"
 											class="inline-flex h-5 w-5 items-center justify-center rounded-sm text-white/80 transition-colors hover:bg-white/20 hover:text-white"
-											onclick={(e) => { e.stopPropagation(); metaItem = item; }}
+											onclick={(e) => { e.stopPropagation(); clearSelection(); metaItem = item; }}
 											title={readonly
 												? i18n.t('ADMIN_NEXT.MEDIA.FILE_DETAILS.TITLE')
 												: i18n.t('ADMIN_NEXT.MEDIA.METADATA.EDIT')}
@@ -770,6 +862,8 @@
 		openUrl={getAbsoluteUrl(target)}
 		load={() => getPageMediaMeta(route, target.filename)}
 		save={(values) => savePageMediaMeta(route, target.filename, values)}
+		batchCount={selectionCount}
+		saveBatch={selectionCount > 1 ? saveBatchMeta : undefined}
 		{readonly}
 		onsaved={(meta) => applySavedMeta(target.filename, meta)}
 		onclose={() => (metaItem = null)}
