@@ -21,6 +21,7 @@ import { toast } from 'svelte-sonner';
 import { i18n } from '$lib/stores/i18n.svelte';
 import { prefs } from '$lib/stores/preferences.svelte';
 import { auth } from '$lib/stores/auth.svelte';
+import { resolveSiteUrl } from '$lib/utils/site-url';
 import { canWrite } from '$lib/utils/permissions';
 import { getPageMedia, uploadPageMedia, mediaAltText, mediaMarkdown, type MediaItem } from '$lib/api/endpoints/media';
 import { ApiRequestError } from '$lib/api/client';
@@ -72,8 +73,7 @@ export function setPasteUploadTarget(next: PasteUploadTarget): () => void {
 const KEY = 'ADMIN_NEXT.MEDIA.PASTE_UPLOAD';
 
 function absoluteUrl(u: string | undefined): string | undefined {
-	if (!u || /^https?:\/\//i.test(u)) return u;
-	return u.startsWith('/') ? `${auth.serverUrl}${u}` : `${auth.serverUrl}/${u}`;
+	return u ? resolveSiteUrl(u, auth.serverUrl, auth.apiPrefix) : u;
 }
 
 function errorMessage(err: unknown): string {

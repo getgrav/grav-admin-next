@@ -7,7 +7,7 @@
 	import XHRUpload from '@uppy/xhr-upload';
 	import { useUploadConstraints } from '$lib/utils/uppyImageConstraints';
 	import { uploadAcceptTypes } from '$lib/utils/media-accept';
-	import { fileEntryUrl } from '$lib/utils/site-url';
+	import { fileEntryUrl, resolveSiteUrl } from '$lib/utils/site-url';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
@@ -354,9 +354,7 @@
 			const url = item.thumbnail_url;
 			return url.startsWith('http') ? url : `${auth.serverUrl}${url}`;
 		}
-		const url = encodeMediaFileUrl(item.url);
-		if (url.startsWith('http')) return url;
-		return url.startsWith('/') ? url : `${auth.serverUrl}/${url}`;
+		return resolveSiteUrl(encodeMediaFileUrl(item.url), auth.serverUrl, auth.apiPrefix);
 	}
 
 	const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif', 'bmp', 'ico'];
@@ -378,7 +376,7 @@
 		// A destination upload's `path` is exact; a page-media entry's is only
 		// a guess from the route (buildPath), so it can't stand in for the url.
 		const path = useBlueprintUpload ? entry.path : undefined;
-		const url = fileEntryUrl({ path, url: entry.url }, auth.serverUrl);
+		const url = fileEntryUrl({ path, url: entry.url }, auth.serverUrl, auth.apiPrefix);
 		return url ? encodeMediaFileUrl(url) : null;
 	}
 

@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { resolveSiteUrl } from '$lib/utils/site-url';
 	import { encodeMediaFileUrl, type MediaItem } from '$lib/api/endpoints/media';
 	import { toast } from 'svelte-sonner';
 	import {
@@ -36,9 +37,7 @@
 	const resolvedPath = $derived(path ?? (file.path ? `${file.path}/` : undefined));
 
 	function resolveUrl(url: string): string {
-		const safe = encodeMediaFileUrl(url);
-		if (safe.startsWith('http')) return safe;
-		return safe.startsWith('/') ? `${auth.serverUrl}${safe}` : `${auth.serverUrl}/${safe}`;
+		return resolveSiteUrl(encodeMediaFileUrl(url), auth.serverUrl, auth.apiPrefix);
 	}
 
 	function resolveApiUrl(url: string): string {

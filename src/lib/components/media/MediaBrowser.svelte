@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { resolveSiteUrl } from '$lib/utils/site-url';
 	import {
 		getAllSiteMedia,
 		encodeMediaFileUrl,
@@ -96,15 +97,11 @@
 	});
 
 	function resolveThumb(item: MediaItem): string {
-		const raw = encodeMediaFileUrl(item.thumbnail_url ?? item.url);
-		if (raw.startsWith('http')) return raw;
-		return raw.startsWith('/') ? `${auth.serverUrl}${raw}` : `${auth.serverUrl}/${raw}`;
+		return resolveSiteUrl(encodeMediaFileUrl(item.thumbnail_url ?? item.url), auth.serverUrl, auth.apiPrefix);
 	}
 
 	function resolveDisplay(item: MediaItem): string {
-		const raw = item.url;
-		if (raw.startsWith('http')) return raw;
-		return raw.startsWith('/') ? `${auth.serverUrl}${raw}` : `${auth.serverUrl}/${raw}`;
+		return resolveSiteUrl(item.url, auth.serverUrl, auth.apiPrefix);
 	}
 
 	function isImage(item: MediaItem): boolean {

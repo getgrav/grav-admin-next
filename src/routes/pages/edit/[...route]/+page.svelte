@@ -26,6 +26,7 @@
 	import PageNavigator from '$lib/components/pages/PageNavigator.svelte';
 	import ModuleList from '$lib/components/pages/ModuleList.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { resolveSiteUrl } from '$lib/utils/site-url';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { customFieldRegistry } from '$lib/stores/customFields.svelte';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
@@ -91,11 +92,7 @@
 	// picker). Returns a plain snapshot with absolute thumbnail URLs and the
 	// alt/title metadata, mirroring what the CodeMirror picker reads from context.
 	$effect(() => {
-		const abs = (u: string | undefined) => {
-			if (!u) return u;
-			if (u.startsWith('http')) return u;
-			return u.startsWith('/') ? `${auth.serverUrl}${u}` : `${auth.serverUrl}/${u}`;
-		};
+		const abs = (u: string | undefined) => (u ? resolveSiteUrl(u, auth.serverUrl, auth.apiPrefix) : u);
 		window.__GRAV_PAGE_MEDIA = () =>
 			pageMediaItems.map((m) => ({
 				filename: m.filename,

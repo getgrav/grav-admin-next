@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { resolveSiteUrl } from '$lib/utils/site-url';
 	import { encodeMediaFileUrl, mediaAltText, type MediaItem } from '$lib/api/endpoints/media';
 	import { matchesAccept } from '$lib/utils/media-accept';
 	import type { MediaPickResult } from '$lib/stores/mediaPicker.svelte';
@@ -66,8 +67,7 @@
 	});
 
 	function absolute(raw: string): string {
-		if (raw.startsWith('http')) return raw;
-		return raw.startsWith('/') ? `${auth.serverUrl}${raw}` : `${auth.serverUrl}/${raw}`;
+		return resolveSiteUrl(raw, auth.serverUrl, auth.apiPrefix);
 	}
 
 	function thumb(item: MediaItem): string {

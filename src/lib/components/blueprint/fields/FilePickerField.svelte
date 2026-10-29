@@ -5,6 +5,7 @@
 	import { getContext } from 'svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { resolveSiteUrl } from '$lib/utils/site-url';
 	import { ChevronDown, X, Check } from 'lucide-svelte';
 	import {
 		getBlueprintFiles,
@@ -140,9 +141,7 @@
 	}
 
 	function resolveUrl(url: string): string {
-		const safe = encodeMediaFileUrl(url);
-		if (safe.startsWith('http')) return safe;
-		return safe.startsWith('/') ? safe : `${auth.serverUrl}/${safe}`;
+		return resolveSiteUrl(encodeMediaFileUrl(url), auth.serverUrl, auth.apiPrefix);
 	}
 
 	function getThumbnailUrl(item: MediaItem): string {

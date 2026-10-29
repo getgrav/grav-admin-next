@@ -4,6 +4,7 @@
 	import { getAllSiteMedia, encodeMediaFileUrl, type MediaItem } from '$lib/api/endpoints/media';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { resolveSiteUrl } from '$lib/utils/site-url';
 	import { portal } from '$lib/utils/portal';
 	import MediaSourceTabs from '$lib/components/media/MediaSourceTabs.svelte';
 	import { getContext } from 'svelte';
@@ -75,8 +76,7 @@
 	const requestedFolders = new Set<string>();
 
 	function absolute(raw: string): string {
-		if (raw.startsWith('http')) return raw;
-		return raw.startsWith('/') ? `${auth.serverUrl}${raw}` : `${auth.serverUrl}/${raw}`;
+		return resolveSiteUrl(raw, auth.serverUrl, auth.apiPrefix);
 	}
 
 	function isUrlValue(v: string): boolean {

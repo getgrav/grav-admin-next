@@ -26,6 +26,7 @@
 	import { useUploadConstraints } from '$lib/utils/uppyImageConstraints';
 	import ImageEditor from '@uppy/image-editor';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { resolveSiteUrl } from '$lib/utils/site-url';
 	import { api } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { getPageMedia, deletePageMedia, getObjectMedia, deleteObjectMedia, getPageMediaMeta, savePageMediaMeta, batchSavePageMediaMeta, encodeMediaFileUrl, mediaMarkdown, type MediaItem, type MediaMetaResponse, type MediaMetaValues } from '$lib/api/endpoints/media';
@@ -553,9 +554,7 @@
 	}
 
 	function resolveUrl(url: string): string {
-		const safe = encodeMediaFileUrl(url);
-		if (safe.startsWith('http')) return safe;
-		return safe.startsWith('/') ? safe : `${auth.serverUrl}/${safe}`;
+		return resolveSiteUrl(encodeMediaFileUrl(url), auth.serverUrl, auth.apiPrefix);
 	}
 
 	function resolveApiUrl(url: string): string {
@@ -573,9 +572,7 @@
 	// metadata modal — those are pasted elsewhere, so a server-relative path
 	// is not enough when the admin is served from another origin.
 	function getAbsoluteUrl(item: MediaItem): string {
-		const safe = encodeMediaFileUrl(item.url);
-		if (safe.startsWith('http')) return safe;
-		return safe.startsWith('/') ? `${auth.serverUrl}${safe}` : `${auth.serverUrl}/${safe}`;
+		return resolveSiteUrl(encodeMediaFileUrl(item.url), auth.serverUrl, auth.apiPrefix);
 	}
 
 	function isImage(item: MediaItem): boolean {

@@ -10,6 +10,7 @@
 		type MediaMetaValues,
 	} from '$lib/api/endpoints/media';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { resolveSiteUrl } from '$lib/utils/site-url';
 	import { mediaManager } from '$lib/stores/mediaManager.svelte';
 	import { toast } from 'svelte-sonner';
 	import MediaMetadataForm from './MediaMetadataForm.svelte';
@@ -42,9 +43,7 @@
 	let renameValue = $state('');
 
 	function resolveUrl(url: string): string {
-		const safe = encodeMediaFileUrl(url);
-		if (safe.startsWith('http')) return safe;
-		return safe.startsWith('/') ? `${auth.serverUrl}${safe}` : `${auth.serverUrl}/${safe}`;
+		return resolveSiteUrl(encodeMediaFileUrl(url), auth.serverUrl, auth.apiPrefix);
 	}
 
 	function getMediaStreamPath(): string {
