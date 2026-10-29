@@ -650,7 +650,7 @@
 	{#if canEditMeta && !readonly && selectionCount > 0}
 		<div class="flex items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5">
 			<span class="text-[0.6875rem] leading-snug text-primary">
-				{i18n.t('ADMIN_NEXT.MEDIA.SELECTED_COUNT', { count: selectionCount })}
+				{i18n.t('ADMIN_NEXT.FIELDS.MEDIA.SELECTED_COUNT', { count: selectionCount })}
 			</span>
 			<div class="flex items-center gap-1">
 				<button
@@ -744,14 +744,13 @@
 						{#if canEditMeta && !readonly && !inReorderMode}
 							<button
 								type="button"
-								class="absolute left-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded border-2 shadow-md transition-colors {isSelected(
+								class="absolute start-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded border-2 shadow-md transition-colors focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {isSelected(
 									item.filename
 								)
 									? 'border-primary bg-primary text-primary-foreground opacity-100'
 									: 'border-foreground/60 bg-background/85 opacity-0 group-hover:opacity-100'}"
 								aria-pressed={isSelected(item.filename)}
 								aria-label={item.filename}
-								title={i18n.t('ADMIN_NEXT.MEDIA.SELECTED_COUNT', { count: selectionCount })}
 								onclick={(e) => {
 									e.stopPropagation();
 									toggleSelected(item.filename);

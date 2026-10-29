@@ -85,7 +85,7 @@
 					</h3>
 					<p class="mt-0.5 truncate text-xs text-muted-foreground">
 						{batchCount > 1
-							? i18n.t('ADMIN_NEXT.MEDIA.SELECTED_COUNT', { count: batchCount })
+							? i18n.t('ADMIN_NEXT.FIELDS.MEDIA.SELECTED_COUNT', { count: batchCount })
 							: filename}
 					</p>
 				</div>
