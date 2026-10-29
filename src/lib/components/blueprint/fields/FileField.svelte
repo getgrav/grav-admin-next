@@ -7,6 +7,7 @@
 	import XHRUpload from '@uppy/xhr-upload';
 	import { useUploadConstraints } from '$lib/utils/uppyImageConstraints';
 	import { uploadAcceptTypes } from '$lib/utils/media-accept';
+	import { fileEntryUrl } from '$lib/utils/site-url';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
@@ -373,11 +374,12 @@
 	function getEntryImageUrl(entry: FileEntry): string | null {
 		const item = findMediaItem(entry.name);
 		if (item && item.type.startsWith('image/')) return getThumbnailUrl(item);
-		if (entry.url && isImageEntry(entry)) {
-			if (entry.url.startsWith('http')) return entry.url;
-			return entry.url.startsWith('/') ? `${auth.serverUrl}${entry.url}` : `${auth.serverUrl}/${entry.url}`;
-		}
-		return null;
+		if (!isImageEntry(entry)) return null;
+		// A destination upload's `path` is exact; a page-media entry's is only
+		// a guess from the route (buildPath), so it can't stand in for the url.
+		const path = useBlueprintUpload ? entry.path : undefined;
+		const url = fileEntryUrl({ path, url: entry.url }, auth.serverUrl);
+		return url ? encodeMediaFileUrl(url) : null;
 	}
 
 	function addFiles(fileList: File[]) {
