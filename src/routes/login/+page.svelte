@@ -46,7 +46,9 @@
 		return window.location.origin + base;
 	}
 	let serverUrl = $state(auth.hasGravConfig ? injectedServerUrl() : (auth.serverUrl || defaultUrl));
-	let environment = $state(auth.environment || 'localhost');
+	// '' is Default (base user/config). A made-up 'localhost' here stuck for
+	// users who can't list environments, so the switcher showed it forever.
+	let environment = $state(auth.environment || '');
 	let username = $state('');
 	let password = $state('');
 	let loading = $state(false);
