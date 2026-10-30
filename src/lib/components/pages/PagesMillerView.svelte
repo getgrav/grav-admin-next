@@ -14,6 +14,7 @@
 	import TranslationBadges from '$lib/components/ui/TranslationBadges.svelte';
 	import PageStatusIndicator from '$lib/components/pages/PageStatusIndicator.svelte';
 	import { pageEditUrl } from '$lib/utils/pageEditUrl';
+	import { pageLabel, pageTitleIfDifferent } from '$lib/utils/page-label';
 	import { pageStatus, pageStatusToggleLabel } from '$lib/utils/pageStatus';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { pageHasLang } from '$lib/utils/page-fallback';
@@ -509,7 +510,7 @@
 			.filter(c => c.selectedRoute)
 			.map(c => {
 				const page = findInColumn(c.parentRoute, c.selectedRoute!);
-				return { route: c.selectedRoute!, title: page?.title ?? c.selectedRoute! };
+				return { route: c.selectedRoute!, title: page ? pageLabel(page) : c.selectedRoute! };
 			})
 	);
 
@@ -1060,7 +1061,8 @@
 										<div class="min-w-0 flex-1">
 											<div class="flex items-center gap-1.5">
 												<div class="truncate text-[0.8125rem] font-medium
-													{isUntranslated ? (isActive ? 'text-primary-foreground/60 italic' : 'text-muted-foreground italic') : ''}">{page.title}</div>
+													{isUntranslated ? (isActive ? 'text-primary-foreground/60 italic' : 'text-muted-foreground italic') : ''}"
+													title={pageTitleIfDifferent(page) ? i18n.t('ADMIN_NEXT.PAGES.PAGE_TITLE_HINT', { title: page.title }) : undefined}>{pageLabel(page)}</div>
 												<!-- The compact marker rather than the labelled chip: a
 												     Miller column is narrow, and this is the default view, so
 												     every row needs to answer the question at a glance the way
@@ -1130,7 +1132,10 @@
 					<!-- Title & edit button -->
 					<div class="flex items-start justify-between gap-2">
 						<div class="min-w-0">
-							<h3 class="text-base font-semibold text-foreground">{previewPage.title}</h3>
+							<h3 class="text-base font-semibold text-foreground">{pageLabel(previewPage)}</h3>
+							{#if pageTitleIfDifferent(previewPage)}
+								<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.PAGE_TITLE_HINT', { title: previewPage.title })}</p>
+							{/if}
 							<p class="mt-0.5 text-[0.6875rem] text-muted-foreground">{previewPage.route}</p>
 						</div>
 						<Button size="sm" onclick={() => onEdit(pageApiRoute(previewPage!))} class="shrink-0">

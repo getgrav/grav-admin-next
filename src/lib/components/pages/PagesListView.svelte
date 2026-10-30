@@ -2,6 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { linkClick } from '$lib/utils/navLink';
 	import { pageEditUrl } from '$lib/utils/pageEditUrl';
+	import { pageLabel, pageTitleIfDifferent } from '$lib/utils/page-label';
 	import { pageCan } from '$lib/utils/permissions';
 	import { pageApiRoute } from '$lib/api/endpoints/pages';
 	import { createPageSearch } from '$lib/utils/page-search.svelte';
@@ -409,7 +410,8 @@
 			>
 				<div class="flex min-w-0 items-center gap-1.5">
 					<span class="min-w-0 truncate text-sm font-medium group-hover:text-primary
-						{isUntranslated ? 'text-muted-foreground italic' : 'text-foreground'}">{page.title}</span>
+						{isUntranslated ? 'text-muted-foreground italic' : 'text-foreground'}"
+						title={pageTitleIfDifferent(page) ? i18n.t('ADMIN_NEXT.PAGES.PAGE_TITLE_HINT', { title: page.title }) : undefined}>{pageLabel(page)}</span>
 					{#if lang && badgeKeys.length > 0}
 						<div class="shrink-0">
 							<TranslationBadges
