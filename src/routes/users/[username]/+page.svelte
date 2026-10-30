@@ -17,6 +17,7 @@
 	import TwoFactorField from '$lib/components/TwoFactorField.svelte';
 	import ApiKeysField from '$lib/components/ApiKeysField.svelte';
 	import ChangePasswordField from '$lib/components/ChangePasswordField.svelte';
+	import ConfirmPasswordModal from '$lib/components/ConfirmPasswordModal.svelte';
 	import UserAvatarCard from '$lib/components/UserAvatarCard.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import UnsavedChangesModal from '$lib/components/ui/UnsavedChangesModal.svelte';
@@ -31,7 +32,7 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
 	import {
-		Save, Loader2, AlertCircle, Trash2, User, Undo2, Mail
+		Save, Loader2, AlertCircle, Trash2, User, Undo2, Mail, LockKeyhole
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { canWrite } from '$lib/utils/permissions';
@@ -72,6 +73,12 @@
 	let emailChangeBusy = $state(false);
 	// True while the Password card is saving.
 	let passwordBusy = $state(false);
+	// Open while a save that changes your own email waits for your current password.
+	let emailConfirmOpen = $state(false);
+	// The address typed when that dialog was cancelled. Until it is confirmed (or
+	// changed), auto-save keeps it typed in the form and saves the other fields
+	// without it.
+	let declinedEmail = $state<string | null>(null);
 
 	// Form data from blueprint fields
 	let configData = $state<Record<string, unknown>>({});
@@ -89,6 +96,18 @@
 	const inheritedAccess = $derived(
 		resolveInheritedAccess(((configData.groups as string[]) ?? []), allGroups),
 	);
+
+	// Your own new email address needs your current password (API 1.1.4). Not
+	// asked of an admin editing someone else, or of an account with no password
+	// yet (older API plugins don't send has_password; treat it as having one).
+	const normalizeEmail = (v: unknown) => String(v ?? '').trim().toLowerCase();
+	const typedEmail = $derived(String(configData.email ?? ''));
+	const emailNeedsPassword = $derived(
+		isSelf && !!user && user.has_password !== false
+			&& normalizeEmail(typedEmail) !== normalizeEmail(user.email),
+	);
+	// The new address is still only typed in: its dialog was cancelled.
+	const emailWaitingForPassword = $derived(emailNeedsPassword && declinedEmail === typedEmail);
 
 	const hasChanges = $derived(
 		stableJson(configData) !== originalJson ||
@@ -284,7 +303,15 @@
 		return obj;
 	}
 
-	async function handleSave() {
+	/**
+	 * Save the account form. A save that changes your own email address asks
+	 * for your current password first, in a dialog, and nothing is sent until
+	 * it's confirmed. An auto-save asks too, unless that dialog was already
+	 * cancelled for the address typed: then it saves the other fields and leaves
+	 * the new address waiting in the form. The Save button and Ctrl/Cmd+S
+	 * always ask.
+	 */
+	async function handleSave(opts: { auto?: boolean } = {}) {
 		// Block the save if any required field is empty (admin2#30).
 		validationErrors = filteredBlueprint ? checkRequiredOrToast(filteredBlueprint.fields, configData) : {};
 		if (Object.keys(validationErrors).length > 0) {
@@ -292,71 +319,130 @@
 			return;
 		}
 
+		let skipEmail = false;
+		if (emailNeedsPassword) {
+			if (opts.auto && emailWaitingForPassword) {
+				skipEmail = true;
+			} else {
+				emailConfirmOpen = true;
+				return;
+			}
+		}
+
 		saving = true;
 		try {
-			const cleaned = stripRedacted(configData) as Record<string, unknown>;
-			// Merge blueprint data with access permissions. Prune empty branches
-			// so any legacy `{api:{pages:{}}}` pollution is cleaned on save
-			// (admin2#50).
-			const body: Record<string, unknown> = {
-				...cleaned,
-				access: pruneEmpty(access),
-			};
-			// Don't send username (readonly) or empty password
-			delete body.username;
-			if (!body.password || body.password === '') {
-				delete body.password;
-			}
-			// Governance fields require api.users.write server-side. The API
-			// rejects the whole request if these keys are present (regardless
-			// of whether the values changed), so omit them entirely when the
-			// caller can't manage users.
-			if (!canManagePermissions) {
-				delete body.access;
-				delete body.state;
-				// `groups` is super-admin-only server-side; sending the
-				// (unchanged) value would 403 a non-super self-edit.
-				delete body.groups;
-			}
-
-			const pendingBefore = user?.email_pending ?? '';
-			const result = await updateUser(username, body, etag);
-			user = result.user;
-			etag = result.etag;
-			populateForm(result.user);
-
-			// If editing your own account, update auth store
-			if (username === auth.username) {
-				auth.setUser(
-					username,
-					result.user.fullname || username,
-					result.user.email || '',
-					result.user.avatar_url || '',
-					result.user.content_editor,
-				);
-			}
-
-			await formCommit.emit();
-			toast.success(i18n.t('ADMIN_NEXT.TOASTS.USER_SAVED', { username }));
-
-			// A new address for your own account waits for the link mailed to it.
-			// The response still carries the old address, so the form just went back
-			// to it; say why, or the typed address would seem to have been dropped.
-			const newlyPending = result.user.email_pending && result.user.email_pending !== pendingBefore
-				? result.user.email_pending : '';
-			const emailMessage = metaMessage(result.meta)
-				?? (newlyPending ? i18n.t('ADMIN_NEXT.USERS.EMAIL_CHANGE_SENT', { email: newlyPending }) : '');
-			if (emailMessage) toast.info(emailMessage, { duration: 10000 });
+			await submitSave({ skipEmail });
 		} catch (err: unknown) {
-			if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {
-				toast.error(i18n.t('ADMIN_NEXT.USERS.USER_WAS_MODIFIED_ELSEWHERE_PLEASE'));
-			} else {
-				// A taken address (422) or too many changes (429) comes with its own sentence.
-				toast.error(emailChangeRefusal(err) ?? i18n.t('ADMIN_NEXT.USERS.FAILED_TO_SAVE_USER'));
-			}
+			reportSaveError(err);
 		} finally {
 			saving = false;
 		}
+	}
+
+	/** The dialog's Confirm: the save, with the current password it was given. */
+	async function confirmEmailChange(currentPassword: string): Promise<string | null> {
+		saving = true;
+		try {
+			await submitSave({ currentPassword });
+			emailConfirmOpen = false;
+			declinedEmail = null;
+			return null;
+		} catch (err: unknown) {
+			const status = (err as { status?: number })?.status ?? 0;
+			// A wrong password, or too many of them, is answered in the dialog.
+			if (status === 422) {
+				const field = ((err as { error?: { errors?: { field?: string; message?: string }[] } })
+					?.error?.errors ?? []).find((e) => e.field === 'current_password');
+				if (field) return field.message || i18n.t('ADMIN_NEXT.USERS.PASSWORD.CURRENT_WRONG');
+			}
+			if (status === 429) {
+				return emailChangeRefusal(err) ?? i18n.t('ADMIN_NEXT.USERS.PASSWORD.TOO_MANY');
+			}
+			emailConfirmOpen = false;
+			reportSaveError(err);
+			return null;
+		} finally {
+			saving = false;
+		}
+	}
+
+	function cancelEmailConfirm() {
+		emailConfirmOpen = false;
+		declinedEmail = typedEmail;
+	}
+
+	function reportSaveError(err: unknown) {
+		if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {
+			toast.error(i18n.t('ADMIN_NEXT.USERS.USER_WAS_MODIFIED_ELSEWHERE_PLEASE'));
+		} else {
+			// A taken address (422) or too many changes (429) comes with its own sentence.
+			toast.error(emailChangeRefusal(err) ?? i18n.t('ADMIN_NEXT.USERS.FAILED_TO_SAVE_USER'));
+		}
+	}
+
+	/**
+	 * Send the form. Throws on a refusal, with nothing saved. `currentPassword`
+	 * goes in the request body only; `skipEmail` leaves the address out and puts
+	 * the typed one back in the form afterwards, so it stays unsaved.
+	 */
+	async function submitSave({ currentPassword, skipEmail = false }: { currentPassword?: string; skipEmail?: boolean }) {
+		const cleaned = stripRedacted(configData) as Record<string, unknown>;
+		// Merge blueprint data with access permissions. Prune empty branches
+		// so any legacy `{api:{pages:{}}}` pollution is cleaned on save
+		// (admin2#50).
+		const body: Record<string, unknown> = {
+			...cleaned,
+			access: pruneEmpty(access),
+		};
+		// Don't send username (readonly) or empty password
+		delete body.username;
+		if (!body.password || body.password === '') {
+			delete body.password;
+		}
+		// Governance fields require api.users.write server-side. The API
+		// rejects the whole request if these keys are present (regardless
+		// of whether the values changed), so omit them entirely when the
+		// caller can't manage users.
+		if (!canManagePermissions) {
+			delete body.access;
+			delete body.state;
+			// `groups` is super-admin-only server-side; sending the
+			// (unchanged) value would 403 a non-super self-edit.
+			delete body.groups;
+		}
+		const keptEmail = typedEmail;
+		if (skipEmail) delete body.email;
+		if (currentPassword !== undefined) body.current_password = currentPassword;
+
+		const pendingBefore = user?.email_pending ?? '';
+		const result = await updateUser(username, body, etag);
+		user = result.user;
+		etag = result.etag;
+		populateForm(result.user);
+		if (skipEmail) configData = { ...configData, email: keptEmail };
+
+		// If editing your own account, update auth store
+		if (username === auth.username) {
+			auth.setUser(
+				username,
+				result.user.fullname || username,
+				result.user.email || '',
+				result.user.avatar_url || '',
+				result.user.content_editor,
+			);
+		}
+
+		await formCommit.emit();
+		toast.success(i18n.t('ADMIN_NEXT.TOASTS.USER_SAVED', { username }));
+
+		// A new address for your own account waits for the link mailed to it.
+		// The response still carries the old address, so the form just went back
+		// to it; say why, or the typed address would seem to have been dropped.
+		const newlyPending = result.user.email_pending && result.user.email_pending !== pendingBefore
+			? result.user.email_pending : '';
+		const emailMessage = metaMessage(result.meta)
+			?? (newlyPending ? i18n.t('ADMIN_NEXT.USERS.EMAIL_CHANGE_SENT', { email: newlyPending }) : '');
+		if (emailMessage) toast.info(emailMessage, { duration: 10000 });
 	}
 
 	// Resend and Cancel for a waiting email change. They return the user, so the
@@ -428,7 +514,10 @@
 	function handleKeydown(e: KeyboardEvent) {
 		if ((e.metaKey || e.ctrlKey) && e.key === 's') {
 			e.preventDefault();
-			prefs.autoSaveEnabled ? autoSave.forceSave() : (hasChanges && !saving && handleSave());
+			// Saving by hand always asks for the password a new email address
+			// needs, so it goes straight to handleSave rather than auto-save.
+			if (prefs.autoSaveEnabled && !emailNeedsPassword) autoSave.forceSave();
+			else if (hasChanges && !saving && !emailConfirmOpen) handleSave();
 		}
 		if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey && prefs.autoSaveEnabled) {
 			const tag = (document.activeElement?.tagName ?? '').toLowerCase();
@@ -448,7 +537,7 @@
 	});
 
 	const autoSave = createAutoSaveManager({
-		save: handleSave,
+		save: () => handleSave({ auto: true }),
 		getValue: (path: string) => {
 			const parts = path.split('.');
 			let current: unknown = configData;
@@ -486,6 +575,19 @@
 </script>
 
 {#snippet emailChangeNotice()}
+	{#if emailWaitingForPassword}
+		<!-- A new address for your own account that isn't saved yet: the
+		     password dialog was cancelled. Confirm opens it again. -->
+		<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs dark:border-amber-700/60 dark:bg-amber-950/30">
+			<LockKeyhole size={14} class="shrink-0 text-amber-700 dark:text-amber-300" />
+			<p class="min-w-0 flex-1 break-all text-amber-900 dark:text-amber-200">
+				{i18n.t('ADMIN_NEXT.USERS.EMAIL_CONFIRM.NOT_SAVED', { email: typedEmail.trim() })}
+			</p>
+			<Button variant="outline" size="sm" class="shrink-0" onclick={() => handleSave()} disabled={saving}>
+				{i18n.t('ADMIN_NEXT.CONFIRM')}
+			</Button>
+		</div>
+	{/if}
 	{#if user?.email_pending}
 		<!-- A new address that is waiting for the link mailed to it. Resend and
 		     Cancel are the account owner's own, so anyone else editing this user
@@ -579,7 +681,7 @@
 						{#if user && canSave}
 							<Button
 								size="sm"
-								onclick={handleSave}
+								onclick={() => handleSave()}
 								disabled={!hasChanges || saving}
 								aria-label="Save"
 								title="Save"
@@ -631,7 +733,7 @@
 						onchange={handleBlueprintChange}
 						oncommit={autoSave.oncommit}
 						errors={validationErrors}
-						notices={user.email_pending ? { email: emailChangeNotice } : {}}
+						notices={user.email_pending || emailWaitingForPassword ? { email: emailChangeNotice } : {}}
 					/>
 				{/if}
 
@@ -715,6 +817,15 @@
 	variant="destructive"
 	onconfirm={confirmDelete}
 	oncancel={() => { confirmDeleteOpen = false; }}
+/>
+
+<ConfirmPasswordModal
+	open={emailConfirmOpen}
+	username={username}
+	title={i18n.t('ADMIN_NEXT.USERS.EMAIL_CONFIRM.TITLE')}
+	message={i18n.t('ADMIN_NEXT.USERS.EMAIL_CONFIRM.MESSAGE', { email: typedEmail.trim() })}
+	onconfirm={confirmEmailChange}
+	oncancel={cancelEmailConfirm}
 />
 
 <UnsavedChangesModal {guard} />
