@@ -421,12 +421,14 @@
 			</button>
 
 			<EnvironmentSwitcher />
+			<!-- When the switcher is hidden (nothing to switch), the next block
+				 drops its divider on desktop, where no menu toggle sits before it. -->
 
 			<!-- Page-editor presence (collab avatars + sync status). Only set
 				 by the page edit route while the doc is connected. -->
 			{#if pageEditorBar.presence}
 				{@const p = pageEditorBar.presence}
-				<div class="flex min-w-0 items-center gap-2 border-s border-border ps-2 md:ps-3">
+				<div class="flex min-w-0 items-center gap-2 border-s border-border ps-2 md:ps-3 lg:[[hidden]+&]:border-s-0 lg:[[hidden]+&]:ps-0">
 					<PresenceAvatars peers={p.peers} clientId={p.clientId} max={wideBar.current ? 5 : 2} />
 					<SyncStatusBadge
 						status={p.status}
@@ -439,7 +441,7 @@
 			<!-- Plugin toolbar — start zone. The open space on the left, kept well
 				 clear of the destructive Clear Cache action (admin2#81). -->
 			{#if startMenubarItems.length > 0}
-				<div class="hidden items-center gap-1 border-s border-border ps-3 md:flex">
+				<div class="hidden items-center gap-1 border-s border-border ps-3 md:flex lg:[[hidden]+&]:border-s-0 lg:[[hidden]+&]:ps-0">
 					<PluginMenubarItems placement="start" />
 				</div>
 			{/if}

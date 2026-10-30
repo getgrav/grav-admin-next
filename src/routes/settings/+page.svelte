@@ -6,7 +6,7 @@
 	import { branding } from '$lib/stores/branding.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { saveSitePreferences, type DarkShade, type EnvironmentSwitcherMode, type LogoMode, type PreferenceValues, type SiteSettings } from '$lib/api/endpoints/preferences';
+	import { saveSitePreferences, type DarkShade, type LogoMode, type PreferenceValues, type SiteSettings } from '$lib/api/endpoints/preferences';
 	import { getAdminLanguages, type AdminLanguageInfo } from '$lib/api/endpoints/languages';
 	import { flushNow } from '$lib/stores/_serverSync';
 	import { toast } from 'svelte-sonner';
@@ -66,10 +66,6 @@
 
 	async function setShowCredit(showCredit: boolean) {
 		try { await branding.save({ showCredit }); } catch { toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_SAVE_BRANDING')); }
-	}
-
-	async function setEnvironmentSwitcher(environmentSwitcher: EnvironmentSwitcherMode) {
-		try { await branding.save({ environmentSwitcher }); } catch { toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_SAVE_BRANDING')); }
 	}
 
 	async function handleFaviconUpload(event: Event) {
@@ -853,23 +849,6 @@
 										options={[
 											{ value: true, label: i18n.t('ADMIN_NEXT.SETTINGS.ON') },
 											{ value: false, label: i18n.t('ADMIN_NEXT.SETTINGS.OFF') }
-										]}
-									/>
-								</div>
-							</div>
-
-							<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-x-6">
-								<div class="lg:pt-2.5">
-									<span class="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ENVIRONMENT_SWITCHER')}<FieldHelp part="icon" help={i18n.t('ADMIN_NEXT.SETTINGS.ENVIRONMENT_SWITCHER_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.ENVIRONMENT_SWITCHER')} plain flush /></span>
-									<FieldHelp part="text" help={i18n.t('ADMIN_NEXT.SETTINGS.ENVIRONMENT_SWITCHER_DESC')} label={i18n.t('ADMIN_NEXT.SETTINGS.ENVIRONMENT_SWITCHER')} plain />
-								</div>
-								<div>
-									<SegmentedToggle
-										value={branding.environmentSwitcher}
-										onchange={(v) => setEnvironmentSwitcher(v as EnvironmentSwitcherMode)}
-										options={[
-											{ value: 'auto', label: i18n.t('ADMIN_NEXT.SETTINGS.ENVIRONMENT_SWITCHER_AUTO') },
-											{ value: 'when-used', label: i18n.t('ADMIN_NEXT.SETTINGS.ENVIRONMENT_SWITCHER_WHEN_USED') }
 										]}
 									/>
 								</div>

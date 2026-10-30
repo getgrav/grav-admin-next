@@ -4,7 +4,6 @@ import {
 	deleteBrandingLogo as apiDeleteBrandingLogo,
 	type BrandingUrls,
 	type BrandingVariant,
-	type EnvironmentSwitcherMode,
 	type LogoMode,
 	type PreferencesResponse,
 	type SiteBranding,
@@ -57,7 +56,6 @@ function createBrandingStore() {
 	let subtitle = $state<string>(seedB?.subtitle ?? '');
 	let showPoweredBy = $state<boolean>(seedB?.showPoweredBy ?? true);
 	let showCredit = $state<boolean>(seedB?.showCredit ?? true);
-	let environmentSwitcher = $state<EnvironmentSwitcherMode>(seedB?.environmentSwitcher ?? 'auto');
 	let urlLight = $state<string>(seedUrls?.light ?? '');
 	let urlDark = $state<string>(seedUrls?.dark ?? '');
 	let urlFavicon = $state<string>(seedUrls?.favicon ?? '');
@@ -74,7 +72,6 @@ function createBrandingStore() {
 		subtitle = b?.subtitle ?? '';
 		showPoweredBy = b?.showPoweredBy ?? true;
 		showCredit = b?.showCredit ?? true;
-		environmentSwitcher = b?.environmentSwitcher ?? 'auto';
 		urlLight = payload.branding_urls?.light ?? '';
 		urlDark = payload.branding_urls?.dark ?? '';
 		urlFavicon = payload.branding_urls?.favicon ?? '';
@@ -122,7 +119,6 @@ function createBrandingStore() {
 		get subtitle() { return subtitle; },
 		get showPoweredBy() { return showPoweredBy; },
 		get showCredit() { return showCredit; },
-		get environmentSwitcher() { return environmentSwitcher; },
 		get urlLight() { return urlLight; },
 		get urlDark() { return urlDark; },
 		get urlFavicon() { return urlFavicon; },

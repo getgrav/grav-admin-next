@@ -4,7 +4,6 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { branding } from '$lib/stores/branding.svelte';
 	import { switchEnvironment } from '$lib/utils/switch-environment';
 	import { environmentSwitcherVisible } from '$lib/utils/environment-switcher';
 	import { ChevronDown, Plus, Check, Trash2 } from 'lucide-svelte';
@@ -95,7 +94,6 @@
 	const visible = $derived(environmentSwitcherVisible({
 		target: configEnv.target,
 		environments: configEnv.environments,
-		mode: branding.environmentSwitcher,
 		canManage,
 	}));
 	// Deleting an environment also removes its system and security overrides,
