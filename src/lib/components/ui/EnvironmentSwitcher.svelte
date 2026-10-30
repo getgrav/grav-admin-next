@@ -4,7 +4,9 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { branding } from '$lib/stores/branding.svelte';
 	import { switchEnvironment } from '$lib/utils/switch-environment';
+	import { environmentSwitcherVisible } from '$lib/utils/environment-switcher';
 	import { ChevronDown, Plus, Check, Trash2 } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
 	import { onMount, tick } from 'svelte';
@@ -88,6 +90,14 @@
 	}
 
 	const canManage = $derived(canWrite('config'));
+	// Hidden rather than unmounted, so the list above still loads and an
+	// environment created elsewhere brings it back.
+	const visible = $derived(environmentSwitcherVisible({
+		target: configEnv.target,
+		environments: configEnv.environments,
+		mode: branding.environmentSwitcher,
+		canManage,
+	}));
 	// Deleting an environment also removes its system and security overrides,
 	// which only a super admin may change, so the API refuses it for everyone else.
 	const canDelete = $derived(auth.isSuperAdmin);
@@ -106,7 +116,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="relative max-md:min-w-0" onkeydown={handleKeydown}>
+<div class="relative max-md:min-w-0" hidden={!visible} onkeydown={handleKeydown}>
 	<button
 		type="button"
 		class="inline-flex max-w-full items-center gap-1.5 rounded-md px-2.5 py-1 text-[0.8125rem] font-medium transition-colors

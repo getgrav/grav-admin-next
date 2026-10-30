@@ -13,6 +13,12 @@ export type HelpMode = 'inline' | 'tooltip';
 export type EditorMode = 'normal' | 'expert';
 export type EditorKeymap = 'default' | 'vim';
 export type LogoMode = 'default' | 'text' | 'custom';
+/**
+ * When the top bar shows the environment switcher. `auto`: when the site has
+ * an environment, or to users who can write config (and so create one).
+ * `when-used`: only when the site has an environment.
+ */
+export type EnvironmentSwitcherMode = 'auto' | 'when-used';
 export type LogoVariant = 'light' | 'dark';
 /** Upload/delete variants: the two logo slots plus the custom favicon. */
 export type BrandingVariant = 'light' | 'dark' | 'favicon';
@@ -43,6 +49,8 @@ export interface SiteBranding {
 	showPoweredBy: boolean;
 	/** Show the Trilby Media credit at the bottom of the sidebar. */
 	showCredit: boolean;
+	/** When the top bar shows the environment switcher. */
+	environmentSwitcher: EnvironmentSwitcherMode;
 	/** Custom favicon filename. Empty = the generated accent-coloured favicon. */
 	favicon: string;
 }
