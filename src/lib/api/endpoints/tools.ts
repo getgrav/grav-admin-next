@@ -281,6 +281,13 @@ export interface TwigContentEventItem {
 	class: string;
 	hint: string;
 	timestamp: number;
+	/** Template the block happened in (API 1.1.9+), null when unknown. */
+	template?: string | null;
+	/**
+	 * Set when the block happened in a theme or plugin template the page's
+	 * content includes: trusting it is the fix, and `allowlist` is null.
+	 */
+	partial?: string | null;
 	allowlist: TwigAllowlistTarget | null;
 }
 
@@ -295,6 +302,11 @@ export async function addTwigAllowlist(
 		token: target.token,
 		class: target.class,
 	});
+}
+
+/** Add a template to security.twig_sandbox.trusted_partials. Super-only, Grav 2.2.18+. */
+export async function trustTwigPartial(template: string): Promise<{ key: string; template: string; value: string[] }> {
+	return api.post('/reports/twig-content/trusted-partial', { template });
 }
 
 /** Clear the recent Twig-content diagnostics events ring buffer. */

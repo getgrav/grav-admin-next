@@ -8,6 +8,7 @@
 	import { canWrite } from '$lib/utils/permissions';
 	import {
 		addTwigAllowlist,
+		trustTwigPartial,
 		clearTwigContentEvents,
 		scanTwigContent,
 		fetchSandboxPolicy,
@@ -33,7 +34,12 @@
 		Loader2,
 		ScanSearch,
 		ListChecks,
+		FileCode2,
+		BookOpen,
 	} from 'lucide-svelte';
+
+	// The Learn guide to every Twig in content change since Grav 2.2.18.
+	const TROUBLESHOOTING_URL = 'https://learn.getgrav.org/2/content/twig-in-content-troubleshooting';
 
 	let { report, onChanged }: { report: ReportItem; onChanged: () => void | Promise<void> } = $props();
 
@@ -50,7 +56,8 @@
 	const events = $derived(
 		items
 			.filter((i): i is TwigContentEventItem => i.kind === 'event')
-			.filter((e) => !(e.allowlist && resolved.has(allowlistKey(e.allowlist)))),
+			.filter((e) => !(e.allowlist && resolved.has(allowlistKey(e.allowlist))))
+			.filter((e) => !(e.partial && resolved.has(partialKey(e.partial)))),
 	);
 
 	// Tokens currently being added (keyed) so each button can show its own spinner.
@@ -122,6 +129,29 @@
 			await onChanged();
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.ADD_FAILED'));
+		} finally {
+			const next = { ...pending };
+			delete next[key];
+			pending = next;
+		}
+	}
+
+	function partialKey(template: string): string {
+		return `partial:${template}`;
+	}
+
+	// The fix for a page whose include of a theme or plugin partial is blocked:
+	// trust that partial, instead of allowing what it uses for all content.
+	async function trustPartial(template: string) {
+		const key = partialKey(template);
+		pending = { ...pending, [key]: true };
+		try {
+			await trustTwigPartial(template);
+			resolved = new Set(resolved).add(key);
+			toast.success(i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.TRUSTED_PARTIAL', { template }));
+			await onChanged();
+		} catch {
+			toast.error(i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.TRUST_FAILED'));
 		} finally {
 			const next = { ...pending };
 			delete next[key];
@@ -292,8 +322,19 @@
 	<!-- Recent blocks -->
 	{#if events.length > 0}
 		<div class="flex items-center justify-between px-4 pt-3 pb-1">
-			<span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-				{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.SECTION_EVENTS')}
+			<span class="flex items-center gap-3">
+				<span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+					{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.SECTION_EVENTS')}
+				</span>
+				<a
+					href={TROUBLESHOOTING_URL}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+				>
+					<BookOpen size={12} />
+					{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.TROUBLESHOOTING_LINK')}
+				</a>
 			</span>
 			<!-- Clearing is a write to a record every admin reads, so it needs
 			     api.system.write (getgrav/grav-plugin-api#35). -->
@@ -310,7 +351,7 @@
 		</div>
 		<div class="divide-y divide-border">
 			{#each events as event, idx (idx)}
-				{@const key = event.allowlist ? allowlistKey(event.allowlist) : ''}
+				{@const key = event.partial ? partialKey(event.partial) : event.allowlist ? allowlistKey(event.allowlist) : ''}
 				<div class="flex items-start justify-between gap-3 px-4 py-2.5 text-sm">
 					<div class="flex items-start gap-2 min-w-0">
 						<Ban size={14} class="mt-0.5 shrink-0 text-red-600 dark:text-red-400" />
@@ -326,10 +367,32 @@
 									<span class="text-xs text-muted-foreground truncate">{event.route}</span>
 								{/if}
 							</div>
+							{#if event.partial}
+								<div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-foreground">
+									<FileCode2 size={12} class="shrink-0 text-muted-foreground" />
+									{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.IN_PARTIAL')}
+									<code class="rounded bg-muted px-1.5 py-0.5 font-mono">{event.partial}</code>
+								</div>
+							{/if}
 							<div class="mt-0.5 text-xs text-muted-foreground">{event.hint}</div>
 						</div>
 					</div>
-					{#if event.allowlist}
+					{#if event.partial}
+						<Button
+							variant="outline"
+							size="sm"
+							class="shrink-0"
+							onclick={() => trustPartial(event.partial!)}
+							disabled={pending[key]}
+						>
+							{#if pending[key]}
+								<Loader2 size={13} class="me-1.5 animate-spin" />
+							{:else}
+								<ShieldCheck size={13} class="me-1.5" />
+							{/if}
+							{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.TRUST_PARTIAL')}
+						</Button>
+					{:else if event.allowlist}
 						<Button
 							variant="outline"
 							size="sm"
