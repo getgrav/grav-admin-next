@@ -151,7 +151,7 @@
 
 	<UsersTabNav />
 
-	{#if loading}
+	{#if loading && !data}
 		<div class="flex flex-1 items-center justify-center">
 			<Loader2 size={24} class="animate-spin text-muted-foreground" />
 		</div>

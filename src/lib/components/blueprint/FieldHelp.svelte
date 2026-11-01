@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { renderMarkdownInline, sanitizeHtml, highlightMatchInHtml } from '$lib/utils/markdown';
+	import { renderMarkdownInline, renderHelpHtml, highlightMatchInHtml } from '$lib/utils/markdown';
+	import { helpCodeSpans } from '$lib/utils/help-code';
 	import { textMatches } from '$lib/utils/query-match';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
@@ -12,7 +13,8 @@
 	 * the mode is decided here and nowhere else.
 	 *
 	 * The help is HTML from whoever shipped the blueprint, so it always goes
-	 * through `sanitizeHtml`. `sublabel` is not help: it is part of the label and
+	 * through `sanitizeHtml` (by way of `renderHelpHtml`, which also draws
+	 * markdown code spans as `<code>`). `sublabel` is not help: it is part of the label and
 	 * stays under it in both modes (see FieldLabel).
 	 *
 	 * The icon and the paragraph belong in different places in some layouts, so
@@ -68,7 +70,7 @@
 	// Does the search term hit the help text itself (not its tags)?
 	const filterHit = $derived(
 		!!filter &&
-			textMatches(`${sanitizeHtml(helpText)} ${sanitizeHtml(descriptionText)}`.replace(/<[^>]*>/g, ''), filter)
+			textMatches(`${renderHelpHtml(helpText)} ${renderHelpHtml(descriptionText)}`.replace(/<[^>]*>/g, ''), filter)
 	);
 
 	const inline = $derived(prefs.helpMode === 'inline' || !labelText || filterHit);
@@ -77,11 +79,11 @@
 </script>
 
 {#snippet helpBody()}
-	{#if plain}{helpText}{:else if filter}{@html highlightMatchInHtml(helpText, filter)}{:else}{@html sanitizeHtml(helpText)}{/if}
+	{#if plain}{helpText}{:else if filter}{@html highlightMatchInHtml(helpCodeSpans(helpText), filter)}{:else}{@html renderHelpHtml(helpText)}{/if}
 {/snippet}
 
 {#snippet descriptionBody()}
-	{#if markdown}{@html renderMarkdownInline(descriptionText)}{:else}{@html sanitizeHtml(descriptionText)}{/if}
+	{#if markdown}{@html renderMarkdownInline(descriptionText)}{:else}{@html renderHelpHtml(descriptionText)}{/if}
 {/snippet}
 
 {#if hasContent}

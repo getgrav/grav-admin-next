@@ -1,6 +1,7 @@
 import { queryRegex } from '$lib/utils/query-match';
 import { marked, type Renderer } from 'marked';
 import DOMPurify from 'dompurify';
+import { helpCodeSpans } from '$lib/utils/help-code';
 
 /**
  * What these renderers actually receive.
@@ -54,6 +55,14 @@ export function sanitizeHtml(html: TextLike): string {
 	if (!str) return '';
 
 	return clean(str);
+}
+
+/**
+ * Field `help` and a non-markdown `description`: HTML with markdown code spans
+ * drawn as `<code>` (see helpCodeSpans), sanitized.
+ */
+export function renderHelpHtml(html: TextLike): string {
+	return sanitizeHtml(helpCodeSpans(toText(html)));
 }
 
 /** Render a markdown document as block-level HTML, sanitized. */

@@ -59,6 +59,10 @@
 
 	let plugins = $state<PluginInfo[]>([]);
 	let loading = $state(true);
+	// The list has been fetched once. Later refetches (coming back to the tab,
+	// a plugin enabled or updated) keep the list on screen while they run;
+	// only the first load shows the full-page spinner (admin2#206).
+	let loaded = $state(false);
 	let search = $state('');
 	let sortBy = $state<'name' | 'author' | 'enabled'>('name');
 	let selectedSlug = $state<string | null>(null);
@@ -165,6 +169,7 @@
 			toast.error(i18n.t('ADMIN_NEXT.PLUGINS.FAILED_TO_LOAD_PLUGINS'));
 		} finally {
 			loading = false;
+			loaded = true;
 		}
 	}
 
@@ -392,7 +397,7 @@
 				<div class="flex items-center justify-between {scrolled ? 'min-h-6' : 'min-h-8'}">
 					<div>
 						<h1 class="font-semibold tracking-tight text-foreground transition-[font-size] duration-200 {scrolled ? 'text-sm' : 'text-xl'}">{i18n.t('ADMIN_NEXT.NAV.PLUGINS')}</h1>
-						{#if !scrolled && !loading}
+						{#if !scrolled && loaded}
 							<p class="mt-0.5 text-xs text-muted-foreground">{plugins.length} installed</p>
 						{/if}
 					</div>
@@ -425,7 +430,7 @@
 
 	<GravUpdateBanner onUpgraded={loadPlugins} />
 
-	{#if loading}
+	{#if loading && !loaded}
 		<div class="flex flex-1 items-center justify-center">
 			<Loader2 size={24} class="animate-spin text-muted-foreground" />
 		</div>

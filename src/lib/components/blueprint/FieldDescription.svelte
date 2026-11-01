@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
-	import { renderMarkdownInline, sanitizeHtml } from '$lib/utils/markdown';
+	import { renderMarkdownInline, renderHelpHtml } from '$lib/utils/markdown';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { getContext } from 'svelte';
 	import type { Snippet } from 'svelte';
@@ -39,7 +39,7 @@
 
 {#if description}
 	<p class="mt-2 text-xs text-muted-foreground">
-		{#if field.markdown}{@html renderMarkdownInline(description)}{:else}{@html sanitizeHtml(description)}{/if}
+		{#if field.markdown}{@html renderMarkdownInline(description)}{:else}{@html renderHelpHtml(description)}{/if}
 	</p>
 {/if}
 {#if notice}
