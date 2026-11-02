@@ -9,7 +9,7 @@
 		login,
 		verify2fa,
 		getSetupStatus,
-		getSsoProviders,
+		getLoginOptions,
 		getCaptchaConfig,
 		getPasskeyEnabled,
 		startPasskeySignIn,
@@ -75,6 +75,8 @@
 	let codeInvalid = $state(false);
 
 	let ssoProviders = $state<SsoProvider[]>([]);
+	// Off when the server hides the password form (e.g. SSO enforced).
+	let passwordLogin = $state(true);
 	let ssoLoaded = $state(false);
 
 	let captchaConfig = $state<CaptchaConfig>(CAPTCHA_DISABLED);
@@ -158,8 +160,8 @@
 	$effect(() => {
 		if ((auth.hasGravConfig || auth.serverUrl) && !ssoLoaded) {
 			ssoLoaded = true;
-			getSsoProviders()
-				.then((list) => { ssoProviders = list; })
+			getLoginOptions()
+				.then((options) => { ssoProviders = options.providers; passwordLogin = options.passwordLogin; })
 				.catch(() => { /* no-op — no buttons if unavailable */ });
 		}
 	});
@@ -586,6 +588,7 @@
 					{/if}
 
 					<!-- Credentials form -->
+					{#if passwordLogin}
 					<form onsubmit={handleLogin} class="space-y-4 px-6 {showPasskey ? 'pt-4 pb-5' : 'py-5'}">
 						<div class="space-y-1.5">
 							<label for="username" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.USERNAME')}</label>
@@ -653,9 +656,11 @@
 							{/if}
 						</Button>
 					</form>
+					{/if}
 
 					{#if ssoProviders.length > 0}
-						<div class="px-6 pb-5">
+						<div class="px-6 pb-5 {passwordLogin ? '' : 'pt-5'}">
+							{#if passwordLogin}
 							<div class="relative mb-4 flex items-center">
 								<div class="flex-grow border-t border-border"></div>
 								<span class="mx-3 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
@@ -663,6 +668,7 @@
 								</span>
 								<div class="flex-grow border-t border-border"></div>
 							</div>
+							{/if}
 							<div class="space-y-2">
 								{#each ssoProviders as provider (provider.id)}
 									<Button

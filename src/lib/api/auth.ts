@@ -176,17 +176,35 @@ export interface SsoProvider {
 	plugin: string;
 }
 
+export interface LoginOptions {
+	providers: SsoProvider[];
+	/** Whether the login screens show the username and password form. */
+	passwordLogin: boolean;
+}
+
+/**
+ * The SSO/OAuth login providers the server offers (public, pre-auth), and
+ * whether the password form shows: the API's password_login, which a plugin
+ * turns off e.g. to enforce SSO. Never off without a provider, so there is
+ * always a way in. Best-effort: an unreachable or empty endpoint just yields no
+ * buttons and the password form.
+ */
+export async function getLoginOptions(): Promise<LoginOptions> {
+	try {
+		const data = await api.get<{ providers: SsoProvider[]; password_login?: boolean }>('/auth/sso/providers');
+		const providers = Array.isArray(data?.providers) ? data.providers : [];
+		return { providers, passwordLogin: data?.password_login !== false || providers.length === 0 };
+	} catch {
+		return { providers: [], passwordLogin: true };
+	}
+}
+
 /**
  * List the SSO/OAuth login providers the server offers (public, pre-auth).
  * Best-effort: an unreachable or empty endpoint just yields no buttons.
  */
 export async function getSsoProviders(): Promise<SsoProvider[]> {
-	try {
-		const data = await api.get<{ providers: SsoProvider[] }>('/auth/sso/providers');
-		return Array.isArray(data?.providers) ? data.providers : [];
-	} catch {
-		return [];
-	}
+	return (await getLoginOptions()).providers;
 }
 
 /**

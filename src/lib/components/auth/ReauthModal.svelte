@@ -27,7 +27,7 @@
 		CAPTCHA_DISABLED,
 		exchangeSsoCode,
 		getCaptchaConfig,
-		getSsoProviders,
+		getLoginOptions,
 		login,
 		verify2fa,
 		type CaptchaConfig,
@@ -46,6 +46,8 @@
 	let error = $state<string | null>(null);
 
 	let ssoProviders = $state<SsoProvider[]>([]);
+	// Off when the server hides the password form (e.g. SSO enforced).
+	let passwordLogin = $state(true);
 	let ssoLoaded = $state(false);
 	let ssoBusy = $state<string | null>(null);
 
@@ -97,8 +99,8 @@
 	$effect(() => {
 		if (!authSession.reauthOpen || ssoLoaded) return;
 		ssoLoaded = true;
-		getSsoProviders()
-			.then((list) => { ssoProviders = list; })
+		getLoginOptions()
+			.then((options) => { ssoProviders = options.providers; passwordLogin = options.passwordLogin; })
 			.catch(() => { /* no-op — no buttons if unavailable */ });
 	});
 
@@ -319,6 +321,7 @@
 			</div>
 
 			{#if stage === 'password'}
+				{#if passwordLogin}
 				<form onsubmit={handleSubmit} class="mt-5 space-y-3">
 					<div>
 						<label for="reauth-username" class="text-[0.8125rem] font-medium text-foreground">
@@ -371,9 +374,11 @@
 						</Button>
 					</div>
 				</form>
+				{/if}
 
 				{#if ssoProviders.length > 0}
 					<div class="mt-5">
+						{#if passwordLogin}
 						<div class="relative mb-3 flex items-center">
 							<div class="flex-grow border-t border-border"></div>
 							<span class="mx-3 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
@@ -381,6 +386,7 @@
 							</span>
 							<div class="flex-grow border-t border-border"></div>
 						</div>
+						{/if}
 						<div class="space-y-2">
 							{#each ssoProviders as provider (provider.id)}
 								<Button
@@ -398,6 +404,16 @@
 								</Button>
 							{/each}
 						</div>
+					</div>
+				{/if}
+				{#if !passwordLogin}
+					{#if error}
+						<p class="mt-3 text-[0.8125rem] text-destructive">{error}</p>
+					{/if}
+					<div class="flex justify-end pt-4">
+						<Button type="button" variant="outline" size="sm" onclick={handleSignOut} disabled={submitting}>
+							{i18n.t('ADMIN_NEXT.SIGN_OUT')}
+						</Button>
 					</div>
 				{/if}
 			{:else}
