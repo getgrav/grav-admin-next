@@ -76,8 +76,10 @@ export interface PageSummary {
 	 * True for a page the caller can't read, listed only because a page they
 	 * can read sits somewhere below it, so a folder listing (`children_of`,
 	 * `root`) can still be expanded down to it (admin2#209). It can't be
-	 * opened: the editor, preview and media would all answer 403. Absent on
-	 * older APIs and on every readable page; see `isAncestorOnly()`.
+	 * opened: the editor, preview and media would all answer 403. Also set on a
+	 * page the caller can read but not edit, listed under `editable=true`; that
+	 * one opens. Absent on older APIs and on every other row; see
+	 * `isAncestorOnly()`.
 	 */
 	ancestor_only?: boolean;
 }
@@ -85,9 +87,17 @@ export interface PageSummary {
 /**
  * Whether a listed page is only there as a way down to pages the caller can
  * read (admin2#209). Such a row can be expanded but not opened.
+ *
+ * The API flags a row `ancestor_only` when it isn't one of the pages the
+ * listing asked for. With the admin's "only pages I can edit" setting on
+ * (`editable=true`) that includes a page the user can read but not edit, and
+ * that one opens, read-only, like any other: only a row the user can't read is
+ * a pass-through. So a row opens when `!ancestor_only || permissions.read`.
  */
-export function isAncestorOnly(page: { ancestor_only?: boolean } | null | undefined): boolean {
-	return page?.ancestor_only === true;
+export function isAncestorOnly(
+	page: { ancestor_only?: boolean; permissions?: { read?: boolean } } | null | undefined,
+): boolean {
+	return page?.ancestor_only === true && page.permissions?.read !== true;
 }
 
 /** Per-page capabilities, as resolved by the API for the current user. */
