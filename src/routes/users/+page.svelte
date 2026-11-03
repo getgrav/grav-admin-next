@@ -26,7 +26,7 @@
 	import TypeaheadFilter from '$lib/components/ui/TypeaheadFilter.svelte';
 	import { deleteUser, updateUser } from '$lib/api/endpoints/users';
 	import { getPermissionsBlueprint } from '$lib/api/endpoints/blueprints';
-	import { getGroups } from '$lib/api/endpoints/groups';
+	import { getAllGroups } from '$lib/api/endpoints/groups';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -203,12 +203,12 @@
 	async function loadFilterOptions() {
 		filtersLoading = true;
 		try {
-			const [perms, groupsPage] = await Promise.all([
+			const [perms, allGroups] = await Promise.all([
 				getPermissionsBlueprint(),
-				getGroups(1, 200),
+				getAllGroups(),
 			]);
 			permissionOptions = permissionFilterOptions(perms);
-			groupOptions = groupsPage.groups.map((g) => ({
+			groupOptions = allGroups.map((g) => ({
 				value: g.groupname,
 				label: g.readableName || g.groupname,
 				hint: g.groupname,

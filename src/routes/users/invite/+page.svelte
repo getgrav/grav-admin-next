@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { createInvitation, type Invitation } from '$lib/api/endpoints/invitations';
-	import { getGroups, type GroupInfo } from '$lib/api/endpoints/groups';
+	import { getAllGroups, type GroupInfo } from '$lib/api/endpoints/groups';
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
@@ -45,8 +45,7 @@
 	async function loadGroups() {
 		groupsLoading = true;
 		try {
-			const res = await getGroups(1, 200);
-			groups = res.groups;
+			groups = await getAllGroups();
 		} catch {
 			groups = [];
 		} finally {

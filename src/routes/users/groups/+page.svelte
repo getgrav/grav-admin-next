@@ -30,20 +30,11 @@
 	let confirmDeleteOpen = $state(false);
 	const perPage = 20;
 
-	const filtered = $derived.by(() => {
-		if (!data) return [];
-		let list = data.groups;
-		if (search) {
-			const q = search.toLowerCase();
-			list = list.filter(
-				(g) =>
-					g.groupname.toLowerCase().includes(q) ||
-					(g.readableName ?? '').toLowerCase().includes(q) ||
-					(g.description ?? '').toLowerCase().includes(q),
-			);
-		}
-		return list;
-	});
+	// Search runs server-side (the API matches groupname, readable name and
+	// description), so the list the API returns is already the filtered set for
+	// this page. Filtering one page in the browser would never find a group on
+	// another page (getgrav/grav-admin-next#45).
+	const filtered = $derived(data?.groups ?? []);
 
 	const selected = $derived(
 		selectedName ? data?.groups.find((g) => g.groupname === selectedName) ?? null : null,
@@ -52,9 +43,18 @@
 	async function loadGroups(page = 1) {
 		loading = true;
 		try {
-			data = await getGroups(page, perPage);
+			data = await getGroups(page, perPage, search.trim() || undefined);
+			// Deleting the last group on the last page leaves that page empty:
+			// step back to the page that is now the last one.
+			if (data.groups.length === 0 && data.page > 1 && data.totalPages < data.page) {
+				data = await getGroups(Math.max(1, data.totalPages), perPage, search.trim() || undefined);
+			}
 			currentPage = data.page;
-			if (!selectedName && data.groups.length > 0) {
+			// Keep a valid selection: the previously selected group may be on
+			// another page now, or filtered out by the search.
+			if (selectedName && !data.groups.some((g) => g.groupname === selectedName)) {
+				selectedName = data.groups[0]?.groupname ?? null;
+			} else if (!selectedName && data.groups.length > 0) {
 				selectedName = data.groups[0].groupname;
 			}
 		} catch {
@@ -112,7 +112,20 @@
 		return result;
 	}
 
-	$effect(() => { loadGroups(); });
+	// Load, and reload from page 1 whenever the search changes (debounced).
+	let reloadTimer: ReturnType<typeof setTimeout> | undefined;
+	let firstLoad = true;
+	$effect(() => {
+		void search;
+		clearTimeout(reloadTimer);
+		if (firstLoad) {
+			firstLoad = false;
+			loadGroups(1);
+			return;
+		}
+		reloadTimer = setTimeout(() => loadGroups(1), 250);
+		return () => clearTimeout(reloadTimer);
+	});
 
 	onMount(() => {
 		const unsubGroups = invalidations.subscribe('groups:*', () => loadGroups(currentPage));
@@ -124,6 +137,25 @@
 <svelte:head>
 	<title>{i18n.t('ADMIN_NEXT.GROUPS.GROUPS_GRAV_ADMIN')}</title>
 </svelte:head>
+
+<!-- Same pager the Users list draws under both of its views. -->
+{#snippet pager()}
+	{#if data && data.totalPages > 1}
+		<div class="flex items-center justify-between border-t border-border px-4 py-2">
+			<span class="text-xs text-muted-foreground">
+				{i18n.t('ADMIN_NEXT.PAGINATION.PAGE_OF', { current: currentPage, total: data.totalPages })}
+			</span>
+			<div class="flex items-center gap-1">
+				<Button variant="outline" size="icon" disabled={loading || currentPage <= 1} onclick={() => loadGroups(currentPage - 1)} class="h-7 w-7">
+					<DirectionalIcon name="chevron-back" size={14} />
+				</Button>
+				<Button variant="outline" size="icon" disabled={loading || currentPage >= data.totalPages} onclick={() => loadGroups(currentPage + 1)} class="h-7 w-7">
+					<DirectionalIcon name="chevron-forward" size={14} />
+				</Button>
+			</div>
+		</div>
+	{/if}
+{/snippet}
 
 <div class="flex h-full flex-col">
 	<StickyHeader noBorder>
@@ -200,6 +232,7 @@
 					onEdit={openEdit}
 					onDelete={canEdit ? requestDelete : undefined}
 				/>
+				{@render pager()}
 			</div>
 		{:else}
 		<div class="flex flex-1 overflow-hidden">
@@ -236,6 +269,7 @@
 						</div>
 					{/if}
 				</div>
+				{@render pager()}
 			</div>
 
 			<div class="hidden flex-1 overflow-y-auto lg:block">

@@ -7,7 +7,7 @@
 	import { provideFormCommit } from '$lib/utils/form-commit.svelte';
 	import { getUser, updateUser, deleteUser, cancelEmailChange, resendEmailChange, type UserInfo } from '$lib/api/endpoints/users';
 	import { emailChangeRefusal, metaMessage } from '$lib/utils/email-change';
-	import { getGroups, type GroupInfo } from '$lib/api/endpoints/groups';
+	import { getAllGroups, type GroupInfo } from '$lib/api/endpoints/groups';
 	import { getUserBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
@@ -240,13 +240,13 @@
 				getUserBlueprint().catch(() => null),
 				// Groups feed the read-only permission-inheritance overlay; failure
 				// there shouldn't block editing the user, so swallow it.
-				getGroups(1, 500).catch(() => null),
+				getAllGroups().catch(() => null),
 			]);
 
 			user = userResult.user;
 			etag = userResult.etag;
 			blueprint = blueprintResult;
-			allGroups = groupsResult?.groups ?? [];
+			allGroups = groupsResult ?? [];
 			populateForm(userResult.user);
 		} catch (err: unknown) {
 			const status = err && typeof err === 'object' && 'status' in err
