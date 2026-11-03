@@ -5,6 +5,7 @@
 	import FieldRenderer from './FieldRenderer.svelte';
 	import { fieldMatches } from '$lib/utils/field-filter';
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { setFormReadonly } from './readonly';
 
 	interface Props {
 		fields: BlueprintField[];
@@ -16,9 +17,17 @@
 		errors?: Record<string, string>;
 		/** Field name → a snippet drawn under that field (and its description), for a notice that needs more than a description line. */
 		notices?: Record<string, Snippet>;
+		/**
+		 * Show the data without letting it be changed: every field's controls
+		 * are disabled, while tabs, sections and list items still open
+		 * (admin2#209). The caller should also ignore `onchange`.
+		 */
+		readonly?: boolean;
 	}
 
-	let { fields, data, onchange, oncommit, filter = '', errors = {}, notices = {} }: Props = $props();
+	let { fields, data, onchange, oncommit, filter = '', errors = {}, notices = {}, readonly = false }: Props = $props();
+
+	setFormReadonly(() => readonly);
 
 	// Expose validation errors to every descendant field (FieldRenderer reads
 	// this by field.name). Passing a getter keeps it reactive across updates.

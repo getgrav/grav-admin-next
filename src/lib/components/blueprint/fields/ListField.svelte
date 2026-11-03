@@ -8,6 +8,7 @@
 	import FieldHelp from '../FieldHelp.svelte';
 	import { uniqueListOptions, takenByOtherRows } from '$lib/utils/select-unique';
 	import { listItemTitle } from '$lib/utils/list-item-title';
+	import { formReadonly } from '../readonly';
 
 	interface Props {
 		field: BlueprintField;
@@ -34,7 +35,11 @@
 	const isCollapsible = $derived(
 		field.collapsible === true || (childFields.length > 1 && field.collapsible !== false)
 	);
-	const sortable = $derived(field.sort !== false);
+	// In a read-only form (admin2#209) items can still be expanded and read,
+	// but not added, removed or reordered; their fields are disabled one by one.
+	const readonlyCtx = formReadonly();
+	const readOnly = $derived(readonlyCtx());
+	const sortable = $derived(field.sort !== false && !readOnly);
 	const btnLabel = $derived(
 		field.btnLabel ? translateLabel(field.btnLabel) : i18n.t('ADMIN_NEXT.FIELDS.ADD_ITEM')
 	);
@@ -390,6 +395,7 @@
 							<span class="flex-1"></span>
 						{/if}
 
+						{#if !readOnly}
 						<button
 							type="button"
 							class="flex shrink-0 items-center rounded-md p-1 text-muted-foreground/40 transition-colors hover:bg-red-500/10 hover:text-red-400"
@@ -398,6 +404,7 @@
 						>
 							<Trash2 size={14} />
 						</button>
+						{/if}
 					</div>
 
 					<!-- Item fields (when expanded) -->
@@ -414,6 +421,7 @@
 										type="text"
 										class="flex h-10 w-full rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 										value={item.key}
+										disabled={readOnly}
 										placeholder={keyFieldDef.placeholder ? translateLabel(keyFieldDef.placeholder) : ''}
 										oninput={(e) => handleItemKeyChange(item, (e.target as HTMLInputElement).value)}
 									/>
@@ -464,6 +472,7 @@
 				<DirectionalIcon name="chevron-forward" size={12} /> {i18n.t('ADMIN_NEXT.COLLAPSE_ALL')}
 			</button>
 		{/if}
+		{#if !readOnly}
 		<button
 			type="button"
 			class="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary disabled:pointer-events-none disabled:opacity-50"
@@ -473,5 +482,6 @@
 			<Plus size={14} />
 			{btnLabel}
 		</button>
+		{/if}
 	</div>
 </div>

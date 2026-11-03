@@ -486,3 +486,13 @@ html[data-keyboard-nav] :is(button, a, summary, [role="button"], [role="menuitem
 	outline: 2px solid var(--ring) !important;
 	outline-offset: 2px !important;
 }
+
+/* A page (or other blueprint form) the user may view but not change: each
+   field's controls sit in a disabled fieldset (admin2#209). Text stays at full
+   strength so it reads; choice controls dim, and nothing looks clickable. */
+fieldset[data-readonly-field]:disabled :is(input, select, textarea, button) {
+	cursor: not-allowed;
+}
+fieldset[data-readonly-field]:disabled :is(button, select, input[type="checkbox"], input[type="radio"], input[type="range"]) {
+	opacity: 0.7;
+}

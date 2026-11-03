@@ -2,12 +2,18 @@
 	// The on/off checkbox for a blueprint field marked `toggleable: true`.
 	// Shared by SectionField (its direct children) and FieldRenderer (fields
 	// nested inside columns/lists), so both draw an identical control.
+	import { formReadonly } from './readonly';
+
 	interface Props {
 		toggled: boolean;
 		onToggle: () => void;
 	}
 
 	let { toggled, onToggle }: Props = $props();
+
+	// Sits beside the field rather than inside it, so a read-only form's
+	// disabled field wrapper doesn't reach it (admin2#209).
+	const readonlyCtx = formReadonly();
 </script>
 
 <button
@@ -15,6 +21,7 @@
 	class="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border transition-colors
 		{toggled ? 'border-primary bg-primary' : 'border-input bg-muted/50'}"
 	aria-pressed={toggled}
+	disabled={readonlyCtx()}
 	onclick={onToggle}
 >
 	{#if toggled}

@@ -50,6 +50,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { getContext } from 'svelte';
 	import EditorLockNotice from '$lib/components/sync/EditorLockNotice.svelte';
+	import { formReadonly } from './readonly';
 
 	// Page editor publishes this when the peer writing the content uses a
 	// different editor than the one we'd use — see sync/editorLock.ts for
@@ -57,6 +58,13 @@
 	type EditorLockState = { ownerType: string; ownerName: string } | null;
 	const editorLockCtx = getContext<(() => EditorLockState) | undefined>('editorLock');
 	const contentLock = $derived.by((): EditorLockState => editorLockCtx?.() ?? null);
+
+	// A form the user may view but not change (admin2#209). Each leaf field's
+	// controls sit in a disabled <fieldset>; fields that lay out other fields
+	// are left alone so tabs, sections and list items still open, and their
+	// children are wrapped one by one instead.
+	const readonlyCtx = formReadonly();
+	const readOnly = $derived(readonlyCtx());
 
 	// Resolve the user's preferred content editor if it's a registered custom field
 	const preferredEditor = $derived.by(() => {
@@ -211,7 +219,25 @@
 		'date', 'time', 'month', 'week', 'color',
 	]);
 
+	// Fields not wrapped in a read-only form: layout fields, whose children are
+	// wrapped instead, and fields that handle read-only themselves.
+	const readonlyPassThroughTypes = new Set([
+		'tabs', 'tab', 'section', 'fieldset', 'columns', 'column', 'conditional',
+		'elements', 'element', 'page-exists', 'list', 'pagemedia', 'spacer', 'display',
+	]);
+	const wrapReadonly = $derived(readOnly && !useTwoColumn && !readonlyPassThroughTypes.has(field.type));
+
 </script>
+
+{#if wrapReadonly}
+	<fieldset disabled data-readonly-field class="m-0 min-w-0 border-0 p-0">
+		{@render control()}
+	</fieldset>
+{:else}
+	{@render control()}
+{/if}
+
+{#snippet control()}
 
 {#if suppressedNames.has(field.name) || suppressedTypes.has(field.type)}
 	<!-- Suppressed in admin-next -->
@@ -472,6 +498,12 @@
 		<MarkdownField field={{ ...field, readonly: true }} {value} {onchange} />
 	</div>
 
+{:else if readOnly && (field.type === 'markdown' || field.type === 'editor' || (field.name === 'content' && customFieldRegistry.has(field.type)))}
+	<!-- Read-only form: the content is shown in the plain markdown viewer,
+		 whatever editor the user prefers, the same way the collab lock above
+		 does. A rich editor can't be told to stop accepting input. -->
+	<MarkdownField field={{ ...field, readonly: true }} {value} {onchange} />
+
 {:else if field.type === 'markdown' && preferredEditor}
 	{@const provider = customFieldRegistry.getProvider(preferredEditor)}
 	<!-- User-preferred editor (e.g., editor-pro) for markdown fields -->
@@ -707,7 +739,10 @@
 	{@const provider = customFieldRegistry.getProvider(field.type)}
 	<!-- Plugin- or theme-provided custom field via web component -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div data-translate={field.translate || undefined} data-field-name={field.translate ? field.name : undefined}>
+	<!-- A plugin's web component can't be disabled from outside, so in a
+		 read-only form it is shown but takes no input. -->
+	<div data-translate={field.translate || undefined} data-field-name={field.translate ? field.name : undefined}
+		inert={readOnly || undefined} class={readOnly ? 'opacity-70' : undefined}>
 		<CustomFieldWrapper
 			{field}
 			selfLabeled={selfLabeledTypes.has(field.type)}
@@ -737,3 +772,4 @@
 		<RawField {field} {value} {onchange} />
 	</div>
 {/if}
+{/snippet}

@@ -3,6 +3,7 @@
 	import FieldRenderer from '../FieldRenderer.svelte';
 	import SelectField from './SelectField.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { formReadonly } from '../readonly';
 
 	interface Props {
 		field: BlueprintField;
@@ -14,6 +15,8 @@
 	}
 
 	let { field, value, onchange, getValue, onFieldChange, onFieldCommit }: Props = $props();
+
+	const readonlyCtx = formReadonly();
 
 	// Element keys are compared as strings, but a saved value arrives from YAML
 	// with its native type — `enabled: 1` deserializes to the number 1, and a
@@ -53,8 +56,11 @@
 </script>
 
 <div class="space-y-3">
-	<!-- The select dropdown (reuse SelectField for consistency) -->
-	<SelectField {field} value={currentValue} {onchange} />
+	<!-- The select dropdown (reuse SelectField for consistency). Its element's
+	     fields below are wrapped one by one in a read-only form. -->
+	<fieldset disabled={readonlyCtx()} class="m-0 min-w-0 border-0 p-0">
+		<SelectField {field} value={currentValue} {onchange} />
+	</fieldset>
 
 	<!-- Show the active element's child fields -->
 	{#if activeElement?.fields}
