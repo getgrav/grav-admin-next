@@ -6,7 +6,7 @@
 	import { toast } from 'svelte-sonner';
 	import { canWrite } from '$lib/utils/permissions';
 	import { Search, X, Palette, ExternalLink, Download, Loader2, ShoppingCart, BadgeCheck } from 'lucide-svelte';
-	import { hostname } from '$lib/utils/url';
+	import { hostname, webUrl } from '$lib/utils/url';
 	import LoadErrorState from '$lib/components/ui/LoadErrorState.svelte';
 
 	const canInstall = $derived(canWrite('gpm'));
@@ -57,6 +57,12 @@
 	const selectedTheme = $derived(
 		selectedSlug ? available.find((t) => t.slug === selectedSlug) ?? null : null,
 	);
+	// From the package's blueprint, written by its author: only an http(s)
+	// address becomes a link (a `javascript:` one would run in the admin).
+	const selectedLinks = $derived({
+		author: webUrl(selectedTheme?.author?.url),
+		homepage: webUrl(selectedTheme?.homepage),
+	});
 
 	function needsPurchase(theme: RepositoryTheme): boolean {
 		return !!theme.premium && !theme.licensed;
@@ -326,8 +332,8 @@
 										<div>
 											<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.AUTHOR')}</dt>
 											<dd class="mt-0.5 text-sm text-foreground">
-												{#if selectedTheme.author.url}
-													<a href={selectedTheme.author.url} target="_blank" rel="noopener" class="text-primary hover:underline">
+												{#if selectedLinks.author}
+													<a href={selectedLinks.author} target="_blank" rel="noopener" class="text-primary hover:underline">
 														{selectedTheme.author.name}
 														<ExternalLink size={10} class="inline" />
 													</a>
@@ -338,12 +344,12 @@
 										</div>
 									{/if}
 
-									{#if selectedTheme.homepage}
+									{#if selectedLinks.homepage}
 										<div>
 											<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.HOMEPAGE')}</dt>
 											<dd class="mt-0.5 text-sm">
-												<a href={selectedTheme.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
-													{hostname(selectedTheme.homepage)}
+												<a href={selectedLinks.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
+													{hostname(selectedLinks.homepage)}
 													<ExternalLink size={10} class="inline" />
 												</a>
 											</dd>

@@ -14,7 +14,7 @@
 	import GravUpdateBanner from '$lib/components/GravUpdateBanner.svelte';
 	import { toast } from 'svelte-sonner';
 	import { Search, Puzzle, ExternalLink, ArrowUpCircle, Loader2, Plus, RefreshCw, BadgeCheck, CornerDownRight, LayoutGrid, Table as TableIcon, Trash2, FileText, Book, Bug } from 'lucide-svelte';
-	import { hostname } from '$lib/utils/url';
+	import { hostname, webUrl } from '$lib/utils/url';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText, formatChangelog } from '$lib/utils/gpm';
@@ -155,6 +155,14 @@
 	const selectedPlugin = $derived(
 		selectedSlug ? plugins.find((p) => p.slug === selectedSlug) ?? null : null,
 	);
+	// From the package's blueprint, written by its author: only an http(s)
+	// address becomes a link (a `javascript:` one would run in the admin).
+	const selectedLinks = $derived({
+		docs: webUrl(selectedPlugin?.docs),
+		bugs: webUrl(selectedPlugin?.bugs),
+		author: webUrl(selectedPlugin?.author?.url),
+		homepage: webUrl(selectedPlugin?.homepage),
+	});
 
 	async function loadPlugins() {
 		loading = true;
@@ -699,13 +707,13 @@
 							<button type="button" class="inline-flex items-center gap-1 hover:text-foreground" onclick={() => selectedPlugin && showChangelog(selectedPlugin)}>
 								<FileText size={12} /> {i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}
 							</button>
-							{#if selectedPlugin.docs}
-								<a href={selectedPlugin.docs} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
+							{#if selectedLinks.docs}
+								<a href={selectedLinks.docs} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
 									<Book size={12} /> {i18n.t('ADMIN_NEXT.DOCUMENTATION')} <ExternalLink size={10} />
 								</a>
 							{/if}
-							{#if selectedPlugin.bugs}
-								<a href={selectedPlugin.bugs} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
+							{#if selectedLinks.bugs}
+								<a href={selectedLinks.bugs} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
 									<Bug size={12} /> {i18n.t('ADMIN_NEXT.REPORT_ISSUE')} <ExternalLink size={10} />
 								</a>
 							{/if}
@@ -717,8 +725,8 @@
 								<div>
 									<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.AUTHOR')}</dt>
 									<dd class="mt-0.5 text-sm text-foreground">
-										{#if selectedPlugin.author.url}
-											<a href={selectedPlugin.author.url} target="_blank" rel="noopener" class="text-primary hover:underline">
+										{#if selectedLinks.author}
+											<a href={selectedLinks.author} target="_blank" rel="noopener" class="text-primary hover:underline">
 												{selectedPlugin.author.name}
 												<ExternalLink size={10} class="inline" />
 											</a>
@@ -729,12 +737,12 @@
 								</div>
 							{/if}
 
-							{#if selectedPlugin.homepage}
+							{#if selectedLinks.homepage}
 								<div>
 									<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.HOMEPAGE')}</dt>
 									<dd class="mt-0.5 text-sm">
-										<a href={selectedPlugin.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
-											{hostname(selectedPlugin.homepage)}
+										<a href={selectedLinks.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
+											{hostname(selectedLinks.homepage)}
 											<ExternalLink size={10} class="inline" />
 										</a>
 									</dd>

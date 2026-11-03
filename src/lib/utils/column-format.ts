@@ -1,4 +1,5 @@
 import type { ColumnFormatter } from '$lib/api/endpoints/users';
+import { safeHref } from '$lib/utils/url';
 
 /**
  * A rendered column cell, expressed as safe structured data — never HTML. The
@@ -79,24 +80,4 @@ function formatDate(value: Scalar, withTime: boolean): string {
 	}
 	if (Number.isNaN(date.getTime())) return String(value);
 	return withTime ? date.toLocaleString() : date.toLocaleDateString();
-}
-
-/**
- * Only allow a link the browser can't be tricked by: same-origin relative
- * paths, or absolute http(s) URLs. Everything else (javascript:, data:, etc.)
- * is rejected so the value renders as inert text instead.
- */
-function safeHref(value: string): string | null {
-	const trimmed = value.trim();
-	if (trimmed === '') return null;
-
-	// Relative path or protocol-relative that stays same-scheme.
-	if (trimmed.startsWith('/') && !trimmed.startsWith('//')) return trimmed;
-
-	try {
-		const url = new URL(trimmed, window.location.origin);
-		return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null;
-	} catch {
-		return null;
-	}
 }

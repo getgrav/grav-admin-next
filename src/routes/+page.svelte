@@ -4,10 +4,13 @@
 	import {
 		getDashboardNotifications, getPopularity, getFeed, getBackups, getUpdates, getSystemInfoOverview,
 		type Notification, type PopularityData,
-		type FeedItem, type BackupInfo, type UpdatesData, type SystemInfoOverview
+		type FeedItem, type BackupInfo, type UpdatesData, type UpdatablePackage, type SystemInfoOverview
 	} from '$lib/api/endpoints/dashboard';
 	import { getWidgets, saveUserLayout, saveSiteLayout } from '$lib/api/endpoints/dashboard-widgets';
-	import { updateAllPackages, getGravChangelog } from '$lib/api/endpoints/gpm';
+	import {
+		updateAllPackages, getGravChangelog, getPluginAvailableChangelog, getThemeAvailableChangelog
+	} from '$lib/api/endpoints/gpm';
+	import { ApiRequestError } from '$lib/api/client';
 	import { confirmAndUpgradeGrav } from '$lib/utils/grav-upgrade';
 	import { reloadIfAdminUpdated, formatChangelog } from '$lib/utils/gpm';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
@@ -65,22 +68,64 @@
 	let saving = $state(false);
 	let pickerOpen = $state(false);
 
-	// Grav core changelog modal
-	let gravChangelogOpen = $state(false);
-	let gravChangelogContent = $state('');
-	let gravChangelogLoading = $state(false);
+	// Changelog modal: Grav core (no package), or the update of an outdated plugin or theme
+	let changelogOpen = $state(false);
+	let changelogPackage = $state<UpdatablePackage | null>(null);
+	let changelogMarkdown = $state('');
+	// 'empty': nothing newer than the installed version is listed; 'failed': it couldn't be loaded.
+	let changelogProblem = $state<'empty' | 'failed' | null>(null);
+	let changelogLoading = $state(false);
+	// Each package row has its own button: a slow answer for one package must
+	// not land in the modal after another one has been opened.
+	let changelogRequest = 0;
 
-	async function handleShowGravChangelog() {
-		gravChangelogLoading = true;
-		gravChangelogContent = '';
-		gravChangelogOpen = true;
+	// Derived, not set on open, so the title and messages follow a language change.
+	const changelogTitle = $derived(
+		changelogPackage
+			? `${changelogPackage.name || changelogPackage.slug} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: changelogPackage.available_version })}`
+			: `Grav — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`
+	);
+	const changelogContent = $derived(
+		changelogLoading
+			? i18n.t('ADMIN_NEXT.LOADING')
+			: changelogProblem === 'empty'
+				? `*${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_EMPTY')}*`
+				: changelogProblem === 'failed'
+					? `*${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_FAILED')}*`
+					: changelogMarkdown
+	);
+
+	async function openChangelog(pkg: UpdatablePackage | null, load: () => Promise<string>) {
+		const request = ++changelogRequest;
+		changelogPackage = pkg;
+		changelogLoading = true;
+		changelogMarkdown = '';
+		changelogProblem = null;
+		changelogOpen = true;
+		let markdown = '';
+		let problem: 'empty' | 'failed' | null = null;
 		try {
-			gravChangelogContent = formatChangelog(await getGravChangelog());
-		} catch {
-			gravChangelogContent = '*Changelog not available.*';
-		} finally {
-			gravChangelogLoading = false;
+			markdown = formatChangelog(await load());
+			if (markdown.trim() === '') problem = 'empty';
+		} catch (err) {
+			// The API answers 404 when no entry is newer than the installed version
+			// (and for a package that isn't installed, which these rows never are).
+			problem = err instanceof ApiRequestError && err.response.status === 404 ? 'empty' : 'failed';
 		}
+		if (request !== changelogRequest) return;
+		changelogMarkdown = markdown;
+		changelogProblem = problem;
+		changelogLoading = false;
+	}
+
+	function handleShowGravChangelog() {
+		return openChangelog(null, getGravChangelog);
+	}
+
+	function handleShowPackageChangelog(type: 'plugin' | 'theme', pkg: UpdatablePackage) {
+		return openChangelog(pkg, () =>
+			type === 'plugin' ? getPluginAvailableChangelog(pkg.slug) : getThemeAvailableChangelog(pkg.slug)
+		);
 	}
 	const dirty = $derived(JSON.stringify(widgets) !== JSON.stringify(savedWidgetsSnapshot));
 
@@ -93,6 +138,7 @@
 		onUpdateAll: handleUpdateAll,
 		onUpgradeGrav: handleUpgradeGrav,
 		onShowGravChangelog: handleShowGravChangelog,
+		onShowPackageChangelog: handleShowPackageChangelog,
 		onCreateBackup: handleCreateBackup,
 	}));
 
@@ -279,7 +325,7 @@
 		const ok = await dialogs.confirm({
 			title: i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPDATE_ALL_CONFIRM_TITLE'),
 			message: i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPDATE_ALL_CONFIRM_MESSAGE', { n }),
-			items: updatable.map(p => `${p.name} v${p.version} → v${p.available_version}`),
+			items: updatable.map(p => `${p.name || p.slug} ${p.version ? `v${p.version} → ` : ''}v${p.available_version}`),
 			confirmLabel: i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPDATE_ALL'),
 		});
 		if (!ok) return;
@@ -449,8 +495,8 @@
 {/if}
 
 <MarkdownModal
-	open={gravChangelogOpen}
-	title={`Grav — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`}
-	content={gravChangelogLoading ? 'Loading...' : gravChangelogContent}
-	onclose={() => { gravChangelogOpen = false; }}
+	open={changelogOpen}
+	title={changelogTitle}
+	content={changelogContent}
+	onclose={() => { changelogOpen = false; }}
 />

@@ -2,7 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { ExternalLink, BookOpen, FileText, Book, Bug, Globe, User } from 'lucide-svelte';
 	import type { PackageAuthor } from '$lib/api/endpoints/gpm';
-	import { hostname, sameUrl } from '$lib/utils/url';
+	import { hostname, sameUrl, webUrl } from '$lib/utils/url';
 
 	/**
 	 * Shared meta-links row shown under a plugin/theme description. Keeps the
@@ -29,12 +29,17 @@
 
 	let { extension, changelogLabel, onReadme, onChangelog }: Props = $props();
 
-	const authorUrl = $derived(extension.author?.url ?? null);
+	// These come from the package's blueprint, written by its author: only an
+	// http(s) address becomes a link (a `javascript:` one would run in the admin).
+	const authorUrl = $derived(webUrl(extension.author?.url));
 	const authorName = $derived(extension.author?.name ?? null);
+	const homepage = $derived(webUrl(extension.homepage));
+	const docs = $derived(webUrl(extension.docs));
+	const bugs = $derived(webUrl(extension.bugs));
 
 	// Show the homepage only when it carries information beyond the author URL —
 	// many blueprints set homepage to (a duplicate of) the author site.
-	const showHomepage = $derived(!!extension.homepage && !sameUrl(extension.homepage, authorUrl));
+	const showHomepage = $derived(!!homepage && !sameUrl(homepage, authorUrl));
 </script>
 
 <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -46,9 +51,9 @@
 		<span class="inline-flex items-center gap-1"><User size={10} /> {authorName}</span>
 	{/if}
 
-	{#if showHomepage && extension.homepage}
-		<a href={extension.homepage} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
-			<Globe size={10} /> {hostname(extension.homepage)} <ExternalLink size={10} />
+	{#if showHomepage && homepage}
+		<a href={homepage} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
+			<Globe size={10} /> {hostname(homepage)} <ExternalLink size={10} />
 		</a>
 	{/if}
 
@@ -60,14 +65,14 @@
 		<FileText size={10} /> {changelogLabel}
 	</button>
 
-	{#if extension.docs}
-		<a href={extension.docs} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
+	{#if docs}
+		<a href={docs} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
 			<Book size={10} /> {i18n.t('ADMIN_NEXT.DOCUMENTATION')} <ExternalLink size={10} />
 		</a>
 	{/if}
 
-	{#if extension.bugs}
-		<a href={extension.bugs} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
+	{#if bugs}
+		<a href={bugs} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
 			<Bug size={10} /> {i18n.t('ADMIN_NEXT.REPORT_ISSUE')} <ExternalLink size={10} />
 		</a>
 	{/if}

@@ -45,7 +45,7 @@
 			</div>
 
 			<!-- Content (scrollable) -->
-			<div class="prose prose-sm dark:prose-invert max-w-none overflow-y-auto px-6 py-5">
+			<div class="markdown-content prose prose-sm dark:prose-invert max-w-none overflow-y-auto px-6 py-5">
 				<!-- eslint-disable-next-line grav/no-unsanitized-html -- html is renderMarkdown() output, sanitized where it is derived -->
 				{@html html}
 			</div>
@@ -54,6 +54,13 @@
 {/if}
 
 <style>
+	/* The content area has its own padding, so the top margin of a leading heading
+	   (a changelog starts with `# v1.2.3`) only added empty space under the header.
+	   Later headings keep theirs: it separates one version from the next. */
+	.markdown-content > :global(:first-child) {
+		margin-top: 0;
+	}
+
 	/* Prose styling for rendered markdown */
 	:global(.prose) {
 		line-height: 1.7;

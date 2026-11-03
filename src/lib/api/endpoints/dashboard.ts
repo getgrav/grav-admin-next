@@ -143,6 +143,22 @@ export async function getBackups(): Promise<BackupInfo[]> {
 	return Array.isArray(result) ? result : result.backups ?? [];
 }
 
+/**
+ * An outdated plugin or theme. The fields come from its entry in the GPM
+ * repository feed, not from the installed blueprint; only `version` is local.
+ */
+export interface UpdatablePackage {
+	slug: string;
+	/** Null when the entry has no usable name; show the slug then. */
+	name: string | null;
+	/** Installed version (GPM puts it in place of the feed's version); null when unreadable. */
+	version: string | null;
+	available_version: string;
+	updatable: boolean;
+	/** The feed's `homepage` (or `url`); null when it has neither. Not checked: see webUrl(). */
+	homepage?: string | null;
+}
+
 export interface UpdatesData {
 	grav: {
 		current: string;
@@ -150,8 +166,8 @@ export interface UpdatesData {
 		updatable: boolean;
 		is_symlink?: boolean;
 	};
-	plugins: { slug: string; name: string; version: string; available_version: string; updatable: boolean }[];
-	themes: { slug: string; name: string; version: string; available_version: string; updatable: boolean }[];
+	plugins: UpdatablePackage[];
+	themes: UpdatablePackage[];
 	total: number;
 }
 
