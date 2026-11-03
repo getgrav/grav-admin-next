@@ -7,6 +7,7 @@
  * pages of `limit` (100 by default); `more()` appends the next page.
  */
 import { searchPages, type PageSummary } from '$lib/api/endpoints/pages';
+import { onlyEditablePages } from './admin2-config';
 
 export const PAGE_SEARCH_LIMIT = 100;
 
@@ -48,6 +49,7 @@ export function createPageSearch(options: PageSearchOptions = {}) {
 		try {
 			const res = await searchPages(query, {
 				...options.params?.(),
+				editable: onlyEditablePages() || undefined,
 				per_page: limit,
 				page,
 				signal: current.signal,

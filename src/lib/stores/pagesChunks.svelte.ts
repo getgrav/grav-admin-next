@@ -21,6 +21,8 @@ export interface StreamConfig {
 	order?: 'asc' | 'desc';
 	lang?: string;
 	translations?: boolean;
+	/** Only pages the caller can update, plus folders leading to them (admin2#209). */
+	editable?: boolean;
 }
 
 interface StreamState {
@@ -83,6 +85,7 @@ function createPagesChunksStore() {
 		if (config.order) params.order = config.order;
 		if (config.lang) params.lang = config.lang;
 		if (config.translations) params.translations = 'true';
+		if (config.editable) params.editable = 'true';
 		if (extra.page) params.page = String(extra.page);
 		if (extra.locate) params.locate = extra.locate;
 		return params;

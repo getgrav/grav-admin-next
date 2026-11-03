@@ -9,6 +9,8 @@
  * API side so these params actually filter).
  */
 
+import { onlyEditablePages } from './admin2-config';
+
 /** All = don't filter on this axis; Yes/No = require true/false. */
 export type TriState = 'all' | 'yes' | 'no';
 
@@ -26,6 +28,8 @@ export interface PageFilterStreamFields {
 	visible?: boolean;
 	routable?: boolean;
 	template?: string;
+	/** Set by the site's `pages.only_editable`, not by the filter bar (admin2#209). */
+	editable?: boolean;
 }
 
 export function emptyPageFilters(): PageFilters {
@@ -82,5 +86,8 @@ export function pageFilterStreamFields(f: PageFilters): PageFilterStreamFields {
 	if (visible !== undefined) out.visible = visible;
 	if (routable !== undefined) out.routable = routable;
 	if (f.template !== '') out.template = f.template;
+	// The site setting rides along with the filters so the views' full,
+	// unfiltered folder listings (what a move numbers against) leave it out.
+	if (onlyEditablePages()) out.editable = true;
 	return out;
 }

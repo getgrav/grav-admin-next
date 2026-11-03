@@ -16,6 +16,7 @@
 	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { getSystemInfo, type SystemInfo } from '$lib/api/endpoints/system';
 	import { getRecentPages, type PageSummary } from '$lib/api/endpoints/pages';
+	import { onlyEditablePages } from '$lib/utils/admin2-config';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
 	import { usePoll } from '$lib/utils/poll.svelte';
@@ -132,7 +133,7 @@
 			notifications = v.dashboard;
 			topNotifications = v.top;
 		}),
-		recentPages: () => getRecentPages(8).then((v) => { recentPages = v; }),
+		recentPages: () => getRecentPages(8, { editable: onlyEditablePages() }).then((v) => { recentPages = v; }),
 		popularity: () => getPopularity().then((v) => { popularity = v; }),
 		feed: (force: boolean) => getFeed(force).then((v) => { feed = (v as { feed?: FeedItem[] })?.feed ?? []; }),
 		backups: () => getBackups().then((v) => { backups = v; }),
