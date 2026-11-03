@@ -70,3 +70,18 @@ export function pageCan(
 
 	return permissions[action];
 }
+
+/**
+ * Whether a page's media panel is view-only for this user (admin2#209). The
+ * API says so itself through `permissions.media`; an older API doesn't, and
+ * then the panel follows the page form: view-only when the page can't be
+ * updated.
+ */
+export function pageMediaReadonly(
+	page: { permissions?: PagePermissions } | null | undefined,
+): boolean {
+	if (!page) return false;
+	const media = page.permissions?.media;
+	return typeof media === 'boolean' ? !media : !pageCan(page, 'update');
+}
+

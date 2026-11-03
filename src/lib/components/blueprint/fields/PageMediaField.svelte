@@ -35,9 +35,10 @@
 		{title}
 		onMediaChange={(items) => mediaCtx?.update(items)}
 		externalItems={mediaCtx?.items}
-		onOrderChange={mediaCtx?.setOrder ? (filenames) => mediaCtx.setOrder?.(filenames) : undefined}
+		onOrderChange={mediaCtx?.setOrder && !mediaCtx.readonly ? (filenames) => mediaCtx.setOrder?.(filenames) : undefined}
 		orderActive={mediaCtx?.orderActive ?? false}
-		pageReadonly={mediaCtx?.readonly ?? false}
+		pageReadonly={mediaCtx?.mediaReadonly ?? mediaCtx?.readonly ?? false}
+		contentReadonly={mediaCtx?.readonly ?? false}
 	/>
 {:else}
 	<div class="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">

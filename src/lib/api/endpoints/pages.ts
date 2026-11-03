@@ -98,6 +98,14 @@ export interface PagePermissions {
 	delete: boolean;
 	publish: boolean;
 	list: boolean;
+	/**
+	 * May change this page's media (upload, delete, edit metadata). Sent on a
+	 * single page's record only, and separate from `update`: an account with
+	 * `api.media.write` can change the media of a page without rules while
+	 * its fields stay read-only (admin2#209). Absent on older APIs and on
+	 * listing rows; see `pageMediaReadonly()`.
+	 */
+	media?: boolean;
 }
 
 /**

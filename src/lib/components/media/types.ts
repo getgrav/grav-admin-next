@@ -20,6 +20,13 @@ export interface PageMediaContext {
 	 * described (admin2#209).
 	 */
 	readonly readonly?: boolean;
+	/**
+	 * True when the media panel itself is view-only. Usually the same as
+	 * `readonly`, but a user with media rights on a page without rules can
+	 * change its media while the page's fields stay read-only (admin2#209).
+	 * Falls back to `readonly` when a host doesn't say.
+	 */
+	readonly mediaReadonly?: boolean;
 }
 
 /**

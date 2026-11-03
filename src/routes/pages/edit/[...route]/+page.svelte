@@ -51,7 +51,7 @@
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { onMount } from 'svelte';
 	import ContextPanelTriggers from '$lib/components/context-panels/ContextPanelTriggers.svelte';
-	import { pageCan } from '$lib/utils/permissions';
+	import { pageCan, pageMediaReadonly } from '$lib/utils/permissions';
 	import AccessDenied from '$lib/components/ui/AccessDenied.svelte';
 	import { PollingProvider } from '$lib/sync/PollingProvider';
 	import { MercureProvider } from '$lib/sync/MercureProvider';
@@ -196,6 +196,7 @@
 			return Boolean(header?.media_order);
 		},
 		get readonly() { return readOnly; },
+		get mediaReadonly() { return mediaReadOnly; },
 	});
 
 	let pageData = $state<PageDetail | null>(null);
@@ -216,6 +217,10 @@
 	// The API refuses the save anyway; this stops the user from making edits
 	// they would only lose. Delete, copy and the rest keep their own checks.
 	const readOnly = $derived(pageData !== null && !canUpdatePage);
+	// The media panel has its own answer: an account that may change media but
+	// not page content (a page without rules) gets a read-only form and a
+	// working panel. An older API doesn't send it, and the panel follows the form.
+	const mediaReadOnly = $derived(pageMediaReadonly(pageData));
 	let blueprint = $state<BlueprintSchema | null>(null);
 	let loading = $state(true);
 	let saving = $state(false);
@@ -2279,7 +2284,7 @@
 							{/if}
 						</div>
 						<div class="rounded-lg border border-border bg-card p-4">
-							<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} pageReadonly={readOnly} />
+							<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} pageReadonly={mediaReadOnly} contentReadonly={readOnly} />
 						</div>
 					{:else if expertTab === 'advanced'}
 						<!-- Advanced tab: filesystem-level properties.
@@ -2614,7 +2619,7 @@
 				<!-- Page Media (shown when no blueprint provides a pagemedia field, not in expert mode) -->
 				{#if !blueprint && prefs.editorMode !== 'expert'}
 					<div class="rounded-lg border border-border bg-card p-4">
-						<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} pageReadonly={readOnly} />
+						<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} pageReadonly={mediaReadOnly} contentReadonly={readOnly} />
 					</div>
 				{/if}
 				</div>

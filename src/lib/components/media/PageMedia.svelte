@@ -66,9 +66,15 @@
 		 * their links copied, nothing else (admin2#209).
 		 */
 		pageReadonly?: boolean;
+		/**
+		 * The page's own content can't be edited (a user with media rights on
+		 * a page they may not update): the media stays changeable, but
+		 * there is nothing to insert it into.
+		 */
+		contentReadonly?: boolean;
 	}
 
-	let { route = '/', apiBase, invalidationKeys, onMediaChange, externalItems, onOrderChange, orderActive = false, title, pageReadonly = false }: Props = $props();
+	let { route = '/', apiBase, invalidationKeys, onMediaChange, externalItems, onOrderChange, orderActive = false, title, pageReadonly = false, contentReadonly = false }: Props = $props();
 
 	// True when this instance addresses a non-page source via apiBase. The
 	// `apiBase` prop being present (even if null) signals flex/object mode.
@@ -804,7 +810,7 @@
 									{item.filename}
 								</span>
 								<div class="flex flex-shrink-0 items-center gap-0.5">
-									{#if !inReorderMode && !pageReadonly}
+									{#if !inReorderMode && !pageReadonly && !contentReadonly}
 										<button
 											type="button"
 											class="inline-flex h-5 w-5 items-center justify-center rounded-sm text-white/80 transition-colors hover:bg-white/20 hover:text-white"
