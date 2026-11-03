@@ -47,7 +47,7 @@
 
 	let ssoProviders = $state<SsoProvider[]>([]);
 	// Off when the server hides the password form (e.g. SSO enforced).
-	let passwordLogin = $state(true);
+	let showPasswordForm = $state(true);
 	let ssoLoaded = $state(false);
 	let ssoBusy = $state<string | null>(null);
 
@@ -100,7 +100,7 @@
 		if (!authSession.reauthOpen || ssoLoaded) return;
 		ssoLoaded = true;
 		getLoginOptions()
-			.then((options) => { ssoProviders = options.providers; passwordLogin = options.passwordLogin; })
+			.then((options) => { ssoProviders = options.providers; showPasswordForm = options.showPasswordForm; })
 			.catch(() => { /* no-op — no buttons if unavailable */ });
 	});
 
@@ -321,7 +321,7 @@
 			</div>
 
 			{#if stage === 'password'}
-				{#if passwordLogin}
+				{#if showPasswordForm}
 				<form onsubmit={handleSubmit} class="mt-5 space-y-3">
 					<div>
 						<label for="reauth-username" class="text-[0.8125rem] font-medium text-foreground">
@@ -378,7 +378,7 @@
 
 				{#if ssoProviders.length > 0}
 					<div class="mt-5">
-						{#if passwordLogin}
+						{#if showPasswordForm}
 						<div class="relative mb-3 flex items-center">
 							<div class="flex-grow border-t border-border"></div>
 							<span class="mx-3 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
@@ -406,7 +406,7 @@
 						</div>
 					</div>
 				{/if}
-				{#if !passwordLogin}
+				{#if !showPasswordForm}
 					{#if error}
 						<p class="mt-3 text-[0.8125rem] text-destructive">{error}</p>
 					{/if}
