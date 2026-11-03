@@ -130,7 +130,7 @@
 		}
 		function handleInsertContent(e: CustomEvent) {
 			const { content: newContent, mode } = e.detail || {};
-			if (!newContent) return;
+			if (!newContent || readOnly) return;
 
 			const oldContent = content;
 			let updatedContent: string;
@@ -195,6 +195,7 @@
 			const header = headerData?.header as Record<string, unknown> | undefined;
 			return Boolean(header?.media_order);
 		},
+		get readonly() { return readOnly; },
 	});
 
 	let pageData = $state<PageDetail | null>(null);
@@ -210,6 +211,11 @@
 	// own page listing treats copy/move.
 	const canUpdatePage = $derived(pageCan(pageData, 'update'));
 	const canDeletePage = $derived(pageCan(pageData, 'delete'));
+	// A page the user may read but not update opens read-only (admin2#209):
+	// every field disabled, no Save, no autosave and nothing marked unsaved.
+	// The API refuses the save anyway; this stops the user from making edits
+	// they would only lose. Delete, copy and the rest keep their own checks.
+	const readOnly = $derived(pageData !== null && !canUpdatePage);
 	let blueprint = $state<BlueprintSchema | null>(null);
 	let loading = $state(true);
 	let saving = $state(false);
@@ -544,6 +550,9 @@
 		const currentTemplate = savedTemplate;
 
 		if (!enabled || !loaded || !currentRoute) return;
+		// A read-only page has nothing to write into a shared session, so it
+		// stays solo; the editor simply shows what's saved (admin2#209).
+		if (untrack(() => readOnly)) { syncFailed = true; return; }
 		// A previous page in this session already learned the API has no /sync
 		// routes — skip collab wholesale so we don't restart the pollers and
 		// re-flood 404s on every page open. Set syncFailed so collabPending
@@ -1041,7 +1050,7 @@
 	);
 
 	let hasChanges = $derived(
-		pageData !== null && (
+		pageData !== null && !readOnly && (
 			content !== (pageData.content ?? '') ||
 			template !== pageData.template ||
 			(prefs.editorMode === 'expert'
@@ -1065,6 +1074,7 @@
 	});
 
 	const guard = createUnsavedGuard(() => {
+		if (readOnly) return false;
 		// In collab mode hasChanges is a net diff vs the last GET — it can
 		// be true purely because of a peer's edits even when I haven't typed
 		// anything. The leave guard should only fire on MY unsaved work, so
@@ -1099,7 +1109,7 @@
 		// Block saves while viewing a translation fallback — otherwise the
 		// PATCH would clobber the source-language file. Manual Save routes
 		// to handleSaveAsTranslation instead (see Save button onclick).
-		canSave: () => !isFallback,
+		canSave: () => !isFallback && !readOnly,
 	});
 
 	let saveAsOpen = $state(false);
@@ -1260,6 +1270,9 @@
 		//   - headerChanges / headerData mutations below would clobber the
 		//     snapshot-derived headerData we're trying to install
 		if (applyingRemote) return;
+		// Nothing on a read-only page is an edit. Fields are disabled, but a
+		// widget re-emitting its value on mount must not mark the page dirty.
+		if (readOnly) return;
 
 		// Any non-remote field commit is a local edit — flip the dirty flag
 		// so the leave guard fires. Mount-time echoes (a field re-emitting the
@@ -1403,7 +1416,7 @@
 	}
 
 	async function handleSave() {
-		if (!pageData) return;
+		if (!pageData || readOnly) return;
 
 		// Block the save if any required blueprint field is empty (admin2#30).
 		// Only in Normal mode — Expert mode edits raw YAML directly, where the
@@ -1891,7 +1904,7 @@
 	 *  - Otherwise: normal save path (auto-save force or manual handleSave).
 	 */
 	function triggerSave() {
-		if (fallbackUnresolved) return;
+		if (fallbackUnresolved || readOnly) return;
 		if (canCreateTranslation) {
 			handleSaveAsTranslation(contentLang.activeLang);
 			return;
@@ -1905,7 +1918,7 @@
 			e.preventDefault();
 			triggerSave();
 		}
-		if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey && prefs.autoSaveEnabled) {
+		if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey && prefs.autoSaveEnabled && !readOnly) {
 			const tag = (document.activeElement?.tagName ?? '').toLowerCase();
 			const isEditable = tag === 'input' || tag === 'textarea' || (document.activeElement as HTMLElement)?.isContentEditable;
 			if (!isEditable) {
@@ -2162,14 +2175,23 @@
 		</div>
 	{/if}
 
+	{#if readOnly && !loading && !accessDenied}
+		<!-- Same banner the Configuration screens show for read-only access. -->
+		<div data-page-readonly-notice>
+			<AccessDenied compact message={i18n.t('ADMIN_NEXT.PAGES.EDIT.READ_ONLY_NOTICE')} />
+		</div>
+	{/if}
+
 	{#if isFallback && !loading}
 		<div class="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-300">
 			<Languages size={16} class="shrink-0" />
 			{#if canCreateTranslation}
 				<span>{@html i18n.tHtml('ADMIN_NEXT.PAGES.EDIT.FALLBACK_NOTICE', { active: contentLang.getLanguageName(contentLang.activeLang), effective: contentLang.getLanguageName(effectiveLang) })}</span>
-				<button class="shrink-0 ms-auto text-xs font-medium underline" onclick={() => handleSaveAsTranslation(contentLang.activeLang)}>
-					{i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVE_AS_LANGUAGE', { language: contentLang.getLanguageName(contentLang.activeLang) })}
-				</button>
+				{#if !readOnly}
+					<button class="shrink-0 ms-auto text-xs font-medium underline" onclick={() => handleSaveAsTranslation(contentLang.activeLang)}>
+						{i18n.t('ADMIN_NEXT.PAGES.EDIT.SAVE_AS_LANGUAGE', { language: contentLang.getLanguageName(contentLang.activeLang) })}
+					</button>
+				{/if}
 			{:else}
 				<span>{@html i18n.tHtml('ADMIN_NEXT.PAGES.EDIT.FALLBACK_NOTICE_UNRESOLVED', { active: contentLang.getLanguageName(contentLang.activeLang), effective: contentLang.getLanguageName(effectiveLang) })}</span>
 			{/if}
@@ -2212,6 +2234,7 @@
 							<CodeEditor
 								value={expertFrontmatter}
 								onchange={(v) => { expertFrontmatter = v; hasLocalEdits = true; }}
+								readonly={readOnly}
 								language="yaml"
 								minHeight="150px"
 								maxHeight="500px"
@@ -2240,14 +2263,14 @@
 								</div>
 							{:else}
 								<!-- Remount when the lock changes: the editor reads `readonly` only when it is created. -->
-								{#key !!editorLock}
+								{#key !!editorLock || readOnly}
 								<MarkdownEditor
 									value={content}
 									onchange={(v) => { content = v; if (!applyingRemote && !valuesEqual(v, originalContent)) hasLocalEdits = true; }}
 									placeholder={i18n.t('ADMIN_NEXT.PAGES.EDIT.WRITE_YOUR_MARKDOWN_CONTENT_HERE')}
 									minHeight="400px"
 									class="border-0 shadow-none"
-									readonly={!!editorLock}
+									readonly={!!editorLock || readOnly}
 									yText={editorCollab?.yText ?? null}
 									yAwareness={editorCollab?.awareness ?? null}
 									primary
@@ -2256,14 +2279,14 @@
 							{/if}
 						</div>
 						<div class="rounded-lg border border-border bg-card p-4">
-							<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} />
+							<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} pageReadonly={readOnly} />
 						</div>
 					{:else if expertTab === 'advanced'}
 						<!-- Advanced tab: filesystem-level properties.
 							 Layout mirrors Normal mode's blueprint sections
 							 (see SectionField.svelte) so the label/help column
 							 lines up across both modes. -->
-						<div class="rounded-xl border border-border bg-muted/30">
+						<fieldset disabled={readOnly} data-readonly-field={readOnly || undefined} class="m-0 min-w-0 rounded-xl border border-border bg-muted/30 p-0">
 							<div class="space-y-5 px-6 py-5">
 								<div class="grid gap-1.5 lg:grid-cols-[minmax(0,1fr)_2fr] lg:items-start lg:gap-x-6">
 									<div class="lg:pt-2.5">
@@ -2339,7 +2362,7 @@
 									</div>
 								</div>
 							</div>
-						</div>
+						</fieldset>
 					{/if}
 				{:else if blueprint}
 					<!-- Normal mode: Blueprint-driven form. Key on blueprint
@@ -2356,6 +2379,7 @@
 							onchange={handleBlueprintChange}
 							oncommit={autoSave.oncommit}
 							errors={validationErrors}
+							readonly={readOnly}
 						/>
 					{/key}
 				{:else}
@@ -2367,6 +2391,7 @@
 								type="text"
 								class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 								bind:value={title}
+								disabled={readOnly}
 							/>
 						</label>
 					</div>
@@ -2378,13 +2403,13 @@
 							<span class="animate-pulse">{i18n.t('ADMIN_NEXT.PAGES.EDIT.CONNECTING_TO_COLLAB')}</span>
 						</div>
 					{:else}
-						{#key !!editorLock}
+						{#key !!editorLock || readOnly}
 						<MarkdownEditor
 							value={content}
 							onchange={(v) => { content = v; if (!applyingRemote && !valuesEqual(v, originalContent)) hasLocalEdits = true; }}
 							placeholder={i18n.t('ADMIN_NEXT.PAGES.EDIT.WRITE_YOUR_MARKDOWN_CONTENT_HERE')}
 							minHeight="400px"
-							readonly={!!editorLock}
+							readonly={!!editorLock || readOnly}
 							yText={editorCollab?.yText ?? null}
 							yAwareness={editorCollab?.awareness ?? null}
 							primary
@@ -2553,7 +2578,7 @@
 									</button>
 								{/each}
 							{/if}
-							{#if pageData.untranslated_languages && pageData.untranslated_languages.length > 0}
+							{#if !readOnly && pageData.untranslated_languages && pageData.untranslated_languages.length > 0}
 								<div class="my-1 border-t border-border"></div>
 								<p class="px-2 text-[0.6875rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.NOT_TRANSLATED')}</p>
 								{#each pageData.untranslated_languages as lang}
@@ -2567,7 +2592,7 @@
 									</button>
 								{/each}
 							{/if}
-							{#if !contentLang.isDefault && pageData.translated_languages && Object.keys(pageData.translated_languages).length > 1}
+							{#if !readOnly && !contentLang.isDefault && pageData.translated_languages && Object.keys(pageData.translated_languages).length > 1}
 								<div class="my-1 border-t border-border"></div>
 								<p class="px-2 text-[0.6875rem] text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.EDIT.RESET_CONTENT_FROM')}</p>
 								{#each Object.keys(pageData.translated_languages).filter(l => l !== contentLang.activeLang) as lang}
@@ -2589,7 +2614,7 @@
 				<!-- Page Media (shown when no blueprint provides a pagemedia field, not in expert mode) -->
 				{#if !blueprint && prefs.editorMode !== 'expert'}
 					<div class="rounded-lg border border-border bg-card p-4">
-						<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} />
+						<PageMedia {route} onMediaChange={updatePageMedia} externalItems={pageMediaItems} pageReadonly={readOnly} />
 					</div>
 				{/if}
 				</div>
