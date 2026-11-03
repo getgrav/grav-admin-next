@@ -27,7 +27,7 @@
 	import ImageEditor from '@uppy/image-editor';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { resolveSiteUrl } from '$lib/utils/site-url';
-	import { api } from '$lib/api/client';
+	import { api, ApiRequestError } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { getPageMedia, deletePageMedia, getObjectMedia, deleteObjectMedia, getPageMediaMeta, savePageMediaMeta, batchSavePageMediaMeta, encodeMediaFileUrl, mediaMarkdown, type MediaItem, type MediaMetaResponse, type MediaMetaValues } from '$lib/api/endpoints/media';
 	import { toast } from 'svelte-sonner';
@@ -60,9 +60,15 @@
 		orderActive?: boolean;
 		/** Heading in place of "Page Media", e.g. a blueprint field's own `label`. */
 		title?: string;
+		/**
+		 * The user may view the page but not change it (its `update` capability
+		 * is false), so its media is view-only too: files can be opened and
+		 * their links copied, nothing else (admin2#209).
+		 */
+		pageReadonly?: boolean;
 	}
 
-	let { route = '/', apiBase, invalidationKeys, onMediaChange, externalItems, onOrderChange, orderActive = false, title }: Props = $props();
+	let { route = '/', apiBase, invalidationKeys, onMediaChange, externalItems, onOrderChange, orderActive = false, title, pageReadonly = false }: Props = $props();
 
 	// True when this instance addresses a non-page source via apiBase. The
 	// `apiBase` prop being present (even if null) signals flex/object mode.
@@ -72,7 +78,7 @@
 	// account editing flex/object media (never in the demo writable allowlist).
 	// Uploads here are immediate (Uppy autoProceed), so the controls must be gone
 	// entirely — a disabled Save button wouldn't stop a drop-to-upload.
-	const readonly = $derived(!canWrite('media') || (objectMode && auth.demoMode));
+	const readonly = $derived(pageReadonly || !canWrite('media') || (objectMode && auth.demoMode));
 
 	// Manual drag-to-reorder is only meaningful in page mode, where the ordered
 	// filename list is saved to `header.media_order` and read back by core.
@@ -257,6 +263,13 @@
 		});
 
 		uppy.on('upload-error', (file, error, request) => {
+			// A page whose rules deny this user `update` refuses its media too
+			// (admin2#209); say that rather than the API's generic wording.
+			const xhr = (request as XMLHttpRequest | undefined) ?? (error as { request?: XMLHttpRequest } | undefined)?.request;
+			if (xhr?.status === 403 && !xhr.responseText.includes('demo_mode_write_blocked')) {
+				toast.error(i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.NOT_ALLOWED'));
+				return;
+			}
 			const message = uploadErrorMessage(error, request as XMLHttpRequest | undefined);
 			toast.error(`Failed to upload ${file?.name ?? 'file'}: ${message}`);
 		});
@@ -340,6 +353,11 @@
 		}
 	});
 
+	/** A media change refused because the user may not change this page (admin2#209). */
+	function isForbidden(err: unknown): boolean {
+		return err instanceof ApiRequestError && err.status === 403 && err.error.code !== 'demo_mode_write_blocked';
+	}
+
 	async function handleDelete(item: MediaItem) {
 		try {
 			if (objectMode) {
@@ -353,8 +371,10 @@
 			// Keep a saved ordering coherent after removing a file.
 			if (orderActive) emitOrder();
 			toast.success(i18n.t('ADMIN_NEXT.TOASTS.FILE_DELETED', { name: item.filename }));
-		} catch {
-			toast.error(i18n.t('ADMIN_NEXT.TOASTS.FILE_DELETE_FAILED', { name: item.filename }));
+		} catch (err) {
+			toast.error(isForbidden(err)
+				? i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.NOT_ALLOWED')
+				: i18n.t('ADMIN_NEXT.TOASTS.FILE_DELETE_FAILED', { name: item.filename }));
 		}
 	}
 
@@ -679,9 +699,11 @@
 	<!-- Drop zone + media grid (unified container) -->
 	<div
 		bind:this={dropzoneEl}
-		class="rounded-lg border-2 border-dashed transition-colors {dragOver
-			? 'border-primary bg-primary/5'
-			: 'border-border hover:border-muted-foreground/40'}"
+		class="rounded-lg transition-colors {readonly
+			? 'border border-border'
+			: dragOver
+				? 'border-2 border-dashed border-primary bg-primary/5'
+				: 'border-2 border-dashed border-border hover:border-muted-foreground/40'}"
 		ondragenter={handleDragEnter}
 		ondragleave={handleDragLeave}
 		ondragover={handleDragOver}
@@ -782,7 +804,7 @@
 									{item.filename}
 								</span>
 								<div class="flex flex-shrink-0 items-center gap-0.5">
-									{#if !inReorderMode}
+									{#if !inReorderMode && !pageReadonly}
 										<button
 											type="button"
 											class="inline-flex h-5 w-5 items-center justify-center rounded-sm text-white/80 transition-colors hover:bg-white/20 hover:text-white"
@@ -824,7 +846,11 @@
 			</div>
 		{/if}
 
-		<!-- Drop prompt (hidden when media isn't writable) -->
+		<!-- Drop prompt (hidden when media isn't writable; say there's nothing
+		     instead of leaving an empty box) -->
+		{#if readonly && !loading && mediaItems.length === 0}
+			<p class="px-3 py-3 text-center text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.NO_FILES')}</p>
+		{/if}
 		{#if !readonly}
 			<button
 				type="button"

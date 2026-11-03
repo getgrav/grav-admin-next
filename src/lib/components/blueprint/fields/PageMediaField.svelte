@@ -37,6 +37,7 @@
 		externalItems={mediaCtx?.items}
 		onOrderChange={mediaCtx?.setOrder ? (filenames) => mediaCtx.setOrder?.(filenames) : undefined}
 		orderActive={mediaCtx?.orderActive ?? false}
+		pageReadonly={mediaCtx?.readonly ?? false}
 	/>
 {:else}
 	<div class="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">

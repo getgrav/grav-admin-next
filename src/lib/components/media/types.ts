@@ -14,6 +14,12 @@ export interface PageMediaContext {
 	setOrder?(filenames: string[]): void;
 	/** True when the page already has a `media_order` in effect. */
 	readonly orderActive?: boolean;
+	/**
+	 * True when the user may view the page but not change it, so its media
+	 * can be looked at and copied but not added to, removed, reordered or
+	 * described (admin2#209).
+	 */
+	readonly readonly?: boolean;
 }
 
 /**
