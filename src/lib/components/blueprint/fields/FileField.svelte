@@ -16,6 +16,7 @@
 	import { toast } from 'svelte-sonner';
 	import { uploadErrorMessage } from '$lib/utils/upload-error';
 	import { canWrite } from '$lib/utils/permissions';
+import { formReadonly } from '../readonly';
 	import { Upload, X } from 'lucide-svelte';
 	import FieldHelp from '../FieldHelp.svelte';
 
@@ -45,7 +46,11 @@
 	// A file field uploads through the media endpoints, so gate it on media-write.
 	// Prevents a read-only/demo account from writing a file to disk on drop
 	// (uploads are immediate/autoProceed, independent of the form's Save button).
-	const locked = $derived(!canWrite('media'));
+	// A read-only form (a page the user may view but not update, admin2#209)
+	// locks it too: the drop zone is a plain div, so the form's disabled
+	// fieldset doesn't stop a drop, and the upload would still go through.
+	const readonlyForm = formReadonly();
+	const locked = $derived(!canWrite('media') || readonlyForm());
 	const translateLabel = i18n.tMaybe;
 	const getRoute = getContext<(() => string) | undefined>('pageRoute');
 	// Non-page media source (e.g. a flex object). When present, uploads/deletes
@@ -381,7 +386,7 @@
 	}
 
 	function addFiles(fileList: File[]) {
-		if (!uppy) return;
+		if (!uppy || locked) return;
 
 		// Enforce the blueprint `limit` (max number of files) for multiple
 		// fields. Single fields replace their one entry, so no cap is needed.
