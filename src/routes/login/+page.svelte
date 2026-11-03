@@ -221,8 +221,11 @@
 			rememberPasskeyUsed();
 			completeSignIn();
 		} catch (err) {
-			// Aborted (button, password form, leaving the page): nothing to say.
-			if (!ctrl.signal.aborted && !passkeyCancelled(err)) {
+			// Aborted (button, password form, leaving the page), or a browser
+			// that can't offer passkeys in autofill here: nothing to say.
+			// Autofill is a quiet extra; only a refusal from the server shows.
+			const status = (err as { status?: number } | null)?.status ?? 0;
+			if (!ctrl.signal.aborted && !passkeyCancelled(err) && status > 0) {
 				passkeyNotice = passkeyMessage(err, 'sign-in');
 			}
 		} finally {
