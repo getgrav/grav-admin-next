@@ -8,6 +8,7 @@
 	import { reloadIfAdminUpdated, formatChangelog } from '$lib/utils/gpm';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
+	import { createTextModal } from '$lib/utils/text-modal.svelte';
 	import UpdateChangelogLink from '$lib/components/extensions/UpdateChangelogLink.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
@@ -115,42 +116,24 @@
 		homepage: webUrl(selectedTheme?.homepage),
 	});
 
-	// Changelog modal
-	let changelogOpen = $state(false);
-	let changelogTitle = $state('');
-	let changelogContent = $state('');
-	let changelogLoading = $state(false);
-	// The installed changelog and the update's share the modal: a slow answer
-	// for one must not land in it after the other has been opened.
-	let changelogRequest = 0;
-
-	async function openChangelog(title: string, load: () => Promise<string>) {
-		const request = ++changelogRequest;
-		changelogLoading = true;
-		changelogTitle = title;
-		changelogContent = '';
-		changelogOpen = true;
-		let content: string;
-		try {
-			content = formatChangelog(await load());
-		} catch {
-			content = '*Changelog not available.*';
-		}
-		if (request !== changelogRequest) return;
-		changelogContent = content;
-		changelogLoading = false;
-	}
+	// Changelog modal: the installed changelog, or what the available update changes
+	const changelog = createTextModal();
 
 	function showChangelog(theme: ThemeInfo) {
-		return openChangelog(`${theme.name} — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`, () => getThemeChangelog(theme.slug));
+		return changelog.show({
+			kind: 'changelog',
+			title: () => `${theme.name} — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`,
+			load: async () => formatChangelog(await getThemeChangelog(theme.slug)),
+		});
 	}
 
 	// What the available update changes (the changelog entries newer than the installed version)
 	function showUpdateChangelog(theme: ThemeInfo) {
-		return openChangelog(
-			`${theme.name} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: theme.available_version ?? '' })}`,
-			() => getThemeAvailableChangelog(theme.slug),
-		);
+		return changelog.show({
+			kind: 'update',
+			title: () => `${theme.name} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: theme.available_version ?? '' })}`,
+			load: async () => formatChangelog(await getThemeAvailableChangelog(theme.slug)),
+		});
 	}
 
 	function resolveUrl(url: string | null | undefined): string | null {
@@ -788,8 +771,8 @@
 />
 
 <MarkdownModal
-	open={changelogOpen}
-	title={changelogTitle}
-	content={changelogLoading ? 'Loading...' : changelogContent}
-	onclose={() => { changelogOpen = false; }}
+	open={changelog.open}
+	title={changelog.title}
+	content={changelog.content}
+	onclose={changelog.close}
 />

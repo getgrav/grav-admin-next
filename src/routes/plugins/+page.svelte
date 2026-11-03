@@ -19,6 +19,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText, formatChangelog } from '$lib/utils/gpm';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
+	import { createTextModal } from '$lib/utils/text-modal.svelte';
 	import UpdateChangelogLink from '$lib/components/extensions/UpdateChangelogLink.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { scopedKey } from '$lib/utils/scopedStorage';
@@ -70,42 +71,24 @@
 	let addModalOpen = $state(false);
 	let installSlug = $state('');
 
-	// Changelog modal
-	let changelogOpen = $state(false);
-	let changelogTitle = $state('');
-	let changelogContent = $state('');
-	let changelogLoading = $state(false);
-	// The installed changelog and the update's share the modal: a slow answer
-	// for one must not land in it after the other has been opened.
-	let changelogRequest = 0;
-
-	async function openChangelog(title: string, load: () => Promise<string>) {
-		const request = ++changelogRequest;
-		changelogLoading = true;
-		changelogTitle = title;
-		changelogContent = '';
-		changelogOpen = true;
-		let content: string;
-		try {
-			content = formatChangelog(await load());
-		} catch {
-			content = '*Changelog not available.*';
-		}
-		if (request !== changelogRequest) return;
-		changelogContent = content;
-		changelogLoading = false;
-	}
+	// Changelog modal: the installed changelog, or what the available update changes
+	const changelog = createTextModal();
 
 	function showChangelog(plugin: PluginInfo) {
-		return openChangelog(`${plugin.name} — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`, () => getPluginChangelog(plugin.slug));
+		return changelog.show({
+			kind: 'changelog',
+			title: () => `${plugin.name} — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`,
+			load: async () => formatChangelog(await getPluginChangelog(plugin.slug)),
+		});
 	}
 
 	// What the available update changes (the changelog entries newer than the installed version)
 	function showUpdateChangelog(plugin: PluginInfo) {
-		return openChangelog(
-			`${plugin.name} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: plugin.available_version ?? '' })}`,
-			() => getPluginAvailableChangelog(plugin.slug),
-		);
+		return changelog.show({
+			kind: 'update',
+			title: () => `${plugin.name} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: plugin.available_version ?? '' })}`,
+			load: async () => formatChangelog(await getPluginAvailableChangelog(plugin.slug)),
+		});
 	}
 
 	// Auto-open install modal when navigating with ?install=slug (only if the
@@ -845,8 +828,8 @@
 />
 
 <MarkdownModal
-	open={changelogOpen}
-	title={changelogTitle}
-	content={changelogLoading ? 'Loading...' : changelogContent}
-	onclose={() => { changelogOpen = false; }}
+	open={changelog.open}
+	title={changelog.title}
+	content={changelog.content}
+	onclose={changelog.close}
 />

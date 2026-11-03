@@ -5,7 +5,8 @@ import { webUrl, safeHref } from '../src/lib/utils/url.ts';
 const SITE = 'https://site.test';
 
 // A package's homepage comes from third-party metadata and Svelte doesn't filter
-// `href`: only an absolute http(s) address may become a link.
+// `href`: only an http(s) address may become a link. A host name without a
+// scheme (`getgrav.org`) gets https://; a file name or another scheme stays text.
 
 test('an http(s) address is kept', () => {
 	assert.equal(webUrl('https://github.com/getgrav/grav-plugin-admin'), 'https://github.com/getgrav/grav-plugin-admin');
@@ -34,7 +35,26 @@ test('a host name without a scheme gets https://', () => {
 	assert.equal(webUrl('github.com/getgrav/grav-plugin-admin'), 'https://github.com/getgrav/grav-plugin-admin');
 	assert.equal(webUrl(' www.example.com '), 'https://www.example.com/');
 	assert.equal(webUrl('getgrav.org'), 'https://getgrav.org/');
-	assert.equal(webUrl('example.com:8443/docs?x=1#top'), 'https://example.com:8443/docs?x=1#top');
+	assert.equal(webUrl('example.com/docs?x=1#top'), 'https://example.com/docs?x=1#top');
+	assert.equal(webUrl('example.com/README.md'), 'https://example.com/README.md');
+});
+
+test('a file name is not taken for a host', () => {
+	for (const name of ['README.md', 'CHANGELOG.md', 'docs.html', 'guide.PDF', 'blueprints.yaml']) {
+		assert.equal(webUrl(name), null, name);
+	}
+});
+
+test('a host name with a port gets no scheme: http or https can\'t be told', () => {
+	assert.equal(webUrl('example.com:8080/docs'), null);
+	assert.equal(webUrl('example.com:80'), null);
+	assert.equal(webUrl('http://example.com:8080/docs'), 'http://example.com:8080/docs');
+});
+
+test('an international host name gets https:// too', () => {
+	assert.equal(webUrl('bücher.de/plugin'), 'https://xn--bcher-kva.de/plugin');
+	assert.equal(webUrl('shop.xn--p1ai/plugin'), 'https://shop.xn--p1ai/plugin');
+	assert.equal(webUrl('пример.рф'), 'https://xn--e1afmkfd.xn--p1ai/');
 });
 
 test('only a host name gets https://, never a script or credentials', () => {
@@ -65,6 +85,11 @@ test('a path that leaves the site is no link', () => {
 	assert.equal(safeHref('\\\\evil.example', SITE), null);
 	assert.equal(safeHref('//\\evil.example', SITE), null);
 	assert.equal(safeHref('///evil.example/login', SITE), null);
+	// Browsers drop tabs and line breaks before reading an address.
+	assert.equal(safeHref('//\t/evil.example', SITE), null);
+	assert.equal(safeHref('//\n/evil.example', SITE), null);
+	assert.equal(safeHref('/\t/evil.example', SITE), null);
+	assert.equal(safeHref('/\r\n/evil.example', SITE), null);
 });
 
 test('a protocol-relative address links to its host, like an absolute one', () => {

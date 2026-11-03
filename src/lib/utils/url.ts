@@ -14,11 +14,15 @@ export function hostname(url: string | null | undefined): string {
 	}
 }
 
-/** The value as an absolute http(s) URL, or null when it is anything else. */
-function absoluteWebUrl(value: unknown): string | null {
-	if (typeof value !== 'string') return null;
+/** The trimmed text of a value, or '' when it isn't text. */
+function text(value: unknown): string {
+	return typeof value === 'string' ? value.trim() : '';
+}
+
+/** `address` as an absolute http(s) URL, or null when it is anything else. */
+function httpUrl(address: string): string | null {
 	try {
-		const url = new URL(value.trim());
+		const url = new URL(address);
 		return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null;
 	} catch {
 		return null;
@@ -26,14 +30,34 @@ function absoluteWebUrl(value: unknown): string | null {
 }
 
 /**
- * A host name with a top-level domain, an optional port, then a path, query,
- * fragment or nothing: `github.com/getgrav/grav-plugin-admin`, `getgrav.org`.
- * A scheme (`javascript:`) or credentials (`user@host`) never match.
+ * A host name with a top-level domain, then a path, query, fragment or nothing:
+ * `github.com/getgrav/grav-plugin-admin`, `getgrav.org`, `bücher.de`,
+ * `shop.xn--p1ai`. Captures the top-level domain. No port: whether the server
+ * there speaks https can't be told. A scheme (`javascript:`) or credentials
+ * (`user@host`) never match.
  */
-const BARE_HOST = /^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(?::\d+)?(?:[/?#]|$)/i;
+const BARE_HOST = /^(?:[\p{L}\p{N}](?:[\p{L}\p{N}-]*[\p{L}\p{N}])?\.)+(\p{L}{2,}|xn--[a-z0-9-]+)(?:[/?#]|$)/iu;
 
 /**
- * The value as an absolute http(s) URL, or null when it is anything else.
+ * Endings that make a lone name a file rather than a host: `README.md`,
+ * `CHANGELOG.md` and `docs.html` are files next to the package, not the
+ * readme.md, changelog.md or docs.html domains.
+ */
+const FILE_ENDINGS = new Set([
+	'md', 'markdown', 'txt', 'html', 'htm', 'php', 'json', 'yaml', 'yml', 'xml',
+	'pdf', 'zip', 'js', 'css', 'png', 'jpg', 'jpeg', 'gif', 'svg',
+]);
+
+/** Whether `address` is a host name given without a scheme, and not a file name. */
+function isBareHost(address: string): boolean {
+	const match = BARE_HOST.exec(address);
+	if (!match) return false;
+	const lone = match[0] === address;
+	return !(lone && FILE_ENDINGS.has(match[1].toLowerCase()));
+}
+
+/**
+ * The value as an http(s) link target, or null when it is no web address.
  *
  * For links whose target comes from outside the admin, such as a package's
  * `homepage` from its blueprint or the GPM feed. Svelte does not filter `href`,
@@ -42,13 +66,12 @@ const BARE_HOST = /^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(?::\d+)?(?:[
  * `false`, a number or a map, and those count as no URL.
  *
  * Many blueprints leave out the scheme (`homepage: github.com/me/my-plugin`), so
- * a bare host name gets `https://`.
+ * a bare host name gets `https://`; a file name such as `README.md` does not.
  */
 export function webUrl(value: unknown): string | null {
-	const address = absoluteWebUrl(value);
-	if (address !== null || typeof value !== 'string') return address;
-	const trimmed = value.trim();
-	return BARE_HOST.test(trimmed) ? absoluteWebUrl(`https://${trimmed}`) : null;
+	const address = text(value);
+	if (address === '') return null;
+	return httpUrl(address) ?? (isBareHost(address) ? httpUrl(`https://${address}`) : null);
 }
 
 /**
@@ -64,14 +87,19 @@ export function webUrl(value: unknown): string | null {
  * `location.origin` value.
  */
 export function safeHref(value: unknown, origin: string = window.location.origin): string | null {
-	const address = absoluteWebUrl(value);
-	if (address !== null || typeof value !== 'string' || value.trim() === '') return address;
-	const trimmed = value.trim();
+	const address = text(value);
+	if (address === '') return null;
+	const absolute = httpUrl(address);
+	if (absolute !== null) return absolute;
 	try {
-		const url = new URL(trimmed, origin);
+		const url = new URL(address, origin);
 		// `blob:https://site/…` reports the site's origin: check the scheme too.
 		if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
-		return url.origin === origin || /^\/\/[^/\\]/.test(trimmed) ? url.href : null;
+		if (url.origin === origin) return url.href;
+		// Browsers drop tabs and line breaks anywhere in an address before they
+		// read it (`//\t/host` is `///host`), so a value with any is no plain
+		// `//host` address, whatever its first characters.
+		return /^\/\/[^/\\]/.test(address) && !/[\t\n\r]/.test(address) ? url.href : null;
 	} catch {
 		return null;
 	}

@@ -148,7 +148,8 @@ export async function getBackups(): Promise<BackupInfo[]> {
  * repository feed, not from the installed blueprint; only `version` is local.
  */
 export interface UpdatablePackage {
-	slug: string;
+	/** Null when the feed entry has none: there's no changelog to ask for then. */
+	slug: string | null;
 	/** Null when the entry has no usable name; show the slug then. */
 	name: string | null;
 	/** Installed version (GPM puts it in place of the feed's version); null when unreadable. */

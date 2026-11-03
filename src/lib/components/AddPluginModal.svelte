@@ -88,13 +88,15 @@
 		return !!plugin.premium && !plugin.licensed;
 	}
 
-	function openPurchase(plugin: RepositoryPlugin) {
-		// From the GPM feed (a vendor's checkout_url): only an http(s) address
-		// opens, so a `javascript:` one can't run, whatever the window flags.
-		const href = webUrl(plugin.purchase_url);
-		if (href) {
-			window.open(href, '_blank', 'noopener');
-		}
+	// From the GPM feed (a vendor's checkout_url): only an http(s) address
+	// opens, so a `javascript:` one can't run, whatever the window flags. Without
+	// one there's no Buy button, rather than one that does nothing.
+	function purchaseHref(plugin: RepositoryPlugin): string | null {
+		return webUrl(plugin.purchase_url);
+	}
+
+	function openPurchase(href: string) {
+		window.open(href, '_blank', 'noopener');
 	}
 
 	async function handleInstall(slug: string) {
@@ -174,10 +176,13 @@
 				<div class="flex items-center gap-2">
 					{#if selectedPlugin}
 						{#if needsPurchase(selectedPlugin)}
-							<Button size="sm" variant="destructive" onclick={() => openPurchase(selectedPlugin)}>
-								<ShoppingCart size={14} class="me-1.5" />
-								Buy
-							</Button>
+							{@const href = purchaseHref(selectedPlugin)}
+							{#if href}
+								<Button size="sm" variant="destructive" onclick={() => openPurchase(href)}>
+									<ShoppingCart size={14} class="me-1.5" />
+									Buy
+								</Button>
+							{/if}
 						{:else}
 							<Button size="sm" onclick={() => handleInstall(selectedPlugin.slug)} disabled={installingSlug === selectedPlugin.slug || !canInstall}>
 								{#if installingSlug === selectedPlugin.slug}
@@ -261,14 +266,17 @@
 
 								<!-- Install / Buy button (inline) -->
 								{#if needsPurchase(plugin)}
-									<Button
-										variant="outline"
-										size="sm"
-										onclick={(e: MouseEvent) => { e.stopPropagation(); openPurchase(plugin); }}
-										class="shrink-0"
-									>
-										<ShoppingCart size={12} />
-									</Button>
+									{@const href = purchaseHref(plugin)}
+									{#if href}
+										<Button
+											variant="outline"
+											size="sm"
+											onclick={(e: MouseEvent) => { e.stopPropagation(); openPurchase(href); }}
+											class="shrink-0"
+										>
+											<ShoppingCart size={12} />
+										</Button>
+									{/if}
 								{:else}
 									<Button
 										variant="outline"

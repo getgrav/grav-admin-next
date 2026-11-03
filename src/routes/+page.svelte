@@ -10,10 +10,10 @@
 	import {
 		updateAllPackages, getGravChangelog, getPluginAvailableChangelog, getThemeAvailableChangelog
 	} from '$lib/api/endpoints/gpm';
-	import { ApiRequestError } from '$lib/api/client';
 	import { confirmAndUpgradeGrav } from '$lib/utils/grav-upgrade';
 	import { reloadIfAdminUpdated, formatChangelog } from '$lib/utils/gpm';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
+	import { createTextModal } from '$lib/utils/text-modal.svelte';
 	import { createBackup } from '$lib/api/endpoints/tools';
 	import { canWrite } from '$lib/utils/permissions';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
@@ -68,66 +68,29 @@
 	let saving = $state(false);
 	let pickerOpen = $state(false);
 
-	// Changelog modal: Grav core (no package), or the update of an outdated plugin or theme
-	let changelogOpen = $state(false);
-	let changelogPackage = $state<UpdatablePackage | null>(null);
-	let changelogMarkdown = $state('');
-	// 'empty': the server has no entries for this update; 'failed': it couldn't be loaded.
-	let changelogProblem = $state<'empty' | 'failed' | null>(null);
-	let changelogLoading = $state(false);
-	// Each package row has its own button: a slow answer for one package must
-	// not land in the modal after another one has been opened.
-	let changelogRequest = 0;
-
-	// Derived, not set on open, so the title and messages follow a language change.
-	const changelogTitle = $derived(
-		changelogPackage
-			? `${changelogPackage.name || changelogPackage.slug} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: changelogPackage.available_version })}`
-			: `Grav — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`
-	);
-	const changelogContent = $derived(
-		changelogLoading
-			? i18n.t('ADMIN_NEXT.LOADING')
-			: changelogProblem === 'empty'
-				? `*${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_EMPTY')}*`
-				: changelogProblem === 'failed'
-					? `*${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_FAILED')}*`
-					: changelogMarkdown
-	);
-
-	async function openChangelog(pkg: UpdatablePackage | null, load: () => Promise<string>) {
-		const request = ++changelogRequest;
-		changelogPackage = pkg;
-		changelogLoading = true;
-		changelogMarkdown = '';
-		changelogProblem = null;
-		changelogOpen = true;
-		let markdown = '';
-		let problem: 'empty' | 'failed' | null = null;
-		try {
-			markdown = formatChangelog(await load());
-			if (markdown.trim() === '') problem = 'empty';
-		} catch (err) {
-			// The API answers 404 when it has no entries to show: none newer than the
-			// installed version, but also no changelog in the feed, no feed entry, or
-			// an installed version it can't read. The 'empty' wording fits them all.
-			problem = err instanceof ApiRequestError && err.response.status === 404 ? 'empty' : 'failed';
-		}
-		if (request !== changelogRequest) return;
-		changelogMarkdown = markdown;
-		changelogProblem = problem;
-		changelogLoading = false;
-	}
+	// Changelog modal: what the Grav core update, or that of an outdated plugin or theme, changes
+	const changelog = createTextModal();
 
 	function handleShowGravChangelog() {
-		return openChangelog(null, getGravChangelog);
+		return changelog.show({
+			kind: 'update',
+			title: () => `Grav — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`,
+			load: async () => formatChangelog(await getGravChangelog()),
+		});
 	}
 
 	function handleShowPackageChangelog(type: 'plugin' | 'theme', pkg: UpdatablePackage) {
-		return openChangelog(pkg, () =>
-			type === 'plugin' ? getPluginAvailableChangelog(pkg.slug) : getThemeAvailableChangelog(pkg.slug)
-		);
+		// The changelog is asked for by slug; the widget offers none without one.
+		const slug = pkg.slug;
+		if (!slug) return;
+		return changelog.show({
+			kind: 'update',
+			title: () => `${pkg.name || slug} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: pkg.available_version })}`,
+			load: async () =>
+				formatChangelog(await (type === 'plugin' ? getPluginAvailableChangelog(slug) : getThemeAvailableChangelog(slug))),
+		});
 	}
+
 	const dirty = $derived(JSON.stringify(widgets) !== JSON.stringify(savedWidgetsSnapshot));
 
 	const canWriteGpm = $derived(canWrite('gpm'));
@@ -326,7 +289,7 @@
 		const ok = await dialogs.confirm({
 			title: i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPDATE_ALL_CONFIRM_TITLE'),
 			message: i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPDATE_ALL_CONFIRM_MESSAGE', { n }),
-			items: updatable.map(p => `${p.name || p.slug} ${p.version ? `v${p.version} → ` : ''}v${p.available_version}`),
+			items: updatable.map(p => `${p.name || p.slug || ''} ${p.version ? `v${p.version} → ` : ''}v${p.available_version}`.trim()),
 			confirmLabel: i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPDATE_ALL'),
 		});
 		if (!ok) return;
@@ -496,8 +459,8 @@
 {/if}
 
 <MarkdownModal
-	open={changelogOpen}
-	title={changelogTitle}
-	content={changelogContent}
-	onclose={() => { changelogOpen = false; }}
+	open={changelog.open}
+	title={changelog.title}
+	content={changelog.content}
+	onclose={changelog.close}
 />

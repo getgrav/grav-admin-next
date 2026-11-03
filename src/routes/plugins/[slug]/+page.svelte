@@ -23,6 +23,7 @@
 	import ConfigShadowedBanner from '$lib/components/config/ConfigShadowedBanner.svelte';
 	import ShadowMarker from '$lib/components/config/ShadowMarker.svelte';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
+	import { createTextModal } from '$lib/utils/text-modal.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import UnsavedChangesModal from '$lib/components/ui/UnsavedChangesModal.svelte';
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
@@ -78,54 +79,33 @@
 
 	let hasChanges = $derived(stableJson(configData) !== originalJson);
 
-	// Modal state for README / Changelog
-	let modalOpen = $state(false);
-	let modalTitle = $state('');
-	let modalContent = $state('');
-	let modalLoading = $state(false);
+	// README and changelog modal: one at a time, a slow answer never replaces a newer one
+	const modal = createTextModal();
+	const packageName = () => plugin?.name ?? slug;
 
-	async function showReadme() {
-		modalLoading = true;
-		modalTitle = `${plugin?.name ?? slug} — README`;
-		modalContent = '';
-		modalOpen = true;
-		try {
-			modalContent = await getPluginReadme(slug);
-		} catch {
-			modalContent = '*README not available.*';
-		} finally {
-			modalLoading = false;
-		}
+	function showReadme() {
+		return modal.show({
+			kind: 'readme',
+			title: () => `${packageName()} — ${i18n.t('ADMIN_NEXT.README')}`,
+			load: () => getPluginReadme(slug),
+		});
 	}
 
-	async function showChangelog() {
-		modalLoading = true;
-		modalTitle = `${plugin?.name ?? slug} — Changelog`;
-		modalContent = '';
-		modalOpen = true;
-		try {
-			const raw = await getPluginChangelog(slug);
-			modalContent = formatChangelog(raw);
-		} catch {
-			modalContent = '*Changelog not available.*';
-		} finally {
-			modalLoading = false;
-		}
+	function showChangelog() {
+		return modal.show({
+			kind: 'changelog',
+			title: () => `${packageName()} — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`,
+			load: async () => formatChangelog(await getPluginChangelog(slug)),
+		});
 	}
 
 	// What the available update changes (the changelog entries newer than the installed version)
-	async function showUpdateChangelog() {
-		modalLoading = true;
-		modalTitle = `${plugin?.name ?? slug} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: plugin?.available_version ?? '' })}`;
-		modalContent = '';
-		modalOpen = true;
-		try {
-			modalContent = formatChangelog(await getPluginAvailableChangelog(slug));
-		} catch {
-			modalContent = '*Changelog not available.*';
-		} finally {
-			modalLoading = false;
-		}
+	function showUpdateChangelog() {
+		return modal.show({
+			kind: 'update',
+			title: () => `${packageName()} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: plugin?.available_version ?? '' })}`,
+			load: async () => formatChangelog(await getPluginAvailableChangelog(slug)),
+		});
 	}
 
 	async function loadPlugin() {
@@ -753,10 +733,10 @@
 </div>
 
 <MarkdownModal
-	open={modalOpen}
-	title={modalTitle}
-	content={modalLoading ? 'Loading...' : modalContent}
-	onclose={() => { modalOpen = false; }}
+	open={modal.open}
+	title={modal.title}
+	content={modal.content}
+	onclose={modal.close}
 />
 
 <ConfirmModal

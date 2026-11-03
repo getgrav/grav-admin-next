@@ -68,13 +68,15 @@
 		return !!theme.premium && !theme.licensed;
 	}
 
-	function openPurchase(theme: RepositoryTheme) {
-		// From the GPM feed (a vendor's checkout_url): only an http(s) address
-		// opens, so a `javascript:` one can't run, whatever the window flags.
-		const href = webUrl(theme.purchase_url);
-		if (href) {
-			window.open(href, '_blank', 'noopener');
-		}
+	// From the GPM feed (a vendor's checkout_url): only an http(s) address
+	// opens, so a `javascript:` one can't run, whatever the window flags. Without
+	// one there's no Buy button, rather than one that does nothing.
+	function purchaseHref(theme: RepositoryTheme): string | null {
+		return webUrl(theme.purchase_url);
+	}
+
+	function openPurchase(href: string) {
+		window.open(href, '_blank', 'noopener');
 	}
 
 	async function loadThemes() {
@@ -165,10 +167,13 @@
 				<div class="flex items-center gap-2">
 					{#if selectedTheme}
 						{#if needsPurchase(selectedTheme)}
-							<Button size="sm" variant="destructive" onclick={() => openPurchase(selectedTheme)}>
-								<ShoppingCart size={14} class="me-1.5" />
-								Buy
-							</Button>
+							{@const href = purchaseHref(selectedTheme)}
+							{#if href}
+								<Button size="sm" variant="destructive" onclick={() => openPurchase(href)}>
+									<ShoppingCart size={14} class="me-1.5" />
+									Buy
+								</Button>
+							{/if}
 						{:else}
 							<Button size="sm" onclick={() => handleInstall(selectedTheme.slug)} disabled={installingSlug === selectedTheme.slug || !canInstall}>
 								{#if installingSlug === selectedTheme.slug}
@@ -254,14 +259,17 @@
 
 								<!-- Install / Buy button -->
 								{#if needsPurchase(theme)}
-									<Button
-										variant="outline"
-										size="sm"
-										onclick={(e: MouseEvent) => { e.stopPropagation(); openPurchase(theme); }}
-										class="shrink-0"
-									>
-										<ShoppingCart size={12} />
-									</Button>
+									{@const href = purchaseHref(theme)}
+									{#if href}
+										<Button
+											variant="outline"
+											size="sm"
+											onclick={(e: MouseEvent) => { e.stopPropagation(); openPurchase(href); }}
+											class="shrink-0"
+										>
+											<ShoppingCart size={12} />
+										</Button>
+									{/if}
 								{:else}
 									<Button
 										variant="outline"
