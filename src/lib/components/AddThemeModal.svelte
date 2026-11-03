@@ -69,8 +69,11 @@
 	}
 
 	function openPurchase(theme: RepositoryTheme) {
-		if (theme.purchase_url) {
-			window.open(theme.purchase_url, '_blank', 'noopener');
+		// From the GPM feed (a vendor's checkout_url): only an http(s) address
+		// opens, so a `javascript:` one can't run, whatever the window flags.
+		const href = webUrl(theme.purchase_url);
+		if (href) {
+			window.open(href, '_blank', 'noopener');
 		}
 	}
 

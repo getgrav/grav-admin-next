@@ -89,8 +89,11 @@
 	}
 
 	function openPurchase(plugin: RepositoryPlugin) {
-		if (plugin.purchase_url) {
-			window.open(plugin.purchase_url, '_blank', 'noopener');
+		// From the GPM feed (a vendor's checkout_url): only an http(s) address
+		// opens, so a `javascript:` one can't run, whatever the window flags.
+		const href = webUrl(plugin.purchase_url);
+		if (href) {
+			window.open(href, '_blank', 'noopener');
 		}
 	}
 

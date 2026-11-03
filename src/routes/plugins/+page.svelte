@@ -75,34 +75,37 @@
 	let changelogTitle = $state('');
 	let changelogContent = $state('');
 	let changelogLoading = $state(false);
+	// The installed changelog and the update's share the modal: a slow answer
+	// for one must not land in it after the other has been opened.
+	let changelogRequest = 0;
 
-	async function showChangelog(plugin: PluginInfo) {
+	async function openChangelog(title: string, load: () => Promise<string>) {
+		const request = ++changelogRequest;
 		changelogLoading = true;
-		changelogTitle = `${plugin.name} — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`;
+		changelogTitle = title;
 		changelogContent = '';
 		changelogOpen = true;
+		let content: string;
 		try {
-			changelogContent = formatChangelog(await getPluginChangelog(plugin.slug));
+			content = formatChangelog(await load());
 		} catch {
-			changelogContent = '*Changelog not available.*';
-		} finally {
-			changelogLoading = false;
+			content = '*Changelog not available.*';
 		}
+		if (request !== changelogRequest) return;
+		changelogContent = content;
+		changelogLoading = false;
+	}
+
+	function showChangelog(plugin: PluginInfo) {
+		return openChangelog(`${plugin.name} — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`, () => getPluginChangelog(plugin.slug));
 	}
 
 	// What the available update changes (the changelog entries newer than the installed version)
-	async function showUpdateChangelog(plugin: PluginInfo) {
-		changelogLoading = true;
-		changelogTitle = `${plugin.name} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: plugin.available_version ?? '' })}`;
-		changelogContent = '';
-		changelogOpen = true;
-		try {
-			changelogContent = formatChangelog(await getPluginAvailableChangelog(plugin.slug));
-		} catch {
-			changelogContent = '*Changelog not available.*';
-		} finally {
-			changelogLoading = false;
-		}
+	function showUpdateChangelog(plugin: PluginInfo) {
+		return openChangelog(
+			`${plugin.name} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: plugin.available_version ?? '' })}`,
+			() => getPluginAvailableChangelog(plugin.slug),
+		);
 	}
 
 	// Auto-open install modal when navigating with ?install=slug (only if the

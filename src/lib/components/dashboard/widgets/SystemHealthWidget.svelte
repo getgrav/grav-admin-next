@@ -51,14 +51,17 @@
 			{:else if homepageSlot}
 				<span class="inline-block size-[20px]" aria-hidden="true"></span>
 			{/if}
-			<button type="button"
-				class="cursor-pointer rounded p-[4px] text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
-				title={changesTitle}
-				aria-label="{name} — {changesTitle}"
-				onclick={() => data().onShowPackageChangelog(type, pkg)}
-			>
-				<FileText size={12} />
-			</button>
+			<!-- The changelog is asked for by slug: an entry without one has none to show. -->
+			{#if pkg.slug}
+				<button type="button"
+					class="cursor-pointer rounded p-[4px] text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+					title={changesTitle}
+					aria-label="{name} — {changesTitle}"
+					onclick={() => data().onShowPackageChangelog(type, pkg)}
+				>
+					<FileText size={12} />
+				</button>
+			{/if}
 		</span>
 		{#if pkg.version}
 			<!-- Shown only where the list is wide enough, but always read out by screen

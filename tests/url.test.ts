@@ -24,7 +24,24 @@ test('a script or other non-web scheme is no link', () => {
 test('a relative or incomplete address is no link', () => {
 	assert.equal(webUrl(''), null);
 	assert.equal(webUrl('/plugins/admin'), null);
-	assert.equal(webUrl('github.com/getgrav/grav-plugin-admin'), null);
+	assert.equal(webUrl('localhost:8080/admin'), null);
+	assert.equal(webUrl('admin'), null);
+});
+
+// Many blueprints leave out the scheme: a bare host name still links.
+
+test('a host name without a scheme gets https://', () => {
+	assert.equal(webUrl('github.com/getgrav/grav-plugin-admin'), 'https://github.com/getgrav/grav-plugin-admin');
+	assert.equal(webUrl(' www.example.com '), 'https://www.example.com/');
+	assert.equal(webUrl('getgrav.org'), 'https://getgrav.org/');
+	assert.equal(webUrl('example.com:8443/docs?x=1#top'), 'https://example.com:8443/docs?x=1#top');
+});
+
+test('only a host name gets https://, never a script or credentials', () => {
+	assert.equal(webUrl('javascript.example:alert(1)'), null);
+	assert.equal(webUrl('user@evil.example'), null);
+	assert.equal(webUrl('evil.example@site.test'), null);
+	assert.equal(webUrl('-bad.example'), null);
 });
 
 test('a value that is not text is no link', () => {
@@ -42,10 +59,24 @@ test('a path on the site becomes a link on the site', () => {
 });
 
 test('a path that leaves the site is no link', () => {
-	// Browsers read a backslash as a slash, so these name another host.
+	// Browsers read a backslash as a slash, and skip extra slashes, so these
+	// look like paths but name another host.
 	assert.equal(safeHref('/\\evil.example/login', SITE), null);
 	assert.equal(safeHref('\\\\evil.example', SITE), null);
-	assert.equal(safeHref('//evil.example/login', SITE), null);
+	assert.equal(safeHref('//\\evil.example', SITE), null);
+	assert.equal(safeHref('///evil.example/login', SITE), null);
+});
+
+test('a protocol-relative address links to its host, like an absolute one', () => {
+	assert.equal(safeHref('//cdn.example/avatar.png', SITE), 'https://cdn.example/avatar.png');
+});
+
+test('a blob: address is no link, though it names the site', () => {
+	assert.equal(safeHref('blob:https://site.test/0b5e', SITE), null);
+});
+
+test('a bare file name is a path on the site, not a host', () => {
+	assert.equal(safeHref('docs.html', SITE), 'https://site.test/docs.html');
 });
 
 test('an http(s) address is a link, a script is not', () => {

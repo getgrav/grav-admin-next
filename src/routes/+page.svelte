@@ -72,7 +72,7 @@
 	let changelogOpen = $state(false);
 	let changelogPackage = $state<UpdatablePackage | null>(null);
 	let changelogMarkdown = $state('');
-	// 'empty': nothing newer than the installed version is listed; 'failed': it couldn't be loaded.
+	// 'empty': the server has no entries for this update; 'failed': it couldn't be loaded.
 	let changelogProblem = $state<'empty' | 'failed' | null>(null);
 	let changelogLoading = $state(false);
 	// Each package row has its own button: a slow answer for one package must
@@ -108,8 +108,9 @@
 			markdown = formatChangelog(await load());
 			if (markdown.trim() === '') problem = 'empty';
 		} catch (err) {
-			// The API answers 404 when no entry is newer than the installed version
-			// (and for a package that isn't installed, which these rows never are).
+			// The API answers 404 when it has no entries to show: none newer than the
+			// installed version, but also no changelog in the feed, no feed entry, or
+			// an installed version it can't read. The 'empty' wording fits them all.
 			problem = err instanceof ApiRequestError && err.response.status === 404 ? 'empty' : 'failed';
 		}
 		if (request !== changelogRequest) return;
