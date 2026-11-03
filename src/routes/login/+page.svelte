@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { onMount, onDestroy, tick } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { onMount, onDestroy, tick, untrack } from 'svelte';
+	import { goto, replaceState } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -9,7 +9,7 @@
 		login,
 		verify2fa,
 		getSetupStatus,
-		getSsoProviders,
+		getLoginOptions,
 		getCaptchaConfig,
 		getPasskeyEnabled,
 		startPasskeySignIn,
@@ -19,6 +19,7 @@
 		type CaptchaConfig,
 	} from '$lib/api/auth';
 	import LoginCaptcha from '$lib/components/auth/LoginCaptcha.svelte';
+	import { reportSsoToOpener } from '$lib/utils/sso-popup';
 	import {
 		autofillSupported,
 		getPasskey,
@@ -75,17 +76,27 @@
 	let codeInvalid = $state(false);
 
 	let ssoProviders = $state<SsoProvider[]>([]);
-	let ssoLoaded = $state(false);
+	// Off when the server hides the password form (e.g. SSO enforced).
+	let passwordFormOn = $state(true);
+	// The server and environment the sign-in options were loaded for. They only
+	// apply while the fields still name that server: editing either field drops
+	// the provider buttons and brings the form back until its own options arrive.
+	let optionsFor = $state<string | null>(null);
+	const fieldsKey = $derived(`${serverUrl.replace(/\/+$/, '')}|${environment}`);
+	const optionsApply = $derived(optionsFor === fieldsKey);
+	const showPasswordForm = $derived(!optionsApply || passwordFormOn);
+	const providers = $derived(optionsApply ? ssoProviders : []);
+	// False when the last load couldn't reach the server, so coming back online
+	// asks again. Plain, not $state: nothing renders from it.
+	let optionsOk = true;
 
 	let captchaConfig = $state<CaptchaConfig>(CAPTCHA_DISABLED);
-	let captchaLoaded = $state(false);
 	let captchaReady = $state(true);
 	let captcha: { token: () => Promise<string>; reset: () => void } | null = $state(null);
 
 	// Passkeys: shown when the site offers them (probed like SSO and captcha
 	// below) and this browser can use them here.
 	let passkeyEnabled = $state(false);
-	let passkeyLoaded = $state(false);
 	let browserPasskeys = $state(false);
 	const showPasskey = $derived(passkeyEnabled && browserPasskeys);
 	// The passkey button leads only in a browser that has used one here before;
@@ -118,13 +129,16 @@
 		}
 	});
 
-	// Hold the form back until the setup probe has answered and the full string
-	// set has arrived. Otherwise a fresh install shows this form for a moment,
-	// with placeholder labels, before the probe sends it on to /setup. A slow
-	// or unreachable server still gets the form after a few seconds.
+	// Hold the form back until the setup probe has answered, the full string set
+	// has arrived and the server has said which sign-in options it offers.
+	// Otherwise a fresh install shows this form for a moment, with placeholder
+	// labels, before the probe sends it on to /setup, and an SSO-only site shows
+	// a password form that vanishes as it is typed into. A slow or unreachable
+	// server still gets the form after a few seconds.
 	let setupChecked = $state(!(auth.hasGravConfig || auth.serverUrl));
+	let optionsLoaded = $state(!(auth.hasGravConfig || auth.serverUrl));
 	let waitedLongEnough = $state(false);
-	const ready = $derived(waitedLongEnough || (setupChecked && i18n.loaded));
+	const ready = $derived(waitedLongEnough || (setupChecked && i18n.loaded && optionsLoaded));
 	// A custom logo already carries the site's name, so the heading under it
 	// would only repeat it. It stays in the page for screen readers.
 	const logoNamesSite = $derived(branding.mode === 'custom' && !!(branding.urlLight || branding.urlDark));
@@ -152,38 +166,58 @@
 		}
 	});
 
-	// Load any SSO/OAuth providers the server offers (best-effort, once). Gate on
-	// hasGravConfig too: a root-hosted plugin install injects serverUrl='' (valid
-	// same-origin), which is falsy — so serverUrl alone would never fire here.
+	// The sign-in options (provider buttons, the password form), the captcha and
+	// the passkey button all belong to one server. Ask the one the fields name,
+	// best-effort: no buttons, no challenge and the form if it can't be reached.
+	// An answer for a server the fields no longer name is dropped.
+	let probe: AbortController | null = null;
+	let probedFor: string | null = null;
+
+	function probeServer(force = false) {
+		const key = untrack(() => fieldsKey);
+		if (key === probedFor && !force) return;
+		probedFor = key;
+		probe?.abort();
+		const ctrl = new AbortController();
+		probe = ctrl;
+		captchaConfig = CAPTCHA_DISABLED;
+		passkeyEnabled = false;
+		getLoginOptions(ctrl.signal).then((options) => {
+			if (ctrl.signal.aborted) return;
+			ssoProviders = options.providers;
+			passwordFormOn = options.showPasswordForm;
+			optionsOk = options.ok;
+			optionsFor = key;
+			optionsLoaded = true;
+		});
+		getCaptchaConfig().then((config) => {
+			if (!ctrl.signal.aborted) captchaConfig = config;
+		});
+		getPasskeyEnabled().then((enabled) => {
+			if (!ctrl.signal.aborted) passkeyEnabled = enabled;
+		});
+	}
+
+	// Ask once a server is known. Gate on hasGravConfig too: a root-hosted plugin
+	// install injects serverUrl='' (valid same-origin), which is falsy — so
+	// serverUrl alone would never fire here.
 	$effect(() => {
-		if ((auth.hasGravConfig || auth.serverUrl) && !ssoLoaded) {
-			ssoLoaded = true;
-			getSsoProviders()
-				.then((list) => { ssoProviders = list; })
-				.catch(() => { /* no-op — no buttons if unavailable */ });
-		}
+		if (auth.hasGravConfig || auth.serverUrl) untrack(() => probeServer());
 	});
 
-	// Ask whether a captcha guards the login, the same best-effort way as the SSO
-	// providers above and gated identically.
-	$effect(() => {
-		if ((auth.hasGravConfig || auth.serverUrl) && !captchaLoaded) {
-			captchaLoaded = true;
-			getCaptchaConfig()
-				.then((config) => { captchaConfig = config; })
-				.catch(() => { /* no-op — no challenge if unavailable */ });
-		}
-	});
+	// A different server or environment in the fields: point the client at it
+	// and ask it again, so its options replace the last server's.
+	function serverFieldsChanged() {
+		auth.setServer(serverUrl, environment);
+		probeServer();
+	}
 
-	// Ask whether the site offers passkeys, the same best-effort way.
-	$effect(() => {
-		if ((auth.hasGravConfig || auth.serverUrl) && !passkeyLoaded) {
-			passkeyLoaded = true;
-			getPasskeyEnabled()
-				.then((enabled) => { passkeyEnabled = enabled; })
-				.catch(() => { /* no-op — no passkey button if unavailable */ });
-		}
-	});
+	// After a failed load, coming back online asks again.
+	function retryProbe() {
+		if (!optionsOk) probeServer(true);
+	}
+
+	onDestroy(() => probe?.abort());
 
 	onMount(() => {
 		browserPasskeys = passkeysSupported();
@@ -191,9 +225,14 @@
 
 	// Offer passkeys in the username field's autofill while the credentials
 	// form is up. Stopped when the passkey button is used or the password form
-	// is sent, and started again if either doesn't sign in.
+	// is sent, and started again if either doesn't sign in. Without the form
+	// there is no field to offer them in; another server's options start it
+	// over with that server's passkeys.
 	$effect(() => {
-		if (showPasskey && ready && stage === 'credentials') startAutofill();
+		if (!showPasskey || !showPasswordForm || !ready || stage !== 'credentials') return;
+		void optionsFor;
+		startAutofill();
+		return stopAutofill;
 	});
 
 	onDestroy(stopAutofill);
@@ -204,7 +243,7 @@
 	}
 
 	async function startAutofill() {
-		if (autofill || !showPasskey || stage !== 'credentials') return;
+		if (autofill || !showPasskey || !showPasswordForm || stage !== 'credentials') return;
 		const ctrl = new AbortController();
 		autofill = ctrl;
 		try {
@@ -344,6 +383,27 @@
 		}
 	});
 
+	// The server sends a refused SSO sign-in back here with ?sso_error=. In the
+	// sign-in-again popup, hand that to the dialog that opened it; otherwise say
+	// so once the strings are in, and drop it from the address.
+	let ssoRefused = $state(false);
+	onMount(() => {
+		if (!page.url.searchParams.get('sso_error')) return;
+		if (reportSsoToOpener(null, true)) return;
+		ssoRefused = true;
+	});
+
+	$effect(() => {
+		if (!ssoRefused || !ready) return;
+		ssoRefused = false;
+		toast.error(i18n.t('ADMIN_NEXT.LOGIN.SSO_FAILED'));
+		untrack(() => {
+			const url = new URL(page.url);
+			url.searchParams.delete('sso_error');
+			replaceState(url, page.state);
+		});
+	});
+
 	// Leave the SPA for the server's OAuth start endpoint (full-page navigation
 	// — the provider round-trip can't run through the in-app router). Carry the
 	// returnTo through so the callback drops the user back where they intended.
@@ -471,6 +531,8 @@
 	</p>
 {/snippet}
 
+<svelte:window ononline={retryProbe} />
+
 <svelte:head>
 	<title>{i18n.t('ADMIN_NEXT.LOGIN.LOGIN_GRAV_ADMIN')}</title>
 </svelte:head>
@@ -536,6 +598,7 @@
 											type="url"
 											class="flex h-9 w-full rounded-r-md border border-input bg-transparent px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 											bind:value={serverUrl}
+											onchange={serverFieldsChanged}
 										/>
 									</div>
 								</div>
@@ -547,6 +610,7 @@
 										type="text"
 										class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 										bind:value={environment}
+										onchange={serverFieldsChanged}
 									/>
 								</div>
 							</div>
@@ -586,85 +650,90 @@
 					{/if}
 
 					<!-- Credentials form -->
-					<form onsubmit={handleLogin} class="space-y-4 px-6 {showPasskey ? 'pt-4 pb-5' : 'py-5'}">
-						<div class="space-y-1.5">
-							<label for="username" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.USERNAME')}</label>
-							<input
-								id="username"
-								type="text"
-								class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
-									{usernameInvalid
-										? 'border-red-500 ring-1 ring-red-500/30 animate-[shake_0.3s_ease-in-out]'
-										: 'border-input'}"
-								bind:value={username}
-								autocomplete={showPasskey ? 'username webauthn' : 'username'}
-								disabled={loading}
-							/>
-							{#if usernameInvalid}
-								<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.LOGIN.USERNAME_IS_REQUIRED')}</p>
-							{/if}
-						</div>
-
-						<div class="space-y-1.5">
-							<label for="password" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.PASSWORD')}</label>
-							<input
-								id="password"
-								type="password"
-								class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
-									{passwordInvalid
-										? 'border-red-500 ring-1 ring-red-500/30 animate-[shake_0.3s_ease-in-out]'
-										: 'border-input'}"
-								bind:value={password}
-								autocomplete="current-password"
-								disabled={loading}
-							/>
-							{#if passwordInvalid}
-								<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.LOGIN.PASSWORD_IS_REQUIRED')}</p>
-							{/if}
-							<div class="pt-0.5 text-end">
-								<a
-									href="{base}/forgot"
-									class="text-[0.75rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
-								>
-									{i18n.t('ADMIN_NEXT.LOGIN.FORGOT_PASSWORD')}
-								</a>
+					{#if showPasswordForm}
+						<form onsubmit={handleLogin} class="space-y-4 px-6 {showPasskey ? 'pt-4 pb-5' : 'py-5'}">
+							<div class="space-y-1.5">
+								<label for="username" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.USERNAME')}</label>
+								<input
+									id="username"
+									type="text"
+									class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
+										{usernameInvalid
+											? 'border-red-500 ring-1 ring-red-500/30 animate-[shake_0.3s_ease-in-out]'
+											: 'border-input'}"
+									bind:value={username}
+									autocomplete={showPasskey ? 'username webauthn' : 'username'}
+									disabled={loading}
+								/>
+								{#if usernameInvalid}
+									<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.LOGIN.USERNAME_IS_REQUIRED')}</p>
+								{/if}
 							</div>
-						</div>
 
-						<LoginCaptcha
-							bind:this={captcha}
-							bind:ready={captchaReady}
-							config={captchaConfig}
-							flow={captchaConfig.flows.login}
-						/>
-
-						<Button
-							type="submit"
-							variant={showPasskey && passkeyLeads ? 'outline' : 'default'}
-							class="w-full"
-							disabled={loading || passkeyBusy || !captchaReady}
-						>
-							{#if loading}
-								<Loader2 size={15} class="animate-spin" />
-								{i18n.t('ADMIN_NEXT.LOGIN.SIGNING_IN')}
-							{:else}
-								<LogIn size={15} />
-								{i18n.t('ADMIN_NEXT.LOGIN.SIGN_IN')}
-							{/if}
-						</Button>
-					</form>
-
-					{#if ssoProviders.length > 0}
-						<div class="px-6 pb-5">
-							<div class="relative mb-4 flex items-center">
-								<div class="flex-grow border-t border-border"></div>
-								<span class="mx-3 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
-									{i18n.t('ADMIN_NEXT.LOGIN.OR_CONTINUE_WITH')}
-								</span>
-								<div class="flex-grow border-t border-border"></div>
+							<div class="space-y-1.5">
+								<label for="password" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.PASSWORD')}</label>
+								<input
+									id="password"
+									type="password"
+									class="flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
+										{passwordInvalid
+											? 'border-red-500 ring-1 ring-red-500/30 animate-[shake_0.3s_ease-in-out]'
+											: 'border-input'}"
+									bind:value={password}
+									autocomplete="current-password"
+									disabled={loading}
+								/>
+								{#if passwordInvalid}
+									<p class="text-xs text-red-500">{i18n.t('ADMIN_NEXT.LOGIN.PASSWORD_IS_REQUIRED')}</p>
+								{/if}
+								<div class="pt-0.5 text-end">
+									<a
+										href="{base}/forgot"
+										class="text-[0.75rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
+									>
+										{i18n.t('ADMIN_NEXT.LOGIN.FORGOT_PASSWORD')}
+									</a>
+								</div>
 							</div>
+
+							<LoginCaptcha
+								bind:this={captcha}
+								bind:ready={captchaReady}
+								config={captchaConfig}
+								flow={captchaConfig.flows.login}
+							/>
+
+							<Button
+								type="submit"
+								variant={showPasskey && passkeyLeads ? 'outline' : 'default'}
+								class="w-full"
+								disabled={loading || passkeyBusy || !captchaReady}
+							>
+								{#if loading}
+									<Loader2 size={15} class="animate-spin" />
+									{i18n.t('ADMIN_NEXT.LOGIN.SIGNING_IN')}
+								{:else}
+									<LogIn size={15} />
+									{i18n.t('ADMIN_NEXT.LOGIN.SIGN_IN')}
+								{/if}
+							</Button>
+						</form>
+					{/if}
+
+					{#if providers.length > 0}
+						<!-- Without the form, the buttons sit as close under the passkey divider as the form would. -->
+						<div class="px-6 pb-5 {showPasswordForm ? '' : showPasskey ? 'pt-4' : 'pt-5'}">
+							{#if showPasswordForm}
+								<div class="relative mb-4 flex items-center">
+									<div class="flex-grow border-t border-border"></div>
+									<span class="mx-3 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
+										{i18n.t('ADMIN_NEXT.LOGIN.OR_CONTINUE_WITH')}
+									</span>
+									<div class="flex-grow border-t border-border"></div>
+								</div>
+							{/if}
 							<div class="space-y-2">
-								{#each ssoProviders as provider (provider.id)}
+								{#each providers as provider (provider.id)}
 									<Button
 										type="button"
 										variant="outline"
