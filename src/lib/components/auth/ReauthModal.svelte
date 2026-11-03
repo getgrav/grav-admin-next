@@ -18,6 +18,7 @@
 	 * hand-rolled fetch, so the 2FA challenge and the captcha are handled the same
 	 * way here as on the login page.
 	 */
+	import { tick, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
@@ -48,11 +49,15 @@
 	let ssoProviders = $state<SsoProvider[]>([]);
 	// Off when the server hides the password form (e.g. SSO enforced).
 	let showPasswordForm = $state(true);
-	let ssoLoaded = $state(false);
+	// Whether this opening's sign-in options have arrived, or the wait ran out.
+	// Until then the dialog shows a spinner, not a form that may be about to go.
+	let optionsLoaded = $state(false);
+	// False when the last load couldn't reach the server. Plain, not $state:
+	// nothing renders from it.
+	let optionsOk = true;
 	let ssoBusy = $state<string | null>(null);
 
 	let captchaConfig = $state<CaptchaConfig>(CAPTCHA_DISABLED);
-	let captchaLoaded = $state(false);
 	let captchaReady = $state(false);
 	let captcha = $state<{ token: () => Promise<string>; reset: () => void } | null>(null);
 
@@ -60,16 +65,24 @@
 	let ssoWindow: Window | null = null;
 	let ssoPoll: ReturnType<typeof setInterval> | null = null;
 
-	// Autofocus when opened — the Input doesn't forward refs, so grab by id.
+	// Focus the first thing to use once it is there: the code, the password or
+	// the first provider button, and the dialog itself while the options load.
+	// Runs again when the stage or the options change, so focus never stays on
+	// a field that went away. The Input doesn't forward refs, so grab by id.
 	$effect(() => {
-		if (authSession.reauthOpen) {
-			queueMicrotask(() => {
-				const el = document.getElementById(
-					stage === '2fa' ? 'reauth-code' : 'reauth-password',
-				) as HTMLInputElement | null;
-				el?.focus();
-			});
-		}
+		if (!authSession.reauthOpen) return;
+		const target =
+			stage === '2fa'
+				? '#reauth-code'
+				: !optionsLoaded
+					? '#reauth-dialog'
+					: showPasswordForm
+						? '#reauth-password'
+						: '#reauth-sso button';
+		tick().then(() => {
+			const el = document.querySelector<HTMLElement>(target) ?? document.getElementById('reauth-dialog');
+			el?.focus();
+		});
 	});
 
 	// If the backend has no user accounts (e.g. the account backing the stored
@@ -93,24 +106,45 @@
 			.catch(() => { /* best-effort — fall through to password prompt */ });
 	});
 
-	// Load the SSO providers and the captcha config once the modal opens, the
-	// same best-effort way the login page does. Deferred until open so a session
-	// that never expires costs nothing.
-	$effect(() => {
-		if (!authSession.reauthOpen || ssoLoaded) return;
-		ssoLoaded = true;
-		getLoginOptions()
-			.then((options) => { ssoProviders = options.providers; showPasswordForm = options.showPasswordForm; })
-			.catch(() => { /* no-op — no buttons if unavailable */ });
-	});
+	// Load the sign-in options and the captcha config each time the modal opens,
+	// the same best-effort way the login page does: a load that failed last time
+	// gets another go, and a changed setting shows. Deferred until open so a
+	// session that never expires costs nothing. A slow server still gets the
+	// form after a few seconds.
+	let optionsProbe: AbortController | null = null;
+
+	function loadOptions() {
+		optionsProbe?.abort();
+		const ctrl = new AbortController();
+		optionsProbe = ctrl;
+		getLoginOptions(ctrl.signal).then((options) => {
+			if (ctrl.signal.aborted) return;
+			ssoProviders = options.providers;
+			showPasswordForm = options.showPasswordForm;
+			optionsOk = options.ok;
+			optionsLoaded = true;
+		});
+		getCaptchaConfig().then((config) => {
+			if (!ctrl.signal.aborted) captchaConfig = config;
+		});
+	}
 
 	$effect(() => {
-		if (!authSession.reauthOpen || captchaLoaded) return;
-		captchaLoaded = true;
-		getCaptchaConfig()
-			.then((config) => { captchaConfig = config; })
-			.catch(() => { /* no-op — no challenge if unavailable */ });
+		if (!authSession.reauthOpen) return;
+		untrack(loadOptions);
+		const timer = setTimeout(() => (optionsLoaded = true), 4000);
+		return () => {
+			clearTimeout(timer);
+			optionsProbe?.abort();
+			optionsLoaded = false;
+		};
 	});
+
+	// After a failed load (a laptop waking up before its network, say), coming
+	// back online or to this window asks again.
+	function retryOptions() {
+		if (!optionsOk) loadOptions();
+	}
 
 	/** Everything that has to happen once a fresh token pair is in the store. */
 	async function completeReauth() {
@@ -292,14 +326,18 @@
 <svelte:window
 	onkeydown={authSession.reauthOpen ? handleKeydown : undefined}
 	onmessage={authSession.reauthOpen ? handleSsoMessage : undefined}
+	ononline={authSession.reauthOpen ? retryOptions : undefined}
+	onfocus={authSession.reauthOpen ? retryOptions : undefined}
 />
 
 {#if authSession.reauthOpen}
 	<div
-		class="fixed inset-0 z-[60] flex items-center justify-center bg-neutral-900/75 p-4 backdrop-blur-sm"
+		id="reauth-dialog"
+		class="fixed inset-0 z-[60] flex items-center justify-center bg-neutral-900/75 p-4 outline-none backdrop-blur-sm"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="reauth-title"
+		tabindex="-1"
 	>
 		<div class="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-2xl">
 			<div class="flex gap-4">
@@ -321,71 +359,76 @@
 			</div>
 
 			{#if stage === 'password'}
-				{#if showPasswordForm}
-				<form onsubmit={handleSubmit} class="mt-5 space-y-3">
-					<div>
-						<label for="reauth-username" class="text-[0.8125rem] font-medium text-foreground">
-							{i18n.t('ADMIN_NEXT.USERNAME')}
-						</label>
-						<Input
-							id="reauth-username"
-							type="text"
-							value={auth.username}
-							disabled
-							class="mt-1.5"
-						/>
+				{#if !optionsLoaded}
+					<div class="mt-5 flex justify-center py-3 text-muted-foreground" role="status">
+						<Loader2 size={18} class="animate-spin" />
+						<span class="sr-only">{i18n.t('ADMIN_NEXT.LOADING')}</span>
 					</div>
-					<div>
-						<label for="reauth-password" class="text-[0.8125rem] font-medium text-foreground">
-							{i18n.t('ADMIN_NEXT.PASSWORD')}
-						</label>
-						<Input
-							id="reauth-password"
-							type="password"
-							value={password}
-							oninput={(e) => (password = (e.currentTarget as HTMLInputElement).value)}
-							autocomplete="current-password"
-							required
-							class="mt-1.5"
-						/>
-					</div>
+				{:else if showPasswordForm}
+					<form onsubmit={handleSubmit} class="mt-5 space-y-3">
+						<div>
+							<label for="reauth-username" class="text-[0.8125rem] font-medium text-foreground">
+								{i18n.t('ADMIN_NEXT.USERNAME')}
+							</label>
+							<Input
+								id="reauth-username"
+								type="text"
+								value={auth.username}
+								disabled
+								class="mt-1.5"
+							/>
+						</div>
+						<div>
+							<label for="reauth-password" class="text-[0.8125rem] font-medium text-foreground">
+								{i18n.t('ADMIN_NEXT.PASSWORD')}
+							</label>
+							<Input
+								id="reauth-password"
+								type="password"
+								value={password}
+								oninput={(e) => (password = (e.currentTarget as HTMLInputElement).value)}
+								autocomplete="current-password"
+								required
+								class="mt-1.5"
+							/>
+						</div>
 
-					<LoginCaptcha
-						bind:this={captcha}
-						bind:ready={captchaReady}
-						config={captchaConfig}
-						flow={captchaConfig.flows.login}
-					/>
+						<LoginCaptcha
+							bind:this={captcha}
+							bind:ready={captchaReady}
+							config={captchaConfig}
+							flow={captchaConfig.flows.login}
+						/>
 
-					{#if error}
-						<p class="text-[0.8125rem] text-destructive">{error}</p>
-					{/if}
-					<div class="flex justify-end gap-2 pt-1">
-						<Button type="button" variant="outline" size="sm" onclick={handleSignOut} disabled={submitting}>
-							{i18n.t('ADMIN_NEXT.SIGN_OUT')}
-						</Button>
-						<Button type="submit" size="sm" disabled={submitting || !password.trim() || !captchaReady}>
-							{#if submitting}
-								<Loader2 size={14} class="animate-spin" />
-							{/if}
-							{submitting
-								? i18n.t('ADMIN_NEXT.LOGIN.SIGNING_IN')
-								: i18n.t('ADMIN_NEXT.LOGIN.SIGN_IN')}
-						</Button>
-					</div>
-				</form>
+						{#if error}
+							<p class="text-[0.8125rem] text-destructive">{error}</p>
+						{/if}
+						<div class="flex justify-end gap-2 pt-1">
+							<Button type="button" variant="outline" size="sm" onclick={handleSignOut} disabled={submitting}>
+								{i18n.t('ADMIN_NEXT.SIGN_OUT')}
+							</Button>
+							<Button type="submit" size="sm" disabled={submitting || !password.trim() || !captchaReady}>
+								{#if submitting}
+									<Loader2 size={14} class="animate-spin" />
+								{/if}
+								{submitting
+									? i18n.t('ADMIN_NEXT.LOGIN.SIGNING_IN')
+									: i18n.t('ADMIN_NEXT.LOGIN.SIGN_IN')}
+							</Button>
+						</div>
+					</form>
 				{/if}
 
-				{#if ssoProviders.length > 0}
-					<div class="mt-5">
+				{#if optionsLoaded && ssoProviders.length > 0}
+					<div id="reauth-sso" class="mt-5">
 						{#if showPasswordForm}
-						<div class="relative mb-3 flex items-center">
-							<div class="flex-grow border-t border-border"></div>
-							<span class="mx-3 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
-								{i18n.t('ADMIN_NEXT.LOGIN.OR_CONTINUE_WITH')}
-							</span>
-							<div class="flex-grow border-t border-border"></div>
-						</div>
+							<div class="relative mb-3 flex items-center">
+								<div class="flex-grow border-t border-border"></div>
+								<span class="mx-3 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
+									{i18n.t('ADMIN_NEXT.LOGIN.OR_CONTINUE_WITH')}
+								</span>
+								<div class="flex-grow border-t border-border"></div>
+							</div>
 						{/if}
 						<div class="space-y-2">
 							{#each ssoProviders as provider (provider.id)}
@@ -406,7 +449,7 @@
 						</div>
 					</div>
 				{/if}
-				{#if !showPasswordForm}
+				{#if !optionsLoaded || !showPasswordForm}
 					{#if error}
 						<p class="mt-3 text-[0.8125rem] text-destructive">{error}</p>
 					{/if}

@@ -133,7 +133,7 @@ export const CAPTCHA_DISABLED: CaptchaConfig = {
 
 /**
  * Ask the server which captcha (if any) guards the unauthenticated auth
- * endpoints. Best-effort, like getSsoProviders(): if this can't be reached we
+ * endpoints. Best-effort, like getLoginOptions(): if this can't be reached we
  * render no challenge. That's not a hole — the server still rejects a login
  * with no token, so the failure is visible rather than silent.
  */
@@ -180,31 +180,41 @@ export interface LoginOptions {
 	providers: SsoProvider[];
 	/** Whether the login screens show the username and password form. */
 	showPasswordForm: boolean;
+	/** False when the server couldn't be asked; the rest are then the defaults. */
+	ok: boolean;
 }
+
+/** How long to wait before asking an unreachable server again, per retry. */
+const LOGIN_OPTIONS_RETRY_MS = [1000, 3000];
 
 /**
  * The SSO/OAuth login providers the server offers (public, pre-auth), and
  * whether the password form shows: the API's show_password_form, which a plugin
  * turns off e.g. to enforce SSO. Never off without a provider, so there is
- * always a way in. Best-effort: an unreachable or empty endpoint just yields no
- * buttons and the password form.
+ * always a way in.
+ *
+ * Best-effort: an unreachable server is asked twice more, then this settles
+ * for no buttons and the password form, with `ok: false` so the caller can
+ * try again later. A server that answers with an error (an older API without
+ * the endpoint) has answered. `signal` stops the retries.
  */
-export async function getLoginOptions(): Promise<LoginOptions> {
-	try {
-		const data = await api.get<{ providers: SsoProvider[]; show_password_form?: boolean }>('/auth/sso/providers');
-		const providers = Array.isArray(data?.providers) ? data.providers : [];
-		return { providers, showPasswordForm: data?.show_password_form !== false || providers.length === 0 };
-	} catch {
-		return { providers: [], showPasswordForm: true };
+export async function getLoginOptions(signal?: AbortSignal): Promise<LoginOptions> {
+	for (let attempt = 0; ; attempt++) {
+		try {
+			const data = await api.get<{ providers: SsoProvider[]; show_password_form?: boolean }>('/auth/sso/providers');
+			const providers = Array.isArray(data?.providers) ? data.providers : [];
+			return { providers, showPasswordForm: data?.show_password_form !== false || providers.length === 0, ok: true };
+		} catch (err) {
+			const status = (err as { status?: number } | null)?.status ?? 0;
+			const answered = status > 0 && status < 500;
+			const delay = LOGIN_OPTIONS_RETRY_MS[attempt];
+			if (answered || delay === undefined || signal?.aborted) {
+				return { providers: [], showPasswordForm: true, ok: answered };
+			}
+			await new Promise((resolve) => setTimeout(resolve, delay));
+			if (signal?.aborted) return { providers: [], showPasswordForm: true, ok: false };
+		}
 	}
-}
-
-/**
- * List the SSO/OAuth login providers the server offers (public, pre-auth).
- * Best-effort: an unreachable or empty endpoint just yields no buttons.
- */
-export async function getSsoProviders(): Promise<SsoProvider[]> {
-	return (await getLoginOptions()).providers;
 }
 
 /**
@@ -225,7 +235,7 @@ export async function exchangeSsoCode(code: string): Promise<LoginResult> {
 
 /**
  * Whether the site offers passkey sign-in (public, pre-auth). Best-effort, like
- * getSsoProviders(): if this can't be reached the login page shows no passkey
+ * getLoginOptions(): if this can't be reached the login page shows no passkey
  * button and the password form works as before.
  */
 export async function getPasskeyEnabled(): Promise<boolean> {

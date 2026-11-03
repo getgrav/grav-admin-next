@@ -5,6 +5,7 @@
 	import { page } from '$app/state';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { exchangeSsoCode } from '$lib/api/auth';
+	import { reportSsoToOpener } from '$lib/utils/sso-popup';
 	import { toast } from 'svelte-sonner';
 	import { Loader2 } from 'lucide-svelte';
 
@@ -27,41 +28,12 @@
 		goto(`${base}/login`);
 	}
 
-	/**
-	 * Hand the result back to an opener and close, when this callback is running
-	 * inside a popup. The reauth modal opens SSO that way rather than navigating,
-	 * because a full-page redirect would destroy the SPA state and the queued
-	 * requests that the modal exists to preserve.
-	 *
-	 * The popup does not exchange the code itself: it has its own copy of the
-	 * auth store, so a session finalized here would be written to storage the
-	 * opener never re-reads. Post the one-time code instead and let the opener
-	 * exchange it. The code is single-use and expires in 120s, so it is safe to
-	 * pass across a window boundary that we pin to our own origin.
-	 */
-	function reportToOpener(code: string | null, failed: boolean): boolean {
-		const opener = window.opener;
-		if (!opener || opener === window) return false;
-
-		try {
-			opener.postMessage(
-				{ type: 'grav:sso', code: code ?? null, error: failed },
-				window.location.origin,
-			);
-		} catch {
-			return false;
-		}
-
-		window.close();
-		return true;
-	}
-
 	onMount(async () => {
 		const params = page.url.searchParams;
 		const returnTo = safeReturnTo();
 		const ssoError = Boolean(params.get('sso_error'));
 
-		if (reportToOpener(params.get('code'), ssoError)) return;
+		if (reportSsoToOpener(params.get('code'), ssoError)) return;
 
 		if (ssoError) {
 			bailToLogin();
