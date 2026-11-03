@@ -531,7 +531,7 @@
 	</p>
 {/snippet}
 
-<svelte:window ononline={retryProbe} />
+<svelte:window ononline={retryProbe} onfocus={retryProbe} />
 
 <svelte:head>
 	<title>{i18n.t('ADMIN_NEXT.LOGIN.LOGIN_GRAV_ADMIN')}</title>
