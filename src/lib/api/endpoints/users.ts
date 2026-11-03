@@ -1,6 +1,7 @@
 import { api } from '../client';
 import { extractEtag } from '$lib/utils/etag';
 import type { IconSpec } from '$lib/utils/icon-spec';
+import type { PasskeyCreationOptionsJSON, PasskeyCredentialJSON, PasskeyStart } from '$lib/utils/webauthn';
 
 /**
  * The built-in account fields the API always returns. A site can extend the
@@ -43,6 +44,8 @@ export interface UserInfo {
 	 * one. Only on single-user responses (API plugin 1.0.58 or later).
 	 */
 	has_password?: boolean;
+	/** How many passkeys the account holds (API plugin with passkey support). */
+	passkeys?: number;
 	created: string | null;
 	modified: string | null;
 	/**
@@ -348,6 +351,90 @@ export async function disable2fa(username: string, code?: string): Promise<{ two
 	const body: Record<string, string> = {};
 	if (code) body.code = code;
 	return api.post<{ twofa_enabled: false }>(`/users/${username}/2fa/disable`, body);
+}
+
+// --- Passkeys ---
+
+export interface PasskeyInfo {
+	id: string;
+	name: string;
+	/** Unix seconds. */
+	created: number | null;
+	/** Unix seconds, or null when it hasn't signed in yet. */
+	last_used: number | null;
+	/** Kept in a password manager that syncs it across devices. */
+	synced: boolean;
+}
+
+export interface PasskeyList {
+	/** False when the site doesn't offer passkeys; hide the card then. */
+	enabled: boolean;
+	/**
+	 * What changing your own passkeys asks for. 'unavailable': the account has
+	 * neither a password nor 2FA, so it can't change its passkeys yet.
+	 */
+	proof: 'password' | 'code' | 'unavailable' | null;
+	passkeys: PasskeyInfo[];
+}
+
+/** The proof for changing your own passkeys, as the request body wants it. */
+export type PasskeyProof = { current_password: string } | { code: string } | Record<string, never>;
+
+export async function getPasskeys(username: string): Promise<PasskeyList> {
+	const data = await api.get<Partial<PasskeyList>>(`/users/${username}/passkeys`);
+	return {
+		enabled: data?.enabled === true,
+		proof: data?.proof === 'password' || data?.proof === 'code' || data?.proof === 'unavailable' ? data.proof : null,
+		passkeys: Array.isArray(data?.passkeys) ? data.passkeys : [],
+	};
+}
+
+/*
+ * The calls below go through requestRaw so a 429 (too many wrong passwords)
+ * comes straight back to the card instead of being retried.
+ */
+
+/** Start adding a passkey to your own account. Wrong proof answers 422. */
+export async function startAddPasskey(
+	username: string,
+	proof: PasskeyProof,
+): Promise<PasskeyStart<PasskeyCreationOptionsJSON>> {
+	const { data } = await api.requestRaw<PasskeyStart<PasskeyCreationOptionsJSON>>(
+		'POST',
+		`/users/${username}/passkeys/options`,
+		{ body: proof },
+	);
+	return data;
+}
+
+/** Finish adding it: the browser's answer with the ticket from startAddPasskey(). */
+export async function finishAddPasskey(
+	username: string,
+	ticket: string,
+	credential: PasskeyCredentialJSON,
+): Promise<PasskeyInfo> {
+	const { data } = await api.requestRaw<PasskeyInfo>('POST', `/users/${username}/passkeys`, {
+		body: { ticket, credential },
+	});
+	return data;
+}
+
+/** Rename one of your own passkeys. */
+export async function renamePasskey(username: string, id: string, name: string): Promise<{ id: string; name: string }> {
+	const { data } = await api.requestRaw<{ id: string; name: string }>(
+		'PATCH',
+		`/users/${username}/passkeys/${encodeURIComponent(id)}`,
+		{ body: { name } },
+	);
+	return data;
+}
+
+/**
+ * Remove a passkey. Your own takes the same proof as adding one; someone
+ * else's (a lost device) takes api.users.write and no proof.
+ */
+export async function removePasskey(username: string, id: string, proof: PasskeyProof = {}): Promise<void> {
+	await api.requestRaw('DELETE', `/users/${username}/passkeys/${encodeURIComponent(id)}`, { body: proof });
 }
 
 // --- API Keys ---

@@ -3,6 +3,7 @@ import { auth, type DemoModeInfo } from '$lib/stores/auth.svelte';
 import { resetBoot, takeBootPart } from '$lib/stores/boot';
 import { base } from '$app/paths';
 import type { PasswordPolicy } from '$lib/utils/passwordStrength';
+import type { PasskeyCredentialJSON, PasskeyRequestOptionsJSON, PasskeyStart } from '$lib/utils/webauthn';
 
 interface TokenResponse {
 	access_token: string;
@@ -202,6 +203,57 @@ export async function exchangeSsoCode(code: string): Promise<LoginResult> {
 
 	await finalizeLogin(data as TokenResponse, '');
 	return { requires2fa: false };
+}
+
+/**
+ * Whether the site offers passkey sign-in (public, pre-auth). Best-effort, like
+ * getSsoProviders(): if this can't be reached the login page shows no passkey
+ * button and the password form works as before.
+ */
+export async function getPasskeyEnabled(): Promise<boolean> {
+	try {
+		const data = await api.get<{ enabled?: boolean }>('/auth/passkey');
+		return data?.enabled === true;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Start a passkey sign-in. `sign-in` is a passkey alone; `two-step` is a
+ * passkey in place of the 2FA code, and its options list only that account's
+ * passkeys (an empty `allowCredentials` means it has none). The ticket is good
+ * for one answer within five minutes.
+ *
+ * These calls go through requestRaw so a 429 comes straight back instead of
+ * being retried: the person should see it, and a retry would only count
+ * against the same limit.
+ */
+export async function startPasskeySignIn(
+	step: 'sign-in' | 'two-step',
+	challengeToken?: string,
+): Promise<PasskeyStart<PasskeyRequestOptionsJSON>> {
+	const body: Record<string, string> = { for: step };
+	if (step === 'two-step' && challengeToken) body.challenge_token = challengeToken;
+	const { data } = await api.requestRaw<PasskeyStart<PasskeyRequestOptionsJSON>>('POST', '/auth/passkey/options', { body });
+	return data;
+}
+
+/**
+ * Send the browser's answer and finish signing in, the same way a password
+ * sign-in does. A passkey proves both steps, so there's never a 2FA challenge
+ * after it. 401 when the passkey didn't check out, 429 when rate-limited.
+ */
+export async function finishPasskeySignIn(
+	step: 'sign-in' | 'two-step',
+	ticket: string,
+	credential: PasskeyCredentialJSON,
+	challengeToken?: string,
+): Promise<void> {
+	const body: Record<string, unknown> = { for: step, ticket, credential };
+	if (step === 'two-step' && challengeToken) body.challenge_token = challengeToken;
+	const { data } = await api.requestRaw<TokenResponse>('POST', '/auth/passkey', { body });
+	await finalizeLogin(data, '');
 }
 
 export interface SetupStatus {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
@@ -11,14 +11,27 @@
 		getSetupStatus,
 		getSsoProviders,
 		getCaptchaConfig,
+		getPasskeyEnabled,
+		startPasskeySignIn,
+		finishPasskeySignIn,
 		CAPTCHA_DISABLED,
 		type SsoProvider,
 		type CaptchaConfig,
 	} from '$lib/api/auth';
 	import LoginCaptcha from '$lib/components/auth/LoginCaptcha.svelte';
+	import {
+		autofillSupported,
+		getPasskey,
+		passkeyCancelled,
+		passkeysSupported,
+		passkeyUsedHere,
+		rememberPasskeyUsed,
+		type PasskeyRequestOptionsJSON,
+		type PasskeyStart,
+	} from '$lib/utils/webauthn';
 	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
-	import { Sun, Moon, LogIn, Server, Globe, ChevronDown, Loader2, ShieldCheck } from 'lucide-svelte';
+	import { Sun, Moon, LogIn, Server, Globe, ChevronDown, Loader2, ShieldCheck, KeyRound } from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
 	import { branding } from '$lib/stores/branding.svelte';
@@ -68,6 +81,30 @@
 	let captchaLoaded = $state(false);
 	let captchaReady = $state(true);
 	let captcha: { token: () => Promise<string>; reset: () => void } | null = $state(null);
+
+	// Passkeys: shown when the site offers them (probed like SSO and captcha
+	// below) and this browser can use them here.
+	let passkeyEnabled = $state(false);
+	let passkeyLoaded = $state(false);
+	let browserPasskeys = $state(false);
+	const showPasskey = $derived(passkeyEnabled && browserPasskeys);
+	// The passkey button leads only in a browser that has used one here before;
+	// otherwise the password button stays primary (same rule as the site).
+	const passkeyLeads = passkeyUsedHere();
+	let passkeyBusy = $state(false);
+	// A line under the passkey button after the browser's dialog. Closing the
+	// dialog is not an error, so it reads calmly and never as a toast.
+	let passkeyNotice = $state<{ text: string; tone: 'muted' | 'warn' } | null>(null);
+	// The autofill (conditional) request waiting on the username field. Plain,
+	// not $state: effects start and stop it and must not track it.
+	let autofill: AbortController | null = null;
+	// The 2FA stage's passkey options, fetched when the stage opens and reused
+	// on click while the ticket is still good (it lasts five minutes).
+	let twoStepStart = $state<PasskeyStart<PasskeyRequestOptionsJSON> | null>(null);
+	let twoStepFetchedAt = 0;
+	let twoStepFor = '';
+	let twoStepOffered = $state(false);
+	const TICKET_REUSE_MS = 4.5 * 60 * 1000;
 
 	const usernameInvalid = $derived(attempted && stage === 'credentials' && !username.trim());
 	const passwordInvalid = $derived(attempted && stage === 'credentials' && !password.trim());
@@ -138,6 +175,151 @@
 		}
 	});
 
+	// Ask whether the site offers passkeys, the same best-effort way.
+	$effect(() => {
+		if ((auth.hasGravConfig || auth.serverUrl) && !passkeyLoaded) {
+			passkeyLoaded = true;
+			getPasskeyEnabled()
+				.then((enabled) => { passkeyEnabled = enabled; })
+				.catch(() => { /* no-op — no passkey button if unavailable */ });
+		}
+	});
+
+	onMount(() => {
+		browserPasskeys = passkeysSupported();
+	});
+
+	// Offer passkeys in the username field's autofill while the credentials
+	// form is up. Stopped when the passkey button is used or the password form
+	// is sent, and started again if either doesn't sign in.
+	$effect(() => {
+		if (showPasskey && ready && stage === 'credentials') startAutofill();
+	});
+
+	onDestroy(stopAutofill);
+
+	function stopAutofill() {
+		autofill?.abort();
+		autofill = null;
+	}
+
+	async function startAutofill() {
+		if (autofill || !showPasskey || stage !== 'credentials') return;
+		const ctrl = new AbortController();
+		autofill = ctrl;
+		try {
+			if (!(await autofillSupported()) || ctrl.signal.aborted) return;
+			await tick();
+			auth.setServer(serverUrl, environment);
+			const start = await startPasskeySignIn('sign-in');
+			if (ctrl.signal.aborted) return;
+			const credential = await getPasskey(start.options, { mediation: 'conditional', signal: ctrl.signal });
+			if (ctrl.signal.aborted) return;
+			loading = true;
+			passkeyNotice = null;
+			await finishPasskeySignIn('sign-in', start.ticket, credential);
+			rememberPasskeyUsed();
+			completeSignIn();
+		} catch (err) {
+			// Aborted (button, password form, leaving the page): nothing to say.
+			if (!ctrl.signal.aborted && !passkeyCancelled(err)) {
+				passkeyNotice = passkeyMessage(err, 'sign-in');
+			}
+		} finally {
+			loading = false;
+			if (autofill === ctrl) autofill = null;
+		}
+	}
+
+	/** What to tell the person after a passkey attempt that didn't sign in. */
+	function passkeyMessage(err: unknown, step: 'sign-in' | 'two-step'): { text: string; tone: 'muted' | 'warn' } {
+		if (passkeyCancelled(err)) {
+			return {
+				text: i18n.t(step === 'two-step' ? 'ADMIN_NEXT.LOGIN.PASSKEY_CANCELLED_TWO_STEP' : 'ADMIN_NEXT.LOGIN.PASSKEY_CANCELLED'),
+				tone: 'muted',
+			};
+		}
+		const status = (err as { status?: number })?.status ?? 0;
+		if (status === 401) {
+			return {
+				text: i18n.t(step === 'two-step' ? 'ADMIN_NEXT.LOGIN.PASSKEY_NOT_THIS_ACCOUNT' : 'ADMIN_NEXT.LOGIN.PASSKEY_SIGN_IN_FAILED'),
+				tone: 'warn',
+			};
+		}
+		if (status === 429) return { text: i18n.t('ADMIN_NEXT.LOGIN.PASSKEY_TOO_MANY_TRIES'), tone: 'warn' };
+		if (status === 403) return { text: i18n.t('ADMIN_NEXT.LOGIN.PASSKEY_OFF'), tone: 'warn' };
+		return { text: i18n.t('ADMIN_NEXT.LOGIN.PASSKEY_FAILED'), tone: 'warn' };
+	}
+
+	/** The "Sign in with a passkey" button: a passkey alone, no password. */
+	async function signInWithPasskey() {
+		stopAutofill();
+		passkeyNotice = null;
+		passkeyBusy = true;
+		try {
+			auth.setServer(serverUrl, environment);
+			const start = await startPasskeySignIn('sign-in');
+			const credential = await getPasskey(start.options);
+			await finishPasskeySignIn('sign-in', start.ticket, credential);
+			rememberPasskeyUsed();
+			completeSignIn();
+			return;
+		} catch (err) {
+			passkeyNotice = passkeyMessage(err, 'sign-in');
+		} finally {
+			passkeyBusy = false;
+		}
+		startAutofill();
+	}
+
+	// When the 2FA stage opens (after a password, or resumed from SSO), ask
+	// for the account's passkeys. Any at all → offer "Use your passkey instead".
+	$effect(() => {
+		if (stage !== '2fa' || !challengeToken || !showPasskey) return;
+		if (twoStepFor === challengeToken) return;
+		const token = challengeToken;
+		twoStepFor = token;
+		startPasskeySignIn('two-step', token)
+			.then((start) => {
+				if (stage !== '2fa' || challengeToken !== token) return;
+				twoStepStart = start;
+				twoStepFetchedAt = Date.now();
+				twoStepOffered = (start.options.allowCredentials?.length ?? 0) > 0;
+			})
+			.catch(() => { /* no button; the code still works */ });
+	});
+
+	async function useTwoStepPasskey() {
+		passkeyNotice = null;
+		passkeyBusy = true;
+		try {
+			let start = twoStepStart;
+			if (!start || Date.now() - twoStepFetchedAt > TICKET_REUSE_MS) {
+				start = await startPasskeySignIn('two-step', challengeToken);
+				twoStepStart = start;
+				twoStepFetchedAt = Date.now();
+			}
+			const credential = await getPasskey(start.options);
+			// The ticket is spent once an answer goes back, right or wrong.
+			twoStepStart = null;
+			await finishPasskeySignIn('two-step', start.ticket, credential, challengeToken);
+			rememberPasskeyUsed();
+			completeSignIn();
+		} catch (err) {
+			passkeyNotice = passkeyMessage(err, 'two-step');
+		} finally {
+			passkeyBusy = false;
+		}
+	}
+
+	function resetTwoStep() {
+		twoStepStart = null;
+		twoStepFetchedAt = 0;
+		twoStepFor = '';
+		twoStepOffered = false;
+		passkeyNotice = null;
+	}
+
 	// Resume an SSO login that came back needing 2FA: oauth-callback stashed the
 	// challenge token and bounced here, so drop straight into the 2FA stage and
 	// reuse the existing verify UI.
@@ -178,6 +360,7 @@
 	}
 
 	function backToCredentials() {
+		resetTwoStep();
 		stage = 'credentials';
 		challengeToken = '';
 		code = '';
@@ -194,6 +377,8 @@
 			return;
 		}
 
+		stopAutofill();
+		passkeyNotice = null;
 		loading = true;
 		try {
 			auth.setServer(serverUrl, environment);
@@ -208,6 +393,7 @@
 
 			const result = await login(username, password, captchaToken);
 			if (result.requires2fa && result.challengeToken) {
+				resetTwoStep();
 				stage = '2fa';
 				challengeToken = result.challengeToken;
 				code = '';
@@ -215,6 +401,7 @@
 				return;
 			}
 			completeSignIn();
+			return;
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err) {
 				const apiErr = err as { status: number; message: string };
@@ -234,6 +421,8 @@
 			// wrong, so the next try needs a freshly solved one.
 			captcha?.reset();
 		}
+		// Still here after a refused password: offer autofill again.
+		if (stage === 'credentials') startAutofill();
 	}
 
 	async function handleVerify(e: Event) {
@@ -268,6 +457,16 @@
 		}
 	}
 </script>
+
+{#snippet passkeyNoticeLine(notice: { text: string; tone: 'muted' | 'warn' })}
+	<p
+		class="mt-2 text-center text-[0.75rem] {notice.tone === 'warn' ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground'}"
+		role="status"
+		data-testid="passkey-notice"
+	>
+		{notice.text}
+	</p>
+{/snippet}
 
 <svelte:head>
 	<title>{i18n.t('ADMIN_NEXT.LOGIN.LOGIN_GRAV_ADMIN')}</title>
@@ -351,8 +550,40 @@
 						{/if}
 					</div>
 
+					{#if showPasskey}
+						<!-- A passkey alone: no username or password. -->
+						<div class="px-6 pt-5">
+							<Button
+								type="button"
+								variant={passkeyLeads ? 'default' : 'outline'}
+								class="w-full"
+								disabled={loading || passkeyBusy}
+								onclick={signInWithPasskey}
+								data-testid="passkey-signin"
+							>
+								{#if passkeyBusy}
+									<Loader2 size={15} class="animate-spin" />
+									{i18n.t('ADMIN_NEXT.LOGIN.PASSKEY_WAITING')}
+								{:else}
+									<KeyRound size={15} />
+									{i18n.t('ADMIN_NEXT.LOGIN.PASSKEY_SIGN_IN')}
+								{/if}
+							</Button>
+							{#if passkeyNotice}
+								{@render passkeyNoticeLine(passkeyNotice)}
+							{/if}
+							<div class="relative mt-4 flex items-center">
+								<div class="flex-grow border-t border-border"></div>
+								<span class="mx-3 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
+									{i18n.t('ADMIN_NEXT.LOGIN.PASSKEY_OR')}
+								</span>
+								<div class="flex-grow border-t border-border"></div>
+							</div>
+						</div>
+					{/if}
+
 					<!-- Credentials form -->
-					<form onsubmit={handleLogin} class="space-y-4 px-6 py-5">
+					<form onsubmit={handleLogin} class="space-y-4 px-6 {showPasskey ? 'pt-4 pb-5' : 'py-5'}">
 						<div class="space-y-1.5">
 							<label for="username" class="text-[0.8125rem] font-medium text-foreground">{i18n.t('ADMIN_NEXT.USERNAME')}</label>
 							<input
@@ -363,7 +594,7 @@
 										? 'border-red-500 ring-1 ring-red-500/30 animate-[shake_0.3s_ease-in-out]'
 										: 'border-input'}"
 								bind:value={username}
-								autocomplete="username"
+								autocomplete={showPasskey ? 'username webauthn' : 'username'}
 								disabled={loading}
 							/>
 							{#if usernameInvalid}
@@ -404,7 +635,12 @@
 							flow={captchaConfig.flows.login}
 						/>
 
-						<Button type="submit" class="w-full" disabled={loading || !captchaReady}>
+						<Button
+							type="submit"
+							variant={showPasskey && passkeyLeads ? 'outline' : 'default'}
+							class="w-full"
+							disabled={loading || passkeyBusy || !captchaReady}
+						>
 							{#if loading}
 								<Loader2 size={15} class="animate-spin" />
 								{i18n.t('ADMIN_NEXT.LOGIN.SIGNING_IN')}
@@ -471,7 +707,7 @@
 							{/if}
 						</div>
 
-						<Button type="submit" class="w-full" disabled={loading}>
+						<Button type="submit" class="w-full" disabled={loading || passkeyBusy}>
 							{#if loading}
 								<Loader2 size={15} class="animate-spin" />
 								{i18n.t('ADMIN_NEXT.LOGIN.VERIFYING')}
@@ -480,6 +716,31 @@
 								{i18n.t('ADMIN_NEXT.LOGIN.VERIFY')}
 							{/if}
 						</Button>
+
+						{#if showPasskey && twoStepOffered}
+							<!-- A passkey in place of the code; it counts as both steps. -->
+							<div>
+								<Button
+									type="button"
+									variant="outline"
+									class="w-full"
+									disabled={loading || passkeyBusy}
+									onclick={useTwoStepPasskey}
+									data-testid="passkey-two-step"
+								>
+									{#if passkeyBusy}
+										<Loader2 size={15} class="animate-spin" />
+										{i18n.t('ADMIN_NEXT.LOGIN.PASSKEY_WAITING')}
+									{:else}
+										<KeyRound size={15} />
+										{i18n.t('ADMIN_NEXT.LOGIN.PASSKEY_USE_INSTEAD')}
+									{/if}
+								</Button>
+								{#if passkeyNotice}
+									{@render passkeyNoticeLine(passkeyNotice)}
+								{/if}
+							</div>
+						{/if}
 
 						<button
 							type="button"

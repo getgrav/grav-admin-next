@@ -15,6 +15,7 @@
 	import { resolveInheritedAccess, toAccessRecord } from '$lib/utils/user-access';
 	import PermissionsField from '$lib/components/PermissionsField.svelte';
 	import TwoFactorField from '$lib/components/TwoFactorField.svelte';
+	import PasskeysField from '$lib/components/PasskeysField.svelte';
 	import ApiKeysField from '$lib/components/ApiKeysField.svelte';
 	import ChangePasswordField from '$lib/components/ChangePasswordField.svelte';
 	import ConfirmPasswordModal from '$lib/components/ConfirmPasswordModal.svelte';
@@ -210,6 +211,9 @@
 		// A waiting email change is shown under the email field, not edited in
 		// the form, so it stays out of the data a save sends back.
 		delete custom.email_pending;
+		// The passkey count; the Passkeys card manages passkeys through its own
+		// endpoints, so it isn't form data either.
+		delete custom.passkeys;
 
 		configData = {
 			...custom,
@@ -774,6 +778,16 @@
 						</div>
 					</div>
 				{/if}
+
+				<!-- Passkeys — the card hides itself when the site doesn't offer
+				     them. Own account: add, rename, remove. Someone else's: the
+				     list, and remove (a lost device) with api.users.write. -->
+				<PasskeysField
+					username={user.username}
+					onchange={(count) => {
+						if (user) user = { ...user, passkeys: count };
+					}}
+				/>
 
 				<!-- Groups — admin.super governance field. The API only serves it to
 				     super admins (blueprint `security@: admin.super`), so guard on
