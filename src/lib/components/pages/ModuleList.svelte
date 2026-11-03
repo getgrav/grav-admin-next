@@ -14,7 +14,7 @@
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
-	import { getChildren, updatePage, reorganizePages, pageApiRoute, type PageSummary } from '$lib/api/endpoints/pages';
+	import { getChildren, updatePage, reorganizePages, pageApiRoute, isAncestorOnly, type PageSummary } from '$lib/api/endpoints/pages';
 	import { getPageTypes, type PageType } from '$lib/api/endpoints/blueprints';
 	import { buildMoveOps, fullInsertIndex } from '$lib/utils/reorganize-ops';
 	import { isModule, isModularPage, moduleTypeLabel, stepInsertIndex } from '$lib/utils/modules';
@@ -73,7 +73,8 @@
 		try {
 			const rows = await getChildren(forRoute, 'order', 'asc', lang, undefined, { summary: true });
 			if (id !== loadId) return;
-			children = rows;
+			// A module the user can't read has nothing to open (admin2#209).
+			children = rows.filter((row) => !isAncestorOnly(row));
 			loadedFor = key;
 			loadError = false;
 		} catch {

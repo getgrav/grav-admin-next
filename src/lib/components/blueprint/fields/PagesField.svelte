@@ -1,11 +1,11 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
-	import { getChildren, pageApiRoute } from '$lib/api/endpoints/pages';
+	import { getChildren, pageApiRoute, isAncestorOnly } from '$lib/api/endpoints/pages';
 	import type { PageSummary } from '$lib/api/endpoints/pages';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import {
 		ChevronDown, File, Folder, FolderOpen,
-		Loader2, Search, X, ChevronsUpDown, Check
+		Loader2, Search, X, ChevronsUpDown, Check, Lock
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import FieldHelp from '../FieldHelp.svelte';
@@ -267,13 +267,17 @@
 	{@const isSelected = selectedRoute === apiRoute}
 	{@const children = childrenCache[apiRoute]}
 	{@const filtered = children ? filterPages(children).filter(shouldShow) : []}
+	<!-- A page the user can't read is listed only as a way to the pages inside
+	     it (admin2#209): picking it opens it instead of choosing it. -->
+	{@const passThrough = isAncestorOnly(page)}
 
 	<div style="padding-left: {depth * 16}px">
 		<button
 			type="button"
 			class="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
-				{isSelected ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'}"
-			onclick={() => selectPage(apiRoute)}
+				{isSelected ? 'bg-primary/10 text-primary' : passThrough ? 'text-muted-foreground hover:bg-accent/50' : 'text-foreground hover:bg-accent'}"
+			title={passThrough ? i18n.t('ADMIN_NEXT.PAGES.ANCESTOR_ONLY_HINT') : undefined}
+			onclick={(e) => { if (!passThrough) selectPage(apiRoute); else if (page.has_children) toggleExpand(apiRoute, e); }}
 		>
 			<!-- Expand toggle -->
 			{#if page.has_children}
@@ -314,6 +318,9 @@
 				{/if}
 				{page.title}
 			</span>
+			{#if passThrough}
+				<Lock size={11} class="shrink-0 text-muted-foreground/70" aria-hidden="true" />
+			{/if}
 
 			{#if isSelected}
 				<Check size={14} class="ms-auto shrink-0 text-primary" />

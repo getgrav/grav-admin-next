@@ -4,7 +4,7 @@
 	import { pageEditUrl } from '$lib/utils/pageEditUrl';
 	import { pageLabel, pageTitleIfDifferent } from '$lib/utils/page-label';
 	import { pageCan } from '$lib/utils/permissions';
-	import { reorganizePages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
+	import { reorganizePages, pageApiRoute, parentRouteOf, isAncestorOnly } from '$lib/api/endpoints/pages';
 	import { createPageSearch } from '$lib/utils/page-search.svelte';
 	import type { PageSummary, PageDetail } from '$lib/api/endpoints/pages';
 	import { buildMoveOps, fullInsertIndex, isWithin, landingIndex, orderNumber } from '$lib/utils/reorganize-ops';
@@ -18,7 +18,7 @@
 	import { toast } from 'svelte-sonner';
 	import {
 		ChevronDown, FolderOpen, Folder, File, Loader2, Trash2, Copy,
-		ArrowUp, ArrowDown, GripVertical
+		ArrowUp, ArrowDown, GripVertical, Lock
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
@@ -382,7 +382,8 @@
 
 	function handleDragStart(e: DragEvent, page: PageSummary) {
 		// Search results are a flat list across folders: no position to drop into.
-		if (!reorderMode || searchActive) return;
+		// A page the user can only pass through can't be moved by them either.
+		if (!reorderMode || searchActive || isAncestorOnly(page)) return;
 		dragPage = page;
 		dragParentRoute = getParentRoute(page);
 		if (e.dataTransfer) {
@@ -716,6 +717,9 @@
 				|| translatedKeys.includes(lang)
 				|| (hasImplicitDefault && lang === contentLang.defaultLang)}
 			{@const isUntranslated = lang && hasAnyContent && !hasContentInLang}
+			<!-- A page the user can't read, listed only so they can expand it down
+			     to pages they can (admin2#209): no link, no actions, muted. -->
+			{@const passThrough = isAncestorOnly(page)}
 			<!-- The line above the first row belongs to the folder's start strip. -->
 			{#if reorderMode && index > 0 && isDropTarget(parentRoute, index) && !isDragging(page)}
 				<div class="me-4 h-0.5 rounded bg-primary transition-all" style="margin-inline-start: {16 + depth * 20}px"></div>
@@ -725,14 +729,17 @@
 				class="group flex items-center gap-2 border-b border-border/50 px-2 py-2 transition-colors sm:px-4
 					{isDragging(page) ? 'opacity-30' : 'hover:bg-accent/50'}
 					{saving ? 'pointer-events-none' : ''}"
-				draggable={reorderMode && !searchActive}
+				data-ancestor-only={passThrough ? 'true' : undefined}
+				draggable={reorderMode && !searchActive && !passThrough}
 				ondragstart={(e) => handleDragStart(e, page)}
 				ondragover={(e) => handleDragOver(e, parentRoute, index)}
 				ondrop={(e) => handleDrop(e, parentRoute, index)}
 				ondragend={handleDragEnd}
 			>
 				<div class="flex min-w-0 flex-1 items-center gap-1" style="padding-inline-start: {depth * 20}px">
-					{#if reorderMode}
+					{#if reorderMode && passThrough}
+						<span class="w-[14px] shrink-0"></span>
+					{:else if reorderMode}
 						<span class="flex shrink-0 cursor-grab items-center text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing">
 							<GripVertical size={14} />
 						</span>
@@ -752,7 +759,7 @@
 								<DirectionalIcon name="chevron-forward" size={14} />
 							{/if}
 						</button>
-					{:else if reorderMode && !searchActive}
+					{:else if reorderMode && !searchActive && !passThrough}
 						<!-- Move mode: any page can be opened to drop a first child into it. -->
 						<button
 							type="button"
@@ -774,14 +781,31 @@
 
 					{#if page.has_children}
 						{#if expandedRoutes.has(apiRoute)}
-							<FolderOpen size={14} class="shrink-0 {page.visible ? 'text-primary' : 'text-muted-foreground'}" />
+							<FolderOpen size={14} class="shrink-0 {page.visible && !passThrough ? 'text-primary' : 'text-muted-foreground'}" />
 						{:else}
-							<Folder size={14} class="shrink-0 {page.visible ? 'text-primary/70' : 'text-muted-foreground'}" />
+							<Folder size={14} class="shrink-0 {page.visible && !passThrough ? 'text-primary/70' : 'text-muted-foreground'}" />
 						{/if}
 					{:else}
-						<File size={14} class="shrink-0 {page.visible ? 'text-primary/70' : 'text-muted-foreground'}" />
+						<File size={14} class="shrink-0 {page.visible && !passThrough ? 'text-primary/70' : 'text-muted-foreground'}" />
 					{/if}
 
+					{#if passThrough}
+						<!-- Clicking the name opens the folder, the one thing this row is for. -->
+						<button
+							type="button"
+							class="min-w-0 flex-1 text-start ps-1 {page.has_children ? 'cursor-pointer' : 'cursor-default'}"
+							title={i18n.t('ADMIN_NEXT.PAGES.ANCESTOR_ONLY_HINT')}
+							aria-label={i18n.t('ADMIN_NEXT.PAGES.ANCESTOR_ONLY_LABEL', { title: pageLabel(page) })}
+							aria-expanded={page.has_children ? expandedRoutes.has(apiRoute) : undefined}
+							onclick={() => { if (page.has_children) toggleExpand(apiRoute); }}
+						>
+							<div class="flex min-w-0 items-center gap-1.5">
+								<span class="min-w-0 truncate text-sm font-medium text-muted-foreground">{pageLabel(page)}</span>
+								<Lock size={11} class="shrink-0 text-muted-foreground/70" aria-hidden="true" />
+							</div>
+							<div class="truncate text-[0.6875rem] text-muted-foreground/70">{page.route}</div>
+						</button>
+					{:else}
 					<a
 						class="min-w-0 flex-1 text-start ps-1"
 						href={pageEditUrl(pageApiRoute(page))}
@@ -803,9 +827,16 @@
 						</div>
 						<div class="truncate text-[0.6875rem] text-muted-foreground">{page.route}</div>
 					</a>
+					{/if}
 				</div>
 
-				{#if !reorderMode}
+				{#if !reorderMode && passThrough}
+					<!-- Keep the columns lined up; nothing about a page the user
+					     can't read is shown or offered here. -->
+					<div class="hidden w-36 md:block lg:w-44"></div>
+					<div class="w-6"></div>
+					<div class="hidden w-20 sm:block"></div>
+				{:else if !reorderMode}
 					<div class="hidden w-36 text-center md:block lg:w-44" title={page.template}>
 						<Badge variant="outline" class="max-w-full"><span class="block truncate">{page.template}</span></Badge>
 					</div>

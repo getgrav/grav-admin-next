@@ -4,7 +4,7 @@
 	import { pageEditUrl } from '$lib/utils/pageEditUrl';
 	import { pageLabel, pageTitleIfDifferent } from '$lib/utils/page-label';
 	import { pageCan } from '$lib/utils/permissions';
-	import { pageApiRoute } from '$lib/api/endpoints/pages';
+	import { pageApiRoute, isAncestorOnly } from '$lib/api/endpoints/pages';
 	import { createPageSearch } from '$lib/utils/page-search.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import type { PageSummary, PageDetail, PageListParams } from '$lib/api/endpoints/pages';
@@ -14,7 +14,7 @@
 	import PageStatusIndicator from '$lib/components/pages/PageStatusIndicator.svelte';
 	import { pageStatusToggleLabel } from '$lib/utils/pageStatus';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
-	import { ArrowUp, ArrowDown, File, Loader2, Trash2, Copy } from 'lucide-svelte';
+	import { ArrowUp, ArrowDown, File, Loader2, Trash2, Copy, Lock } from 'lucide-svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { pagesChunks, streamKey, type StreamConfig } from '$lib/stores/pagesChunks.svelte';
 	import { emptyPageFilters, matchesPageFilters, pageFilterStreamFields, type PageFilters } from '$lib/utils/pageFilters';
@@ -397,12 +397,30 @@
 		|| translatedKeys.includes(lang)
 		|| (hasImplicitDefault && lang === contentLang.defaultLang)}
 	{@const isUntranslated = lang && hasAnyContent && !hasContentInLang}
+	<!-- The API keeps pages the user can only pass through out of flat lists,
+	     but a row like that is never drawn as something to open (admin2#209). -->
+	{@const passThrough = isAncestorOnly(page)}
 	<div
 		data-page-route={page.route}
+		data-ancestor-only={passThrough ? 'true' : undefined}
 		class="group flex items-center gap-2 border-b border-border/50 px-2 py-2 transition-colors hover:bg-accent/50 sm:px-4"
 	>
 		<div class="flex min-w-0 flex-1 items-center gap-2">
-			<File size={14} class="shrink-0 {page.visible ? 'text-primary/70' : 'text-muted-foreground'}" />
+			<File size={14} class="shrink-0 {page.visible && !passThrough ? 'text-primary/70' : 'text-muted-foreground'}" />
+			{#if passThrough}
+				<div
+					class="min-w-0 flex-1 text-start"
+					title={i18n.t('ADMIN_NEXT.PAGES.ANCESTOR_ONLY_HINT')}
+					role="group"
+					aria-label={i18n.t('ADMIN_NEXT.PAGES.ANCESTOR_ONLY_LABEL', { title: pageLabel(page) })}
+				>
+					<div class="flex min-w-0 items-center gap-1.5">
+						<span class="min-w-0 truncate text-sm font-medium text-muted-foreground">{pageLabel(page)}</span>
+						<Lock size={11} class="shrink-0 text-muted-foreground/70" aria-hidden="true" />
+					</div>
+					<div class="truncate text-[0.6875rem] text-muted-foreground/70">{page.route}</div>
+				</div>
+			{:else}
 			<a
 				class="min-w-0 flex-1 text-start"
 				href={pageEditUrl(pageApiRoute(page))}
@@ -423,8 +441,14 @@
 				</div>
 				<div class="truncate text-[0.6875rem] text-muted-foreground">{page.route}</div>
 			</a>
+			{/if}
 		</div>
 
+		{#if passThrough}
+			<div class="hidden w-36 md:block lg:w-44"></div>
+			<div class="w-6"></div>
+			<div class="hidden w-20 sm:block"></div>
+		{:else}
 		<div class="hidden w-36 text-center md:block lg:w-44" title={page.template}>
 			<Badge variant="outline" class="max-w-full"><span class="block truncate">{page.template}</span></Badge>
 		</div>
@@ -473,6 +497,7 @@
 					</button>
 				{/if}
 			</div>
+		{/if}
 		{/if}
 	</div>
 {/snippet}

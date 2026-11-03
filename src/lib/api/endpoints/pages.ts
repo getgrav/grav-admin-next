@@ -72,6 +72,22 @@ export interface PageSummary {
 	 * API >= 1.1.3; absent before.
 	 */
 	delete_recoverable?: boolean;
+	/**
+	 * True for a page the caller can't read, listed only because a page they
+	 * can read sits somewhere below it, so a folder listing (`children_of`,
+	 * `root`) can still be expanded down to it (admin2#209). It can't be
+	 * opened: the editor, preview and media would all answer 403. Absent on
+	 * older APIs and on every readable page; see `isAncestorOnly()`.
+	 */
+	ancestor_only?: boolean;
+}
+
+/**
+ * Whether a listed page is only there as a way down to pages the caller can
+ * read (admin2#209). Such a row can be expanded but not opened.
+ */
+export function isAncestorOnly(page: { ancestor_only?: boolean } | null | undefined): boolean {
+	return page?.ancestor_only === true;
 }
 
 /** Per-page capabilities, as resolved by the API for the current user. */
@@ -168,6 +184,12 @@ export interface PageListParams {
 	 * the header anyway, which is harmless.
 	 */
 	fields?: 'summary';
+	/**
+	 * Only pages the caller can update, plus (in folder listings) the
+	 * `ancestor_only` folders leading to them. Sent when the site turns on
+	 * admin2's `pages.only_editable` (admin2#209); older APIs ignore it.
+	 */
+	editable?: boolean;
 }
 
 /**
@@ -324,6 +346,7 @@ function toParams(p: PageListParams): Record<string, string> {
 	if (p.translations) params.translations = 'true';
 	if (p.search) params.search = p.search;
 	if (p.fields) params.fields = p.fields;
+	if (p.editable) params.editable = 'true';
 	return params;
 }
 
@@ -355,7 +378,7 @@ export interface PageSearchResult {
  */
 export async function searchPages(
 	query: string,
-	options?: { lang?: string; translations?: boolean; per_page?: number; page?: number; signal?: AbortSignal },
+	options?: { lang?: string; translations?: boolean; per_page?: number; page?: number; signal?: AbortSignal; editable?: boolean },
 ): Promise<PageSearchResult> {
 	const { data, meta } = await api.requestRaw<PageSummary[]>('GET', '/pages', {
 		params: toParams({
@@ -365,6 +388,7 @@ export async function searchPages(
 			lang: options?.lang,
 			translations: options?.translations,
 			fields: SUMMARY_FIELDS,
+			editable: options?.editable,
 		}),
 		signal: options?.signal,
 	});
@@ -373,13 +397,21 @@ export async function searchPages(
 	return { pages, total: typeof total === 'number' ? total : pages.length };
 }
 
-export async function getRecentPages(limit = 5): Promise<PageSummary[]> {
-	return api.get<PageSummary[]>('/pages', {
+/**
+ * The most recently modified pages. With `editable`, only pages the caller can
+ * update (admin2's `pages.only_editable`, admin2#209). A row the caller can
+ * only pass through is dropped, since there is nothing to open.
+ */
+export async function getRecentPages(limit = 5, options?: { editable?: boolean }): Promise<PageSummary[]> {
+	const params: Record<string, string> = {
 		sort: 'modified',
 		order: 'desc',
 		per_page: String(limit),
 		fields: SUMMARY_FIELDS,
-	});
+	};
+	if (options?.editable) params.editable = 'true';
+	const rows = await api.get<PageSummary[]>('/pages', params);
+	return Array.isArray(rows) ? rows.filter((row) => !isAncestorOnly(row)) : rows;
 }
 
 export interface PageReadOptions {

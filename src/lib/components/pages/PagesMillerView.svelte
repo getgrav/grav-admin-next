@@ -2,7 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { isModifiedClick, linkClick } from '$lib/utils/navLink';
 	import { pageCan } from '$lib/utils/permissions';
-	import { getPage, reorganizePages, pageApiRoute, parentRouteOf } from '$lib/api/endpoints/pages';
+	import { getPage, reorganizePages, pageApiRoute, parentRouteOf, isAncestorOnly } from '$lib/api/endpoints/pages';
 	import { createPageSearch } from '$lib/utils/page-search.svelte';
 	import type { PageSummary, PageDetail } from '$lib/api/endpoints/pages';
 	import { buildMoveOps, fullInsertIndex, isWithin, landingIndex, orderNumber } from '$lib/utils/reorganize-ops';
@@ -20,7 +20,7 @@
 	import { pageHasLang } from '$lib/utils/page-fallback';
 	import { toast } from 'svelte-sonner';
 	import {
-		Folder, File, Loader2, ExternalLink, ArrowUpDown, GripVertical, Copy, Trash2,
+		Folder, File, Loader2, ExternalLink, ArrowUpDown, GripVertical, Copy, Trash2, Lock,
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { prefs } from '$lib/stores/preferences.svelte';
@@ -297,9 +297,10 @@
 
 		columns = result;
 
-		// Load preview for last selected
+		// Load preview for last selected (not for a page the user can only pass
+		// through, which would answer 403).
 		const lastRoute = savedPath[savedPath.length - 1];
-		if (lastRoute && result.some(c => c.selectedRoute === lastRoute)) {
+		if (lastRoute && result.some(c => c.selectedRoute === lastRoute) && !isAncestorOnly(lastSelected)) {
 			loadPreview(lastRoute);
 		}
 
@@ -412,15 +413,18 @@
 		// (e.g. `/home`), keeping every column/selection key unique.
 		const apiRoute = pageApiRoute(page);
 		const wasSelected = columns[colIndex]?.selectedRoute === apiRoute;
+		// A page the user can't read is only a way down to pages they can
+		// (admin2#209): it opens its column, never the editor or a preview.
+		const passThrough = isAncestorOnly(page);
 
 		// In Move mode every page opens a column, so a page with no children
 		// can take a drop as its first child.
-		const opensColumn = page.has_children || reorderMode;
+		const opensColumn = page.has_children || (reorderMode && !passThrough);
 
 		// Without a preview pane, leaf pages have no useful "select" state —
 		// open edit directly. For folders, re-tapping the already-selected
 		// row also opens edit (the column is already drilled in below it).
-		if (!hasPreviewPane()) {
+		if (!hasPreviewPane() && !passThrough) {
 			if (!opensColumn || wasSelected) {
 				onEdit(apiRoute);
 				return;
@@ -441,8 +445,15 @@
 			columns = updated;
 		}
 
-		// Always load preview for selected page
-		loadPreview(pageApiRoute(page));
+		// Load the preview for the selected page; the pane explains instead
+		// for a page that can't be opened.
+		if (passThrough) {
+			previewSeq++;
+			previewPage = null;
+			previewLoading = false;
+		} else {
+			loadPreview(pageApiRoute(page));
+		}
 
 		// Persist selection path for reload restoration
 		saveSelectionPath();
@@ -522,11 +533,12 @@
 		}
 		return null;
 	});
+	const lastIsPassThrough = $derived(isAncestorOnly(lastSelected));
 
 	// --- Miller drag-and-drop handlers ---
 
 	function millerDragStart(e: DragEvent, page: PageSummary) {
-		if (!reorderMode) return;
+		if (!reorderMode || isAncestorOnly(page)) return;
 		dragPage = page;
 		dragParentRoute = parentRouteOf(pageApiRoute(page));
 		if (e.dataTransfer) {
@@ -1025,6 +1037,7 @@
 									|| translatedKeys.includes(lang)
 									|| (hasImplicitDefault && lang === contentLang.defaultLang)}
 								{@const isUntranslated = lang && hasAnyContent && !hasContentInLang}
+								{@const passThrough = isAncestorOnly(page)}
 								<div
 									data-miller-row
 									data-page-route={page.route}
@@ -1035,16 +1048,49 @@
 											: isPath
 												? 'bg-accent text-accent-foreground'
 												: 'text-foreground hover:bg-accent'}"
-									draggable={reorderMode}
+									data-ancestor-only={passThrough ? 'true' : undefined}
+									draggable={reorderMode && !passThrough}
 									ondragstart={(e) => millerDragStart(e, page)}
 									ondragover={millerRowDragOver}
 									ondragend={millerDragEnd}
 								>
-									{#if reorderMode}
+									{#if reorderMode && passThrough}
+										<span class="w-3 shrink-0"></span>
+									{:else if reorderMode}
 										<span class="flex shrink-0 cursor-grab items-center text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing">
 											<GripVertical size={12} />
 										</span>
 									{/if}
+									{#if passThrough}
+									<!-- A page the user can't read, listed only so they can reach
+									     the pages inside it (admin2#209): it opens its column, never
+									     the editor. -->
+									<button
+										type="button"
+										class="flex min-w-0 flex-1 items-center gap-2 text-start"
+										title={i18n.t('ADMIN_NEXT.PAGES.ANCESTOR_ONLY_HINT')}
+										aria-label={i18n.t('ADMIN_NEXT.PAGES.ANCESTOR_ONLY_LABEL', { title: pageLabel(page) })}
+										onclick={() => selectPage(colIndex, page)}
+									>
+										{#if page.has_children}
+											<Folder size={14} class="shrink-0 {isActive ? 'text-primary-foreground/70' : 'text-muted-foreground'}" />
+										{:else}
+											<File size={14} class="shrink-0 {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground'}" />
+										{/if}
+										<div class="min-w-0 flex-1">
+											<div class="flex items-center gap-1.5">
+												<div class="truncate text-[0.8125rem] font-medium {isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}">{pageLabel(page)}</div>
+												<Lock size={11} class="shrink-0 {isActive ? 'text-primary-foreground/70' : 'text-muted-foreground/70'}" aria-hidden="true" />
+											</div>
+											<div class="min-w-0 truncate text-[0.6875rem] {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground/70'}">{page.route}</div>
+										</div>
+										{#if page.has_children}
+											<DirectionalIcon name="chevron-forward" size={12} class="shrink-0 {isActive ? 'text-primary-foreground/60' : 'text-muted-foreground/50'}" />
+										{:else}
+											<span class="w-3 shrink-0" aria-hidden="true"></span>
+										{/if}
+									</button>
+									{:else}
 									<a
 										class="flex min-w-0 flex-1 items-center gap-2 text-start"
 										href={pageEditUrl(pageApiRoute(page))}
@@ -1093,6 +1139,7 @@
 											<span class="w-3 shrink-0" aria-hidden="true"></span>
 										{/if}
 									</a>
+									{/if}
 								</div>
 							{/each}
 						{:else}
@@ -1123,6 +1170,15 @@
 			{#if previewLoading}
 				<div class="flex h-full items-center justify-center">
 					<Loader2 size={16} class="animate-spin text-muted-foreground" />
+				</div>
+			{:else if lastIsPassThrough}
+				<div class="p-5">
+					<h3 class="flex items-center gap-1.5 text-base font-semibold text-muted-foreground">
+						<span class="truncate">{lastSelected ? pageLabel(lastSelected) : ''}</span>
+						<Lock size={13} class="shrink-0" aria-hidden="true" />
+					</h3>
+					<p class="mt-0.5 text-[0.6875rem] text-muted-foreground">{lastSelected?.route}</p>
+					<p class="mt-4 text-[0.8125rem] leading-relaxed text-muted-foreground">{i18n.t('ADMIN_NEXT.PAGES.ANCESTOR_ONLY_HINT')}</p>
 				</div>
 			{:else if previewPage}
 				{@const copyingPreview = copyingRoutes?.has(previewPage.route) ?? false}

@@ -8,7 +8,7 @@
 	import { pageEditUrl } from '$lib/utils/pageEditUrl';
 	import { createPage } from '$lib/api/endpoints/pages';
 	import { getPageTypes, getPageBlueprint, emptyDateFieldKeys, publishedDefault, type PageType, type BlueprintSchema } from '$lib/api/endpoints/blueprints';
-	import { getChildren, getPage, pageApiRoute, type PageSummary } from '$lib/api/endpoints/pages';
+	import { getChildren, getPage, pageApiRoute, isAncestorOnly, type PageSummary } from '$lib/api/endpoints/pages';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
@@ -17,7 +17,7 @@
 	import {
 		FilePlus, Loader2, Save,
 		ChevronDown, Folder, FolderOpen, File,
-		Check, Search, X, ChevronsUpDown, RefreshCw,
+		Check, Search, X, ChevronsUpDown, RefreshCw, Lock,
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
@@ -785,13 +785,17 @@
 	{@const isSelected = parentRoute === apiRoute}
 	{@const children = childrenCache[apiRoute]}
 	{@const filtered = children ? filterPages(children) : []}
+	<!-- A page the user can't read is listed only as a way to the pages inside
+	     it (admin2#209): clicking it opens it instead of choosing it. -->
+	{@const passThrough = isAncestorOnly(pg)}
 
 	<div style="padding-left: {depth * 16}px">
 		<button
 			type="button"
 			class="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
-				{isSelected ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'}"
-			onclick={() => selectParent(apiRoute)}
+				{isSelected ? 'bg-primary/10 text-primary' : passThrough ? 'text-muted-foreground hover:bg-accent/50' : 'text-foreground hover:bg-accent'}"
+			title={passThrough ? i18n.t('ADMIN_NEXT.PAGES.ANCESTOR_ONLY_HINT') : undefined}
+			onclick={(e) => { if (!passThrough) selectParent(apiRoute); else if (pg.has_children) toggleExpand(apiRoute, e); }}
 		>
 			{#if pg.has_children}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -827,6 +831,9 @@
 				<span class="text-muted-foreground">({pg.slug})</span>
 				{pg.title}
 			</span>
+			{#if passThrough}
+				<Lock size={11} class="shrink-0 text-muted-foreground/70" aria-hidden="true" />
+			{/if}
 
 			{#if isSelected}
 				<Check size={14} class="ms-auto shrink-0 text-primary" />

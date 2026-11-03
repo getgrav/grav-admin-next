@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { pageEditUrl } from '$lib/utils/pageEditUrl';
-	import { getChildren, getPageNeighbors, pageApiRoute } from '$lib/api/endpoints/pages';
+	import { getChildren, getPageNeighbors, pageApiRoute, isAncestorOnly } from '$lib/api/endpoints/pages';
 	import type { PageNeighbors, PageSummary } from '$lib/api/endpoints/pages';
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-svelte';
@@ -28,19 +28,26 @@
 		return '/' + parts.slice(0, -1).join('/');
 	});
 
-	const currentIndex = $derived(siblings.findIndex(s => s.route === route));
+	// A page the user can't read can be listed as a way down to pages they can
+	// (admin2#209). The pad never steps onto one: the editor would answer 403.
+	const openable = (p: PageSummary | null | undefined): PageSummary | null => (p && !isAncestorOnly(p) ? p : null);
+	// `siblings` is also filled when a neighbor is such a page, so prev/next
+	// can step over it to the next page that opens.
+	const currentIndex = $derived(siblings.findIndex(s => s.route === route || pageApiRoute(s) === route));
+	const useSiblings = $derived(!neighbors || siblings.length > 0);
 	const prevSibling = $derived(
-		neighbors ? neighbors.prev : currentIndex > 0 ? siblings[currentIndex - 1] : null
+		!useSiblings ? openable(neighbors?.prev) : currentIndex > 0 ? siblings[currentIndex - 1] : null
 	);
 	const nextSibling = $derived(
-		neighbors
-			? neighbors.next
+		!useSiblings
+			? openable(neighbors?.next)
 			: currentIndex >= 0 && currentIndex < siblings.length - 1 ? siblings[currentIndex + 1] : null
 	);
 	// The endpoint's parent carries its structural route, which is right even
 	// when the home page is hidden from URLs; without it, trim the route.
 	const upTarget = $derived(neighbors?.parent ? pageApiRoute(neighbors.parent) : parentRoute());
-	const canUp = $derived(neighbors ? neighbors.parent !== null && upTarget !== '/' : parentRoute() !== '/');
+	const parentLocked = $derived(isAncestorOnly(neighbors?.parent));
+	const canUp = $derived(neighbors ? neighbors.parent !== null && upTarget !== '/' && !parentLocked : parentRoute() !== '/');
 	const canDown = $derived(hasChildren);
 	// In RTL the d-pad's left quadrant means "next" and right means "previous".
 	// Keep the chevrons pointing the same physical direction; swap the targets.
@@ -63,12 +70,11 @@
 			.then(async (found) => {
 				if (token !== loadToken) return;
 				neighbors = found;
-				if (found) {
-					siblings = [];
-					return;
-				}
-				const pages = await getChildren(parent, 'default', 'asc', lang, undefined, { summary: true });
-				if (token === loadToken) siblings = pages;
+				siblings = [];
+				if (found && !isAncestorOnly(found.prev) && !isAncestorOnly(found.next)) return;
+				const folder = found?.parent ? pageApiRoute(found.parent) : parent;
+				const pages = await getChildren(folder, 'default', 'asc', lang, undefined, { summary: true });
+				if (token === loadToken) siblings = pages.filter((p) => !isAncestorOnly(p));
 			})
 			.catch(() => {
 				if (token !== loadToken) return;
@@ -86,14 +92,15 @@
 
 	async function goDown() {
 		if (!hasChildren) return;
-		if (neighbors?.first_child) {
+		if (neighbors?.first_child && !isAncestorOnly(neighbors.first_child)) {
 			navigate(pageApiRoute(neighbors.first_child));
 			return;
 		}
 		try {
 			const children = await getChildren(route, 'default', 'asc', contentLang.activeLang || undefined, undefined, { summary: true });
-			if (children.length > 0) {
-				navigate(pageApiRoute(children[0]));
+			const first = children.find((p) => !isAncestorOnly(p));
+			if (first) {
+				navigate(pageApiRoute(first));
 			}
 		} catch { /* ignore */ }
 	}
@@ -149,7 +156,7 @@
 			class="nav-quadrant nav-up {canUp ? '' : 'nav-disabled'}"
 			disabled={!canUp}
 			onclick={() => navigate(upTarget)}
-			title={canUp ? `Parent: ${upTarget}` : 'No parent'}
+			title={canUp ? `Parent: ${upTarget}` : parentLocked ? i18n.t('ADMIN_NEXT.PAGES.ANCESTOR_ONLY_PARENT') : 'No parent'}
 		>
 			<ChevronUp size={22} strokeWidth={2.5} />
 		</button>
