@@ -861,7 +861,10 @@ class ApiClient {
 		// The token only matters while a request is in flight: a cached value
 		// should survive the hourly refresh, but not a different account.
 		const who = withToken ? untrack(() => auth.accessToken) : untrack(() => auth.username);
-		return `${path}${query ? `?${query}` : ''}|${env}|${who}`;
+		// The server too: the login page can switch servers while a GET to the
+		// previous one is still on its way, and must not get that one's answer.
+		// Last, so clearShortCache() can still match keys by path prefix.
+		return `${path}${query ? `?${query}` : ''}|${env}|${who}|${this.baseUrl}`;
 	}
 
 	async get<T>(path: string, params?: Record<string, string>): Promise<T> {
