@@ -4,7 +4,8 @@
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { getDashboardData } from '$lib/dashboard/context';
 	import { formatBytes } from '$lib/dashboard/format';
-	import { webUrl } from '$lib/utils/url';
+	import { base } from '$app/paths';
+	import { hostname, webUrl } from '$lib/utils/url';
 	import type { UpdatablePackage } from '$lib/api/endpoints/dashboard';
 
 	const data = getDashboardData();
@@ -25,56 +26,52 @@
 	);
 </script>
 
-<!-- One row of the outdated list. The rows share the list's columns (name,
-     links, installed version, new version), so the links and versions line up
-     from row to row whatever each name and version is. Each cell names its
-     column: the installed version is out of the flow while it's screen-reader
-     only, and must not pull the new one into its place. -->
+<!-- One row of the outdated list: name, versions, then the row's links. The
+     rows share the list's columns, so the versions and the icons line up from
+     row to row whatever each name is. -->
 {#snippet packageRow(type: 'plugin' | 'theme', pkg: UpdatablePackage, homepageSlot: boolean)}
 	{@const name = pkg.name || pkg.slug}
 	{@const homepage = webUrl(pkg.homepage)}
 	{@const changesTitle = i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: pkg.available_version })}
 	<li class="col-span-full grid grid-cols-subgrid items-center">
-		<span class="col-start-1 min-w-0 truncate">{name}</span>
-		<!-- 20px targets 6px apart, rows 4px apart: centres at least 24px apart (WCAG 2.5.8).
-		     In px, not rem, like the 12px icons, so that holds at any font size. A row
-		     without a homepage keeps its place empty, so the changelog stays in line. -->
-		<span class="col-start-2 inline-flex items-center gap-[6px]">
+		<span class="min-w-0 truncate font-medium text-foreground">{name}</span>
+		<!-- Where the list is narrow only the new version shows; the installed one
+		     stays for screen readers and in the tooltip. -->
+		<span class="inline-flex items-center gap-1 whitespace-nowrap tabular-nums"
+			title={pkg.version ? `v${pkg.version} → v${pkg.available_version}` : undefined}
+		>
+			{#if pkg.version}
+				<span class="sr-only @min-[18rem]:not-sr-only">v{pkg.version}</span>
+				<DirectionalIcon name="arrow-forward" size={10} class="hidden text-muted-foreground/60 @min-[18rem]:inline" />
+			{/if}
+			<span class="font-semibold text-amber-700 dark:text-amber-400">v{pkg.available_version}</span>
+		</span>
+		<!-- A row without a homepage keeps its place empty, so the changelog
+		     buttons stay in one column. -->
+		<span class="inline-flex items-center justify-self-end">
 			{#if homepage}
 				<a href={homepage} target="_blank" rel="noopener noreferrer"
-					class="rounded p-[4px] text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
-					title={homepage}
+					class="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-amber-500/15 hover:text-foreground"
+					title="{i18n.t('ADMIN_NEXT.HOMEPAGE')} — {hostname(homepage)}"
 					aria-label="{name} — {i18n.t('ADMIN_NEXT.HOMEPAGE')}"
 				>
-					<Globe size={12} />
+					<Globe size={13} />
 				</a>
 			{:else if homepageSlot}
-				<span class="inline-block size-[20px]" aria-hidden="true"></span>
+				<span class="inline-block h-6 w-6" aria-hidden="true"></span>
 			{/if}
 			<!-- The changelog is asked for by slug: an entry without one has none to show. -->
 			{#if pkg.slug}
 				<button type="button"
-					class="cursor-pointer rounded p-[4px] text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+					class="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-amber-500/15 hover:text-foreground"
 					title={changesTitle}
 					aria-label="{name} — {changesTitle}"
 					onclick={() => data().onShowPackageChangelog(type, pkg)}
 				>
-					<FileText size={12} />
+					<FileText size={13} />
 				</button>
 			{/if}
 		</span>
-		{#if pkg.version}
-			<!-- Shown only where the list is wide enough, but always read out by screen
-			     readers; on screen the new version's tooltip has both versions then.
-			     Ends at the arrow, so the arrows line up too. -->
-			<span class="col-start-3 sr-only inline-flex items-center gap-1 justify-self-end tabular-nums @xs:not-sr-only">
-				<span>v{pkg.version}</span>
-				<DirectionalIcon name="arrow-forward" size={10} class="text-amber-500/70" />
-			</span>
-		{/if}
-		<span class="col-start-4 font-medium tabular-nums text-amber-600/80 dark:text-amber-400/80"
-			title={pkg.version ? `v${pkg.version} → v${pkg.available_version}` : undefined}
-		>v{pkg.available_version}</span>
 	</li>
 {/snippet}
 
@@ -128,10 +125,11 @@
 								{/if}
 								<button type="button"
 									class="inline-flex h-8 items-center gap-1.5 rounded-md border border-purple-500/30 px-3 text-[0.75rem] font-medium text-purple-600 transition-colors hover:bg-purple-500/10 dark:text-purple-400"
+									title={i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: updates.grav.available })}
 									onclick={() => data().onShowGravChangelog()}
 								>
 									<FileText size={12} />
-									{i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}
+									{i18n.t('ADMIN_NEXT.UPDATE_WHATS_NEW')}
 								</button>
 							</div>
 							{#if canWriteGpm && updates.grav.is_symlink}
@@ -153,7 +151,7 @@
 							<AlertTriangle size={13} />
 							{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.PACKAGES_OUTDATED', { n: packageCount })}
 						</div>
-						<ul class="@container mt-2 grid grid-cols-[minmax(0,1fr)_auto_auto_auto] gap-x-2 gap-y-[4px] text-[0.75rem] text-muted-foreground">
+						<ul class="@container mt-2 grid grid-cols-[minmax(0,1fr)_auto_auto] gap-x-2.5 gap-y-0.5 text-[0.75rem] text-muted-foreground">
 							<!-- The index only keys an entry that arrived without a slug. -->
 							{#each shownPlugins as p, i (p.slug || i)}
 								{@render packageRow('plugin', p, homepageSlot)}
@@ -162,12 +160,16 @@
 								{@render packageRow('theme', t, homepageSlot)}
 							{/each}
 							{#if packageCount > 4}
-								<li class="col-span-full text-[0.6875rem] italic text-muted-foreground/70">{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.MORE_COUNT', { n: packageCount - 4 })}</li>
+								<li class="col-span-full mt-0.5 text-[0.6875rem]">
+									<a href="{base}/plugins" class="text-muted-foreground/80 hover:text-foreground hover:underline">
+										{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.MORE_COUNT', { n: packageCount - 4 })}
+									</a>
+								</li>
 							{/if}
 						</ul>
 						{#if canWriteGpm}
 							<button type="button"
-								class="mt-2.5 inline-flex h-8 items-center gap-1.5 rounded-md bg-amber-500 px-3 text-[0.75rem] font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 disabled:opacity-60"
+								class="mt-3 inline-flex h-8 items-center gap-1.5 rounded-md bg-amber-500 px-3 text-[0.75rem] font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 disabled:opacity-60"
 								onclick={() => data().onUpdateAll()}
 								disabled={updatingAll || upgradingGrav}
 							>

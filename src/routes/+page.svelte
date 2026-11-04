@@ -74,7 +74,7 @@
 	function handleShowGravChangelog() {
 		return changelog.show({
 			kind: 'update',
-			title: () => `Grav — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`,
+			title: () => `Grav — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: updates?.grav.available ?? '' })}`,
 			load: async () => formatChangelog(await getGravChangelog()),
 		});
 	}

@@ -5,6 +5,7 @@
 	import { getGravChangelog } from '$lib/api/endpoints/gpm';
 	import { confirmAndUpgradeGrav } from '$lib/utils/grav-upgrade';
 	import { formatChangelog } from '$lib/utils/gpm';
+	import { createTextModal } from '$lib/utils/text-modal.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
@@ -20,10 +21,8 @@
 	let grav = $state<UpdatesData['grav'] | null>(null);
 	let upgrading = $state(false);
 
-	// Changelog modal
-	let changelogOpen = $state(false);
-	let changelogContent = $state('');
-	let changelogLoading = $state(false);
+	// Changelog modal: what the available Grav update changes
+	const changelog = createTextModal();
 
 	async function refresh() {
 		try {
@@ -45,17 +44,12 @@
 		onUpgraded?.();
 	}
 
-	async function handleShowChangelog() {
-		changelogLoading = true;
-		changelogContent = '';
-		changelogOpen = true;
-		try {
-			changelogContent = formatChangelog(await getGravChangelog());
-		} catch {
-			changelogContent = '*Changelog not available.*';
-		} finally {
-			changelogLoading = false;
-		}
+	function handleShowChangelog() {
+		return changelog.show({
+			kind: 'update',
+			title: () => `Grav — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: grav?.available ?? '' })}`,
+			load: async () => formatChangelog(await getGravChangelog()),
+		});
 	}
 
 	onMount(() => {
@@ -99,10 +93,11 @@
 					<button
 						type="button"
 						class="inline-flex h-8 items-center gap-1.5 rounded-md border border-purple-500/30 px-3 text-[0.75rem] font-medium text-purple-600 transition-colors hover:bg-purple-500/10 dark:text-purple-400"
+						title={i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: grav.available })}
 						onclick={handleShowChangelog}
 					>
 						<FileText size={12} />
-						{i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}
+						{i18n.t('ADMIN_NEXT.UPDATE_WHATS_NEW')}
 					</button>
 				</div>
 			</div>
@@ -116,8 +111,8 @@
 {/if}
 
 <MarkdownModal
-	open={changelogOpen}
-	title={i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}
-	content={changelogLoading ? 'Loading...' : changelogContent}
-	onclose={() => { changelogOpen = false; }}
+	open={changelog.open}
+	title={changelog.title}
+	content={changelog.content}
+	onclose={changelog.close}
 />
