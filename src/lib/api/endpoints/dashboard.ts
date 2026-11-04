@@ -93,6 +93,9 @@ export async function getStats(): Promise<DashboardStats> {
 }
 
 export interface PopularityChartPoint {
+	/** ISO day (Y-m-d) or month (Y-m). Missing before API 1.1.11. */
+	key?: string;
+	/** Display label, e.g. "Nov 3" or "Nov 2026". */
 	date: string;
 	views: number;
 }
@@ -108,12 +111,23 @@ export interface PopularityData {
 		week: number;
 		month: number;
 	};
+	/** The chart's time frame. Missing from API versions before 1.1.11. */
+	range?: {
+		key: PopularityRangeKey;
+		unit: 'day' | 'month';
+		total: number;
+		/** Total for the period of the same length just before; null when history doesn't reach back that far. */
+		previous: number | null;
+	};
 	chart: PopularityChartPoint[];
 	top_pages: TopPage[];
 }
 
-export async function getPopularity(): Promise<PopularityData> {
-	return api.get<PopularityData>('/dashboard/popularity');
+export const POPULARITY_RANGES = ['7d', '14d', '30d', '90d', '12m'] as const;
+export type PopularityRangeKey = (typeof POPULARITY_RANGES)[number];
+
+export async function getPopularity(range?: PopularityRangeKey): Promise<PopularityData> {
+	return api.get<PopularityData>('/dashboard/popularity', range ? { range } : undefined);
 }
 
 export interface FeedItem {

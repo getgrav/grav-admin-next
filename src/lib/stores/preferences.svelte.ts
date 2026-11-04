@@ -3,6 +3,7 @@ import { queueUserPatch, onPreferencesUpdated } from './_serverSync';
 import { loadBootCache, saveBootCache, bootConfigAppearance } from './_bootCache';
 import { normalizeLang } from '$lib/i18n/normalize';
 import { asSidebarLayout, type SidebarLayout } from '$lib/utils/sidebar-layout';
+import { POPULARITY_RANGES, type PopularityRangeKey } from '$lib/api/endpoints/dashboard';
 import {
 	getPreferences,
 	resetUserPreferences as apiResetUserPreferences,
@@ -127,6 +128,8 @@ interface LocalState {
 	pagesChunkSize: PagesChunkSize;
 	/** Ids of page-editor sidebar cards the user has collapsed (e.g. 'page-info'). */
 	collapsedEditorCards: string[];
+	/** Time frame of the dashboard's Page Views chart. */
+	popularityRange: PopularityRangeKey;
 }
 
 const LOCAL_DEFAULTS: LocalState = {
@@ -135,6 +138,7 @@ const LOCAL_DEFAULTS: LocalState = {
 	pageSidebarCollapsed: false,
 	pagesChunkSize: 100,
 	collapsedEditorCards: [],
+	popularityRange: '14d',
 };
 
 function loadLocal(): LocalState {
@@ -240,6 +244,9 @@ function createPreferencesStore() {
 	let pageSidebarCollapsed = $state<boolean>(local.pageSidebarCollapsed);
 	let pagesChunkSize = $state<PagesChunkSize>(local.pagesChunkSize);
 	let collapsedEditorCards = $state<string[]>(Array.isArray(local.collapsedEditorCards) ? local.collapsedEditorCards : []);
+	let popularityRange = $state<PopularityRangeKey>(
+		POPULARITY_RANGES.includes(local.popularityRange) ? local.popularityRange : LOCAL_DEFAULTS.popularityRange,
+	);
 
 	// ── Server payload mirrors (read-only via getters) ─────────────────────
 	let siteDefaults = $state<Partial<PreferenceValues>>({});
@@ -257,7 +264,7 @@ function createPreferencesStore() {
 		try {
 			localStorage.setItem(
 				LOCAL_STORAGE_KEY,
-				JSON.stringify({ mediaViewMode, sidebarCollapsed, pageSidebarCollapsed, pagesChunkSize, collapsedEditorCards }),
+				JSON.stringify({ mediaViewMode, sidebarCollapsed, pageSidebarCollapsed, pagesChunkSize, collapsedEditorCards, popularityRange }),
 			);
 		} catch {
 			/* quota / unavailable — fine */
@@ -470,6 +477,9 @@ function createPreferencesStore() {
 
 		get pagesChunkSize() { return pagesChunkSize; },
 		set pagesChunkSize(v: PagesChunkSize) { pagesChunkSize = v; persistLocal(); },
+
+		get popularityRange() { return popularityRange; },
+		set popularityRange(v: PopularityRangeKey) { popularityRange = v; persistLocal(); },
 		isEditorCardCollapsed(id: string): boolean { return collapsedEditorCards.includes(id); },
 		toggleEditorCard(id: string): void {
 			collapsedEditorCards = collapsedEditorCards.includes(id)

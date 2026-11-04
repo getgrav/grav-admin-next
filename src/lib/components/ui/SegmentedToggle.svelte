@@ -9,15 +9,21 @@
 		value: T;
 		onchange: (v: T) => void;
 		disabled?: boolean;
+		/** `sm` fits a card header. */
+		size?: 'sm' | 'md';
+		/** Accessible name for the group. */
+		label?: string;
 	}
 
-	let { options, value, onchange, disabled = false }: Props = $props();
+	let { options, value, onchange, disabled = false, size = 'md', label }: Props = $props();
 
 	const count = $derived(options.length);
 	const activeIndex = $derived(Math.max(0, options.findIndex((o) => o.value === value)));
 </script>
 
 <div
+	role="group"
+	aria-label={label}
 	class="relative isolate inline-grid rounded-lg border border-input bg-muted/30 p-0.5"
 	style="grid-template-columns: repeat({count}, minmax(0, 1fr));"
 >
@@ -29,8 +35,10 @@
 	{#each options as opt, i (i)}
 		<button
 			type="button"
-			class="relative z-10 rounded-md px-4 py-2 text-sm font-medium transition-colors duration-200
+			class="relative z-10 rounded-md font-medium transition-colors duration-200
+				{size === 'sm' ? 'px-2.5 py-1 text-xs tabular-nums' : 'px-4 py-2 text-sm'}
 				{opt.value === value ? 'text-white' : 'text-muted-foreground hover:text-foreground'}"
+			aria-pressed={opt.value === value}
 			{disabled}
 			onclick={() => onchange(opt.value)}
 		>
