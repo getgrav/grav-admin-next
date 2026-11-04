@@ -21,6 +21,7 @@
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
 	import { createTextModal } from '$lib/utils/text-modal.svelte';
 	import UpdateChangelogLink from '$lib/components/extensions/UpdateChangelogLink.svelte';
+	import UpdateAvailableBadge from '$lib/components/extensions/UpdateAvailableBadge.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { scopedKey } from '$lib/utils/scopedStorage';
 	import { prefs } from '$lib/stores/preferences.svelte';
@@ -408,7 +409,7 @@
 								{:else}
 									<ArrowUpCircle size={13} />
 								{/if}
-								Update All ({updatableCount})
+								{i18n.t('ADMIN_NEXT.PLUGINS.UPDATE_ALL')} ({updatableCount})
 							</Button>
 						{/if}
 						<Button size="sm" onclick={() => (addModalOpen = true)}>
@@ -529,7 +530,7 @@
 									<span class="shrink-0 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-medium text-red-600 dark:text-red-400">{i18n.t('ADMIN_NEXT.PREMIUM')}</span>
 								{/if}
 								{#if plugin.updatable}
-									<ArrowUpCircle size={12} class="shrink-0 text-amber-500" />
+									<UpdateAvailableBadge version={plugin.available_version} />
 								{/if}
 							</div>
 							<p class="truncate text-xs text-muted-foreground">{descriptionText(plugin)}</p>
@@ -625,9 +626,7 @@
 										<span>by {selectedPlugin.author.name}</span>
 									{/if}
 									{#if selectedPlugin.updatable}
-										<span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-600 dark:text-amber-400">
-											{i18n.t('ADMIN_NEXT.UPDATE_AVAILABLE_VERSION', { version: selectedPlugin.available_version })}
-										</span>
+										<UpdateAvailableBadge version={selectedPlugin.available_version} long />
 										<UpdateChangelogLink version={selectedPlugin.available_version} onclick={() => selectedPlugin && showUpdateChangelog(selectedPlugin)} />
 									{/if}
 								</div>

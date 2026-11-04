@@ -1,28 +1,39 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import { FileText } from 'lucide-svelte';
 
 	/**
-	 * Small "Changelog" link shown beside a plugin/theme's "Update available"
-	 * badge or Update button. It opens the changelog modal with what the new
-	 * version changes, not the installed version's CHANGELOG.md (the plain
-	 * Changelog link in the meta-links row does that).
+	 * "What's new": opens the changelog modal with what the available update
+	 * changes (the entries newer than the installed version), not the installed
+	 * version's whole CHANGELOG.md, which the plain Changelog link in the
+	 * meta-links row shows. A `link` sits in a line of text beside the update
+	 * badge; a `button` stands in a toolbar beside the Update button.
 	 */
 	interface Props {
 		version: string | null | undefined;
 		onclick: () => void;
+		variant?: 'link' | 'button';
 	}
 
-	let { version, onclick }: Props = $props();
+	let { version, onclick, variant = 'link' }: Props = $props();
 
 	const title = $derived(i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: version ?? '' }));
+	const label = $derived(i18n.t('ADMIN_NEXT.UPDATE_WHATS_NEW'));
 </script>
 
-<button
-	type="button"
-	class="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-	{title}
-	{onclick}
->
-	<FileText size={12} /> {i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}
-</button>
+{#if variant === 'button'}
+	<Button variant="outline" size="sm" {title} aria-label={title} {onclick}>
+		<FileText size={14} />
+		<span class="hidden sm:inline">{label}</span>
+	</Button>
+{:else}
+	<button
+		type="button"
+		class="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+		{title}
+		{onclick}
+	>
+		<FileText size={12} /> {label}
+	</button>
+{/if}

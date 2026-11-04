@@ -378,8 +378,8 @@
 		if (!plugin || !plugin.updatable) return;
 		const ok = await dialogs.confirm({
 			title: 'Update plugin?',
-			message: `Update ${plugin.name} to v${plugin.available_version}?`,
-			confirmLabel: 'Update',
+			message: i18n.t('ADMIN_NEXT.PLUGINS.UPDATE_CONFIRM_MESSAGE', { name: plugin.name, version: plugin.available_version }),
+			confirmLabel: i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: plugin.available_version }),
 		});
 		if (!ok) return;
 		updating = true;
@@ -530,7 +530,7 @@
 			{#if plugin}
 				<!-- Update button -->
 				{#if plugin.updatable}
-					<UpdateChangelogLink version={plugin.available_version} onclick={showUpdateChangelog} />
+					<UpdateChangelogLink version={plugin.available_version} onclick={showUpdateChangelog} variant="button" />
 					<Button
 						variant="outline"
 						size="sm"

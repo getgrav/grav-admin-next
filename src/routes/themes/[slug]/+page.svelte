@@ -328,9 +328,9 @@
 	async function handleUpdate() {
 		if (!theme || !theme.updatable) return;
 		const ok = await dialogs.confirm({
-			title: 'Update theme?',
-			message: `Update ${theme.name} to v${theme.available_version}?`,
-			confirmLabel: 'Update',
+			title: i18n.t('ADMIN_NEXT.THEMES.UPDATE_CONFIRM_TITLE'),
+			message: i18n.t('ADMIN_NEXT.THEMES.UPDATE_CONFIRM_MESSAGE', { name: theme.name, version: theme.available_version }),
+			confirmLabel: i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: theme.available_version }),
 		});
 		if (!ok) return;
 		updating = true;
@@ -466,7 +466,7 @@
 			{#if theme}
 				<!-- Update button -->
 				{#if theme.updatable}
-					<UpdateChangelogLink version={theme.available_version} onclick={showUpdateChangelog} />
+					<UpdateChangelogLink version={theme.available_version} onclick={showUpdateChangelog} variant="button" />
 					<Button
 						variant="outline"
 						size="sm"

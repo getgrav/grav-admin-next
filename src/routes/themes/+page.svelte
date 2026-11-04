@@ -10,6 +10,7 @@
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
 	import { createTextModal } from '$lib/utils/text-modal.svelte';
 	import UpdateChangelogLink from '$lib/components/extensions/UpdateChangelogLink.svelte';
+	import UpdateAvailableBadge from '$lib/components/extensions/UpdateAvailableBadge.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import AddThemeModal from '$lib/components/AddThemeModal.svelte';
@@ -195,9 +196,9 @@
 	async function handleUpdateTheme(theme: ThemeInfo, e: Event) {
 		e.stopPropagation();
 		const ok = await dialogs.confirm({
-			title: 'Update theme?',
-			message: `Update ${theme.name} to v${theme.available_version}?`,
-			confirmLabel: 'Update',
+			title: i18n.t('ADMIN_NEXT.THEMES.UPDATE_CONFIRM_TITLE'),
+			message: i18n.t('ADMIN_NEXT.THEMES.UPDATE_CONFIRM_MESSAGE', { name: theme.name, version: theme.available_version }),
+			confirmLabel: i18n.t('ADMIN_NEXT.UPDATE_TO_VERSION', { version: theme.available_version }),
 		});
 		if (!ok) return;
 		updatingSlug = theme.slug;
@@ -343,7 +344,7 @@
 								{:else}
 									<ArrowUpCircle size={13} />
 								{/if}
-								Update All ({updatableCount})
+								{i18n.t('ADMIN_NEXT.THEMES.UPDATE_ALL')} ({updatableCount})
 							</Button>
 						{/if}
 						<Button size="sm" onclick={() => (addModalOpen = true)}>
@@ -467,7 +468,7 @@
 									<span class="shrink-0 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[0.625rem] font-medium text-red-600 dark:text-red-400">{i18n.t('ADMIN_NEXT.PREMIUM')}</span>
 								{/if}
 								{#if theme.updatable}
-									<ArrowUpCircle size={12} class="shrink-0 text-amber-500" />
+									<UpdateAvailableBadge version={theme.available_version} />
 								{/if}
 							</div>
 							<p class="truncate text-xs text-muted-foreground">{descriptionText(theme)}</p>
@@ -563,9 +564,7 @@
 										<span>by {selectedTheme.author.name}</span>
 									{/if}
 									{#if selectedTheme.updatable}
-										<span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-600 dark:text-amber-400">
-											{i18n.t('ADMIN_NEXT.UPDATE_AVAILABLE_VERSION', { version: selectedTheme.available_version })}
-										</span>
+										<UpdateAvailableBadge version={selectedTheme.available_version} long />
 										<UpdateChangelogLink version={selectedTheme.available_version} onclick={() => selectedTheme && showUpdateChangelog(selectedTheme)} />
 									{/if}
 								</div>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import UpdateAvailableBadge from '$lib/components/extensions/UpdateAvailableBadge.svelte';
 	import { base } from '$app/paths';
 	import { linkClick } from '$lib/utils/navLink';
 	import type { PluginInfo } from '$lib/api/endpoints/gpm';
@@ -138,10 +139,7 @@
 					<td class="px-4 py-2 font-mono text-xs">
 						{plugin.version}
 						{#if plugin.updatable}
-							<span class="ms-1 inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] font-medium text-amber-600 dark:text-amber-400">
-								<ArrowUpCircle size={10} />
-								{plugin.available_version}
-							</span>
+							<UpdateAvailableBadge version={plugin.available_version} class="ms-1 font-sans" />
 						{/if}
 					</td>
 					<td class="px-4 py-2">
