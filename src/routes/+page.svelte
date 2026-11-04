@@ -4,13 +4,16 @@
 	import {
 		getDashboardNotifications, getPopularity, getFeed, getBackups, getUpdates, getSystemInfoOverview,
 		type Notification, type PopularityData,
-		type FeedItem, type BackupInfo, type UpdatesData, type SystemInfoOverview
+		type FeedItem, type BackupInfo, type UpdatesData, type UpdatablePackage, type SystemInfoOverview
 	} from '$lib/api/endpoints/dashboard';
 	import { getWidgets, saveUserLayout, saveSiteLayout } from '$lib/api/endpoints/dashboard-widgets';
-	import { updateAllPackages, getGravChangelog } from '$lib/api/endpoints/gpm';
+	import {
+		updateAllPackages, getGravChangelog, getPluginAvailableChangelog, getThemeAvailableChangelog
+	} from '$lib/api/endpoints/gpm';
 	import { confirmAndUpgradeGrav } from '$lib/utils/grav-upgrade';
 	import { reloadIfAdminUpdated, formatChangelog } from '$lib/utils/gpm';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
+	import { createTextModal } from '$lib/utils/text-modal.svelte';
 	import { createBackup } from '$lib/api/endpoints/tools';
 	import { canWrite } from '$lib/utils/permissions';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
@@ -65,23 +68,29 @@
 	let saving = $state(false);
 	let pickerOpen = $state(false);
 
-	// Grav core changelog modal
-	let gravChangelogOpen = $state(false);
-	let gravChangelogContent = $state('');
-	let gravChangelogLoading = $state(false);
+	// Changelog modal: what the Grav core update, or that of an outdated plugin or theme, changes
+	const changelog = createTextModal();
 
-	async function handleShowGravChangelog() {
-		gravChangelogLoading = true;
-		gravChangelogContent = '';
-		gravChangelogOpen = true;
-		try {
-			gravChangelogContent = formatChangelog(await getGravChangelog());
-		} catch {
-			gravChangelogContent = '*Changelog not available.*';
-		} finally {
-			gravChangelogLoading = false;
-		}
+	function handleShowGravChangelog() {
+		return changelog.show({
+			kind: 'update',
+			title: () => `Grav — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`,
+			load: async () => formatChangelog(await getGravChangelog()),
+		});
 	}
+
+	function handleShowPackageChangelog(type: 'plugin' | 'theme', pkg: UpdatablePackage) {
+		// The changelog is asked for by slug; the widget offers none without one.
+		const slug = pkg.slug;
+		if (!slug) return;
+		return changelog.show({
+			kind: 'update',
+			title: () => `${pkg.name || slug} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: pkg.available_version })}`,
+			load: async () =>
+				formatChangelog(await (type === 'plugin' ? getPluginAvailableChangelog(slug) : getThemeAvailableChangelog(slug))),
+		});
+	}
+
 	const dirty = $derived(JSON.stringify(widgets) !== JSON.stringify(savedWidgetsSnapshot));
 
 	const canWriteGpm = $derived(canWrite('gpm'));
@@ -93,6 +102,7 @@
 		onUpdateAll: handleUpdateAll,
 		onUpgradeGrav: handleUpgradeGrav,
 		onShowGravChangelog: handleShowGravChangelog,
+		onShowPackageChangelog: handleShowPackageChangelog,
 		onCreateBackup: handleCreateBackup,
 	}));
 
@@ -279,7 +289,7 @@
 		const ok = await dialogs.confirm({
 			title: i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPDATE_ALL_CONFIRM_TITLE'),
 			message: i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPDATE_ALL_CONFIRM_MESSAGE', { n }),
-			items: updatable.map(p => `${p.name} v${p.version} → v${p.available_version}`),
+			items: updatable.map(p => `${p.name || p.slug || ''} ${p.version ? `v${p.version} → ` : ''}v${p.available_version}`.trim()),
 			confirmLabel: i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.UPDATE_ALL'),
 		});
 		if (!ok) return;
@@ -449,8 +459,8 @@
 {/if}
 
 <MarkdownModal
-	open={gravChangelogOpen}
-	title={`Grav — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`}
-	content={gravChangelogLoading ? 'Loading...' : gravChangelogContent}
-	onclose={() => { gravChangelogOpen = false; }}
+	open={changelog.open}
+	title={changelog.title}
+	content={changelog.content}
+	onclose={changelog.close}
 />

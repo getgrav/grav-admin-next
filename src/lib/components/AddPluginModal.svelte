@@ -6,7 +6,7 @@
 	import { toast } from 'svelte-sonner';
 	import { canWrite } from '$lib/utils/permissions';
 	import { Search, X, Puzzle, ExternalLink, Download, Loader2, Check, ShoppingCart, BadgeCheck } from 'lucide-svelte';
-	import { hostname } from '$lib/utils/url';
+	import { hostname, webUrl } from '$lib/utils/url';
 	import LoadErrorState from '$lib/components/ui/LoadErrorState.svelte';
 
 	const canInstall = $derived(canWrite('gpm'));
@@ -58,6 +58,12 @@
 	const selectedPlugin = $derived(
 		selectedSlug ? available.find((p) => p.slug === selectedSlug) ?? null : null,
 	);
+	// From the package's blueprint, written by its author: only an http(s)
+	// address becomes a link (a `javascript:` one would run in the admin).
+	const selectedLinks = $derived({
+		author: webUrl(selectedPlugin?.author?.url),
+		homepage: webUrl(selectedPlugin?.homepage),
+	});
 
 	async function loadPlugins() {
 		loading = true;
@@ -82,10 +88,15 @@
 		return !!plugin.premium && !plugin.licensed;
 	}
 
-	function openPurchase(plugin: RepositoryPlugin) {
-		if (plugin.purchase_url) {
-			window.open(plugin.purchase_url, '_blank', 'noopener');
-		}
+	// From the GPM feed (a vendor's checkout_url): only an http(s) address
+	// opens, so a `javascript:` one can't run, whatever the window flags. Without
+	// one there's no Buy button, rather than one that does nothing.
+	function purchaseHref(plugin: RepositoryPlugin): string | null {
+		return webUrl(plugin.purchase_url);
+	}
+
+	function openPurchase(href: string) {
+		window.open(href, '_blank', 'noopener');
 	}
 
 	async function handleInstall(slug: string) {
@@ -165,10 +176,13 @@
 				<div class="flex items-center gap-2">
 					{#if selectedPlugin}
 						{#if needsPurchase(selectedPlugin)}
-							<Button size="sm" variant="destructive" onclick={() => openPurchase(selectedPlugin)}>
-								<ShoppingCart size={14} class="me-1.5" />
-								Buy
-							</Button>
+							{@const href = purchaseHref(selectedPlugin)}
+							{#if href}
+								<Button size="sm" variant="destructive" onclick={() => openPurchase(href)}>
+									<ShoppingCart size={14} class="me-1.5" />
+									Buy
+								</Button>
+							{/if}
 						{:else}
 							<Button size="sm" onclick={() => handleInstall(selectedPlugin.slug)} disabled={installingSlug === selectedPlugin.slug || !canInstall}>
 								{#if installingSlug === selectedPlugin.slug}
@@ -252,14 +266,17 @@
 
 								<!-- Install / Buy button (inline) -->
 								{#if needsPurchase(plugin)}
-									<Button
-										variant="outline"
-										size="sm"
-										onclick={(e: MouseEvent) => { e.stopPropagation(); openPurchase(plugin); }}
-										class="shrink-0"
-									>
-										<ShoppingCart size={12} />
-									</Button>
+									{@const href = purchaseHref(plugin)}
+									{#if href}
+										<Button
+											variant="outline"
+											size="sm"
+											onclick={(e: MouseEvent) => { e.stopPropagation(); openPurchase(href); }}
+											class="shrink-0"
+										>
+											<ShoppingCart size={12} />
+										</Button>
+									{/if}
 								{:else}
 									<Button
 										variant="outline"
@@ -336,8 +353,8 @@
 										<div>
 											<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.AUTHOR')}</dt>
 											<dd class="mt-0.5 text-sm text-foreground">
-												{#if selectedPlugin.author.url}
-													<a href={selectedPlugin.author.url} target="_blank" rel="noopener" class="text-primary hover:underline">
+												{#if selectedLinks.author}
+													<a href={selectedLinks.author} target="_blank" rel="noopener" class="text-primary hover:underline">
 														{selectedPlugin.author.name}
 														<ExternalLink size={10} class="inline" />
 													</a>
@@ -348,12 +365,12 @@
 										</div>
 									{/if}
 
-									{#if selectedPlugin.homepage}
+									{#if selectedLinks.homepage}
 										<div>
 											<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.HOMEPAGE')}</dt>
 											<dd class="mt-0.5 text-sm">
-												<a href={selectedPlugin.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
-													{hostname(selectedPlugin.homepage)}
+												<a href={selectedLinks.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
+													{hostname(selectedLinks.homepage)}
 													<ExternalLink size={10} class="inline" />
 												</a>
 											</dd>

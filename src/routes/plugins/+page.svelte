@@ -14,11 +14,12 @@
 	import GravUpdateBanner from '$lib/components/GravUpdateBanner.svelte';
 	import { toast } from 'svelte-sonner';
 	import { Search, Puzzle, ExternalLink, ArrowUpCircle, Loader2, Plus, RefreshCw, BadgeCheck, CornerDownRight, LayoutGrid, Table as TableIcon, Trash2, FileText, Book, Bug } from 'lucide-svelte';
-	import { hostname } from '$lib/utils/url';
+	import { hostname, webUrl } from '$lib/utils/url';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText, formatChangelog } from '$lib/utils/gpm';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
+	import { createTextModal } from '$lib/utils/text-modal.svelte';
 	import UpdateChangelogLink from '$lib/components/extensions/UpdateChangelogLink.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { scopedKey } from '$lib/utils/scopedStorage';
@@ -70,39 +71,24 @@
 	let addModalOpen = $state(false);
 	let installSlug = $state('');
 
-	// Changelog modal
-	let changelogOpen = $state(false);
-	let changelogTitle = $state('');
-	let changelogContent = $state('');
-	let changelogLoading = $state(false);
+	// Changelog modal: the installed changelog, or what the available update changes
+	const changelog = createTextModal();
 
-	async function showChangelog(plugin: PluginInfo) {
-		changelogLoading = true;
-		changelogTitle = `${plugin.name} — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`;
-		changelogContent = '';
-		changelogOpen = true;
-		try {
-			changelogContent = formatChangelog(await getPluginChangelog(plugin.slug));
-		} catch {
-			changelogContent = '*Changelog not available.*';
-		} finally {
-			changelogLoading = false;
-		}
+	function showChangelog(plugin: PluginInfo) {
+		return changelog.show({
+			kind: 'changelog',
+			title: () => `${plugin.name} — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`,
+			load: async () => formatChangelog(await getPluginChangelog(plugin.slug)),
+		});
 	}
 
 	// What the available update changes (the changelog entries newer than the installed version)
-	async function showUpdateChangelog(plugin: PluginInfo) {
-		changelogLoading = true;
-		changelogTitle = `${plugin.name} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: plugin.available_version ?? '' })}`;
-		changelogContent = '';
-		changelogOpen = true;
-		try {
-			changelogContent = formatChangelog(await getPluginAvailableChangelog(plugin.slug));
-		} catch {
-			changelogContent = '*Changelog not available.*';
-		} finally {
-			changelogLoading = false;
-		}
+	function showUpdateChangelog(plugin: PluginInfo) {
+		return changelog.show({
+			kind: 'update',
+			title: () => `${plugin.name} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: plugin.available_version ?? '' })}`,
+			load: async () => formatChangelog(await getPluginAvailableChangelog(plugin.slug)),
+		});
 	}
 
 	// Auto-open install modal when navigating with ?install=slug (only if the
@@ -155,6 +141,14 @@
 	const selectedPlugin = $derived(
 		selectedSlug ? plugins.find((p) => p.slug === selectedSlug) ?? null : null,
 	);
+	// From the package's blueprint, written by its author: only an http(s)
+	// address becomes a link (a `javascript:` one would run in the admin).
+	const selectedLinks = $derived({
+		docs: webUrl(selectedPlugin?.docs),
+		bugs: webUrl(selectedPlugin?.bugs),
+		author: webUrl(selectedPlugin?.author?.url),
+		homepage: webUrl(selectedPlugin?.homepage),
+	});
 
 	async function loadPlugins() {
 		loading = true;
@@ -699,13 +693,13 @@
 							<button type="button" class="inline-flex items-center gap-1 hover:text-foreground" onclick={() => selectedPlugin && showChangelog(selectedPlugin)}>
 								<FileText size={12} /> {i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}
 							</button>
-							{#if selectedPlugin.docs}
-								<a href={selectedPlugin.docs} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
+							{#if selectedLinks.docs}
+								<a href={selectedLinks.docs} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
 									<Book size={12} /> {i18n.t('ADMIN_NEXT.DOCUMENTATION')} <ExternalLink size={10} />
 								</a>
 							{/if}
-							{#if selectedPlugin.bugs}
-								<a href={selectedPlugin.bugs} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
+							{#if selectedLinks.bugs}
+								<a href={selectedLinks.bugs} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
 									<Bug size={12} /> {i18n.t('ADMIN_NEXT.REPORT_ISSUE')} <ExternalLink size={10} />
 								</a>
 							{/if}
@@ -717,8 +711,8 @@
 								<div>
 									<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.AUTHOR')}</dt>
 									<dd class="mt-0.5 text-sm text-foreground">
-										{#if selectedPlugin.author.url}
-											<a href={selectedPlugin.author.url} target="_blank" rel="noopener" class="text-primary hover:underline">
+										{#if selectedLinks.author}
+											<a href={selectedLinks.author} target="_blank" rel="noopener" class="text-primary hover:underline">
 												{selectedPlugin.author.name}
 												<ExternalLink size={10} class="inline" />
 											</a>
@@ -729,12 +723,12 @@
 								</div>
 							{/if}
 
-							{#if selectedPlugin.homepage}
+							{#if selectedLinks.homepage}
 								<div>
 									<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.HOMEPAGE')}</dt>
 									<dd class="mt-0.5 text-sm">
-										<a href={selectedPlugin.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
-											{hostname(selectedPlugin.homepage)}
+										<a href={selectedLinks.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
+											{hostname(selectedLinks.homepage)}
 											<ExternalLink size={10} class="inline" />
 										</a>
 									</dd>
@@ -834,8 +828,8 @@
 />
 
 <MarkdownModal
-	open={changelogOpen}
-	title={changelogTitle}
-	content={changelogLoading ? 'Loading...' : changelogContent}
-	onclose={() => { changelogOpen = false; }}
+	open={changelog.open}
+	title={changelog.title}
+	content={changelog.content}
+	onclose={changelog.close}
 />

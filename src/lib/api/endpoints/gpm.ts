@@ -67,7 +67,7 @@ export async function getInstalledPlugins(): Promise<PluginInfo[]> {
  * Get a single installed plugin's details.
  */
 export async function getPlugin(slug: string): Promise<PluginInfo> {
-	return api.get<PluginInfo>(`/gpm/plugins/${slug}`);
+	return api.get<PluginInfo>(`/gpm/plugins/${encodeURIComponent(slug)}`);
 }
 
 /**
@@ -76,7 +76,7 @@ export async function getPlugin(slug: string): Promise<PluginInfo> {
  * `enabled` is one of them and the toggle will not change what the site does.
  */
 export async function setPluginEnabled(slug: string, enabled: boolean): Promise<{ shadowed: ShadowedEntry[] }> {
-	const { meta } = await api.requestRaw('PATCH', `/config/plugins/${slug}`, { body: { enabled } });
+	const { meta } = await api.requestRaw('PATCH', `/config/plugins/${encodeURIComponent(slug)}`, { body: { enabled } });
 	return { shadowed: readShadowed(meta) };
 }
 
@@ -84,7 +84,7 @@ export async function setPluginEnabled(slug: string, enabled: boolean): Promise<
  * Get a plugin's README.md content.
  */
 export async function getPluginReadme(slug: string): Promise<string> {
-	const result = await api.get<{ content: string }>(`/gpm/plugins/${slug}/readme`);
+	const result = await api.get<{ content: string }>(`/gpm/plugins/${encodeURIComponent(slug)}/readme`);
 	return result.content;
 }
 
@@ -92,7 +92,7 @@ export async function getPluginReadme(slug: string): Promise<string> {
  * Get a plugin's CHANGELOG.md content.
  */
 export async function getPluginChangelog(slug: string): Promise<string> {
-	const result = await api.get<{ content: string }>(`/gpm/plugins/${slug}/changelog`);
+	const result = await api.get<{ content: string }>(`/gpm/plugins/${encodeURIComponent(slug)}/changelog`);
 	return result.content;
 }
 
@@ -102,7 +102,7 @@ export async function getPluginChangelog(slug: string): Promise<string> {
  * API plugin ignores the flag and returns the installed CHANGELOG.md instead.
  */
 export async function getPluginAvailableChangelog(slug: string): Promise<string> {
-	const result = await api.get<{ content: string }>(`/gpm/plugins/${slug}/changelog`, { available: 'true' });
+	const result = await api.get<{ content: string }>(`/gpm/plugins/${encodeURIComponent(slug)}/changelog`, { available: 'true' });
 	return result.content;
 }
 
@@ -118,7 +118,7 @@ export async function getGravChangelog(): Promise<string> {
  * Get plugin configuration data (with ETag for concurrency).
  */
 export async function getPluginConfig(slug: string): Promise<ConfigResponse> {
-	const { data, meta, headers } = await api.requestRaw<Record<string, unknown>>('GET', `/config/plugins/${slug}`);
+	const { data, meta, headers } = await api.requestRaw<Record<string, unknown>>('GET', `/config/plugins/${encodeURIComponent(slug)}`);
 	return {
 		data,
 		etag: extractEtag(headers),
@@ -136,7 +136,7 @@ export async function savePluginConfig(
 ): Promise<{ shadowed: ShadowedEntry[] }> {
 	const headers: Record<string, string> = {};
 	if (etag) headers['If-Match'] = `"${etag}"`;
-	const { meta } = await api.requestRaw('PATCH', `/config/plugins/${slug}`, { body: config, headers });
+	const { meta } = await api.requestRaw('PATCH', `/config/plugins/${encodeURIComponent(slug)}`, { body: config, headers });
 	return { shadowed: readShadowed(meta) };
 }
 
@@ -347,7 +347,7 @@ export async function getInstalledThemes(): Promise<ThemeInfo[]> {
 }
 
 export async function getTheme(slug: string): Promise<ThemeInfo> {
-	return api.get<ThemeInfo>(`/gpm/themes/${slug}`);
+	return api.get<ThemeInfo>(`/gpm/themes/${encodeURIComponent(slug)}`);
 }
 
 /**
@@ -358,12 +358,12 @@ export async function setActiveTheme(slug: string): Promise<void> {
 }
 
 export async function getThemeReadme(slug: string): Promise<string> {
-	const result = await api.get<{ content: string }>(`/gpm/themes/${slug}/readme`);
+	const result = await api.get<{ content: string }>(`/gpm/themes/${encodeURIComponent(slug)}/readme`);
 	return result.content;
 }
 
 export async function getThemeChangelog(slug: string): Promise<string> {
-	const result = await api.get<{ content: string }>(`/gpm/themes/${slug}/changelog`);
+	const result = await api.get<{ content: string }>(`/gpm/themes/${encodeURIComponent(slug)}/changelog`);
 	return result.content;
 }
 
@@ -371,12 +371,12 @@ export async function getThemeChangelog(slug: string): Promise<string> {
  * Get what an update to an installed theme would change (see getPluginAvailableChangelog).
  */
 export async function getThemeAvailableChangelog(slug: string): Promise<string> {
-	const result = await api.get<{ content: string }>(`/gpm/themes/${slug}/changelog`, { available: 'true' });
+	const result = await api.get<{ content: string }>(`/gpm/themes/${encodeURIComponent(slug)}/changelog`, { available: 'true' });
 	return result.content;
 }
 
 export async function getThemeConfig(slug: string): Promise<ConfigResponse> {
-	const { data, meta, headers } = await api.requestRaw<Record<string, unknown>>('GET', `/config/themes/${slug}`);
+	const { data, meta, headers } = await api.requestRaw<Record<string, unknown>>('GET', `/config/themes/${encodeURIComponent(slug)}`);
 	return {
 		data,
 		etag: extractEtag(headers),
@@ -391,7 +391,7 @@ export async function saveThemeConfig(
 ): Promise<{ shadowed: ShadowedEntry[] }> {
 	const headers: Record<string, string> = {};
 	if (etag) headers['If-Match'] = `"${etag}"`;
-	const { meta } = await api.requestRaw('PATCH', `/config/themes/${slug}`, { body: config, headers });
+	const { meta } = await api.requestRaw('PATCH', `/config/themes/${encodeURIComponent(slug)}`, { body: config, headers });
 	return { shadowed: readShadowed(meta) };
 }
 

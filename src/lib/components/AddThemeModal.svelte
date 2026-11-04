@@ -6,7 +6,7 @@
 	import { toast } from 'svelte-sonner';
 	import { canWrite } from '$lib/utils/permissions';
 	import { Search, X, Palette, ExternalLink, Download, Loader2, ShoppingCart, BadgeCheck } from 'lucide-svelte';
-	import { hostname } from '$lib/utils/url';
+	import { hostname, webUrl } from '$lib/utils/url';
 	import LoadErrorState from '$lib/components/ui/LoadErrorState.svelte';
 
 	const canInstall = $derived(canWrite('gpm'));
@@ -57,15 +57,26 @@
 	const selectedTheme = $derived(
 		selectedSlug ? available.find((t) => t.slug === selectedSlug) ?? null : null,
 	);
+	// From the package's blueprint, written by its author: only an http(s)
+	// address becomes a link (a `javascript:` one would run in the admin).
+	const selectedLinks = $derived({
+		author: webUrl(selectedTheme?.author?.url),
+		homepage: webUrl(selectedTheme?.homepage),
+	});
 
 	function needsPurchase(theme: RepositoryTheme): boolean {
 		return !!theme.premium && !theme.licensed;
 	}
 
-	function openPurchase(theme: RepositoryTheme) {
-		if (theme.purchase_url) {
-			window.open(theme.purchase_url, '_blank', 'noopener');
-		}
+	// From the GPM feed (a vendor's checkout_url): only an http(s) address
+	// opens, so a `javascript:` one can't run, whatever the window flags. Without
+	// one there's no Buy button, rather than one that does nothing.
+	function purchaseHref(theme: RepositoryTheme): string | null {
+		return webUrl(theme.purchase_url);
+	}
+
+	function openPurchase(href: string) {
+		window.open(href, '_blank', 'noopener');
 	}
 
 	async function loadThemes() {
@@ -156,10 +167,13 @@
 				<div class="flex items-center gap-2">
 					{#if selectedTheme}
 						{#if needsPurchase(selectedTheme)}
-							<Button size="sm" variant="destructive" onclick={() => openPurchase(selectedTheme)}>
-								<ShoppingCart size={14} class="me-1.5" />
-								Buy
-							</Button>
+							{@const href = purchaseHref(selectedTheme)}
+							{#if href}
+								<Button size="sm" variant="destructive" onclick={() => openPurchase(href)}>
+									<ShoppingCart size={14} class="me-1.5" />
+									Buy
+								</Button>
+							{/if}
 						{:else}
 							<Button size="sm" onclick={() => handleInstall(selectedTheme.slug)} disabled={installingSlug === selectedTheme.slug || !canInstall}>
 								{#if installingSlug === selectedTheme.slug}
@@ -245,14 +259,17 @@
 
 								<!-- Install / Buy button -->
 								{#if needsPurchase(theme)}
-									<Button
-										variant="outline"
-										size="sm"
-										onclick={(e: MouseEvent) => { e.stopPropagation(); openPurchase(theme); }}
-										class="shrink-0"
-									>
-										<ShoppingCart size={12} />
-									</Button>
+									{@const href = purchaseHref(theme)}
+									{#if href}
+										<Button
+											variant="outline"
+											size="sm"
+											onclick={(e: MouseEvent) => { e.stopPropagation(); openPurchase(href); }}
+											class="shrink-0"
+										>
+											<ShoppingCart size={12} />
+										</Button>
+									{/if}
 								{:else}
 									<Button
 										variant="outline"
@@ -326,8 +343,8 @@
 										<div>
 											<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.AUTHOR')}</dt>
 											<dd class="mt-0.5 text-sm text-foreground">
-												{#if selectedTheme.author.url}
-													<a href={selectedTheme.author.url} target="_blank" rel="noopener" class="text-primary hover:underline">
+												{#if selectedLinks.author}
+													<a href={selectedLinks.author} target="_blank" rel="noopener" class="text-primary hover:underline">
 														{selectedTheme.author.name}
 														<ExternalLink size={10} class="inline" />
 													</a>
@@ -338,12 +355,12 @@
 										</div>
 									{/if}
 
-									{#if selectedTheme.homepage}
+									{#if selectedLinks.homepage}
 										<div>
 											<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.HOMEPAGE')}</dt>
 											<dd class="mt-0.5 text-sm">
-												<a href={selectedTheme.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
-													{hostname(selectedTheme.homepage)}
+												<a href={selectedLinks.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
+													{hostname(selectedLinks.homepage)}
 													<ExternalLink size={10} class="inline" />
 												</a>
 											</dd>

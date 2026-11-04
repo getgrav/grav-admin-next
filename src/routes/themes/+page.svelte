@@ -8,6 +8,7 @@
 	import { reloadIfAdminUpdated, formatChangelog } from '$lib/utils/gpm';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import MarkdownModal from '$lib/components/ui/MarkdownModal.svelte';
+	import { createTextModal } from '$lib/utils/text-modal.svelte';
 	import UpdateChangelogLink from '$lib/components/extensions/UpdateChangelogLink.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
@@ -15,7 +16,7 @@
 	import GravUpdateBanner from '$lib/components/GravUpdateBanner.svelte';
 	import { toast } from 'svelte-sonner';
 	import { Search, Palette, ExternalLink, ArrowUpCircle, Loader2, Plus, RefreshCw, BadgeCheck, Check, CornerDownRight, LayoutGrid, Table as TableIcon, Trash2, FileText, Book, Bug } from 'lucide-svelte';
-	import { hostname } from '$lib/utils/url';
+	import { hostname, webUrl } from '$lib/utils/url';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { faIconClass, parseKeywords, parseDependencies, parseCompatibility, isFirstParty, descriptionText } from '$lib/utils/gpm';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -106,40 +107,33 @@
 	const selectedTheme = $derived(
 		selectedSlug ? themes.find((t) => t.slug === selectedSlug) ?? null : null,
 	);
+	// From the package's blueprint, written by its author: only an http(s)
+	// address becomes a link (a `javascript:` one would run in the admin).
+	const selectedLinks = $derived({
+		docs: webUrl(selectedTheme?.docs),
+		bugs: webUrl(selectedTheme?.bugs),
+		author: webUrl(selectedTheme?.author?.url),
+		homepage: webUrl(selectedTheme?.homepage),
+	});
 
-	// Changelog modal
-	let changelogOpen = $state(false);
-	let changelogTitle = $state('');
-	let changelogContent = $state('');
-	let changelogLoading = $state(false);
+	// Changelog modal: the installed changelog, or what the available update changes
+	const changelog = createTextModal();
 
-	async function showChangelog(theme: ThemeInfo) {
-		changelogLoading = true;
-		changelogTitle = `${theme.name} — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`;
-		changelogContent = '';
-		changelogOpen = true;
-		try {
-			changelogContent = formatChangelog(await getThemeChangelog(theme.slug));
-		} catch {
-			changelogContent = '*Changelog not available.*';
-		} finally {
-			changelogLoading = false;
-		}
+	function showChangelog(theme: ThemeInfo) {
+		return changelog.show({
+			kind: 'changelog',
+			title: () => `${theme.name} — ${i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}`,
+			load: async () => formatChangelog(await getThemeChangelog(theme.slug)),
+		});
 	}
 
 	// What the available update changes (the changelog entries newer than the installed version)
-	async function showUpdateChangelog(theme: ThemeInfo) {
-		changelogLoading = true;
-		changelogTitle = `${theme.name} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: theme.available_version ?? '' })}`;
-		changelogContent = '';
-		changelogOpen = true;
-		try {
-			changelogContent = formatChangelog(await getThemeAvailableChangelog(theme.slug));
-		} catch {
-			changelogContent = '*Changelog not available.*';
-		} finally {
-			changelogLoading = false;
-		}
+	function showUpdateChangelog(theme: ThemeInfo) {
+		return changelog.show({
+			kind: 'update',
+			title: () => `${theme.name} — ${i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: theme.available_version ?? '' })}`,
+			load: async () => formatChangelog(await getThemeAvailableChangelog(theme.slug)),
+		});
 	}
 
 	function resolveUrl(url: string | null | undefined): string | null {
@@ -652,13 +646,13 @@
 							<button type="button" class="inline-flex items-center gap-1 hover:text-foreground" onclick={() => selectedTheme && showChangelog(selectedTheme)}>
 								<FileText size={12} /> {i18n.t('ADMIN_NEXT.PLUGINS.CHANGELOG')}
 							</button>
-							{#if selectedTheme.docs}
-								<a href={selectedTheme.docs} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
+							{#if selectedLinks.docs}
+								<a href={selectedLinks.docs} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
 									<Book size={12} /> {i18n.t('ADMIN_NEXT.DOCUMENTATION')} <ExternalLink size={10} />
 								</a>
 							{/if}
-							{#if selectedTheme.bugs}
-								<a href={selectedTheme.bugs} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
+							{#if selectedLinks.bugs}
+								<a href={selectedLinks.bugs} target="_blank" rel="noopener" class="inline-flex items-center gap-1 hover:text-foreground">
 									<Bug size={12} /> {i18n.t('ADMIN_NEXT.REPORT_ISSUE')} <ExternalLink size={10} />
 								</a>
 							{/if}
@@ -670,8 +664,8 @@
 								<div>
 									<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.AUTHOR')}</dt>
 									<dd class="mt-0.5 text-sm text-foreground">
-										{#if selectedTheme.author.url}
-											<a href={selectedTheme.author.url} target="_blank" rel="noopener" class="text-primary hover:underline">
+										{#if selectedLinks.author}
+											<a href={selectedLinks.author} target="_blank" rel="noopener" class="text-primary hover:underline">
 												{selectedTheme.author.name}
 												<ExternalLink size={10} class="inline" />
 											</a>
@@ -682,12 +676,12 @@
 								</div>
 							{/if}
 
-							{#if selectedTheme.homepage}
+							{#if selectedLinks.homepage}
 								<div>
 									<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.HOMEPAGE')}</dt>
 									<dd class="mt-0.5 text-sm">
-										<a href={selectedTheme.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
-											{hostname(selectedTheme.homepage)}
+										<a href={selectedLinks.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
+											{hostname(selectedLinks.homepage)}
 											<ExternalLink size={10} class="inline" />
 										</a>
 									</dd>
@@ -777,8 +771,8 @@
 />
 
 <MarkdownModal
-	open={changelogOpen}
-	title={changelogTitle}
-	content={changelogLoading ? 'Loading...' : changelogContent}
-	onclose={() => { changelogOpen = false; }}
+	open={changelog.open}
+	title={changelog.title}
+	content={changelog.content}
+	onclose={changelog.close}
 />

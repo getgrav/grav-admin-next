@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { Shield, Server, HardDrive, ArrowUpCircle, AlertTriangle, CheckCircle2, Loader2, FileText } from 'lucide-svelte';
+	import { Shield, Server, HardDrive, ArrowUpCircle, AlertTriangle, CheckCircle2, Loader2, FileText, Globe } from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import { getDashboardData } from '$lib/dashboard/context';
 	import { formatBytes } from '$lib/dashboard/format';
+	import { webUrl } from '$lib/utils/url';
+	import type { UpdatablePackage } from '$lib/api/endpoints/dashboard';
 
 	const data = getDashboardData();
 	const stats = $derived(data().stats);
@@ -22,6 +24,59 @@
 			: 0
 	);
 </script>
+
+<!-- One row of the outdated list. The rows share the list's columns (name,
+     links, installed version, new version), so the links and versions line up
+     from row to row whatever each name and version is. Each cell names its
+     column: the installed version is out of the flow while it's screen-reader
+     only, and must not pull the new one into its place. -->
+{#snippet packageRow(type: 'plugin' | 'theme', pkg: UpdatablePackage, homepageSlot: boolean)}
+	{@const name = pkg.name || pkg.slug}
+	{@const homepage = webUrl(pkg.homepage)}
+	{@const changesTitle = i18n.t('ADMIN_NEXT.UPDATE_CHANGELOG_TITLE', { version: pkg.available_version })}
+	<li class="col-span-full grid grid-cols-subgrid items-center">
+		<span class="col-start-1 min-w-0 truncate">{name}</span>
+		<!-- 20px targets 6px apart, rows 4px apart: centres at least 24px apart (WCAG 2.5.8).
+		     In px, not rem, like the 12px icons, so that holds at any font size. A row
+		     without a homepage keeps its place empty, so the changelog stays in line. -->
+		<span class="col-start-2 inline-flex items-center gap-[6px]">
+			{#if homepage}
+				<a href={homepage} target="_blank" rel="noopener noreferrer"
+					class="rounded p-[4px] text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+					title={homepage}
+					aria-label="{name} — {i18n.t('ADMIN_NEXT.HOMEPAGE')}"
+				>
+					<Globe size={12} />
+				</a>
+			{:else if homepageSlot}
+				<span class="inline-block size-[20px]" aria-hidden="true"></span>
+			{/if}
+			<!-- The changelog is asked for by slug: an entry without one has none to show. -->
+			{#if pkg.slug}
+				<button type="button"
+					class="cursor-pointer rounded p-[4px] text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+					title={changesTitle}
+					aria-label="{name} — {changesTitle}"
+					onclick={() => data().onShowPackageChangelog(type, pkg)}
+				>
+					<FileText size={12} />
+				</button>
+			{/if}
+		</span>
+		{#if pkg.version}
+			<!-- Shown only where the list is wide enough, but always read out by screen
+			     readers; on screen the new version's tooltip has both versions then.
+			     Ends at the arrow, so the arrows line up too. -->
+			<span class="col-start-3 sr-only inline-flex items-center gap-1 justify-self-end tabular-nums @xs:not-sr-only">
+				<span>v{pkg.version}</span>
+				<DirectionalIcon name="arrow-forward" size={10} class="text-amber-500/70" />
+			</span>
+		{/if}
+		<span class="col-start-4 font-medium tabular-nums text-amber-600/80 dark:text-amber-400/80"
+			title={pkg.version ? `v${pkg.version} → v${pkg.available_version}` : undefined}
+		>v{pkg.available_version}</span>
+	</li>
+{/snippet}
 
 <div class="flex h-full flex-col gap-3">
 	{#if updates}
@@ -89,26 +144,25 @@
 				{/if}
 
 				{#if packageCount > 0}
+					{@const shownPlugins = updatablePlugins.slice(0, 4)}
+					{@const shownThemes = updatableThemes.slice(0, Math.max(0, 4 - updatablePlugins.length))}
+					<!-- No homepage in any row: no empty place for one either. -->
+					{@const homepageSlot = [...shownPlugins, ...shownThemes].some((pkg) => webUrl(pkg.homepage))}
 					<div class="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
 						<div class="flex items-center gap-2 text-[0.8125rem] font-medium text-amber-600 dark:text-amber-400">
 							<AlertTriangle size={13} />
 							{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.PACKAGES_OUTDATED', { n: packageCount })}
 						</div>
-						<ul class="mt-2 space-y-0.5 text-[0.75rem] text-muted-foreground">
-							{#each updatablePlugins.slice(0, 4) as p}
-								<li class="flex items-center justify-between gap-2">
-									<span class="truncate">{p.name}</span>
-									<span class="shrink-0 font-medium tabular-nums text-amber-600/80 dark:text-amber-400/80">v{p.available_version}</span>
-								</li>
+						<ul class="@container mt-2 grid grid-cols-[minmax(0,1fr)_auto_auto_auto] gap-x-2 gap-y-[4px] text-[0.75rem] text-muted-foreground">
+							<!-- The index only keys an entry that arrived without a slug. -->
+							{#each shownPlugins as p, i (p.slug || i)}
+								{@render packageRow('plugin', p, homepageSlot)}
 							{/each}
-							{#each updatableThemes.slice(0, Math.max(0, 4 - updatablePlugins.length)) as t}
-								<li class="flex items-center justify-between gap-2">
-									<span class="truncate">{t.name}</span>
-									<span class="shrink-0 font-medium tabular-nums text-amber-600/80 dark:text-amber-400/80">v{t.available_version}</span>
-								</li>
+							{#each shownThemes as t, i (t.slug || i)}
+								{@render packageRow('theme', t, homepageSlot)}
 							{/each}
 							{#if packageCount > 4}
-								<li class="text-[0.6875rem] italic text-muted-foreground/70">{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.MORE_COUNT', { n: packageCount - 4 })}</li>
+								<li class="col-span-full text-[0.6875rem] italic text-muted-foreground/70">{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.MORE_COUNT', { n: packageCount - 4 })}</li>
 							{/if}
 						</ul>
 						{#if canWriteGpm}

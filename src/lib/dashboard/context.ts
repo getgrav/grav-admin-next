@@ -6,6 +6,7 @@ import type {
 	FeedItem,
 	BackupInfo,
 	UpdatesData,
+	UpdatablePackage,
 	SystemInfoOverview
 } from '$lib/api/endpoints/dashboard';
 import type { SystemInfo } from '$lib/api/endpoints/system';
@@ -30,6 +31,8 @@ export interface DashboardData {
 	onUpdateAll: () => void | Promise<void>;
 	onUpgradeGrav: () => void | Promise<void>;
 	onShowGravChangelog: () => void | Promise<void>;
+	/** Opens what the available update of an outdated plugin or theme changes. */
+	onShowPackageChangelog: (type: 'plugin' | 'theme', pkg: UpdatablePackage) => void | Promise<void>;
 	onCreateBackup: () => void | Promise<void>;
 }
 
