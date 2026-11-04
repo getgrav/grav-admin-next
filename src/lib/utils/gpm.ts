@@ -5,6 +5,8 @@
  * re-exported here so the GPM views can keep importing it from one place.
  */
 export { faIconClass } from '$lib/utils/fa-icon';
+import { i18n } from '$lib/stores/i18n.svelte';
+import { escapeHtml } from '$lib/utils/markdown';
 
 /**
  * Check if a package is from the Grav core team or Trilby Media (first-party).
@@ -150,36 +152,98 @@ export function parseCompatibility(compatibility: unknown): CompatibilityRow[] {
 }
 
 /**
- * Preprocess Grav changelog markdown into clean HTML-friendly markdown.
+ * The colour of a changelog section badge, as the Badge component draws the
+ * same states elsewhere in the admin. Anything else (`#removed`, `#security`)
+ * gets the neutral one.
+ */
+const CHANGELOG_SECTION_CLASSES: Record<string, string> = {
+	new: 'bg-primary/10 text-primary',
+	improved: 'bg-amber-500/10 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+	bugfix: 'bg-red-600/10 text-red-700 dark:bg-red-500/15 dark:text-red-300',
+};
+const CHANGELOG_SECTION_NEUTRAL = 'bg-secondary text-secondary-foreground';
+
+const CHANGELOG_SECTION_LABELS: Record<string, string> = {
+	new: 'ADMIN_NEXT.CHANGELOG.NEW',
+	improved: 'ADMIN_NEXT.CHANGELOG.IMPROVED',
+	bugfix: 'ADMIN_NEXT.CHANGELOG.BUGFIX',
+};
+
+/**
+ * Preprocess a Grav changelog into markdown that reads as one.
  *
- * Grav changelogs use a special format:
- *   1. [](#bugfix)      →  badge
- *   1. [](#new)         →  badge
- *   1. [](#improved)    →  badge
- *       * item text     →  bullet item
+ * Grav changelogs are written as
+ *
+ *     # v1.2.3
+ *     ## 11/03/2026
+ *
+ *     1. [](#new)
+ *         * item text
+ *     1. [](#bugfix)
+ *         * [security] item text
+ *
+ * The version and its date become one heading (`.changelog-version`, the date
+ * in `.changelog-date`), each `[](#type)` marker a labelled badge
+ * (`.changelog-badge`), the items a flat list, and a `[security]` prefix a
+ * small tag (`.changelog-tag`). MarkdownModal styles those classes; the colours
+ * are the admin's badge colours. The output still goes through renderMarkdown,
+ * which sanitizes it, so a changelog shipped by a third-party package can't
+ * carry markup through here.
  */
 export function formatChangelog(raw: string): string {
-	const badgeColors: Record<string, string> = {
-		new: 'background:#2563eb;color:white',
-		improved: 'background:#f59e0b;color:white',
-		bugfix: 'background:#ef4444;color:white',
-	};
-	const badgeLabels: Record<string, string> = {
-		new: 'New',
-		improved: 'Improved',
-		bugfix: 'Bugfix',
-	};
+	const lines = raw.replace(/\r\n?/g, '\n').split('\n');
+	const out: string[] = [];
+	const securityLabel = escapeHtml(i18n.t('ADMIN_NEXT.CHANGELOG.SECURITY'));
 
-	return raw
-		// Replace "1. [](#type)" lines with badge HTML
-		.replace(/^\d+\.\s*\[]\(#(\w+)\)\s*$/gm, (_match, type: string) => {
-			const color = badgeColors[type] ?? 'background:#6b7280;color:white';
-			const label = badgeLabels[type] ?? type;
-			return `<span style="${color};padding:2px 8px;border-radius:4px;font-size:0.6875rem;font-weight:600;display:inline-block;margin-top:8px">${label}</span>\n`;
-		})
-		// Convert indented "* item" to flat bullets (remove extra nesting)
-		.replace(/^ {4}\* /gm, '- ')
-		.replace(/^\t\* /gm, '- ');
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i];
+
+		const version = /^#\s+(.+?)\s*$/.exec(line);
+		if (version) {
+			// The date is the `## mm/dd/yyyy` heading right after the version.
+			let date = '';
+			let j = i + 1;
+			while (j < lines.length && lines[j].trim() === '') j++;
+			const dateMatch = j < lines.length ? /^##\s+(.+?)\s*$/.exec(lines[j]) : null;
+			if (dateMatch) {
+				date = dateMatch[1];
+				i = j;
+			}
+			out.push(
+				`<h2 class="changelog-version">${escapeHtml(version[1])}` +
+					(date ? ` <span class="changelog-date">${escapeHtml(date)}</span>` : '') +
+					'</h2>',
+				'',
+			);
+			continue;
+		}
+
+		const section = /^\d+\.\s*\[]\(#(\w+)\)\s*$/.exec(line);
+		if (section) {
+			const type = section[1].toLowerCase();
+			const labelKey = CHANGELOG_SECTION_LABELS[type];
+			const label = labelKey ? i18n.t(labelKey) : type;
+			const classes = CHANGELOG_SECTION_CLASSES[type] ?? CHANGELOG_SECTION_NEUTRAL;
+			// A blank line after it, so marked ends the HTML block before the list.
+			out.push(`<span class="changelog-badge ${classes}">${escapeHtml(label)}</span>`, '');
+			continue;
+		}
+
+		// Indented "* item" under a marker becomes a flat bullet.
+		const item = /^(?: {2,}|\t)\* (.*)$/.exec(line);
+		if (item) {
+			const text = item[1].replace(
+				/^\[security\]\s*/i,
+				`<span class="changelog-tag">${securityLabel}</span> `,
+			);
+			out.push(`- ${text}`);
+			continue;
+		}
+
+		out.push(line);
+	}
+
+	return out.join('\n');
 }
 
 /**

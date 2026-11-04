@@ -61,6 +61,64 @@
 		margin-top: 0;
 	}
 
+	/* A changelog (see formatChangelog in utils/gpm.ts): each version is a
+	   heading with its date beside it, each section a labelled badge over its
+	   list, and a security fix carries a small tag. The colours come with the
+	   badge from formatChangelog; the layout lives here. */
+	:global(.prose h2.changelog-version) {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.25rem 0.625rem;
+		margin: 1.75rem 0 0;
+		padding-top: 1.25rem;
+		border-top: 1px solid var(--color-border, hsl(240 5.9% 90%));
+		font-size: 1rem;
+		font-weight: 600;
+		line-height: 1.4;
+		font-variant-numeric: tabular-nums;
+	}
+	.markdown-content > :global(h2.changelog-version:first-child) {
+		padding-top: 0;
+		border-top: 0;
+	}
+	:global(.prose .changelog-date) {
+		font-size: 0.75rem;
+		font-weight: 400;
+		color: var(--color-muted-foreground, hsl(240 3.8% 46.1%));
+	}
+	:global(.prose .changelog-badge) {
+		display: inline-flex;
+		align-items: center;
+		margin-top: 0.875rem;
+		border-radius: 0.375rem;
+		padding: 0.125rem 0.5rem;
+		font-size: 0.6875rem;
+		font-weight: 600;
+		line-height: 1.25rem;
+	}
+	:global(.prose .changelog-badge + ul) {
+		margin-top: 0.375rem;
+	}
+	:global(.prose .changelog-badge + ul > li) {
+		margin-top: 0.25rem;
+		margin-bottom: 0.25rem;
+	}
+	:global(.prose .changelog-tag) {
+		display: inline-block;
+		margin-inline-end: 0.125rem;
+		border: 1px solid color-mix(in oklab, var(--color-destructive) 40%, transparent);
+		border-radius: 0.25rem;
+		padding: 0 0.375rem;
+		font-size: 0.625rem;
+		font-weight: 600;
+		line-height: 1rem;
+		letter-spacing: 0.02em;
+		text-transform: uppercase;
+		vertical-align: 0.1em;
+		color: var(--color-destructive);
+	}
+
 	/* Prose styling for rendered markdown */
 	:global(.prose) {
 		line-height: 1.7;
