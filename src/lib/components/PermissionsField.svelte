@@ -3,7 +3,7 @@
 	import { getPermissionsBlueprint, type PermissionAction } from '$lib/api/endpoints/blueprints';
 	import { pruneEmpty } from '$lib/utils/blueprint-validation';
 	import { toAccessRecord, type InheritedAccessMap } from '$lib/utils/user-access';
-	import { Loader2, ChevronDown, Check, Users, Crown } from 'lucide-svelte';
+	import { Loader2, ChevronDown, Check, Users, Crown, Lock } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
 	import PermissionRow from './PermissionRow.svelte';
 
@@ -11,10 +11,13 @@
 		value: Record<string, unknown>;
 		/** Read-only group-inherited permissions overlaid on the toggles. */
 		inherited?: InheritedAccessMap;
+		/** The access the account already has saved. A permission it already
+		 *  holds stays allowed even when the signed-in user can't grant it. */
+		granted?: Record<string, unknown>;
 		onchange: (value: Record<string, unknown>) => void;
 	}
 
-	let { value, inherited, onchange }: Props = $props();
+	let { value, inherited, granted, onchange }: Props = $props();
 
 	let sections = $state<PermissionAction[]>([]);
 	let loading = $state(true);
@@ -83,6 +86,31 @@
 	function childLeafKeys(dottedName: string): string[] {
 		return (findAction(dottedName)?.children ?? []).map((c) => c.name.split('.').pop() as string);
 	}
+
+	/** Whether the saved account grants `name`, directly or through a parent's
+	 *  blanket `true` (mirrors the API's check for grants that aren't new). */
+	function alreadyGranted(name: string): boolean {
+		if (!granted) return false;
+		const parts = name.split('.');
+		for (let i = parts.length; i > 0; i--) {
+			const v = getPathValue(granted, parts.slice(0, i).join('.'));
+			if (v === true) return true;
+			if (v !== undefined && (typeof v !== 'object' || v === null)) return false;
+		}
+		return false;
+	}
+
+	/** Whether the Allow toggle may be switched on for `name`. The API refuses a
+	 *  grant the signed-in user doesn't hold themselves, unless it isn't new. */
+	function canAllow(name: string): boolean {
+		return findAction(name)?.grantable !== false || alreadyGranted(name);
+	}
+
+	/** Whether any permission is out of reach — shows the explanatory note. */
+	function anyLocked(nodes: PermissionAction[]): boolean {
+		return nodes.some((n) => n.grantable === false || anyLocked(n.children ?? []));
+	}
+	const hasLocked = $derived(anyLocked(sections));
 
 	/** Whether any group-inherited permissions are present — gates the legend. */
 	const hasInherited = $derived(!!inherited && Object.keys(inherited).length > 0);
@@ -185,6 +213,12 @@
 			</div>
 		</div>
 	{/if}
+	{#if hasLocked}
+		<p class="mb-3 flex items-start gap-2 text-xs text-muted-foreground">
+			<Lock size={13} class="mt-px shrink-0" />
+			<span>{i18n.t('ADMIN_NEXT.PERMISSIONS_FIELD.LOCKED_NOTE')}</span>
+		</p>
+	{/if}
 	<div class="space-y-3">
 		{#each sections as section (section.name)}
 			<div class="overflow-hidden rounded-lg border border-border">
@@ -214,6 +248,7 @@
 							{superAdmin}
 							{apiSuper}
 							{inherited}
+							{canAllow}
 							onToggle={handleToggle}
 						/>
 					{/each}

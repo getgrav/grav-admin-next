@@ -2,7 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import type { PermissionAction } from '$lib/api/endpoints/blueprints';
 	import type { InheritedAccessMap } from '$lib/utils/user-access';
-	import { Crown, Check, Ban, Minus, Users } from 'lucide-svelte';
+	import { Crown, Check, Ban, Minus, Users, Lock } from 'lucide-svelte';
 	import Self from './PermissionRow.svelte';
 
 	interface Props {
@@ -20,11 +20,13 @@
 		 *  row ghosts the matching toggle and badges its source; it never alters
 		 *  `value`. Setting a toggle promotes it to a direct permission as usual. */
 		inherited?: InheritedAccessMap;
+		/** Whether Allow may be switched on for a permission. Defaults to yes. */
+		canAllow?: (name: string) => boolean;
 		/** Toggle setter — bubbles back up to the parent field. */
 		onToggle: (name: string, newVal: 'allowed' | 'denied' | 'unset') => void;
 	}
 
-	let { action, depth, value, superAdmin, apiSuper, inherited, onToggle }: Props = $props();
+	let { action, depth, value, superAdmin, apiSuper, inherited, canAllow, onToggle }: Props = $props();
 
 	const val = $derived.by((): 'allowed' | 'denied' | 'unset' => {
 		const parts = action.name.split('.');
@@ -52,6 +54,11 @@
 			&& action.name !== 'api.super'
 			&& action.name.startsWith('api.'))
 	);
+
+	// The signed-in user can't grant this permission (it isn't theirs), so Allow
+	// is greyed out. Once allowed it stays clickable so it can be switched off;
+	// Deny and Not set are always available.
+	const allowLocked = $derived(val !== 'allowed' && canAllow?.(action.name) === false);
 
 	// Group-inherited result for this exact permission (read-only overlay).
 	const inheritedHere = $derived(inherited?.[action.name]);
@@ -99,14 +106,23 @@
 				class="flex items-center justify-center px-2 py-1.5 transition-colors
 					{val === 'allowed'
 						? 'bg-green-500 text-white'
-						: ghostAllow
-							? 'bg-green-500/15 text-green-600 ring-1 ring-inset ring-green-500/30 dark:text-green-400'
-							: 'text-muted-foreground hover:bg-muted'}"
-				title={ghostAllow ? inheritedTooltip : i18n.t('ADMIN_NEXT.ALLOWED')}
+						: allowLocked
+							? 'cursor-not-allowed bg-muted/40 text-muted-foreground/60'
+							: ghostAllow
+								? 'bg-green-500/15 text-green-600 ring-1 ring-inset ring-green-500/30 dark:text-green-400'
+								: 'text-muted-foreground hover:bg-muted'}"
+				title={allowLocked
+					? i18n.t('ADMIN_NEXT.PERMISSIONS_FIELD.NOT_GRANTABLE')
+					: ghostAllow ? inheritedTooltip : i18n.t('ADMIN_NEXT.ALLOWED')}
 				aria-label={i18n.t('ADMIN_NEXT.ALLOWED')}
+				disabled={allowLocked}
 				onclick={() => onToggle(action.name, val === 'allowed' ? 'unset' : 'allowed')}
 			>
-				<Check size={14} />
+				{#if allowLocked}
+					<Lock size={14} />
+				{:else}
+					<Check size={14} />
+				{/if}
 			</button>
 			<button
 				type="button"
@@ -145,6 +161,7 @@
 			{superAdmin}
 			{apiSuper}
 			{inherited}
+			{canAllow}
 			{onToggle}
 		/>
 	{/each}

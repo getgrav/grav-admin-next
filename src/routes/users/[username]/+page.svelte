@@ -89,6 +89,9 @@
 	// Permissions handled separately
 	let access = $state<Record<string, unknown>>({});
 	let originalAccessJson = $state('{}');
+	// The access as saved, so permissions the account already has stay
+	// allowed even when you can't grant them yourself.
+	let savedAccess = $state<Record<string, unknown>>({});
 
 	// All groups (for resolving the read-only inheritance overlay). The overlay
 	// reacts to the live `groups` membership field, so editing membership in the
@@ -232,6 +235,7 @@
 
 		access = structuredClone(toAccessRecord(u.access));
 		originalAccessJson = stableJson(access);
+		savedAccess = $state.snapshot(access);
 	}
 
 	async function loadUser() {
@@ -412,6 +416,10 @@
 			delete body.state;
 			// `groups` is super-admin-only server-side; sending the
 			// (unchanged) value would 403 a non-super self-edit.
+			delete body.groups;
+		} else if (!auth.isSuperAdmin) {
+			// A user manager who isn't a super admin can't change `groups`
+			// either, and the API refuses the whole save when it's sent.
 			delete body.groups;
 		}
 		const keptEmail = typedEmail;
@@ -811,7 +819,7 @@
 					<div class="rounded-xl border border-border bg-card p-5">
 						<h2 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.USERS.PERMISSIONS')}</h2>
 						<div class="mt-4">
-							<PermissionsField value={access} inherited={inheritedAccess} onchange={handleAccessChange} />
+							<PermissionsField value={access} inherited={inheritedAccess} granted={savedAccess} onchange={handleAccessChange} />
 						</div>
 					</div>
 				{/if}

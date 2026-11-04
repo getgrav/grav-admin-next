@@ -282,6 +282,10 @@ export async function getAccountsConfigBlueprint(): Promise<BlueprintSchema> {
 export interface PermissionAction {
 	name: string;
 	label: string;
+	/** Whether the signed-in user may grant this permission (API 1.1.12+).
+	 *  A non-super user manager can only grant what their own account holds.
+	 *  Absent on older API versions, where everything counts as grantable. */
+	grantable?: boolean;
 	children?: PermissionAction[];
 }
 
