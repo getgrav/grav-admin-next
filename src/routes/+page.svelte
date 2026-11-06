@@ -33,6 +33,7 @@
 	import EditModeToolbar from '$lib/components/dashboard/EditModeToolbar.svelte';
 	import WidgetPicker from '$lib/components/dashboard/WidgetPicker.svelte';
 	import TopBanner from '$lib/components/dashboard/TopBanner.svelte';
+	import PromoBanner from '$lib/components/dashboard/PromoBanner.svelte';
 	import SecurityHealthBanner from '$lib/components/dashboard/SecurityHealthBanner.svelte';
 	import type { ProbeResult } from '$lib/api/security-probes';
 	import { checkSensitiveFileExposure } from '$lib/api/endpoints/security';
@@ -46,6 +47,7 @@
 	let systemInfo = $state<SystemInfo | null>(null);
 	let notifications = $state<Notification[]>([]);
 	let topNotifications = $state<Notification[]>([]);
+	let bannerNotifications = $state<Notification[]>([]);
 	let recentPages = $state<PageSummary[]>([]);
 	let popularity = $state<PopularityData | null>(null);
 	let feed = $state<FeedItem[]>([]);
@@ -142,6 +144,7 @@
 		notifications: (force: boolean) => getDashboardNotifications(force).then((v) => {
 			notifications = v.dashboard;
 			topNotifications = v.top;
+			bannerNotifications = v.banner;
 		}),
 		recentPages: () => getRecentPages(8, { editable: onlyEditablePages() }).then((v) => { recentPages = v; }),
 		popularity: () => getPopularity().then((v) => { popularity = v; }),
@@ -451,7 +454,11 @@
 				{editMode}
 				onChange={(next) => widgets = next}
 				onAddClick={() => pickerOpen = true}
-			/>
+			>
+				{#snippet afterStats()}
+					<PromoBanner slides={bannerNotifications} />
+				{/snippet}
+			</DashboardGrid>
 		</div>
 
 		<WidgetPicker {widgets} bind:open={pickerOpen} onAdd={addWidget} />

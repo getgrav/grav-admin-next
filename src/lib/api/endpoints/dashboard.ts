@@ -22,6 +22,11 @@ export interface Notification {
 	 * when the widget is narrow.
 	 */
 	layout?: 'full' | 'half' | 'joined' | string;
+	/**
+	 * The dashboard banner's overlay on the accent gradient: `waves`,
+	 * `sparkle`, `rings` or `dots`. Each accent has a default.
+	 */
+	pattern?: 'waves' | 'sparkle' | 'rings' | 'dots' | string;
 	/** Height of `image` in pixels, 20 to 48. The default is 28. */
 	image_height?: number;
 	action?: NotificationAction;
@@ -48,6 +53,7 @@ interface NotificationsResponse {
 		feed: Notification[];
 		dashboard: Notification[];
 		'dashboard-row'?: Notification[];
+		'dashboard-banner'?: Notification[];
 		top: Notification[];
 	};
 	last_checked: string;
@@ -58,6 +64,8 @@ export interface DashboardNotifications {
 	dashboard: Notification[];
 	/** The banner above the widgets. */
 	top: Notification[];
+	/** The promo carousel under the stats row. */
+	banner: Notification[];
 }
 
 /**
@@ -77,6 +85,9 @@ export async function getDashboardNotifications(force = false): Promise<Dashboar
 			...(data.notifications?.feed ?? []),
 		],
 		top: data.notifications?.top ?? [],
+		// `dashboard-banner` is its own location, so admins older than the
+		// carousel never see these promos.
+		banner: data.notifications?.['dashboard-banner'] ?? [],
 	};
 }
 

@@ -3,17 +3,21 @@
 	import WidgetHost from './WidgetHost.svelte';
 	import { GripVertical, EyeOff, Plus } from 'lucide-svelte';
 	import type { ResolvedWidget, WidgetSize } from '$lib/dashboard/types';
+	import type { Snippet } from 'svelte';
 
 	let {
 		widgets,
 		editMode = false,
 		onChange,
 		onAddClick,
+		afterStats,
 	}: {
 		widgets: ResolvedWidget[];
 		editMode?: boolean;
 		onChange?: (next: ResolvedWidget[]) => void;
 		onAddClick?: () => void;
+		/** A full-width row drawn after the stats widget, or first when it's hidden. Left out in edit mode. */
+		afterStats?: Snippet;
 	} = $props();
 
 	function spanClass(size: WidgetSize): string {
@@ -27,6 +31,7 @@
 	}
 
 	const visibleWidgets = $derived(widgets.filter(w => w.visible));
+	const statsShown = $derived(visibleWidgets.some((w) => w.id === 'core.stats'));
 
 	let dragId = $state<string | null>(null);
 	let dropTargetId = $state<string | null>(null);
@@ -79,6 +84,9 @@
 </script>
 
 <div class="grid grid-cols-2 gap-5 lg:grid-cols-4 auto-rows-min">
+	{#if afterStats && !editMode && !statsShown}
+		<div class="col-span-2 empty:hidden lg:col-span-4">{@render afterStats()}</div>
+	{/if}
 	{#each visibleWidgets as widget (widget.id)}
 		<div
 			class="{spanClass(widget.size)} relative {editMode ? 'cursor-grab' : ''} {dragId === widget.id ? 'opacity-40' : ''} {dropTargetId === widget.id ? 'ring-2 ring-primary ring-offset-2 ring-offset-background rounded-lg' : ''}"
@@ -120,6 +128,9 @@
 
 			<WidgetHost {widget} />
 		</div>
+		{#if afterStats && !editMode && widget.id === 'core.stats'}
+			<div class="col-span-2 empty:hidden lg:col-span-4">{@render afterStats()}</div>
+		{/if}
 	{/each}
 
 	{#if editMode && onAddClick}
