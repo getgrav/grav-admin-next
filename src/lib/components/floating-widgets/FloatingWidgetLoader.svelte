@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { faIconClass } from '$lib/utils/fa-icon';
-	import { auth } from '$lib/stores/auth.svelte';
-	import { api } from '$lib/api/client';
+	import { loadPluginModule, syncPluginGlobals } from '$lib/utils/plugin-modules';
 	import { floatingWidgetStore } from '$lib/stores/floatingWidgets.svelte';
 	import type { FloatingWidget } from '$lib/api/endpoints/floatingWidgets';
 	import { page } from '$app/state';
@@ -29,12 +28,6 @@
 	let openWidgets = $state<Record<string, boolean>>({});
 	let widgetContainers = $state<Record<string, HTMLDivElement | null>>({});
 	let loadedScripts = $state<Record<string, boolean>>({});
-
-	const loadingPromises: Record<string, Promise<void> | undefined> = ((window as any).__GRAV_WIDGET_LOADING ??= {});
-
-	function getScriptPath(slug: string): string {
-		return `/gpm/plugins/${slug}/widget-script`;
-	}
 
 	// Track closing animation state
 	let closingWidgets = $state<Record<string, boolean>>({});
@@ -73,43 +66,9 @@
 	}
 
 	async function loadWidgetScript(widgetId: string, slug: string) {
-		const tagName = `grav-${slug}--widget`;
-
-		if (customElements.get(tagName)) {
-			loadedScripts[widgetId] = true;
-			mountWidget(widgetId, slug);
-			return;
-		}
-
-		if (loadingPromises[tagName]) {
-			try {
-				await loadingPromises[tagName];
-				loadedScripts[widgetId] = true;
-				mountWidget(widgetId, slug);
-			} catch {
-				console.error(`[FloatingWidget] Failed to load ${slug}`);
-			}
-			return;
-		}
-
-		loadingPromises[tagName] = (async () => {
-			const code = await api.fetchScript(getScriptPath(slug));
-
-			window.__GRAV_API_SERVER_URL = auth.serverUrl;
-			window.__GRAV_API_PREFIX = auth.apiPrefix || '/api/v1';
-			window.__GRAV_API_TOKEN = auth.accessToken;
-
-			const blob = new Blob([
-				`window.__GRAV_WIDGET_TAG = ${JSON.stringify(tagName)};\n${code}`
-			], { type: 'application/javascript' });
-			const blobUrl = URL.createObjectURL(blob);
-			await import(/* @vite-ignore */ blobUrl);
-			URL.revokeObjectURL(blobUrl);
-			await customElements.whenDefined(tagName);
-		})();
-
+		const version = floatingWidgetStore.items.find((w) => w.id === widgetId)?.v;
 		try {
-			await loadingPromises[tagName];
+			await loadPluginModule({ type: 'widget', slug, tag: `grav-${slug}--widget`, version });
 			loadedScripts[widgetId] = true;
 			mountWidget(widgetId, slug);
 		} catch (err) {
@@ -184,9 +143,7 @@
 	// Keep the auth token global in sync with the auth store so widget scripts
 	// always see the current token (tokens can refresh while the widget is loaded).
 	$effect(() => {
-		window.__GRAV_API_SERVER_URL = auth.serverUrl;
-		window.__GRAV_API_PREFIX = auth.apiPrefix || '/api/v1';
-		window.__GRAV_API_TOKEN = auth.accessToken;
+		syncPluginGlobals();
 	});
 </script>
 

@@ -239,6 +239,8 @@ export interface ReportItem {
 	message: string;
 	meta?: Record<string, unknown>;
 	items: Record<string, unknown>[];
+	/** Version of the report's module (its mtime-size), for its module URL. API 1.1.14+. */
+	v?: string | null;
 }
 
 export async function getReports(): Promise<ReportItem[]> {

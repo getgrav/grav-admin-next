@@ -128,6 +128,9 @@
 
 		const loading = new Promise<void>((resolve, reject) => {
 			const el = document.createElement('script');
+			// The page's nonce, so a strict Content-Security-Policy runs it
+			// (admin2#212). Empty when admin2.php didn't set one.
+			el.nonce = window.__GRAV_CSP_NONCE__ ?? '';
 			el.src = src;
 			el.async = true;
 			el.defer = true;

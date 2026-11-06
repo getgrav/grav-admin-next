@@ -557,7 +557,7 @@
 						errors={validationErrors}
 					/>
 				{:else if definition.page_type === 'component'}
-					<PluginPageComponent slug={slug} path={subPath} search={page.url.search} onstate={handleComponentState} />
+					<PluginPageComponent slug={slug} path={subPath} search={page.url.search} version={definition?.v} onstate={handleComponentState} />
 				{:else}
 					<div class="rounded-xl border border-dashed border-border p-8 text-center">
 						<p class="text-sm text-muted-foreground">

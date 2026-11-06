@@ -28,6 +28,8 @@ export interface PluginPageDefinition {
 	save_endpoint?: string;
 	actions?: PluginPageAction[];
 	has_custom_component?: boolean;
+	/** Version of the page module (its mtime-size), for its module URL. API 1.1.14+. */
+	v?: string | null;
 	/**
 	 * A hash route inside a page where the plugin's settings live. When it is
 	 * set, `/plugins/<slug>` redirects to `/plugin/<slug><settings_route>`.

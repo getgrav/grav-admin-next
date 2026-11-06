@@ -9,6 +9,8 @@ export interface WidgetDef {
 	sizes: WidgetSize[];
 	defaultSize: WidgetSize;
 	scriptUrl?: string;
+	/** Version of the widget module behind `scriptUrl` (its mtime-size). API 1.1.14+. */
+	v?: string | null;
 	dataEndpoint?: string;
 	priority?: number;
 }

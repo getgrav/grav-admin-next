@@ -25,6 +25,8 @@ export interface FloatingWidget {
 	height?: number;
 	/** If false, admin-next doesn't render a header — the widget provides its own chrome. Defaults to true. */
 	useStandardHeader?: boolean;
+	/** Version of the widget module (its mtime-size), for its module URL. API 1.1.14+. */
+	v?: string | null;
 }
 
 export async function getFloatingWidgets(): Promise<FloatingWidget[]> {

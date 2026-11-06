@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import type { ReportItem } from '$lib/api/endpoints/tools';
-	import { auth } from '$lib/stores/auth.svelte';
-	import { api } from '$lib/api/client';
+	import { loadPluginModule } from '$lib/utils/plugin-modules';
 	import { onMount } from 'svelte';
 
 	interface Props {
@@ -18,59 +17,18 @@
 	// Web component tag name: grav-{pluginSlug}--{reportId}
 	const tagName = `grav-${report.provider}--${report.component}`;
 
-	// Global loading lock — prevents multiple instances from loading the same script
-	const loadingPromises: Record<string, Promise<void> | undefined> = ((window as any).__GRAV_REPORT_LOADING ??= {});
-
-	function getScriptPath(): string {
-		return `/gpm/plugins/${report.provider}/report-script/${report.component}`;
-	}
-
 	async function loadComponent() {
-		// If the custom element is already defined, just mount
-		if (customElements.get(tagName)) {
-			loaded = true;
-			mountElement();
-			return;
-		}
-
-		// If another instance is already loading this tag, wait for it
-		if (loadingPromises[tagName]) {
-			try {
-				await loadingPromises[tagName];
-				loaded = true;
-				mountElement();
-			} catch {
-				error = `Failed to load report component "${report.component}"`;
-			}
-			return;
-		}
-
-		// First instance — load the script
-		loadingPromises[tagName] = (async () => {
-			const code = await api.fetchScript(getScriptPath());
-
-			// Expose auth context as globals for web component API calls
-			window.__GRAV_API_SERVER_URL = auth.serverUrl;
-			window.__GRAV_API_PREFIX = auth.apiPrefix || '/api/v1';
-			window.__GRAV_API_TOKEN = auth.accessToken;
-
-			// Execute the module — it calls customElements.define(TAG, ...)
-			const blob = new Blob([
-				`window.__GRAV_REPORT_TAG = ${JSON.stringify(tagName)};\n${code}`
-			], { type: 'application/javascript' });
-			const blobUrl = URL.createObjectURL(blob);
-			await import(/* @vite-ignore */ blobUrl);
-			URL.revokeObjectURL(blobUrl);
-			await customElements.whenDefined(tagName);
-		})();
-
 		try {
-			await loadingPromises[tagName];
+			await loadPluginModule({
+				type: 'report',
+				slug: report.provider,
+				name: report.component ?? undefined,
+				tag: tagName,
+				version: report.v,
+			});
 			loaded = true;
 			mountElement();
 		} catch (err) {
-			// Clear cached promise so a retry (e.g. re-navigation) can try again
-			delete loadingPromises[tagName];
 			console.error(`[ReportComponent] Failed to load ${report.provider}/${report.component}:`, err);
 			error = `Failed to load report component "${report.component}"`;
 		}

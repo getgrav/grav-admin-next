@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { auth } from '$lib/stores/auth.svelte';
-	import { api } from '$lib/api/client';
+	import { loadPluginModule } from '$lib/utils/plugin-modules';
 	import { onMount } from 'svelte';
 
 	interface Props {
@@ -18,9 +17,11 @@
 		path?: string;
 		/** Current query string, e.g. `?view=orders` */
 		search?: string;
+		/** The page module's version (`v` from the page definition). */
+		version?: string | null;
 	}
 
-	let { slug, onstate, path = '', search = '' }: Props = $props();
+	let { slug, onstate, path = '', search = '', version = null }: Props = $props();
 
 	let containerEl = $state<HTMLDivElement | null>(null);
 	let loaded = $state(false);
@@ -28,48 +29,9 @@
 
 	const tagName = `grav-${slug}--page`;
 
-	const loadingPromises: Record<string, Promise<void> | undefined> = ((window as any).__GRAV_PAGE_LOADING ??= {});
-
-	function getScriptPath(): string {
-		return `/gpm/plugins/${slug}/page-script`;
-	}
-
 	async function loadComponent() {
-		if (customElements.get(tagName)) {
-			loaded = true;
-			mountElement();
-			return;
-		}
-
-		if (loadingPromises[tagName]) {
-			try {
-				await loadingPromises[tagName];
-				loaded = true;
-				mountElement();
-			} catch {
-				error = `Failed to load page component for "${slug}"`;
-			}
-			return;
-		}
-
-		loadingPromises[tagName] = (async () => {
-			const code = await api.fetchScript(getScriptPath());
-
-			window.__GRAV_API_SERVER_URL = auth.serverUrl;
-			window.__GRAV_API_PREFIX = auth.apiPrefix || '/api/v1';
-			window.__GRAV_API_TOKEN = auth.accessToken;
-
-			const blob = new Blob([
-				`window.__GRAV_PAGE_TAG = ${JSON.stringify(tagName)};\n${code}`
-			], { type: 'application/javascript' });
-			const blobUrl = URL.createObjectURL(blob);
-			await import(/* @vite-ignore */ blobUrl);
-			URL.revokeObjectURL(blobUrl);
-			await customElements.whenDefined(tagName);
-		})();
-
 		try {
-			await loadingPromises[tagName];
+			await loadPluginModule({ type: 'page', slug, tag: tagName, version });
 			loaded = true;
 			mountElement();
 		} catch (err) {

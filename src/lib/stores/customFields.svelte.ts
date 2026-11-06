@@ -15,6 +15,8 @@ export type ProviderKind = 'plugins' | 'themes';
 export interface FieldProvider {
 	slug: string;
 	kind: ProviderKind;
+	/** Version of the field's module (its mtime-size), for its module URL. */
+	v?: string | null;
 }
 
 /** Map of field type name → provider that supplies it */
@@ -28,9 +30,17 @@ export const customFieldRegistry = {
 	 * Called when a detail response includes custom_fields, or at boot from
 	 * the aggregate `/custom-fields` map.
 	 */
-	register(slug: string, fieldTypes: Record<string, string>, kind: ProviderKind = 'plugins') {
+	register(
+		slug: string,
+		fieldTypes: Record<string, string>,
+		kind: ProviderKind = 'plugins',
+		versions: Record<string, string | null | undefined> = {},
+	) {
 		for (const fieldType of Object.keys(fieldTypes)) {
-			registry[fieldType] = { slug, kind };
+			// A detail page registers without versions; keep the one boot gave.
+			const known = registry[fieldType];
+			const v = versions[fieldType] ?? (known?.slug === slug && known.kind === kind ? known.v : undefined);
+			registry[fieldType] = { slug, kind, v };
 		}
 		registry = { ...registry }; // trigger reactivity
 	},

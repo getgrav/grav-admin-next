@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { api } from '$lib/api/client';
-	import { auth } from '$lib/stores/auth.svelte';
+	import { loadPluginModule, syncPluginGlobals } from '$lib/utils/plugin-modules';
 	import { contextPanelStore } from '$lib/stores/contextPanels.svelte';
 
 	const DEFAULT_WIDTH = 420;
@@ -11,13 +10,6 @@
 	let mountedEl: HTMLElement | null = null;
 	let closing = $state(false);
 	let dynamicWidth = $state<number | null>(null);
-
-	const loadingPromises: Record<string, Promise<void> | undefined> =
-		((window as any).__GRAV_PANEL_LOADING ??= {});
-
-	function getScriptPath(slug: string): string {
-		return `/gpm/plugins/${slug}/panel-script`;
-	}
 
 	function getTagName(slug: string): string {
 		return `grav-${slug}--panel`;
@@ -40,44 +32,9 @@
 	}
 
 	async function loadScript(panelId: string, slug: string) {
-		const tagName = getTagName(slug);
-
-		if (customElements.get(tagName)) {
-			loadedScripts[panelId] = true;
-			mount(slug);
-			return;
-		}
-
-		if (loadingPromises[tagName]) {
-			try {
-				await loadingPromises[tagName];
-				loadedScripts[panelId] = true;
-				mount(slug);
-			} catch {
-				console.error(`[ContextPanel] Failed to load ${slug}`);
-			}
-			return;
-		}
-
-		loadingPromises[tagName] = (async () => {
-			const code = await api.fetchScript(getScriptPath(slug));
-
-			window.__GRAV_API_SERVER_URL = auth.serverUrl;
-			window.__GRAV_API_PREFIX = auth.apiPrefix || '/api/v1';
-			window.__GRAV_API_TOKEN = auth.accessToken;
-
-			const blob = new Blob(
-				[`window.__GRAV_PANEL_TAG = ${JSON.stringify(tagName)};\n${code}`],
-				{ type: 'application/javascript' }
-			);
-			const blobUrl = URL.createObjectURL(blob);
-			await import(/* @vite-ignore */ blobUrl);
-			URL.revokeObjectURL(blobUrl);
-			await customElements.whenDefined(tagName);
-		})();
-
+		const version = contextPanelStore.getPanel(panelId)?.v;
 		try {
-			await loadingPromises[tagName];
+			await loadPluginModule({ type: 'panel', slug, tag: getTagName(slug), version });
 			loadedScripts[panelId] = true;
 			mount(slug);
 		} catch (err) {
@@ -156,9 +113,7 @@
 
 	// Keep auth tokens in sync
 	$effect(() => {
-		window.__GRAV_API_SERVER_URL = auth.serverUrl;
-		window.__GRAV_API_PREFIX = auth.apiPrefix || '/api/v1';
-		window.__GRAV_API_TOKEN = auth.accessToken;
+		syncPluginGlobals();
 	});
 </script>
 

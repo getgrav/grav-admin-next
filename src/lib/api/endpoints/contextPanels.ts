@@ -13,6 +13,8 @@ export interface ContextPanel {
 	width?: number;
 	/** API path returning { count: N } for badge display. Called with ?route=...&lang=... */
 	badgeEndpoint?: string;
+	/** Version of the panel module (its mtime-size), for its module URL. API 1.1.14+. */
+	v?: string | null;
 }
 
 export async function getContextPanels(): Promise<ContextPanel[]> {

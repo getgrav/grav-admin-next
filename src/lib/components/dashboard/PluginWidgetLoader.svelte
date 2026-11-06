@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { auth } from '$lib/stores/auth.svelte';
 	import { api } from '$lib/api/client';
+	import { loadPluginModule, syncPluginGlobals, widgetScriptModule } from '$lib/utils/plugin-modules';
 	import { Loader2, AlertTriangle } from 'lucide-svelte';
 	import type { ResolvedWidget } from '$lib/dashboard/types';
 
@@ -22,10 +22,20 @@
 
 	async function ensureLoaded(w: ResolvedWidget): Promise<void> {
 		const tag = tagName(w);
-		if (customElements.get(tag)) return;
-
 		if (!w.scriptUrl) throw new Error(`Plugin widget ${w.id} has no scriptUrl`);
 
+		// Every plugin registers its own widget script; that one is imported as
+		// a same-origin module.
+		const module = widgetScriptModule(w.scriptUrl);
+		if (module) {
+			await loadPluginModule({ type: 'widget', slug: module.slug, tag, version: w.v });
+			return;
+		}
+
+		// Any other scriptUrl is fetched and run from a blob: URL as before. A
+		// strict Content-Security-Policy may block that.
+		syncPluginGlobals();
+		if (customElements.get(tag)) return;
 		if (loadingPromises[tag]) {
 			await loadingPromises[tag];
 			return;
@@ -33,11 +43,6 @@
 
 		loadingPromises[tag] = (async () => {
 			const code = await api.fetchScript(w.scriptUrl!);
-
-			(window as any).__GRAV_API_SERVER_URL = auth.serverUrl;
-			(window as any).__GRAV_API_PREFIX = auth.apiPrefix || '/api/v1';
-			(window as any).__GRAV_API_TOKEN = auth.accessToken;
-
 			const blob = new Blob([
 				`window.__GRAV_WIDGET_TAG = ${JSON.stringify(tag)};\n${code}`,
 			], { type: 'application/javascript' });
@@ -85,9 +90,7 @@
 
 	// Keep token globals fresh in case the plugin widget reads them on demand
 	$effect(() => {
-		(window as any).__GRAV_API_SERVER_URL = auth.serverUrl;
-		(window as any).__GRAV_API_PREFIX = auth.apiPrefix || '/api/v1';
-		(window as any).__GRAV_API_TOKEN = auth.accessToken;
+		syncPluginGlobals();
 	});
 </script>
 

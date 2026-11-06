@@ -335,7 +335,7 @@
 	$effect(() => {
 		if (auth.isAuthenticated && !customFieldsLoaded) {
 			customFieldsLoaded = true;
-			type CustomFieldMap = Record<string, string | { slug: string; kind: 'plugins' | 'themes' }>;
+			type CustomFieldMap = Record<string, string | { slug: string; kind: 'plugins' | 'themes'; v?: string | null }>;
 			// Taken from the boot request when it has them.
 			takeBootPart<CustomFieldMap>('custom_fields')
 				.then(async (boot) => {
@@ -350,7 +350,8 @@
 						for (const [fieldType, provider] of Object.entries(data)) {
 							const slug = typeof provider === 'string' ? provider : provider.slug;
 							const kind = typeof provider === 'string' ? 'plugins' : provider.kind;
-							customFieldRegistry.register(slug, { [fieldType]: fieldType }, kind);
+							const v = typeof provider === 'string' ? undefined : provider.v;
+							customFieldRegistry.register(slug, { [fieldType]: fieldType }, kind, { [fieldType]: v });
 						}
 					}
 				})

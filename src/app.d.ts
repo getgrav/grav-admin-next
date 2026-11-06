@@ -16,6 +16,11 @@ declare global {
 		__GRAV_API_SERVER_URL: string;
 		__GRAV_API_PREFIX: string;
 		__GRAV_API_TOKEN: string | null;
+		/**
+		 * The nonce admin2.php put on the page's scripts. Set it as `.nonce` on a
+		 * `<script>` element you add, so a strict Content-Security-Policy runs it.
+		 */
+		__GRAV_CSP_NONCE__?: string;
 		/** The environment picker's selection, `default` for base config; sent as X-Grav-Environment and X-Config-Environment on a plugin's own API calls. */
 		__GRAV_ENVIRONMENT: string;
 		__GRAV_PAGE_ROUTE: string;
@@ -49,12 +54,8 @@ declare global {
 		/** Set once the root layout mounts; the boot-chunk recovery in app.html stops reloading. */
 		__GRAV_BOOTED__?: boolean;
 		__GRAV_CONTENT_LANG: string;
-		__GRAV_PAGE_LOADING: Record<string, Promise<void> | undefined>;
-		__GRAV_FIELD_LOADING: Record<string, Promise<void> | undefined>;
 		__GRAV_PANEL_TAG: string;
-		__GRAV_PANEL_LOADING: Record<string, Promise<void> | undefined>;
 		__GRAV_MODAL_TAG: string;
-		__GRAV_MODAL_LOADING: Record<string, Promise<void> | undefined>;
 		__GRAV_DIALOGS: {
 			confirm: (options: {
 				title?: string;

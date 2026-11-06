@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
-	import { auth } from '$lib/stores/auth.svelte';
-	import { api } from '$lib/api/client';
+	import { loadPluginModule, syncPluginGlobals } from '$lib/utils/plugin-modules';
 	import { Button } from '$lib/components/ui/button';
 	import FieldHelp from '$lib/components/blueprint/FieldHelp.svelte';
 	import { portal } from '$lib/utils/portal';
@@ -74,16 +73,8 @@
 	let componentLoading = $state(false);
 	let mountedModalId: number | null = null;
 
-	const loadingPromises: Record<string, Promise<void> | undefined> = ((
-		window as unknown as { __GRAV_MODAL_LOADING?: Record<string, Promise<void> | undefined> }
-	).__GRAV_MODAL_LOADING ??= {});
-
 	function tagName(o: ComponentModalOptions): string {
 		return `grav-${o.plugin}--modal-${o.component}`;
-	}
-
-	function scriptPath(o: ComponentModalOptions): string {
-		return `/gpm/plugins/${o.plugin}/modal-script/${o.component}`;
 	}
 
 	$effect(() => {
@@ -107,29 +98,14 @@
 		const tag = tagName(o);
 		componentLoading = true;
 		try {
-			if (!customElements.get(tag)) {
-				if (!loadingPromises[tag]) {
-					loadingPromises[tag] = (async () => {
-						const code = await api.fetchScript(scriptPath(o));
-						syncGlobals();
-						const blob = new Blob(
-							[`window.__GRAV_MODAL_TAG = ${JSON.stringify(tag)};\n${code}`],
-							{ type: 'application/javascript' },
-						);
-						const blobUrl = URL.createObjectURL(blob);
-						await import(/* @vite-ignore */ blobUrl);
-						URL.revokeObjectURL(blobUrl);
-						await customElements.whenDefined(tag);
-					})();
-				}
-				await loadingPromises[tag];
-			}
+			// No registry lists modals, so there is no version to pass: the
+			// module is revalidated once per page load.
+			await loadPluginModule({ type: 'modal', slug: o.plugin, name: o.component, tag });
 			// The modal may have been closed/replaced while loading.
 			if (modals.current?.id !== id) return;
 			mount(o, tag);
 		} catch (err) {
 			console.error(`[PluginModal] Failed to load ${tagName(o)}:`, err);
-			loadingPromises[tag] = undefined;
 		} finally {
 			if (modals.current?.id === id) componentLoading = false;
 		}
@@ -138,7 +114,7 @@
 	function mount(o: ComponentModalOptions, tag: string) {
 		const container = componentContainer;
 		if (!container) return;
-		syncGlobals();
+		syncPluginGlobals();
 		container.innerHTML = '';
 		const el = document.createElement(tag) as HTMLElement & Record<string, unknown>;
 		if (o.props) {
@@ -150,12 +126,6 @@
 		el.addEventListener('cancel', () => modals.cancel());
 		el.addEventListener('close', () => modals.cancel());
 		container.appendChild(el);
-	}
-
-	function syncGlobals() {
-		window.__GRAV_API_SERVER_URL = auth.serverUrl;
-		window.__GRAV_API_PREFIX = auth.apiPrefix || '/api/v1';
-		window.__GRAV_API_TOKEN = auth.accessToken;
 	}
 
 	// ── Shared dismissal ─────────────────────────────────────────────
