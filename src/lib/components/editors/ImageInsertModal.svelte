@@ -2,7 +2,7 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { portal } from '$lib/utils/portal';
 	import { X } from 'lucide-svelte';
-	import { mdDestination, mediaMarkdown, type MediaItem } from '$lib/api/endpoints/media';
+	import { mdDestination, mediaDestination, mediaMarkdown, type MediaItem } from '$lib/api/endpoints/media';
 	import MediaSourceTabs from '$lib/components/media/MediaSourceTabs.svelte';
 	import type { MediaSelection } from '$lib/components/media/types';
 
@@ -25,7 +25,7 @@
 		oninsert(
 			sel.source === 'page' && sel.item
 				? mediaMarkdown(sel.item)
-				: `![${sel.alt}](${mdDestination(sel.value)})`,
+				: `![${sel.alt}](${sel.source === 'site' ? mediaDestination(sel.value) : mdDestination(sel.value)})`,
 		);
 	}
 

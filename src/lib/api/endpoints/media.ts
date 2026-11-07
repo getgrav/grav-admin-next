@@ -1,4 +1,7 @@
 import { api, ApiRequestError } from '../client';
+import { mdDestination, mediaDestination } from '$lib/utils/md-destination';
+
+export { mdDestination, mediaDestination };
 
 export interface MediaItem {
 	filename: string;
@@ -38,25 +41,13 @@ export function siteMediaStreamPath(item: MediaItem): string {
 }
 
 /**
- * Markdown link destination for a media path. CommonMark forbids raw spaces in a
- * destination, so `![](My image.jpg)` renders as literal text on the site. Wrapping
- * it in angle brackets (`<My image.jpg>`) is the standard escape and Grav 2.0.9+
- * resolves it as page media for both images and plain links (getgrav/grav#4197,
- * getgrav/grav#4251). Space-free or already-wrapped paths pass through unchanged.
- */
-export function mdDestination(path: string): string {
-	if (!path || path.startsWith('<')) return path;
-	return /\s/.test(path) ? `<${path}>` : path;
-}
-
-/**
  * Build the markdown snippet for inserting a media item. Images become
  * `![alt](target)`; everything else a `[filename](target)` link. `target`
  * defaults to the bare filename (page-relative), matching drag-and-drop, and is
- * angle-bracket wrapped when it contains spaces.
+ * written with mediaDestination().
  */
 export function mediaMarkdown(item: MediaItem, target: string = item.filename): string {
-	const dest = mdDestination(target);
+	const dest = mediaDestination(target);
 	if (item.type.startsWith('image/')) {
 		return `![${mediaAltText(item)}](${dest})`;
 	}
