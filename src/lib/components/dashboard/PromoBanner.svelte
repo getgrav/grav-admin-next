@@ -23,8 +23,25 @@
 	let paused = $state(false);
 	let timer: ReturnType<typeof setTimeout> | null = null;
 
-	const count = $derived(slides.length);
-	const track = $derived(count > 1 ? [...slides, slides[0]] : slides);
+	// Shuffled once per load, so every promo gets its turn up front instead of
+	// the feed's first slide always leading. Kept until the set of slides
+	// changes, so a re-render doesn't reorder them mid-rotation.
+	let shuffled: { key: string; list: Notification[] } = { key: '', list: [] };
+	const ordered = $derived.by(() => {
+		const key = slides.map((s) => s.id).join('\n');
+		if (key !== shuffled.key) {
+			const list = [...slides];
+			for (let i = list.length - 1; i > 0; i--) {
+				const j = Math.floor(Math.random() * (i + 1));
+				[list[i], list[j]] = [list[j], list[i]];
+			}
+			shuffled = { key, list };
+		}
+		return shuffled.list;
+	});
+
+	const count = $derived(ordered.length);
+	const track = $derived(count > 1 ? [...ordered, ordered[0]] : ordered);
 	const active = $derived(count ? pos % count : 0);
 
 	// The track runs the other way in a right-to-left admin.
@@ -216,7 +233,7 @@
 				>
 					<DirectionalIcon name="chevron-back" size={14} />
 				</button>
-				{#each slides as slide, i (slide.id)}
+				{#each ordered as slide, i (slide.id)}
 					<button
 						type="button"
 						class="flex h-6 w-3.5 items-center justify-center"
