@@ -7,9 +7,11 @@
 		field: BlueprintField;
 		value: unknown;
 		onchange: (value: unknown) => void;
+		/** A refused save's reason for this field (e.g. a plugin that won't turn a setting on yet). */
+		error?: string;
 	}
 
-	let { field, value, onchange }: Props = $props();
+	let { field, value, onchange, error }: Props = $props();
 	const translateLabel = i18n.tMaybe;
 
 	const isBool = field.validate?.type === 'bool';
@@ -118,4 +120,7 @@
 			</button>
 		{/each}
 	</div>
+	{#if error}
+		<p class="text-xs font-medium text-destructive" data-field-error>{error}</p>
+	{/if}
 </div>

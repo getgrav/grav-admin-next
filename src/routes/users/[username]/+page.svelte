@@ -5,7 +5,9 @@
 	import { base } from '$app/paths';
 	import { setContext } from 'svelte';
 	import { provideFormCommit } from '$lib/utils/form-commit.svelte';
-	import { getUser, updateUser, deleteUser, cancelEmailChange, resendEmailChange, type UserInfo } from '$lib/api/endpoints/users';
+	import { getUser, updateUser, deleteUser, cancelEmailChange, resendEmailChange, getUserRowActions, executeUserRowAction, type UserInfo, type UserRowAction } from '$lib/api/endpoints/users';
+	import { faIconClass } from '$lib/utils/fa-icon';
+	import { canRunUserRowActions, confirmUserRowAction } from '$lib/utils/user-row-action';
 	import { emailChangeRefusal, metaMessage } from '$lib/utils/email-change';
 	import { getAllGroups, type GroupInfo } from '$lib/api/endpoints/groups';
 	import { getUserBlueprint } from '$lib/api/endpoints/blueprints';
@@ -63,6 +65,11 @@
 	const formCommit = provideFormCommit();
 
 	let user = $state<UserInfo | null>(null);
+	// Plugin-declared per-user actions (onApiUserListRowActions), the same buttons
+	// the Users list shows in each row. The server only lists the ones the caller
+	// is authorized for, and checks again when one runs.
+	let userRowActions = $state<UserRowAction[]>([]);
+	let runningRowAction = $state<string | null>(null);
 	let blueprint = $state<BlueprintSchema | null>(null);
 	let etag = $state('');
 	let loading = $state(true);
@@ -492,6 +499,57 @@
 		}
 	}
 
+	// Runs a plugin-declared action. It may save the account, so it is only
+	// offered while the form has no unsaved edits (the buttons are disabled
+	// otherwise): Save sends the whole form, and running an action underneath
+	// it would leave the form either stale or in conflict.
+	async function handleRowAction(action: UserRowAction) {
+		if (!user || runningRowAction || hasChanges) return;
+		if (!(await confirmUserRowAction(action, user))) return;
+
+		runningRowAction = action.id;
+		let done = false;
+		try {
+			const result = await executeUserRowAction(username, action.id);
+			done = true;
+			if (result.message) {
+				(result.status === 'error' ? toast.error : toast.success)(result.message);
+			}
+			if (result.url) {
+				window.open(result.url, '_blank', 'noopener');
+			}
+		} catch {
+			toast.error(i18n.t('ADMIN_NEXT.TOASTS.USER_ROW_ACTION_FAILED', { label: action.label }));
+		} finally {
+			runningRowAction = null;
+		}
+
+		// Show what the action changed. Edits made while it ran keep the old
+		// ETag, so their save still meets the conflict check instead of
+		// overwriting the account.
+		if (done && !hasChanges) {
+			refreshUser();
+		}
+	}
+
+	// Fetch the account again in place, without loadUser()'s spinner, so the
+	// form, its scroll position and the security cards stay put. The answer is
+	// dropped if the page moved to another user, or edits or a save happened
+	// while it was on its way. A failed fetch keeps the account as shown.
+	async function refreshUser() {
+		const forUser = username;
+		const etagBefore = etag;
+		try {
+			const result = await getUser(forUser);
+			if (forUser !== username || etag !== etagBefore || hasChanges || saving || autoSave.saving) return;
+			user = result.user;
+			etag = result.etag;
+			populateForm(result.user);
+		} catch {
+			// Nothing to do: the account stays as it was loaded.
+		}
+	}
+
 	function handleDelete() {
 		if (!user) return;
 		if (user.username === auth.username) {
@@ -567,6 +625,12 @@
 		username; // track
 		autoSave.reset();
 		loadUser();
+	});
+
+	onMount(() => {
+		// Tolerant of an API plugin that predates the row-actions contract, and of
+		// a caller without api.users.read: both give an empty list.
+		getUserRowActions().then((actions) => { userRowActions = actions; });
 	});
 
 	// Refetch when this user is updated elsewhere (with dirty guard).
@@ -672,6 +736,29 @@
 								<Undo2 size={14} />
 								Undo
 							</Button>
+						{/if}
+						{#if user && canRunUserRowActions(user, allGroups)}
+							{#each userRowActions as action (action.id)}
+								<!-- A disabled Button takes no pointer events, so the reason it is
+								     disabled is the wrapper's tooltip. -->
+								<span class="inline-flex" title={hasChanges ? i18n.t('ADMIN_NEXT.UNSAVED_INDICATOR.UNSAVED_CHANGES_CLICK_SAVE_TO_PERSIST') : undefined}>
+									<Button
+										variant="outline"
+										size="sm"
+										onclick={() => handleRowAction(action)}
+										disabled={runningRowAction !== null || hasChanges}
+										aria-label={action.label}
+										title={action.label}
+									>
+										{#if runningRowAction === action.id}
+											<Loader2 size={14} class="sm:me-1.5 animate-spin" />
+										{:else}
+											<i class="{faIconClass(action.icon) || 'fa-solid fa-list'} text-[0.8125rem] leading-none sm:me-1.5"></i>
+										{/if}
+										<span class="hidden sm:inline">{action.label}</span>
+									</Button>
+								</span>
+							{/each}
 						{/if}
 						{#if user && canEditUsers && !isSelf}
 							<Button

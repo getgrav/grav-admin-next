@@ -12,7 +12,8 @@
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import { toast } from 'svelte-sonner';
-	import { dialogs } from '$lib/stores/dialogs.svelte';
+	import { faIconClass } from '$lib/utils/fa-icon';
+	import { canRunUserRowActions, confirmUserRowAction } from '$lib/utils/user-row-action';
 	import {
 		Search, User, Plus, Loader2,
 		Mail, MailPlus, Shield, ShieldCheck, ShieldOff, BadgeCheck,
@@ -26,7 +27,7 @@
 	import TypeaheadFilter from '$lib/components/ui/TypeaheadFilter.svelte';
 	import { deleteUser, updateUser } from '$lib/api/endpoints/users';
 	import { getPermissionsBlueprint } from '$lib/api/endpoints/blueprints';
-	import { getAllGroups } from '$lib/api/endpoints/groups';
+	import { getAllGroups, type GroupInfo } from '$lib/api/endpoints/groups';
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { canWrite } from '$lib/utils/permissions';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -73,6 +74,9 @@
 	// Key `${username}:${actionId}` of the row action currently running, so only
 	// that one button shows a spinner.
 	let runningRowAction = $state<string | null>(null);
+	// The site's groups, so an account that is super through a group can be told
+	// apart: only a super admin can run its row actions (canRunUserRowActions).
+	let siteGroups = $state<GroupInfo[]>([]);
 	const perPage = 20;
 
 	// Filter sources for the type-ahead controls (loaded once).
@@ -164,13 +168,7 @@
 	// a toast for the message, a new-tab (noopener) open for any safe url the
 	// server returned, then a list refresh in case the action changed state.
 	async function handleRowAction(action: UserRowAction, user: UserInfo) {
-		if (action.confirm) {
-			const ok = await dialogs.confirm({
-				message: action.confirm,
-				confirmLabel: action.label,
-			});
-			if (!ok) return;
-		}
+		if (!(await confirmUserRowAction(action, user))) return;
 
 		const key = `${user.username}:${action.id}`;
 		runningRowAction = key;
@@ -208,6 +206,7 @@
 				getAllGroups(),
 			]);
 			permissionOptions = permissionFilterOptions(perms);
+			siteGroups = allGroups;
 			groupOptions = allGroups.map((g) => ({
 				value: g.groupname,
 				label: g.readableName || g.groupname,
@@ -469,6 +468,7 @@
 					detail={usersDetail}
 					columns={userColumns}
 					rowActions={userRowActions}
+					canRunRowActions={(user) => canRunUserRowActions(user, siteGroups)}
 					{togglingUsername}
 					{runningRowAction}
 					onEdit={openUserEdit}
@@ -689,6 +689,26 @@
 										<Trash2 size={14} />
 									</button>
 								{/if}
+								<!-- Plugin-declared actions (onApiUserListRowActions), icon only like the
+								     table rows' and Delete. The server lists only the ones the caller may
+								     run, and checks again when one runs. -->
+								{#each canRunUserRowActions(selectedUser, siteGroups) ? userRowActions : [] as action (action.id)}
+									{@const running = runningRowAction === `${selectedUser.username}:${action.id}`}
+									<button
+										type="button"
+										class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+										onclick={() => handleRowAction(action, selectedUser)}
+										disabled={running}
+										aria-label={action.label}
+										title={action.label}
+									>
+										{#if running}
+											<Loader2 size={14} class="animate-spin" />
+										{:else}
+											<i class="{faIconClass(action.icon) || 'fa-solid fa-list'} text-[0.8125rem] leading-none"></i>
+										{/if}
+									</button>
+								{/each}
 								<button
 									type="button"
 									class="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
