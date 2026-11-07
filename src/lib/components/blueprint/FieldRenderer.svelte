@@ -572,7 +572,7 @@
 	<DateFormatField {field} {value} onchange={committingOnchange} />
 
 {:else if field.type === 'toggle' || field.type === 'switch'}
-	<ToggleField {field} {value} onchange={committingOnchange} />
+	<ToggleField {field} {value} onchange={committingOnchange} error={fieldError} />
 
 {:else if field.type === 'checkbox'}
 	<div>

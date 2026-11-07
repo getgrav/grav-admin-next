@@ -131,7 +131,12 @@ export function flattenAccess(access: Record<string, unknown> | null | undefined
 
 /** A user is a super admin if they hold api.super (or admin-classic's admin.super). */
 export function isSuperAdmin(user: UserInfo): boolean {
-	const flat = flattenAccess(user.access);
+	return accessGrantsSuper(user.access);
+}
+
+/** Whether an access map (a user's or a group's) grants api.super or admin.super. */
+export function accessGrantsSuper(access: Record<string, unknown> | null | undefined): boolean {
+	const flat = flattenAccess(access);
 	return flat.includes('api.super') || flat.includes('admin.super');
 }
 
