@@ -29,6 +29,7 @@
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
+	import { ApiRequestError } from '$lib/api/client';
 	import {
 		Save, Loader2, AlertCircle, Trash2, BadgeCheck,
 		Puzzle, Power, PowerOff, ArrowUpCircle, CornerDownRight
@@ -284,6 +285,20 @@
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {
 				toast.error(i18n.t('ADMIN_NEXT.PLUGINS.CONFIGURATION_WAS_MODIFIED_ELSEWHERE'));
+			} else if (err instanceof ApiRequestError && err.status === 422) {
+				// A refused save names its reasons, per field where it can (a value
+				// that doesn't validate, a setting a plugin won't accept as it
+				// stands). Show them at the fields and in the toast instead of a
+				// bare "failed", as the system configuration page does.
+				const fieldErrors = err.error.errors;
+				if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+					validationErrors = fieldErrors.reduce<Record<string, string>>((acc, fe) => {
+						if (fe.field) acc[fe.field] = fe.message;
+						return acc;
+					}, { ...validationErrors });
+					scrollToFirstError();
+				}
+				toast.error(err.message || i18n.t('ADMIN_NEXT.PLUGINS.FAILED_TO_SAVE_CONFIGURATION'));
 			} else {
 				toast.error(i18n.t('ADMIN_NEXT.PLUGINS.FAILED_TO_SAVE_CONFIGURATION'));
 			}

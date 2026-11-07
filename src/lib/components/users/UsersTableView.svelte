@@ -20,6 +20,8 @@
 		columns?: UserColumn[];
 		/** Plugin-declared per-user action buttons (onApiUserListRowActions). */
 		rowActions?: UserRowAction[];
+		/** Whether this row's account takes the row actions; hidden when false. */
+		canRunRowActions?: (user: UserInfo) => boolean;
 		togglingUsername?: string | null;
 		/** Key `${username}:${actionId}` of the row action currently executing. */
 		runningRowAction?: string | null;
@@ -31,7 +33,7 @@
 		onFilterPermission?: (permission: string) => void;
 	}
 
-	let { users, canEdit, detail, columns = [], rowActions = [], togglingUsername, runningRowAction, onEdit, onDelete, onToggleState, onRowAction, onFilterPermission }: Props = $props();
+	let { users, canEdit, detail, columns = [], rowActions = [], canRunRowActions = () => true, togglingUsername, runningRowAction, onEdit, onDelete, onToggleState, onRowAction, onFilterPermission }: Props = $props();
 
 	// How many permission chips to show before collapsing into a "+N" count.
 	const MAX_CHIPS = 3;
@@ -248,7 +250,7 @@
 					{/each}
 					<td class="px-4 py-2 text-end">
 						<div class="inline-flex items-center gap-1">
-							{#each rowActions as action (action.id)}
+							{#each canRunRowActions(user) ? rowActions : [] as action (action.id)}
 								{@const running = runningRowAction === `${user.username}:${action.id}`}
 								<button
 									class="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
