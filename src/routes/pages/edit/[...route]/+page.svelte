@@ -1482,6 +1482,7 @@
 				body.header = buildHeaderPatch(
 					headerChanges,
 					(headerData.header as Record<string, unknown> | undefined) ?? {},
+					originalHeader,
 				);
 			}
 
