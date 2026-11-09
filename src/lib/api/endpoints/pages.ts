@@ -442,8 +442,15 @@ export interface PageReadOptions {
 	lang?: string;
 }
 
+/**
+ * `resource=page` tells the API the whole route is the page, so a page whose
+ * route ends like a sub-resource (`/ref/languages`, `/blog/media`) isn't read,
+ * saved or deleted as that sub-resource of its parent (admin2#213).
+ */
+const PAGE_ITSELF = 'resource=page';
+
 function pageReadParams(options?: PageReadOptions): Record<string, string> {
-	const params: Record<string, string> = {};
+	const params: Record<string, string> = { resource: 'page' };
 	if (options?.render) params.render = 'true';
 	if (options?.summary) params.summary = 'true';
 	if (options?.summary_size) params.summary_size = String(options.summary_size);
@@ -510,7 +517,7 @@ export async function getPagePreviewToken(
  */
 export async function updatePage(route: string, body: UpdatePageBody, etag?: string, lang?: string): Promise<{ page: PageDetail; etag: string }> {
 	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
-	const path = lang ? `/pages/${cleanRoute}?lang=${encodeURIComponent(lang)}` : `/pages/${cleanRoute}`;
+	const path = lang ? `/pages/${cleanRoute}?${PAGE_ITSELF}&lang=${encodeURIComponent(lang)}` : `/pages/${cleanRoute}?${PAGE_ITSELF}`;
 	const headers: Record<string, string> = {};
 	if (etag) headers['If-Match'] = `"${etag}"`;
 	const { data, headers: responseHeaders } = await api.requestWithHeaders<PageDetail>('PATCH', path, { body, headers });
@@ -523,10 +530,10 @@ export async function updatePage(route: string, body: UpdatePageBody, etag?: str
  */
 export async function deletePage(route: string, options?: { children?: boolean; lang?: string }): Promise<PageDeleteResult | undefined> {
 	const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
-	const queryParts: string[] = [];
+	const queryParts: string[] = [PAGE_ITSELF];
 	if (options?.children !== undefined) queryParts.push(`children=${options.children}`);
 	if (options?.lang) queryParts.push(`lang=${encodeURIComponent(options.lang)}`);
-	const path = queryParts.length ? `/pages/${cleanRoute}?${queryParts.join('&')}` : `/pages/${cleanRoute}`;
+	const path = `/pages/${cleanRoute}?${queryParts.join('&')}`;
 	return api.delete<PageDeleteResult | undefined>(path, undefined);
 }
 
