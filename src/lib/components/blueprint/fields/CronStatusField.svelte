@@ -6,6 +6,7 @@
 	import type { SchedulerStatus, SchedulerJob, SchedulerRunMode, SchedulerRunResult } from '$lib/api/endpoints/tools';
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
 	import { Button } from '$lib/components/ui/button';
+	import { formReadonly } from '../readonly';
 	import {
 		Play, Loader2, CheckCircle2, XCircle, AlertTriangle,
 		Activity, Webhook, Terminal, Clock, FastForward, X
@@ -27,6 +28,26 @@
 	let lastResult = $state<SchedulerRunResult | null>(null);
 
 	const overdueCount = $derived(jobs.filter((j) => j.enabled && j.overdue).length);
+
+	const readonlyCtx = formReadonly();
+
+	/**
+	 * The field's value is `scheduler.status`: job id to 'enabled' or 'disabled'. A job
+	 * with no entry is enabled, as in core and admin-classic. The switch shows the form's
+	 * value, so a change shows straight away and is written by the page's Save button.
+	 */
+	const states = $derived(
+		value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
+	);
+
+	function isEnabled(job: SchedulerJob): boolean {
+		return job.id in states ? states[job.id] !== 'disabled' : job.enabled;
+	}
+
+	function setEnabled(job: SchedulerJob, enabled: boolean) {
+		if (isEnabled(job) === enabled) return;
+		onchange({ ...states, [job.id]: enabled ? 'enabled' : 'disabled' });
+	}
 
 	async function load() {
 		loading = true;
@@ -215,6 +236,7 @@
 					</thead>
 					<tbody>
 						{#each jobs as job (job.id)}
+							{@const on = isEnabled(job)}
 							<tr class="border-b border-border last:border-0 hover:bg-muted/30">
 								<td class="px-4 py-3">
 									<span class="font-medium text-primary">{job.id}</span>
@@ -251,11 +273,22 @@
 									</div>
 								</td>
 								<td class="px-4 py-3">
-									{#if job.enabled}
-										<span class="inline-block rounded-l-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">{i18n.t('ADMIN_NEXT.ENABLED')}</span><span class="inline-block rounded-r-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.DISABLED')}</span>
-									{:else}
-										<span class="inline-block rounded-l-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.ENABLED')}</span><span class="inline-block rounded-r-md bg-destructive-solid px-2.5 py-1 text-xs font-semibold text-destructive-foreground">{i18n.t('ADMIN_NEXT.DISABLED')}</span>
-									{/if}
+									<div class="inline-flex rounded-md border border-input bg-muted/30 p-0.5" role="group" aria-label={job.id}>
+										<button
+											type="button"
+											class="rounded px-2.5 py-1 text-xs font-semibold transition-colors {on ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}"
+											aria-pressed={on}
+											disabled={readonlyCtx()}
+											onclick={() => setEnabled(job, true)}
+										>{i18n.t('ADMIN_NEXT.ENABLED')}</button>
+										<button
+											type="button"
+											class="rounded px-2.5 py-1 text-xs font-semibold transition-colors {!on ? 'bg-destructive-solid text-destructive-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}"
+											aria-pressed={!on}
+											disabled={readonlyCtx()}
+											onclick={() => setEnabled(job, false)}
+										>{i18n.t('ADMIN_NEXT.DISABLED')}</button>
+									</div>
 								</td>
 								<td class="px-4 py-3 text-end">
 									<Button
