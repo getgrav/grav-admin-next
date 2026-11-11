@@ -46,6 +46,13 @@ export interface PageSummary {
 	 * published page nobody can see. API >= 1.0.35.
 	 */
 	publish_state?: 'published' | 'unpublished' | 'scheduled' | 'expired';
+	/**
+	 * Raw route of the parent page that hides this one: an unpublished page
+	 * with `cascade_unpublish` (Grav 2.2.29+). Null when no parent does.
+	 * `published` and `publish_state` stay the page's own setting.
+	 * API >= 1.1.18.
+	 */
+	unpublished_by?: string | null;
 	visible: boolean;
 	routable: boolean;
 	date: string;

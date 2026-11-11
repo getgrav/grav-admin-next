@@ -1209,10 +1209,11 @@
 					<div class="mt-3 flex flex-wrap items-center gap-1.5">
 						<Badge variant="outline">{previewPage.template}</Badge>
 						<Badge variant={previewStatus.badgeVariant}>{previewStatus.label}</Badge>
-						{#if previewStatus.date}
+						{#if previewStatus.date || previewStatus.hiddenBy}
 							<!-- The date the page is waiting on is the point of the
-							     scheduled/expired states, so name it outright here
-							     rather than hiding it in the badge's tooltip. -->
+							     scheduled/expired states, and the parent hiding it is
+							     the point of the hidden state, so name them outright
+							     here rather than hiding them in the badge's tooltip. -->
 							<Badge variant="outline">{previewStatus.title}</Badge>
 						{/if}
 						{#if previewPage.visible}

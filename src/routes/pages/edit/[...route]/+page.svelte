@@ -20,7 +20,7 @@
 	import { toast } from 'svelte-sonner';
 	import {
 		Save, Trash2, Code, Copy as CopyIcon,
-		AlertCircle, ChevronDown, Loader2, Eye, ExternalLink, X, Undo2, Languages, Move, TriangleAlert
+		AlertCircle, ChevronDown, Loader2, Eye, EyeOff, ExternalLink, X, Undo2, Languages, Move, TriangleAlert
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import PageNavigator from '$lib/components/pages/PageNavigator.svelte';
@@ -42,6 +42,7 @@
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { createUnsavedGuard } from '$lib/utils/unsaved-guard.svelte';
 	import { pageEditUrl } from '$lib/utils/pageEditUrl';
+	import { pageStatus } from '$lib/utils/pageStatus';
 	import { deleteUndo, runDeleteUndo, pageDeleteText, displayLanguageName } from '$lib/utils/page-delete';
 	import { sanitizeSlugInput } from '$lib/utils/slug';
 	import Tabs from '$lib/components/ui/Tabs.svelte';
@@ -2214,6 +2215,17 @@
 				<span>{@html i18n.tHtml('ADMIN_NEXT.PAGES.EDIT.TEMPLATE_MISSING_NOTICE', { template: missingTemplate })}</span>
 			</div>
 		{/if}
+		{#if pageData.unpublished_by}
+			<!-- A parent page with `cascade_unpublish` is unpublished, so this page
+			     isn't live whatever its own Published setting says (Grav 2.2.29+). -->
+			<div data-page-hidden-notice class="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-300">
+				<EyeOff size={16} class="shrink-0" />
+				<span>{@html i18n.tHtml('ADMIN_NEXT.PAGES.EDIT.HIDDEN_BY_PARENT_NOTICE', { parent: pageData.unpublished_by })}</span>
+				<a href={pageEditUrl(pageData.unpublished_by)} class="shrink-0 ms-auto text-xs font-medium underline">
+					{i18n.t('ADMIN_NEXT.PAGES.EDIT.OPEN_PARENT_PAGE')}
+				</a>
+			</div>
+		{/if}
 		<div class="grid grid-cols-1 gap-4 {prefs.pageSidebarCollapsed ? 'lg:grid-cols-1' : 'lg:grid-cols-[minmax(0,1fr)_280px]'}">
 			<!-- Main content area -->
 			<div class="space-y-4">
@@ -2445,20 +2457,29 @@
 						</button>
 					</h3>
 					{#if !prefs.isEditorCardCollapsed('page-info')}
+					{@const hiddenStatus = pageData.published && pageData.unpublished_by ? pageStatus(pageData) : null}
 					<dl class="mt-3 space-y-2.5 text-[0.8125rem]">
-						<!-- Status indicators -->
+						<!-- Status indicators. A page a parent hides (cascade_unpublish)
+						     reads "Hidden" rather than a green "Yes" it can't live up to. -->
 						<div class="flex justify-between">
 							<dt class="flex items-center gap-1.5 text-muted-foreground">
-								{#if pageData.published}
+								{#if pageData.published && !hiddenStatus}
 									<span class="h-2 w-2 rounded-full bg-emerald-500"></span>
 								{:else}
 									<span class="h-2 w-2 rounded-full bg-muted-foreground/40"></span>
 								{/if}
 								{i18n.t('ADMIN_NEXT.PAGES.PUBLISHED')}
 							</dt>
-							<dd class="font-medium {pageData.published ? 'text-emerald-500' : 'text-muted-foreground'}">
-								{pageData.published ? i18n.t('ADMIN_NEXT.YES') : i18n.t('ADMIN_NEXT.NO')}
-							</dd>
+							{#if hiddenStatus}
+								<dd class="inline-flex items-center gap-1 font-medium text-muted-foreground" title={hiddenStatus.title}>
+									<EyeOff size={12} aria-hidden="true" />
+									{hiddenStatus.label}
+								</dd>
+							{:else}
+								<dd class="font-medium {pageData.published ? 'text-emerald-500' : 'text-muted-foreground'}">
+									{pageData.published ? i18n.t('ADMIN_NEXT.YES') : i18n.t('ADMIN_NEXT.NO')}
+								</dd>
+							{/if}
 						</div>
 						<div class="flex justify-between">
 							<dt class="flex items-center gap-1.5 text-muted-foreground">

@@ -1,4 +1,4 @@
-import { CircleCheck, CircleDashed, CircleOff, Clock } from 'lucide-svelte';
+import { CircleCheck, CircleDashed, CircleOff, Clock, EyeOff } from 'lucide-svelte';
 import { i18n } from '$lib/stores/i18n.svelte';
 
 /**
@@ -12,7 +12,10 @@ import { i18n } from '$lib/stores/i18n.svelte';
  * though visitors could not see the page, which is what getgrav/grav-plugin-admin#2523
  * reported.
  */
-export type PageStatusKey = 'published' | 'unpublished' | 'scheduled' | 'expired';
+export type PageStatusKey = 'published' | 'unpublished' | 'scheduled' | 'expired' | 'hidden';
+
+/** The states the API itself reports in `publish_state`. `hidden` is worked out here, from `unpublished_by`. */
+type PublishStateKey = Exclude<PageStatusKey, 'hidden'>;
 
 /** The publication fields the registry reads off a page. */
 export interface PageStatusSource {
@@ -27,6 +30,12 @@ export interface PageStatusSource {
 	publish_date?: string | null;
 	/** Date the page comes down, from `header.unpublish_date`. */
 	unpublish_date?: string | null;
+	/**
+	 * Raw route of the parent page that hides this one: a page with
+	 * `cascade_unpublish` that is itself unpublished (Grav 2.2.29+, API
+	 * 1.1.18+). `published` and `publish_state` stay the page's own setting.
+	 */
+	unpublished_by?: string | null;
 }
 
 /**
@@ -59,10 +68,12 @@ export interface PageStatusInfo {
 	title: string;
 	/** The date this state hangs on, already localized, when there is one. */
 	date?: string;
+	/** Raw route of the parent page that hides this one, when one does (see `unpublished_by`). */
+	hiddenBy?: string;
 }
 
 /** Static half of the registry — everything that does not need translating. */
-const PRESENTATION: Record<PageStatusKey, Omit<PageStatusInfo, 'label' | 'title' | 'date' | 'key'>> = {
+const PRESENTATION: Record<PageStatusKey, Omit<PageStatusInfo, 'label' | 'title' | 'date' | 'key' | 'hiddenBy'>> = {
 	published: {
 		icon: CircleCheck,
 		colorClass: 'text-success',
@@ -87,6 +98,15 @@ const PRESENTATION: Record<PageStatusKey, Omit<PageStatusInfo, 'label' | 'title'
 		pillClass: 'bg-destructive/15 text-destructive',
 		badgeVariant: 'destructive',
 	},
+	// Set to published, but a parent page that is unpublished hides it. Muted
+	// like a draft, since visitors can't see it either, with its own icon so
+	// the two are still tellable apart.
+	hidden: {
+		icon: EyeOff,
+		colorClass: 'text-muted-foreground',
+		pillClass: 'bg-muted text-muted-foreground',
+		badgeVariant: 'secondary',
+	},
 };
 
 const LABEL_KEYS: Record<PageStatusKey, string> = {
@@ -94,6 +114,7 @@ const LABEL_KEYS: Record<PageStatusKey, string> = {
 	unpublished: 'ADMIN_NEXT.PAGES.DRAFT',
 	scheduled: 'ADMIN_NEXT.PAGES.STATUS.SCHEDULED',
 	expired: 'ADMIN_NEXT.PAGES.STATUS.EXPIRED',
+	hidden: 'ADMIN_NEXT.PAGES.STATUS.HIDDEN',
 };
 
 /**
@@ -116,11 +137,25 @@ function formatStatusDate(value: string | null | undefined): string | undefined 
  * as a draft.
  */
 export function pageStatusKey(page: PageStatusSource): PageStatusKey {
+	const own = ownStatusKey(page);
+	// Only a page that would otherwise be live reads as hidden. A draft, a
+	// scheduled or an expired page under a hidden parent keeps its own state,
+	// since that is what still applies once the parent is published again.
+	return own === 'published' && hiddenBy(page) ? 'hidden' : own;
+}
+
+/** The page's own state, from its own `published` setting and dates. */
+function ownStatusKey(page: PageStatusSource): PublishStateKey {
 	const state = page.publish_state;
 	if (state === 'published' || state === 'unpublished' || state === 'scheduled' || state === 'expired') {
 		return state;
 	}
 	return page.published ? 'published' : 'unpublished';
+}
+
+/** Raw route of the parent page hiding this one, or undefined. */
+function hiddenBy(page: PageStatusSource): string | undefined {
+	return typeof page.unpublished_by === 'string' && page.unpublished_by !== '' ? page.unpublished_by : undefined;
 }
 
 /**
@@ -143,7 +178,14 @@ export function pageStatus(page: PageStatusSource): PageStatusInfo {
 		title = date ? i18n.t('ADMIN_NEXT.PAGES.STATUS.EXPIRED_ON', { date }) : label;
 	}
 
-	return { key, ...PRESENTATION[key], label, title, date };
+	const parent = hiddenBy(page);
+	if (parent) {
+		title = key === 'hidden'
+			? i18n.t('ADMIN_NEXT.PAGES.STATUS.HIDDEN_BY', { parent })
+			: i18n.t('ADMIN_NEXT.PAGES.STATUS.ALSO_HIDDEN_BY', { status: title, parent });
+	}
+
+	return { key, ...PRESENTATION[key], label, title, date, hiddenBy: parent };
 }
 
 /**
