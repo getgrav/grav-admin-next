@@ -171,8 +171,6 @@
 	async function loadDashboard(options: LoadDashboardOptions = {}) {
 		const { flushGpm = false, silent = false } = options;
 		if (!silent) loading = true;
-		// Silent refreshes (after an update or a backup) leave the probe alone.
-		if (!silent) refreshSecurityHealth(flushGpm);
 		try {
 			// A silent reload follows a change (an update, an upgrade), so the
 			// stats must be fresh; a first visit may reuse the sidebar's copy.
@@ -181,6 +179,11 @@
 				refreshParts(ALL_PARTS.filter((part) => part !== 'stats'), flushGpm),
 			]);
 		} finally {
+			// The exposure probe is a dozen requests of its own. Started once the
+			// dashboard's data is in, so they don't hold up its requests on a
+			// connection-limited (HTTP/1.1) host. Silent refreshes (after an
+			// update or a backup) leave the probe alone.
+			if (!silent) refreshSecurityHealth(flushGpm);
 			if (!silent) {
 				loading = false;
 				animated = false;

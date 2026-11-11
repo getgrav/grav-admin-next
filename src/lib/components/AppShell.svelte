@@ -28,11 +28,16 @@
 	import SidebarNav from '$lib/components/sidebar/SidebarNav.svelte';
 	import { floatingWidgetStore } from '$lib/stores/floatingWidgets.svelte';
 	import FloatingWidgetLoader from '$lib/components/floating-widgets/FloatingWidgetLoader.svelte';
-	import DebugPanel from '$lib/components/debug/DebugPanel.svelte';
 	import { contextPanelStore } from '$lib/stores/contextPanels.svelte';
 	import ContextPanelHost from '$lib/components/context-panels/ContextPanelHost.svelte';
 	import DemoModeBanner from '$lib/components/DemoModeBanner.svelte';
-	import ReauthModal from '$lib/components/auth/ReauthModal.svelte';
+	import { debug } from '$lib/stores/debug.svelte';
+	import { idleImport } from '$lib/utils/idle-import';
+
+	// Shown only when the session needs signing in again, or the debugger is
+	// on: kept out of the first load (see idle-import.ts).
+	const loadReauthModal = idleImport(() => import('$lib/components/auth/ReauthModal.svelte'));
+	const loadDebugPanel = idleImport(() => import('$lib/components/debug/DebugPanel.svelte'));
 	import { pageEditorBar } from '$lib/stores/pageEditorBar.svelte';
 	import PresenceAvatars from '$lib/components/sync/PresenceAvatars.svelte';
 	import SyncStatusBadge from '$lib/components/sync/SyncStatusBadge.svelte';
@@ -520,6 +525,10 @@
 
 	<ContextPanelHost />
 	<FloatingWidgetLoader />
-	<DebugPanel />
-	<ReauthModal />
+	{#if debug.clockworkSeen || debug.open}
+		{#await loadDebugPanel() then { default: DebugPanel }}<DebugPanel />{/await}
+	{/if}
+	{#if authSession.reauthOpen}
+		{#await loadReauthModal() then { default: ReauthModal }}<ReauthModal />{/await}
+	{/if}
 </div>

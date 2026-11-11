@@ -78,8 +78,38 @@ function fontStack(value: FontFamily): string {
 	return (FONT_OPTIONS.find(f => f.value === value) ?? FONT_OPTIONS[0]).stack;
 }
 
+/**
+ * The alternate fonts' @font-face rules, loaded only for the font in use (and
+ * for all of them on the Settings screen, which previews each one). Google
+ * Sans, the default, is declared in layout.css. Bundled with admin2, so no
+ * network access outside the site is needed (admin2#97).
+ */
+const FONT_CSS: Partial<Record<FontFamily, () => Promise<unknown>>> = {
+	inter: () => import('@fontsource-variable/inter/wght.css'),
+	'public-sans': () =>
+		Promise.all([import('@fontsource-variable/public-sans/wght.css'), import('@fontsource-variable/public-sans/wght-italic.css')]),
+	'nunito-sans': () =>
+		Promise.all([import('@fontsource-variable/nunito-sans/wght.css'), import('@fontsource-variable/nunito-sans/wght-italic.css')]),
+	'albert-sans': () =>
+		Promise.all([import('@fontsource-variable/albert-sans/wght.css'), import('@fontsource-variable/albert-sans/wght-italic.css')]),
+	jost: () => Promise.all([import('@fontsource-variable/jost/wght.css'), import('@fontsource-variable/jost/wght-italic.css')])
+};
+const fontCssLoaded = new Set<FontFamily>();
+
+/** Load the @font-face rules of the given fonts (default: every alternate). */
+export function loadFontCss(values: FontFamily[] = FONT_OPTIONS.map((f) => f.value)): void {
+	if (typeof document === 'undefined') return;
+	for (const value of values) {
+		const load = FONT_CSS[value];
+		if (!load || fontCssLoaded.has(value)) continue;
+		fontCssLoaded.add(value);
+		load().catch(() => fontCssLoaded.delete(value));
+	}
+}
+
 function applyFont(value: FontFamily): void {
 	if (typeof document === 'undefined') return;
+	loadFontCss([value]);
 	document.documentElement.style.setProperty('--font-sans', fontStack(value));
 }
 

@@ -1,6 +1,5 @@
 import { untrack } from 'svelte';
-import { IntlMessageFormat } from 'intl-messageformat';
-import { escapeMarkdownParam, renderMarkdownInline } from '$lib/utils/markdown';
+import type { IntlMessageFormat } from 'intl-messageformat';
 import { getTranslations, getTranslationsIfChanged } from '$lib/api/endpoints/translations';
 import { DEFAULT_LANG, getLocalStrings, normalizeLang } from '$lib/i18n';
 import { scopedKey } from '$lib/utils/scopedStorage';
@@ -50,8 +49,45 @@ function bootConfigLang(): string | undefined {
 	return typeof lang === 'string' && lang !== '' ? lang : undefined;
 }
 
+/**
+ * A message with nothing but `{name}` placeholders, formatted the way
+ * IntlMessageFormat would (`String(value)`), or null when it needs the real
+ * formatter: plural/select/number/date arguments, tags, ICU apostrophe
+ * quoting, or a missing value. Used only until the formatter has loaded.
+ */
+function formatSimple(message: string, params: TranslateParams | undefined): string | null {
+	if (message.includes('<') || message.includes("''") || /'[{}#|]/.test(message)) return null;
+	let missing = false;
+	const out = message.replace(/\{([^{}]*)\}/g, (_, name: string) => {
+		if (!/^\s*[\w-]+\s*$/.test(name)) return (missing = true), '';
+		const value = params?.[name.trim()];
+		if (value === undefined || (typeof value === 'object' && value !== null)) return (missing = true), '';
+		return value === null ? '' : String(value);
+	});
+	return missing || /[{}]/.test(out) ? null : out;
+}
+
+function escapeText(value: string): string {
+	return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function createI18nStore() {
 	const cached = loadCached();
+
+	// The ICU formatter and the markdown renderer (with its sanitizer) come to
+	// about 100 KB, so they load next to the app instead of in front of it.
+	// Until they arrive, t() formats plain `{name}` messages itself and
+	// tHtml() returns escaped text; `libsReady` re-renders both once they're in.
+	let MessageFormat: typeof IntlMessageFormat | null = null;
+	let markdown: typeof import('$lib/utils/markdown') | null = null;
+	let libsReady = $state(false);
+	if (typeof window !== 'undefined') {
+		void Promise.all([import('intl-messageformat'), import('$lib/utils/markdown')]).then(([icu, md]) => {
+			MessageFormat = icu.IntlMessageFormat;
+			markdown = md;
+			libsReady = true;
+		});
+	}
 	const cachedLang = normalizeLang(cached?.lang ?? bootConfigLang() ?? DEFAULT_LANG);
 
 	let lang = $state(cachedLang);
@@ -119,8 +155,9 @@ function createI18nStore() {
 		const cacheKey = `${lang}::${icuKey}`;
 		let f = formatterCache.get(cacheKey);
 		if (f) return f;
+		if (!MessageFormat) return null;
 		try {
-			f = new IntlMessageFormat(message, lang);
+			f = new MessageFormat(message, lang);
 			formatterCache.set(cacheKey, f);
 			return f;
 		} catch (err) {
@@ -182,6 +219,7 @@ function createI18nStore() {
 		if (!key) return '';
 
 		const formatIcu = (icuKey: string, icuVal: string): string => {
+			if (!libsReady) return formatSimple(icuVal, params) ?? '';
 			const f = getFormatter(icuKey, icuVal);
 			if (f) {
 				try {
@@ -240,6 +278,8 @@ function createI18nStore() {
 	 *   {@html i18n.tHtml('ADMIN_NEXT.SCHEDULER.CRON_INSTRUCTIONS', { user })}
 	 */
 	function tHtml(key: string | undefined, params?: TranslateParams): string {
+		if (!libsReady || !markdown) return escapeText(t(key, params));
+		const { escapeMarkdownParam, renderMarkdownInline } = markdown;
 		// Numbers, booleans and dates pick ICU plural/select branches and cannot carry
 		// markup, so they reach the formatter untouched; only strings are escaped.
 		const safe = params

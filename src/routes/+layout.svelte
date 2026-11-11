@@ -1,18 +1,10 @@
 <script lang="ts">
 	import './layout.css';
-	import '@fortawesome/fontawesome-free/css/all.min.css';
-	// Self-hosted alternate UI fonts (user-selectable in Settings). Bundled at
-	// build time so the admin needs no network access — see getgrav/grav-plugin-admin2#97.
-	// Google Sans (the default) is self-hosted via @font-face in layout.css.
-	import '@fontsource-variable/inter/wght.css';
-	import '@fontsource-variable/public-sans/wght.css';
-	import '@fontsource-variable/public-sans/wght-italic.css';
-	import '@fontsource-variable/nunito-sans/wght.css';
-	import '@fontsource-variable/nunito-sans/wght-italic.css';
-	import '@fontsource-variable/albert-sans/wght.css';
-	import '@fontsource-variable/albert-sans/wght-italic.css';
-	import '@fontsource-variable/jost/wght.css';
-	import '@fontsource-variable/jost/wght-italic.css';
+	// Font Awesome (plugin and blueprint icons) loads alongside the app rather
+	// than ahead of the first paint: a stylesheet imported here would block
+	// rendering until all 60 KB of it arrived. The alternate UI fonts load on
+	// demand, see loadFontCss() in the preferences store.
+	if (typeof document !== 'undefined') void import('@fortawesome/fontawesome-free/css/all.min.css');
 	import { untrack } from 'svelte';
 	import { page, updated } from '$app/state';
 	import { goto, beforeNavigate } from '$app/navigation';
@@ -30,7 +22,7 @@
 	import { prefs } from '$lib/stores/preferences.svelte';
 	import { branding } from '$lib/stores/branding.svelte';
 	import { getPreferences, type PreferencesResponse } from '$lib/api/endpoints/preferences';
-	import { takeBootPart, type BootTranslations } from '$lib/stores/boot';
+	import { startBoot, takeBootPart, type BootTranslations } from '$lib/stores/boot';
 	import { stableStringify } from '$lib/utils/stable-json';
 	import { scopedKey } from '$lib/utils/scopedStorage';
 	import { migrateLegacyPreferences } from '$lib/stores/_legacyMigration';
@@ -42,7 +34,9 @@
 	import { trackKeyboardNav } from '$lib/utils/keyboard-nav';
 	import AppShell from '$lib/components/AppShell.svelte';
 	import GlobalDialogs from '$lib/components/ui/GlobalDialogs.svelte';
-	import PluginModal from '$lib/components/ui/PluginModal.svelte';
+	import { idleImport } from '$lib/utils/idle-import';
+	// Plugin dialogs (window.__GRAV_DIALOGS): kept out of the first load.
+	const loadPluginModal = idleImport(() => import('$lib/components/ui/PluginModal.svelte'));
 	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { defineBlueprintFormElement } from '$lib/elements/blueprint-form.svelte';
 	import { defineHelpElement } from '$lib/elements/help.svelte';
@@ -82,9 +76,17 @@
 		bootAttempted = true;
 		if (!auth.isAuthenticated && auth.canRefresh) {
 			bootResolving = true;
-			void authSession.performRefresh().finally(() => { bootResolving = false; });
+			void authSession
+				.performRefresh()
+				.then(() => startBoot())
+				.finally(() => { bootResolving = false; });
 		}
 	});
+
+	// Ask for the shell's data (sidebar, menubar, preferences, …) before the
+	// first screen sends its own requests. Runs while this component is being
+	// set up, which is before any child's effects. Does nothing signed out.
+	startBoot();
 
 	const needsAuth = $derived(!isAuthPage && !auth.isAuthenticated && !bootResolving);
 
@@ -541,7 +543,9 @@
 />
 
 <GlobalDialogs />
-<PluginModal />
+{#if modals.current}
+	{#await loadPluginModal() then { default: PluginModal }}<PluginModal />{/await}
+{/if}
 <!-- Loaded on first open: the media browser brings the uploader with it, which
      every other screen can boot without. -->
 {#if mediaPicker.open_}

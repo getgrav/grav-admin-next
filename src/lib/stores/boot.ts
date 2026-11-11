@@ -65,6 +65,26 @@ function start(): Promise<BootBody | null> {
 		.catch(() => null);
 }
 
+/** The boot request for the signed-in user, started if it isn't yet. */
+function bootFor(user: string): Promise<BootBody | null> {
+	if (bootUser !== user) {
+		resetBoot();
+		bootUser = user;
+	}
+	return (pending ??= start());
+}
+
+/**
+ * Send the boot request now, as soon as the session is known, instead of
+ * when the first store asks for its part. The stores ask from their effects,
+ * which run after the current screen's own effects have sent its requests,
+ * so the shell's data would otherwise queue up behind the page's.
+ */
+export function startBoot(): void {
+	const user = untrack(() => (auth.isAuthenticated ? auth.username : null));
+	if (user) void bootFor(user);
+}
+
 /**
  * This part of the boot answer, or null when the caller should fetch it
  * itself. Starts the boot request on first use in a signed-in session.
@@ -72,15 +92,11 @@ function start(): Promise<BootBody | null> {
 export async function takeBootPart<T>(key: BootKey): Promise<{ value: T } | null> {
 	const user = untrack(() => (auth.isAuthenticated ? auth.username : null));
 	if (!user) return null;
-	if (bootUser !== user) {
-		resetBoot();
-		bootUser = user;
-	}
+	const request = bootFor(user);
 	if (taken.has(key)) return null;
 	taken.add(key);
-	pending ??= start();
 
-	const body = await pending;
+	const body = await request;
 	if (!body || Date.now() - arrivedAt > FRESH_MS) return null;
 	if (body.errors && key in body.errors) return null;
 	if (!(key in (body.data ?? {}))) return null;

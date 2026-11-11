@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { prefs, FONT_OPTIONS, FONT_SIZE_OPTIONS, HELP_MODES, type FontSize, type EditorKeymap, type MenubarLink, type PagesViewMode, type AccountsViewMode } from '$lib/stores/preferences.svelte';
+	import { prefs, loadFontCss, FONT_OPTIONS, FONT_SIZE_OPTIONS, HELP_MODES, type FontSize, type EditorKeymap, type MenubarLink, type PagesViewMode, type AccountsViewMode } from '$lib/stores/preferences.svelte';
 	import { normalizeLang } from '$lib/i18n';
 	import { theme, ACCENT_PRESETS, DARK_SHADES } from '$lib/stores/theme.svelte';
 	import FieldHelp from '$lib/components/blueprint/FieldHelp.svelte';
@@ -20,6 +20,9 @@
 	} from 'lucide-svelte';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
 	import SegmentedToggle from '$lib/components/ui/SegmentedToggle.svelte';
+
+	// The font picker previews every font in its own typeface.
+	loadFontCss();
 
 	type SiteDraft = Partial<PreferenceValues> & Partial<SiteSettings>;
 
