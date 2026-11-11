@@ -106,6 +106,18 @@ export async function takeBootPart<T>(key: BootKey): Promise<{ value: T } | null
 	return value === undefined ? null : { value: value as T };
 }
 
+/**
+ * Resolves once the boot answer is in (or failed) and the shell has had a
+ * frame to show it. A screen whose own data arrives in one piece waits for
+ * this before drawing it: on a slow device, drawing a whole dashboard at once
+ * otherwise holds the sidebar and menus back until it's done.
+ */
+export async function bootSettled(): Promise<void> {
+	if (pending) await pending;
+	if (typeof requestAnimationFrame === 'undefined') return;
+	await new Promise<void>((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+}
+
 /** Forget the boot answer, e.g. on sign-out, so the next sign-in boots again. */
 export function resetBoot(): void {
 	pending = null;

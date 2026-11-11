@@ -21,6 +21,7 @@
 	import { getSystemInfo, type SystemInfo } from '$lib/api/endpoints/system';
 	import { getRecentPages, toRecentPages, type PageSummary } from '$lib/api/endpoints/pages';
 	import { getDashboardBatch, type DashboardBatch } from '$lib/api/endpoints/dashboard-batch';
+	import { bootSettled } from '$lib/stores/boot';
 	import type { DashboardWidgetsResponse } from '$lib/dashboard/types';
 	import { onlyEditablePages } from '$lib/utils/admin2-config';
 	import { Button } from '$lib/components/ui/button';
@@ -212,7 +213,10 @@
 	 * own endpoint.
 	 */
 	async function loadCombined() {
-		const batch = await getDashboardBatch(onlyEditablePages());
+		// The shell first: the sidebar and menus come with the boot request,
+		// sent at the same time, and drawing every widget at once would
+		// otherwise keep them waiting on a slow device.
+		const [batch] = await Promise.all([getDashboardBatch(onlyEditablePages()), bootSettled()]);
 		await refreshParts(batch ? showBatch(batch) : ALL_PARTS.filter((part) => part !== 'stats'));
 	}
 
