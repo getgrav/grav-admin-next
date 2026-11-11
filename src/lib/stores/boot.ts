@@ -3,7 +3,7 @@
  *
  * `GET /admin-next/boot` answers with what the separate boot calls return —
  * preferences, /me, menubar, sidebar, floating widgets, context panels,
- * custom fields, site languages — plus the checksum of the admin dictionary.
+ * custom fields, site languages, config environments, dashboard stats — plus the checksum of the admin dictionary.
  * Each store asks for its part with `takeBootPart()` on its first load and
  * keeps its own parsing; a part it gets nothing for (older API without the
  * endpoint, a part the user may not read, a failed request) falls back to
@@ -28,6 +28,8 @@ export type BootKey =
 	| 'context_panels'
 	| 'custom_fields'
 	| 'languages'
+	| 'environments'
+	| 'stats'
 	| 'translations';
 
 export interface BootTranslations {

@@ -48,7 +48,7 @@ export interface DashboardStats {
 	last_backup: string | null;
 }
 
-interface NotificationsResponse {
+export interface NotificationsResponse {
 	notifications: {
 		feed: Notification[];
 		dashboard: Notification[];
@@ -73,7 +73,13 @@ export interface DashboardNotifications {
  * used to ask for the same URL separately, in parallel, on every refresh.
  */
 export async function getDashboardNotifications(force = false): Promise<DashboardNotifications> {
-	const data = await api.get<NotificationsResponse>(`/dashboard/notifications${force ? '?force=true' : ''}`);
+	return toDashboardNotifications(
+		await api.get<NotificationsResponse>(`/dashboard/notifications${force ? '?force=true' : ''}`),
+	);
+}
+
+/** The dashboard's lists from a `/dashboard/notifications` answer. */
+export function toDashboardNotifications(data: NotificationsResponse): DashboardNotifications {
 	// `dashboard-row` is a second dashboard list: promos that share a row with
 	// the ones in `dashboard`, drawn first. It lives under its own location so
 	// an admin older than this one, which reads `dashboard` alone, shows one
@@ -163,9 +169,14 @@ export interface BackupInfo {
 	size: number;
 }
 
+export type BackupsResponse = { backups: BackupInfo[] } | BackupInfo[];
+
 export async function getBackups(): Promise<BackupInfo[]> {
-	const result = await api.get<{ backups: BackupInfo[] } | BackupInfo[]>('/system/backups');
-	return Array.isArray(result) ? result : result.backups ?? [];
+	return toBackupList(await api.get<BackupsResponse>('/system/backups'));
+}
+
+export function toBackupList(result: BackupsResponse): BackupInfo[] {
+	return Array.isArray(result) ? result : result?.backups ?? [];
 }
 
 /**

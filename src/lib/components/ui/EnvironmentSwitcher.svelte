@@ -19,7 +19,7 @@
 	let deleting = $state(false);
 
 	onMount(() => {
-		configEnv.load().catch(() => { /* non-fatal */ });
+		configEnv.load(true).catch(() => { /* non-fatal */ });
 		const unsub = invalidations.subscribe('system:environments', () => {
 			configEnv.load().catch(() => {});
 		});

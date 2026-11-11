@@ -8,15 +8,23 @@
  */
 
 import { getStats, type DashboardStats } from '$lib/api/endpoints/dashboard';
+import { takeBootPart } from '$lib/stores/boot';
 
 let stats = $state.raw<DashboardStats | null>(null);
 let fetchedAt = 0;
 let inflight: Promise<DashboardStats | null> | null = null;
 const listeners = new Set<(stats: DashboardStats) => void>();
 
-function load(): Promise<DashboardStats | null> {
+/**
+ * `fromBoot`: take the stats that came with the boot request when they're
+ * still fresh (the sidebar badges' first load), else fetch.
+ */
+function load(fromBoot = false): Promise<DashboardStats | null> {
 	if (inflight) return inflight;
-	inflight = getStats()
+	const fetchStats = fromBoot
+		? takeBootPart<DashboardStats>('stats').then((part) => part?.value ?? getStats())
+		: getStats();
+	inflight = fetchStats
 		.then((next) => {
 			stats = next;
 			fetchedAt = Date.now();
@@ -48,7 +56,9 @@ export const dashboardStats = {
 	/** Fetch only if the last answer is older than `maxAgeMs`. */
 	ensure(maxAgeMs = 30_000): Promise<DashboardStats | null> {
 		if (stats && Date.now() - fetchedAt < maxAgeMs) return Promise.resolve(stats);
-		return load();
+		// A recent answer is all the caller wants, and the boot request's is
+		// at most a few seconds old.
+		return load(true);
 	},
 
 	/** Run `fn` after every successful load. Returns an unsubscribe function. */

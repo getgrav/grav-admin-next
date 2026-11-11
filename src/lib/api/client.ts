@@ -780,7 +780,7 @@ class ApiClient {
 	async getFullBody<T = unknown>(
 		path: string,
 		params?: Record<string, string>,
-		options: { retry?: boolean } = {},
+		options: { retry?: boolean; rateAttempt?: number } = {},
 	): Promise<T> {
 		await this.ensureFreshToken(path);
 
@@ -805,7 +805,7 @@ class ApiClient {
 		if (response.status === 401 && !path.startsWith('/auth/') && options.retry !== false) {
 			const refreshed = await this.tryRefresh();
 			if (refreshed) {
-				return this.getFullBody<T>(path, params, { retry: false });
+				return this.getFullBody<T>(path, params, { ...options, retry: false });
 			}
 			return new Promise((resolve, reject) => {
 				authSession.enqueuePendingRequest({
@@ -816,6 +816,18 @@ class ApiClient {
 					reject,
 				});
 			});
+		}
+
+		// Rate limited or momentarily busy: back off and retry, as request()
+		// does. The combined requests (boot, dashboard) use this, and a failed
+		// one makes every part fall back to its own endpoint: ten requests
+		// against a server that just said it has too many.
+		if (isRetryableStatus(response.status, 'GET')) {
+			const attempt = options.rateAttempt ?? 0;
+			if (attempt < RATE_LIMIT_MAX_RETRIES) {
+				await sleep(rateLimitBackoffMs(attempt));
+				return this.getFullBody<T>(path, params, { ...options, rateAttempt: attempt + 1 });
+			}
 		}
 
 		if (response.ok) this.parseInvalidates(response);

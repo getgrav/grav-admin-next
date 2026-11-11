@@ -82,7 +82,7 @@
 			sidebarStore.load(true).then(() => sidebarStore.fetchBadges());
 			floatingWidgetStore.load(true);
 			contextPanelStore.load(true);
-			navBadges.load();
+			navBadges.load(true);
 		} else {
 			resetBoot();
 			sidebarStore.clear();

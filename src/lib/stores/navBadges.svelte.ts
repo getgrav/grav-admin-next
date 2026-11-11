@@ -42,9 +42,10 @@ export const navBadges = {
 	get updates() { return updates; },
 	get loaded() { return loaded; },
 
-	async load() {
+	/** `fromBoot`: the first load after sign-in, which can use the boot request's stats. */
+	async load(fromBoot = false) {
 		// Failures are non-critical: the badges keep their last values.
-		await dashboardStats.load();
+		await dashboardStats.load(fromBoot);
 	},
 
 	clear() {

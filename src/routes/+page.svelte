@@ -3,6 +3,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import {
 		getDashboardNotifications, getPopularity, getFeed, getBackups, getUpdates, getSystemInfoOverview,
+		toDashboardNotifications, toBackupList, type DashboardNotifications, type FeedData,
 		type Notification, type PopularityData,
 		type FeedItem, type BackupInfo, type UpdatesData, type UpdatablePackage, type SystemInfoOverview
 	} from '$lib/api/endpoints/dashboard';
@@ -18,7 +19,9 @@
 	import { canWrite } from '$lib/utils/permissions';
 	import { dialogs } from '$lib/stores/dialogs.svelte';
 	import { getSystemInfo, type SystemInfo } from '$lib/api/endpoints/system';
-	import { getRecentPages, type PageSummary } from '$lib/api/endpoints/pages';
+	import { getRecentPages, toRecentPages, type PageSummary } from '$lib/api/endpoints/pages';
+	import { getDashboardBatch, type DashboardBatch } from '$lib/api/endpoints/dashboard-batch';
+	import type { DashboardWidgetsResponse } from '$lib/dashboard/types';
 	import { onlyEditablePages } from '$lib/utils/admin2-config';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
@@ -138,34 +141,79 @@
 	 * refetches what it affects. `force` asks the server to skip its caches
 	 * (the Refresh button).
 	 */
-	const loaders = {
-		stats: (force: boolean) => (force ? dashboardStats.load() : dashboardStats.ensure()),
-		systemInfo: () => getSystemInfo().then((v) => { systemInfo = v; }),
-		notifications: (force: boolean) => getDashboardNotifications(force).then((v) => {
+	const show = {
+		systemInfo: (v: SystemInfo) => { systemInfo = v; },
+		notifications: (v: DashboardNotifications) => {
 			notifications = v.dashboard;
 			topNotifications = v.top;
 			bannerNotifications = v.banner;
-		}),
-		recentPages: () => getRecentPages(8, { editable: onlyEditablePages() }).then((v) => { recentPages = v; }),
-		popularity: () => getPopularity().then((v) => { popularity = v; }),
-		feed: (force: boolean) => getFeed(force).then((v) => { feed = (v as { feed?: FeedItem[] })?.feed ?? []; }),
-		backups: () => getBackups().then((v) => { backups = v; }),
-		updates: (force: boolean) => getUpdates(force).then((v) => { updates = v; }),
-		reports: () => getSystemInfoOverview().then((v) => { reports = v; }),
-		widgets: () => getWidgets().then((v) => {
+		},
+		recentPages: (v: PageSummary[]) => { recentPages = v; },
+		popularity: (v: PopularityData) => { popularity = v; },
+		feed: (v: FeedData) => { feed = (v as { feed?: FeedItem[] })?.feed ?? []; },
+		backups: (v: BackupInfo[]) => { backups = v; },
+		updates: (v: UpdatesData) => { updates = v; },
+		reports: (v: SystemInfoOverview) => { reports = v; },
+		widgets: (v: DashboardWidgetsResponse) => {
 			// Never replace a layout the user is in the middle of editing.
 			if (editMode) return;
 			widgets = v.widgets;
 			savedWidgetsSnapshot = JSON.parse(JSON.stringify(widgets));
 			canEditSite = v.can_edit_site;
-		}),
+		},
+	};
+
+	const loaders = {
+		stats: (force: boolean) => (force ? dashboardStats.load() : dashboardStats.ensure()),
+		systemInfo: () => getSystemInfo().then(show.systemInfo),
+		notifications: (force: boolean) => getDashboardNotifications(force).then(show.notifications),
+		recentPages: () => getRecentPages(8, { editable: onlyEditablePages() }).then(show.recentPages),
+		popularity: () => getPopularity().then(show.popularity),
+		feed: (force: boolean) => getFeed(force).then(show.feed),
+		backups: () => getBackups().then(show.backups),
+		updates: (force: boolean) => getUpdates(force).then(show.updates),
+		reports: () => getSystemInfoOverview().then(show.reports),
+		widgets: () => getWidgets().then(show.widgets),
 	} satisfies Record<string, (force: boolean) => Promise<unknown>>;
 
 	type Part = keyof typeof loaders;
 	const ALL_PARTS = Object.keys(loaders) as Part[];
 
+	/**
+	 * Show the parts that came in the combined request, each through the same
+	 * conversion its own loader uses. Returns the parts still to load.
+	 */
+	function showBatch(batch: DashboardBatch): Part[] {
+		const shown = new Set<Part>(['stats']);
+		const use = <T,>(part: Part, value: T | undefined, apply: (v: T) => void) => {
+			if (value === undefined) return;
+			apply(value);
+			shown.add(part);
+		};
+		use('systemInfo', batch.system_info, show.systemInfo);
+		use('notifications', batch.notifications, (v) => show.notifications(toDashboardNotifications(v)));
+		use('recentPages', batch.recent_pages, (v) => show.recentPages(toRecentPages(v)));
+		use('popularity', batch.popularity, show.popularity);
+		use('feed', batch.feed, show.feed);
+		use('backups', batch.backups, (v) => show.backups(toBackupList(v)));
+		use('updates', batch.updates, show.updates);
+		use('reports', batch.reports, show.reports);
+		use('widgets', batch.widgets, show.widgets);
+		return ALL_PARTS.filter((part) => !shown.has(part));
+	}
+
 	async function refreshParts(parts: Iterable<Part>, force = false) {
 		await Promise.allSettled([...parts].map((part) => loaders[part](force)));
+	}
+
+	/**
+	 * Every part but the stats, in one request (`/admin-next/dashboard`). A
+	 * part it couldn't answer, or every part on an older API, comes from its
+	 * own endpoint.
+	 */
+	async function loadCombined() {
+		const batch = await getDashboardBatch(onlyEditablePages());
+		await refreshParts(batch ? showBatch(batch) : ALL_PARTS.filter((part) => part !== 'stats'));
 	}
 
 	async function loadDashboard(options: LoadDashboardOptions = {}) {
@@ -174,9 +222,12 @@
 		try {
 			// A silent reload follows a change (an update, an upgrade), so the
 			// stats must be fresh; a first visit may reuse the sidebar's copy.
+			// Refresh and the reloads after a change ask each endpoint directly,
+			// so Refresh can skip their caches.
+			const rest = ALL_PARTS.filter((part) => part !== 'stats');
 			await Promise.allSettled([
 				loaders.stats(flushGpm || silent),
-				refreshParts(ALL_PARTS.filter((part) => part !== 'stats'), flushGpm),
+				silent || flushGpm ? refreshParts(rest, flushGpm) : loadCombined(),
 			]);
 		} finally {
 			// The exposure probe is a dozen requests of its own. Started once the

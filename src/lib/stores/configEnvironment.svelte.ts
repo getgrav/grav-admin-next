@@ -6,6 +6,7 @@ import {
 	type EnvironmentList,
 } from '$lib/api/endpoints/environments';
 import { auth } from '$lib/stores/auth.svelte';
+import { takeBootPart } from '$lib/stores/boot';
 
 /**
  * The active session environment for config/plugin/theme/pages — it governs
@@ -29,11 +30,13 @@ function createStore() {
 	let environments = $state<EnvironmentEntry[]>([]);
 	let loading = $state(false);
 
-	async function load(): Promise<EnvironmentList | null> {
+	/** `fromBoot`: the first load, which can use the list that came with the boot request. */
+	async function load(fromBoot = false): Promise<EnvironmentList | null> {
 		if (loading) return null;
 		loading = true;
 		try {
-			const data = await getEnvironments();
+			const part = fromBoot ? await takeBootPart<EnvironmentList>('environments') : null;
+			const data = part?.value ?? (await getEnvironments());
 			detected = data.detected;
 			environments = data.environments;
 

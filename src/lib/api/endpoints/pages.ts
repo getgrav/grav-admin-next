@@ -435,7 +435,11 @@ export async function getRecentPages(limit = 5, options?: { editable?: boolean }
 		fields: SUMMARY_FIELDS,
 	};
 	if (options?.editable) params.editable = 'true';
-	const rows = await api.get<PageSummary[]>('/pages', params);
+	return toRecentPages(await api.get<PageSummary[]>('/pages', params));
+}
+
+/** Recent pages without the ones listed only as the way to an editable page. */
+export function toRecentPages(rows: PageSummary[]): PageSummary[] {
 	return Array.isArray(rows) ? rows.filter((row) => !isAncestorOnly(row)) : rows;
 }
 
