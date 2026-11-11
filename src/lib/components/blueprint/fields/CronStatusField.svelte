@@ -40,12 +40,22 @@
 		value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
 	);
 
+	/**
+	 * Switches flipped here, kept apart from the form's value. A backup job's switch is
+	 * its backup profile's Scheduled Backup setting: the api moves its entry onto the
+	 * profile on save and hands the form back a value without it, so without this the
+	 * switch would fall back to the state the job had when the list loaded.
+	 */
+	let flipped = $state<Record<string, boolean>>({});
+
 	function isEnabled(job: SchedulerJob): boolean {
-		return job.id in states ? states[job.id] !== 'disabled' : job.enabled;
+		if (job.id in states) return states[job.id] !== 'disabled';
+		return flipped[job.id] ?? job.enabled;
 	}
 
 	function setEnabled(job: SchedulerJob, enabled: boolean) {
 		if (isEnabled(job) === enabled) return;
+		flipped = { ...flipped, [job.id]: enabled };
 		onchange({ ...states, [job.id]: enabled ? 'enabled' : 'disabled' });
 	}
 
