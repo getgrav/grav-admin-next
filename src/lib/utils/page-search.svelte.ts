@@ -16,6 +16,12 @@ interface PageSearchOptions {
 	params?: () => { lang?: string; translations?: boolean };
 	debounceMs?: number;
 	limit?: number;
+	/**
+	 * Only pages the user can edit. Defaults to admin2's `pages.only_editable`
+	 * setting, which is what the Pages views want. A page picker passes false:
+	 * any page the user can read is a valid choice there, as in its tree.
+	 */
+	editable?: boolean;
 }
 
 export function createPageSearch(options: PageSearchOptions = {}) {
@@ -49,7 +55,7 @@ export function createPageSearch(options: PageSearchOptions = {}) {
 		try {
 			const res = await searchPages(query, {
 				...options.params?.(),
-				editable: onlyEditablePages() || undefined,
+				editable: (options.editable ?? onlyEditablePages()) || undefined,
 				per_page: limit,
 				page,
 				signal: current.signal,

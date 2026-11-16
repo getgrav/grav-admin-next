@@ -3,6 +3,7 @@
 	import { getChildren, pageApiRoute, isAncestorOnly } from '$lib/api/endpoints/pages';
 	import type { PageSummary } from '$lib/api/endpoints/pages';
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { createPageSearch } from '$lib/utils/page-search.svelte';
 	import {
 		ChevronDown, File, Folder, FolderOpen,
 		Loader2, Search, X, ChevronsUpDown, Check, Lock
@@ -69,9 +70,14 @@
 		return null;
 	}
 
+	// Title of a page picked from search results, which may sit in a folder
+	// the tree never loaded, so findPageTitle() can't see it.
+	let pickedTitle = $state<{ route: string; title: string } | null>(null);
+
 	const selectedLabel = $derived(() => {
 		if (!selectedRoute) return '';
-		const title = findPageTitle(rootPages, selectedRoute);
+		const title = findPageTitle(rootPages, selectedRoute)
+			?? (pickedTitle?.route === selectedRoute ? pickedTitle.title : null);
 		if (title) return showSlug ? `${selectedRoute} — ${title}` : title;
 		return selectedRoute;
 	});
@@ -143,15 +149,24 @@
 		}
 	}
 
-	function filterPages(pages: PageSummary[]): PageSummary[] {
-		if (!filter) return pages;
-		const q = filter.toLowerCase();
-		return pages.filter(p =>
-			p.title.toLowerCase().includes(q) ||
-			p.route.toLowerCase().includes(q) ||
-			pageApiRoute(p).toLowerCase().includes(q) ||
-			p.slug.toLowerCase().includes(q)
-		);
+	// Typing searches the whole site through the API, as the Pages tree, list
+	// and columns do. Filtering the loaded tree only ever found top-level pages:
+	// a child was hidden unless its folder was open AND matched the text too
+	// (grav-admin-next#50). `editable: false` keeps search in step with the
+	// tree, which lists every page the user can read.
+	const search = createPageSearch({ debounceMs: 200, editable: false });
+	const searching = $derived(filter.trim().length > 0);
+	const searchResults = $derived(
+		search.results.filter((p) => shouldShow(p) && !isAncestorOnly(p))
+	);
+	$effect(() => {
+		search.run(filter);
+	});
+	$effect(() => () => search.dispose());
+
+	function selectSearchResult(page: PageSummary) {
+		pickedTitle = { route: pageApiRoute(page), title: page.title };
+		selectPage(pageApiRoute(page));
 	}
 
 	function shouldShow(page: PageSummary): boolean {
@@ -222,7 +237,47 @@
 
 				<!-- Tree content -->
 				<div class="max-h-72 overflow-y-auto p-1">
-					{#if rootLoading}
+					{#if searching}
+						{#if search.loading}
+							<div class="flex items-center justify-center py-6 text-sm text-muted-foreground">
+								<Loader2 size={16} class="me-2 animate-spin" />
+								{i18n.t('ADMIN_NEXT.PAGES.PAGES_TREE_VIEW.SEARCHING')}
+							</div>
+						{:else if searchResults.length === 0}
+							<div class="py-4 text-center text-sm text-muted-foreground">
+								{i18n.t('ADMIN_NEXT.PAGES.NO_PAGES')}
+							</div>
+						{:else}
+							{#each searchResults as page (pageApiRoute(page))}
+								{@const apiRoute = pageApiRoute(page)}
+								<button
+									type="button"
+									class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
+										{selectedRoute === apiRoute ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'}"
+									onclick={() => selectSearchResult(page)}
+								>
+									<File size={14} class="shrink-0 text-muted-foreground" />
+									<span class="min-w-0 truncate">
+										{page.title}
+										<span class="text-muted-foreground">{apiRoute}</span>
+									</span>
+									{#if selectedRoute === apiRoute}
+										<Check size={14} class="ms-auto shrink-0 text-primary" />
+									{/if}
+								</button>
+							{/each}
+							{#if search.hasMore}
+								<button
+									type="button"
+									class="w-full px-2 py-1.5 text-start text-xs font-medium text-primary hover:underline disabled:opacity-50"
+									disabled={search.loadingMore}
+									onclick={() => search.more()}
+								>
+									{i18n.t('ADMIN_NEXT.PAGES.SEARCH_SHOW_MORE')}
+								</button>
+							{/if}
+						{/if}
+					{:else if rootLoading}
 						<div class="flex items-center justify-center py-6 text-sm text-muted-foreground">
 							<Loader2 size={16} class="me-2 animate-spin" />
 							{i18n.t('ADMIN_NEXT.PAGES.LOADING')}
@@ -242,12 +297,12 @@
 								{/if}
 							</button>
 						{/if}
-						{#each filterPages(rootPages) as page (pageApiRoute(page))}
+						{#each rootPages as page (pageApiRoute(page))}
 							{#if shouldShow(page)}
 								{@render pageNode(page, 0)}
 							{/if}
 						{/each}
-						{#if !rootLoading && filterPages(rootPages).length === 0}
+						{#if rootPages.length === 0}
 							<div class="py-4 text-center text-sm text-muted-foreground">
 								{i18n.t('ADMIN_NEXT.PAGES.NO_PAGES')}
 							</div>
@@ -266,7 +321,7 @@
 	{@const isLoading = loadingRoutes.has(apiRoute)}
 	{@const isSelected = selectedRoute === apiRoute}
 	{@const children = childrenCache[apiRoute]}
-	{@const filtered = children ? filterPages(children).filter(shouldShow) : []}
+	{@const filtered = children ? children.filter(shouldShow) : []}
 	<!-- A page the user can't read is listed only as a way to the pages inside
 	     it (admin2#209): picking it opens it instead of choosing it. -->
 	{@const passThrough = isAncestorOnly(page)}
