@@ -158,7 +158,7 @@
 		{#if noticeProcessUnavailable}
 			<div class="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
 				<AlertTriangle size={16} class="mt-0.5 shrink-0" />
-				<span>{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.PROCESS_UNAVAILABLE')}</span>
+				<span>{i18n.t('ADMIN_NEXT.TOOLS.SCHEDULER.COMMANDS_UNAVAILABLE')}</span>
 			</div>
 		{/if}
 

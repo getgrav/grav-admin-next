@@ -98,6 +98,11 @@ export interface SchedulerJob {
 	/** Whether the job has missed the last slot its schedule gave it. */
 	overdue?: boolean;
 	error: string | null;
+	/**
+	 * Whether the admin can run it on this host (API 1.1.19+). A job that calls a PHP
+	 * function always can; a command job needs proc_open.
+	 */
+	runnable?: boolean;
 }
 
 /** What a run picks up. 'overdue' is the default for a run somebody asks for. */

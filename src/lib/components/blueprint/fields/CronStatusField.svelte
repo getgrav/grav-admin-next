@@ -29,6 +29,16 @@
 
 	const overdueCount = $derived(jobs.filter((j) => j.enabled && j.overdue).length);
 
+	// Without proc_open only command jobs are out of reach: jobs that call a PHP function,
+	// such as backups, still run from here (getgrav/grav#4397). An older API doesn't say
+	// which is which, so then nothing counts as runnable.
+	function canRunJob(job: SchedulerJob): boolean {
+		return job.runnable ?? status?.process_available !== false;
+	}
+	const runBlocked = $derived(
+		status?.process_available === false && !jobs.some((j) => j.enabled && canRunJob(j))
+	);
+
 	const readonlyCtx = formReadonly();
 
 	/**
@@ -153,7 +163,7 @@
 					<!-- Runs the jobs that missed their last slot. This is what somebody without a
 					     cron entry means by "run the scheduler now": a job counts as due only during
 					     the exact minute its schedule names, so a plain due-run would do nothing. -->
-					<Button size="sm" onclick={() => handleRun('overdue')} disabled={running !== null || status?.process_available === false}>
+					<Button size="sm" onclick={() => handleRun('overdue')} disabled={running !== null || runBlocked}>
 						{#if running === 'overdue'}
 							<Loader2 size={14} class="animate-spin" />
 							{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.RUNNING')}
@@ -169,7 +179,7 @@
 						size="sm"
 						variant="outline"
 						onclick={() => handleRun('all')}
-						disabled={running !== null || status?.process_available === false}
+						disabled={running !== null || runBlocked}
 						title={i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.RUN_ALL_HELP')}
 					>
 						{#if running === 'all'}
@@ -226,7 +236,7 @@
 			{#if status?.process_available === false}
 				<div class="flex items-start gap-2 border-b border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
 					<AlertTriangle size={14} class="mt-0.5 shrink-0" />
-					<span>{i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.PROCESS_UNAVAILABLE')}</span>
+					<span>{i18n.t(jobs.some((j) => j.runnable !== undefined) ? 'ADMIN_NEXT.FIELDS.CRON_STATUS.COMMANDS_UNAVAILABLE' : 'ADMIN_NEXT.FIELDS.CRON_STATUS.PROCESS_UNAVAILABLE')}</span>
 				</div>
 			{/if}
 
@@ -306,8 +316,8 @@
 										variant="ghost"
 										class="h-7 w-7"
 										onclick={() => handleRunJob(job)}
-										disabled={running !== null || !job.enabled || status?.process_available === false}
-										title={i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.RUN_NOW')}
+										disabled={running !== null || !job.enabled || !canRunJob(job)}
+										title={canRunJob(job) ? i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.RUN_NOW') : i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.RUN_NEEDS_PROCESS')}
 										aria-label={i18n.t('ADMIN_NEXT.FIELDS.CRON_STATUS.RUN_NOW')}
 									>
 										{#if running === job.id}
