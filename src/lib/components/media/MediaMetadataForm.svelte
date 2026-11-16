@@ -13,6 +13,7 @@
 		type MediaMetaFormValue
 	} from '$lib/utils/media-metadata';
 	import { scrollToFirstError } from '$lib/utils/blueprint-validation';
+	import MediaMetaPagesInput from './MediaMetaPagesInput.svelte';
 
 	interface Props {
 		/** Filename shown for context and used as the reload key. */
@@ -354,6 +355,18 @@
 								/>
 							{/if}
 						</div>
+					{:else if field.type === 'pages'}
+						<MediaMetaPagesInput
+							id={`meta-${field.key}`}
+							value={tags(field.key)}
+							disabled={saving}
+							{readonly}
+							required={field.required}
+							onchange={(routes) => {
+								values[field.key] = routes;
+								refreshError(field.key);
+							}}
+						/>
 					{:else if field.type === 'select'}
 						<div class="relative mt-1">
 							<select

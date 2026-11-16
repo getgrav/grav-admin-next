@@ -225,7 +225,7 @@ export type MediaMetaFieldValue = string | string[] | number | boolean;
 export interface MediaMetaField {
 	key: string;
 	label: string;
-	type: 'text' | 'textarea' | 'tags' | 'select' | 'number' | 'date' | 'boolean';
+	type: 'text' | 'textarea' | 'tags' | 'pages' | 'select' | 'number' | 'date' | 'boolean';
 	/** Select fields only: allowed stored value mapped to its display label. */
 	options?: Record<string, string>;
 	/** Number fields only: the smallest accepted value, when configured. */
@@ -234,7 +234,7 @@ export interface MediaMetaField {
 	max?: number;
 	/** When true, a save cannot leave this field empty. */
 	required?: boolean;
-	/** String for text/textarea/select/date, number for number, boolean for boolean, array for tags. */
+	/** String for text/textarea/select/date, number for number, boolean for boolean, array for tags and pages. */
 	value: MediaMetaFieldValue;
 }
 

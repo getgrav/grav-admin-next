@@ -68,7 +68,7 @@ function storedText(value: unknown): string {
 
 /** Turn a stored field value into the form-buffer value. */
 export function toFormValue(field: MediaMetaField): MediaMetaFormValue {
-	if (field.type === 'tags') return Array.isArray(field.value) ? [...field.value] : [];
+	if (field.type === 'tags' || field.type === 'pages') return Array.isArray(field.value) ? [...field.value] : [];
 	if (field.type === 'boolean') {
 		if (typeof field.value === 'boolean') return field.value;
 		// A hand-written value (`featured: yes`) comes back unchanged so it can
@@ -84,7 +84,7 @@ export function toStoredValue(
 	field: MediaMetaField,
 	value: MediaMetaFormValue
 ): MediaMetaFieldValue {
-	if (field.type === 'tags') return Array.isArray(value) ? value : [];
+	if (field.type === 'tags' || field.type === 'pages') return Array.isArray(value) ? value : [];
 	if (field.type === 'boolean') return typeof value === 'boolean' ? value : String(value);
 	if (field.type === 'number') {
 		if (typeof value !== 'string') return '';
