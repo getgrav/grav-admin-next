@@ -43,6 +43,11 @@ export interface PluginInfo {
 	 */
 	settings_route?: string;
 	/**
+	 * The plugin's own admin page, when it has one besides its settings. The
+	 * settings screen links to it from its header.
+	 */
+	admin_page?: { route: string; title: string };
+	/**
 	 * The plugin whose page draws those settings, when it is not this one.
 	 * An add-on with no admin page of its own is edited inside the page of the
 	 * plugin it extends.

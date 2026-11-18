@@ -32,7 +32,7 @@
 	import { ApiRequestError } from '$lib/api/client';
 	import {
 		Save, Loader2, AlertCircle, Trash2, BadgeCheck,
-		Puzzle, Power, PowerOff, ArrowUpCircle, CornerDownRight
+		Puzzle, Power, PowerOff, ArrowUpCircle, CornerDownRight, ArrowUpRight
 	} from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 
@@ -542,6 +542,19 @@
 				</Button>
 			{/if}
 			<ContextPanelTriggers context="plugins" route={slug} lang="" />
+			{#if plugin?.admin_page}
+				<!-- The plugin's own admin page, besides these settings -->
+				<Button
+					variant="outline"
+					size="sm"
+					onclick={() => plugin?.admin_page && goto(`${base}${plugin.admin_page.route}`)}
+					aria-label={i18n.t('ADMIN_NEXT.PLUGINS.OPEN_ADMIN_PAGE', { title: plugin.admin_page.title })}
+					title={i18n.t('ADMIN_NEXT.PLUGINS.OPEN_ADMIN_PAGE', { title: plugin.admin_page.title })}
+				>
+					<ArrowUpRight size={14} class="sm:me-1.5" />
+					<span class="hidden sm:inline">{i18n.t('ADMIN_NEXT.PLUGINS.OPEN_ADMIN_PAGE', { title: plugin.admin_page.title })}</span>
+				</Button>
+			{/if}
 			{#if plugin}
 				<!-- Update button -->
 				{#if plugin.updatable}
