@@ -206,11 +206,33 @@
 				</div>
 			{/if}
 			{#if reports}
-				<div class="flex items-center justify-between">
+				<!-- The driver Grav really uses: what auto picked, or the file
+				     cache it fell back to when the configured one is unavailable.
+				     An older api plugin sends only the setting. -->
+				{@const cache = reports.cache}
+				{@const active = cache.active || cache.driver}
+				<div class="flex flex-wrap items-center justify-between gap-y-1">
 					<dt class="text-muted-foreground">{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.CACHE')}</dt>
 					<dd class="font-medium text-foreground">
-						{#if reports.cache.enabled}<span class="text-emerald-500">{reports.cache.driver}</span>{:else}<span class="text-amber-500">{i18n.t('ADMIN_NEXT.DISABLED')}</span>{/if}
+						{#if !cache.enabled}
+							<span class="text-amber-500">{i18n.t('ADMIN_NEXT.DISABLED')}</span>
+						{:else if cache.fallback}
+							<span class="inline-flex items-center gap-1 text-amber-500">
+								<AlertTriangle size={13} aria-hidden="true" />
+								{active}
+							</span>
+						{:else}
+							<span class="text-emerald-500">{active}</span>
+							{#if cache.driver === 'auto' && cache.active}
+								<span class="text-[0.6875rem] font-normal text-muted-foreground">{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.CACHE_AUTO')}</span>
+							{/if}
+						{/if}
 					</dd>
+					{#if cache.enabled && cache.fallback}
+						<dd class="basis-full text-[0.6875rem] leading-snug text-amber-600 dark:text-amber-400">
+							{i18n.t('ADMIN_NEXT.SYSTEM_HEALTH_WIDGET.CACHE_FALLBACK', { configured: cache.driver, driver: active })}
+						</dd>
+					{/if}
 				</div>
 			{/if}
 		</dl>

@@ -231,7 +231,12 @@ export interface SystemInfoOverview {
 	};
 	cache: {
 		enabled: boolean;
+		/** The configured setting: auto, file, apcu, redis... */
 		driver: string;
+		/** The driver Grav is really using. Missing from older api plugins. */
+		active?: string | null;
+		/** The configured driver was unavailable, so Grav fell back to `active`. */
+		fallback?: boolean;
 	};
 }
 
