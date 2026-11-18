@@ -4,6 +4,7 @@
 	import { resolveDataOptions } from '$lib/api/endpoints/data';
 	import { ChevronsUpDown, GripVertical, Plus, X } from 'lucide-svelte';
 	import FieldHelp from '../FieldHelp.svelte';
+	import { arrayFieldRows } from '$lib/utils/array-field';
 
 	interface Props {
 		field: BlueprintField;
@@ -71,24 +72,7 @@
 	let nextId = $state(0);
 
 	function parseEntries(val: unknown): Entry[] {
-		if (val === null || val === undefined) return [];
-
-		if (valueOnly) {
-			// value_only: stored as an array of strings
-			const arr = Array.isArray(val) ? val : [];
-			return arr.map((v) => ({ id: nextId++, key: '', value: String(v ?? '') }));
-		}
-
-		// Key-value: stored as an object
-		if (typeof val === 'object' && !Array.isArray(val)) {
-			return Object.entries(val as Record<string, unknown>).map(([k, v]) => ({
-				id: nextId++,
-				key: k,
-				value: String(v ?? '')
-			}));
-		}
-
-		return [];
+		return arrayFieldRows(val, valueOnly).map((row) => ({ id: nextId++, ...row }));
 	}
 
 	let entries = $state<Entry[]>(parseEntries(value));
