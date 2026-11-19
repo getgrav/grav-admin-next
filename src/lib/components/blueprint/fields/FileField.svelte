@@ -9,7 +9,7 @@
 	import { uploadAcceptTypes } from '$lib/utils/media-accept';
 	import { fileEntryUrl, resolveSiteUrl } from '$lib/utils/site-url';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { api } from '$lib/api/client';
+	import { api, serverPageMessage } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { useFormCommit } from '$lib/utils/form-commit.svelte';
@@ -309,7 +309,7 @@ import { formReadonly } from '../readonly';
 		});
 
 		uppy.on('upload-error', (file, error, request) => {
-			const message = uploadErrorMessage(error, request as XMLHttpRequest | undefined);
+			const message = uploadErrorMessage(error, request as XMLHttpRequest | undefined, serverPageMessage);
 			toast.error(`Failed to upload ${file?.name ?? 'file'}: ${message}`);
 		});
 

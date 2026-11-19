@@ -27,11 +27,12 @@
 	import ImageEditor from '@uppy/image-editor';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { resolveSiteUrl } from '$lib/utils/site-url';
-	import { api, ApiRequestError } from '$lib/api/client';
+	import { api, ApiRequestError, serverPageMessage } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { getPageMedia, deletePageMedia, getObjectMedia, deleteObjectMedia, getPageMediaMeta, savePageMediaMeta, batchSavePageMediaMeta, encodeMediaFileUrl, mediaMarkdown, type MediaItem, type MediaMetaResponse, type MediaMetaValues } from '$lib/api/endpoints/media';
 	import { toast } from 'svelte-sonner';
-	import { uploadErrorMessage } from '$lib/utils/upload-error';
+	import { isApiForbiddenUpload, uploadErrorMessage } from '$lib/utils/upload-error';
+	import { SERVER_PAGE_CODE } from '$lib/utils/server-page-error';
 	import { canWrite } from '$lib/utils/permissions';
 	import { Upload, X, ImagePlus, ArrowUpDown, Info, Plus, Check } from 'lucide-svelte';
 	import MediaMetadataModal from './MediaMetadataModal.svelte';
@@ -270,13 +271,14 @@
 
 		uppy.on('upload-error', (file, error, request) => {
 			// A page whose rules deny this user `update` refuses its media too
-			// (admin2#209); say that rather than the API's generic wording.
-			const xhr = (request as XMLHttpRequest | undefined) ?? (error as { request?: XMLHttpRequest } | undefined)?.request;
-			if (xhr?.status === 403 && !xhr.responseText.includes('demo_mode_write_blocked')) {
+			// (admin2#209); say that rather than the API's generic wording. Only
+			// the API's own 403 means that: a firewall in front of the site
+			// (a Cloudflare challenge, mod_security) answers with its own page.
+			if (isApiForbiddenUpload(error, request as XMLHttpRequest | undefined)) {
 				toast.error(i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.NOT_ALLOWED'));
 				return;
 			}
-			const message = uploadErrorMessage(error, request as XMLHttpRequest | undefined);
+			const message = uploadErrorMessage(error, request as XMLHttpRequest | undefined, serverPageMessage);
 			toast.error(`Failed to upload ${file?.name ?? 'file'}: ${message}`);
 		});
 
@@ -361,7 +363,8 @@
 
 	/** A media change refused because the user may not change this page (admin2#209). */
 	function isForbidden(err: unknown): boolean {
-		return err instanceof ApiRequestError && err.status === 403 && err.error.code !== 'demo_mode_write_blocked';
+		return err instanceof ApiRequestError && err.status === 403
+			&& err.error.code !== 'demo_mode_write_blocked' && err.error.code !== SERVER_PAGE_CODE;
 	}
 
 	async function handleDelete(item: MediaItem) {
@@ -380,7 +383,9 @@
 		} catch (err) {
 			toast.error(isForbidden(err)
 				? i18n.t('ADMIN_NEXT.MEDIA.PAGE_MEDIA.NOT_ALLOWED')
-				: i18n.t('ADMIN_NEXT.TOASTS.FILE_DELETE_FAILED', { name: item.filename }));
+				: err instanceof ApiRequestError && err.error.code === SERVER_PAGE_CODE
+					? err.message
+					: i18n.t('ADMIN_NEXT.TOASTS.FILE_DELETE_FAILED', { name: item.filename }));
 		}
 	}
 

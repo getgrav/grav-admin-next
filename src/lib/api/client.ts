@@ -47,6 +47,15 @@ function buildApiError(body: unknown, response: Response): ApiError {
 	return error;
 }
 
+/**
+ * The explanation for a 4xx page the web server or a firewall in front of it
+ * wrote instead of the API (getgrav/grav#4362), for callers that see the raw
+ * response themselves, such as Uppy's XHR uploads.
+ */
+export function serverPageMessage(status: number): string {
+	return i18n.t('ADMIN_NEXT.API_CLIENT.SERVER_PAGE_DETAIL', { status });
+}
+
 export class ApiRequestError extends Error {
 	constructor(
 		public readonly error: ApiError,
@@ -131,7 +140,7 @@ async function readJsonBody(response: Response, method: string, path: string): P
 				return {
 					status: response.status,
 					title: i18n.t('ADMIN_NEXT.API_CLIENT.SERVER_PAGE_TITLE'),
-					detail: i18n.t('ADMIN_NEXT.API_CLIENT.SERVER_PAGE_DETAIL', { status: response.status }),
+					detail: serverPageMessage(response.status),
 					code: SERVER_PAGE_CODE,
 				} satisfies ApiError;
 			}

@@ -6,7 +6,7 @@
 	import { useUploadConstraints } from '$lib/utils/uppyImageConstraints';
 	import ImageEditor from '@uppy/image-editor';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { api } from '$lib/api/client';
+	import { api, serverPageMessage } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
 	import { mediaManager } from '$lib/stores/mediaManager.svelte';
 	import type { MediaItem } from '$lib/api/endpoints/media';
@@ -113,7 +113,7 @@
 		});
 
 		uppy.on('upload-error', (file, error, request) => {
-			const message = uploadErrorMessage(error, request as XMLHttpRequest | undefined);
+			const message = uploadErrorMessage(error, request as XMLHttpRequest | undefined, serverPageMessage);
 			toast.error(`Failed to upload ${file?.name ?? 'file'}: ${message}`);
 		});
 
