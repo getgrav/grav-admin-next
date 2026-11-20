@@ -72,7 +72,8 @@
 	import TwigContentBanner from '$lib/components/pages/TwigContentBanner.svelte';
 	import { pageFolderName } from '$lib/utils/page-folder';
 	import { withFolderSettings } from '$lib/utils/room-snapshot';
-	import { setPasteUploadTarget, isPasteUploading } from '$lib/utils/paste-upload';
+	import { setPasteUploadTarget } from '$lib/utils/paste-upload';
+	import { isPageMediaWriting } from '$lib/utils/page-media-writes';
 
 	let accessDenied = $state(false);
 
@@ -2008,15 +2009,17 @@
 	// Refetch when this page is updated elsewhere (with dirty guard). The
 	// dirtyGuard skips our own saves — the server's X-Invalidates fires the
 	// event back at us before handleSave has cleared hasChanges, which would
-	// otherwise toast on every save. An image pasted into the editor is
-	// uploaded the same way, and its echo is skipped too.
+	// otherwise toast on every save. A media change made here (an upload,
+	// paste or delete, alt/title metadata) answers with the same event; it
+	// changes nothing this form holds, so its echo is skipped too rather than
+	// reloading the editor back to the top (admin2#220).
 	onMount(() => {
 		const unsub = invalidations.subscribe('pages:update', (e) => {
 			if (e.id !== route) return;
 			if (!hasChanges) loadPage();
 			else toast.info(i18n.t('ADMIN_NEXT.PAGES.EDIT.PAGE_CHANGED_ELSEWHERE_SAVE_TO'));
 		}, {
-			dirtyGuard: () => saving || autoSave.saving || isPasteUploading(),
+			dirtyGuard: () => saving || autoSave.saving || isPageMediaWriting(),
 		});
 		return () => { unsub(); };
 	});

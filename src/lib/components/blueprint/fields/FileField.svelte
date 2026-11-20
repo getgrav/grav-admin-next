@@ -11,6 +11,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { api, serverPageMessage } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { pageMediaWrite, pageMediaTags } from '$lib/utils/page-media-writes';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { useFormCommit } from '$lib/utils/form-commit.svelte';
 	import { toast } from 'svelte-sonner';
@@ -338,9 +339,8 @@ import { formReadonly } from '../readonly';
 			}
 
 			const route = getRoute?.() ?? '';
-			const cleanRoute = route.startsWith('/') ? route.slice(1) : route;
 			// XHRUpload bypasses our API client — emit invalidation manually.
-			invalidations.emit([`media:update:pages/${cleanRoute}`, `pages:update:/${cleanRoute}`]);
+			void pageMediaWrite(() => invalidations.emit(pageMediaTags(route)));
 			// Refresh the shared media context so filepickers see the new file
 			if (mediaCtx) {
 				import('$lib/api/endpoints/media').then(({ getPageMedia }) => {

@@ -27,6 +27,7 @@ import { getPageMedia, uploadPageMedia, mediaAltText, mediaMarkdown, type MediaI
 import { ApiRequestError } from '$lib/api/client';
 import { applyUploadConstraints } from './imageResize';
 import { pasteImageFilename } from './paste-image-name';
+import { pageMediaWrite } from './page-media-writes';
 
 /** The open page editor: its route and its shared media list. */
 export interface PasteUploadTarget {
@@ -49,18 +50,6 @@ export interface PastedImage {
 }
 
 let target: PasteUploadTarget | null = null;
-let inFlight = 0;
-
-/**
- * True while a paste upload is being sent. The upload answers with
- * `pages:update` for the page (its media changed), and the page editor would
- * take that as an edit made elsewhere: reload the page, or toast "changed
- * elsewhere" when it has unsaved edits. Its invalidation guard reads this to
- * skip the echo of its own upload.
- */
-export function isPasteUploading(): boolean {
-	return inFlight > 0;
-}
 
 /** Register the open page editor. Returns the matching unregister. */
 export function setPasteUploadTarget(next: PasteUploadTarget): () => void {
@@ -150,9 +139,9 @@ export async function uploadPastedImages(files: File[]): Promise<PastedImage[]> 
 			toast.error(i18n.t(`${KEY}.FAILED`, { filename: name, message: outcome.error }));
 			continue;
 		}
-		inFlight++;
 		try {
-			latest = await uploadPageMedia(route, outcome.file);
+			// Our own media write: the editor skips its `pages:update` echo.
+			latest = await pageMediaWrite(() => uploadPageMedia(route, outcome.file));
 			const item: MediaItem = latest.find((m) => m.filename === name)
 				?? { filename: name, type: file.type, url: '', size: outcome.file.size, modified: '' };
 			uploaded.push({
@@ -163,8 +152,6 @@ export async function uploadPastedImages(files: File[]): Promise<PastedImage[]> 
 			});
 		} catch (err) {
 			toast.error(i18n.t(`${KEY}.FAILED`, { filename: name, message: errorMessage(err) }));
-		} finally {
-			inFlight--;
 		}
 	}
 

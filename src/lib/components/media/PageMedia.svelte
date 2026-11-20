@@ -29,6 +29,7 @@
 	import { resolveSiteUrl } from '$lib/utils/site-url';
 	import { api, ApiRequestError, serverPageMessage } from '$lib/api/client';
 	import { invalidations } from '$lib/stores/invalidation.svelte';
+	import { pageMediaWrite, pageMediaTags } from '$lib/utils/page-media-writes';
 	import { getPageMedia, deletePageMedia, getObjectMedia, deleteObjectMedia, getPageMediaMeta, savePageMediaMeta, batchSavePageMediaMeta, encodeMediaFileUrl, mediaMarkdown, type MediaItem, type MediaMetaResponse, type MediaMetaValues } from '$lib/api/endpoints/media';
 	import { toast } from 'svelte-sonner';
 	import { isApiForbiddenUpload, uploadErrorMessage } from '$lib/utils/upload-error';
@@ -170,7 +171,7 @@
 	async function saveBatchMeta(values: MediaMetaValues) {
 		const files = [...selectedFiles];
 		if (files.length < 2 || !canEditMeta) return { successful: 0, failed: 0 };
-		const result = await batchSavePageMediaMeta(route, files, values);
+		const result = await pageMediaWrite(() => batchSavePageMediaMeta(route, files, values));
 		await loadMedia(true);
 		return result;
 	}
@@ -286,7 +287,7 @@
 			uploading = false;
 			uploadProgress = new Map();
 			// XHRUpload bypasses our API client, so emit invalidation manually.
-			invalidations.emit(getInvalidationKeys());
+			void pageMediaWrite(() => invalidations.emit(getInvalidationKeys()));
 			// Refresh media list after uploads complete
 			await loadMedia();
 			// Record the newly uploaded file(s) into a saved ordering so they
@@ -307,7 +308,7 @@
 
 	function getInvalidationKeys(): string[] {
 		if (objectMode) return invalidationKeys ?? [];
-		return [`media:update:pages/${route}`, `pages:update:/${route}`];
+		return pageMediaTags(route);
 	}
 
 	/** `reuse` accepts a list fetched for the same source a moment ago. */
@@ -373,7 +374,7 @@
 				if (!resolvedBase) return;
 				await deleteObjectMedia(resolvedBase, item.filename);
 			} else {
-				await deletePageMedia(route, item.filename);
+				await pageMediaWrite(() => deletePageMedia(route, item.filename));
 			}
 			mediaItems = mediaItems.filter(m => m.filename !== item.filename);
 			onMediaChange?.(mediaItems);
@@ -894,7 +895,7 @@
 		]}
 		openUrl={getAbsoluteUrl(target)}
 		load={() => getPageMediaMeta(route, target.filename)}
-		save={(values) => savePageMediaMeta(route, target.filename, values)}
+		save={(values) => pageMediaWrite(() => savePageMediaMeta(route, target.filename, values))}
 		batchCount={selectionCount}
 		saveBatch={selectionCount > 1 ? saveBatchMeta : undefined}
 		{readonly}
