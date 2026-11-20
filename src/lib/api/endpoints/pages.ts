@@ -172,6 +172,8 @@ export interface PageMedia {
 	thumbnail_url?: string;
 	type: string;
 	size: number;
+	/** Scales of the `@Nx` retina files grouped under this image, e.g. [2, 3] (admin2#222). */
+	retina?: number[];
 }
 
 export interface PaginatedPages {

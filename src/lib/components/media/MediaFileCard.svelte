@@ -3,6 +3,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { resolveSiteUrl } from '$lib/utils/site-url';
 	import { mediaManager } from '$lib/stores/mediaManager.svelte';
+	import RetinaBadge from './RetinaBadge.svelte';
 	import {
 		Folder, FileVideo2, FileAudio, FileText, FileArchive,
 		FileSpreadsheet, FileCode, File, Check
@@ -159,7 +160,10 @@
 		<!-- File info -->
 		<div class="flex flex-col gap-0.5 px-2.5 py-2">
 			<div class="truncate text-[0.75rem] font-medium text-foreground">{props.item.filename}</div>
-			<div class="text-[0.6875rem] text-muted-foreground">{formatSize(props.item.size)}</div>
+			<div class="flex items-center justify-between gap-1 text-[0.6875rem] text-muted-foreground">
+				<span>{formatSize(props.item.size)}</span>
+				<RetinaBadge scales={props.item.retina} />
+			</div>
 		</div>
 	</div>
 {/if}

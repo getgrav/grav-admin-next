@@ -3,6 +3,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { resolveSiteUrl } from '$lib/utils/site-url';
 	import { mediaManager } from '$lib/stores/mediaManager.svelte';
+	import RetinaBadge from './RetinaBadge.svelte';
 	import {
 		Folder, FileVideo2, FileAudio, FileText, FileArchive,
 		FileSpreadsheet, FileCode, File, Check
@@ -130,7 +131,10 @@
 
 		<!-- Filename -->
 		<div class="min-w-0 flex-1">
-			<div class="truncate text-sm font-medium text-foreground">{props.item.filename}</div>
+			<div class="flex min-w-0 items-center gap-1.5">
+				<span class="truncate text-sm font-medium text-foreground">{props.item.filename}</span>
+				<RetinaBadge scales={props.item.retina} />
+			</div>
 			{#if props.item.path}
 				<div class="truncate text-[0.6875rem] text-muted-foreground">{props.item.path}</div>
 			{/if}

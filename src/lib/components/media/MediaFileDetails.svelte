@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import { retinaLabel } from '$lib/utils/retina';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { resolveSiteUrl } from '$lib/utils/site-url';
 	import { encodeMediaFileUrl, type MediaItem } from '$lib/api/endpoints/media';
@@ -124,6 +125,12 @@
 		<div>
 			<dt class="text-[0.6875rem] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.MEDIA.MEDIA_INSPECTOR.DIMENSIONS')}</dt>
 			<dd class="mt-0.5 text-sm text-foreground">{file.dimensions.width} &times; {file.dimensions.height}</dd>
+		</div>
+	{/if}
+	{#if retinaLabel(file.retina)}
+		<div>
+			<dt class="text-[0.6875rem] font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.MEDIA.FILE_DETAILS.RETINA')}</dt>
+			<dd class="mt-0.5 font-mono text-sm text-foreground">{retinaLabel(file.retina, true)}</dd>
 		</div>
 	{/if}
 	<div>

@@ -20,6 +20,7 @@
 
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
+	import RetinaBadge from './RetinaBadge.svelte';
 	import { onMount } from 'svelte';
 	import { Uppy } from '@uppy/core';
 	import XHRUpload from '@uppy/xhr-upload';
@@ -798,6 +799,11 @@
 								class="h-full w-full object-cover"
 								loading="lazy"
 							/>
+							{#if item.retina?.length}
+								<div class="pointer-events-none absolute end-1.5 top-1.5 z-10">
+									<RetinaBadge scales={item.retina} overlay />
+								</div>
+							{/if}
 						{:else}
 							<div class="flex h-full w-full flex-col items-center justify-center gap-1 p-2">
 								<span class="text-lg text-muted-foreground">
