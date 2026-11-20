@@ -4,6 +4,11 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { DatePicker } from 'bits-ui';
 	import { CalendarDateTime, type DateValue } from '@internationalized/date';
+	import {
+		formatDateTimeForStorage as formatForStorage,
+		parseDateTimeValue as parseValue,
+		toCalendar
+	} from '$lib/utils/datetime-value';
 	import { Calendar as CalendarIcon, Clock, X } from 'lucide-svelte';
 	import DirectionalIcon from '$lib/components/ui/DirectionalIcon.svelte';
 	import FieldHelp from '../FieldHelp.svelte';
@@ -28,141 +33,6 @@
 	 * to reason about than one that changes with whoever is logged in.
 	 */
 	const locale = $derived(i18n.lang || 'en-US');
-
-	/** Build a CalendarDateTime from a native Date. */
-	function toCalendar(d: Date): CalendarDateTime {
-		return new CalendarDateTime(
-			d.getFullYear(),
-			d.getMonth() + 1,
-			d.getDate(),
-			d.getHours(),
-			d.getMinutes(),
-			d.getSeconds()
-		);
-	}
-
-	/**
-	 * Parse a date value into a CalendarDateTime.
-	 * Handles Unix-timestamp integers as well as common Grav date string
-	 * formats: ISO, d-m-Y H:i, m/d/Y h:i a, etc.
-	 */
-	function parseValue(val: unknown): CalendarDateTime | undefined {
-		if (val === null || val === undefined) return undefined;
-
-		// Numeric epoch. YAML parses an unquoted ISO datetime (e.g.
-		// `date: 2026-03-17T16:30:00`) as a Unix timestamp, so header dates
-		// often reach us as integers rather than strings — accept seconds or
-		// milliseconds. A bare numeric string (e.g. after an untouched save
-		// round-trips it back through YAML) is treated the same way.
-		if (typeof val === 'number' || (typeof val === 'string' && /^\d{9,}$/.test(val.trim()))) {
-			const n = typeof val === 'number' ? val : parseInt(val.trim(), 10);
-			if (!Number.isFinite(n) || n <= 0) return undefined;
-			// < 1e12 is seconds (1e12s ≈ year 33658, 1e12ms ≈ 2001).
-			const d = new Date(n < 1e12 ? n * 1000 : n);
-			if (isNaN(d.getTime())) return undefined;
-			// YAML reads an unquoted `...T16:30:00` as UTC, so read the epoch's
-			// UTC wall-clock to show the same time the author typed, rather than
-			// shifting it into the browser's local zone.
-			return new CalendarDateTime(
-				d.getUTCFullYear(),
-				d.getUTCMonth() + 1,
-				d.getUTCDate(),
-				d.getUTCHours(),
-				d.getUTCMinutes(),
-				d.getUTCSeconds()
-			);
-		}
-
-		if (typeof val !== 'string') return undefined;
-		const str = val.trim();
-		if (!str) return undefined;
-
-		let d: Date | null = null;
-
-		// 1. Try d-m-Y H:i(:s) — European format (must check before Date constructor)
-		let match = str.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-		if (match) {
-			const [, day, month, year, hour, min, sec] = match;
-			const y = year.length <= 2 ? 2000 + parseInt(year) : parseInt(year);
-			d = new Date(y, parseInt(month) - 1, parseInt(day), parseInt(hour || '0'), parseInt(min || '0'), parseInt(sec || '0'));
-		}
-
-		// 2. Try m/d/Y h:i a — US format with AM/PM
-		if (!d || isNaN(d.getTime())) {
-			match = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s+(\d{1,2}):(\d{2})\s*(am|pm)$/i);
-			if (match) {
-				const [, month, day, year, hour, min, ampm] = match;
-				const y = year.length <= 2 ? 2000 + parseInt(year) : parseInt(year);
-				let h = parseInt(hour);
-				if (ampm.toLowerCase() === 'pm' && h !== 12) h += 12;
-				if (ampm.toLowerCase() === 'am' && h === 12) h = 0;
-				d = new Date(y, parseInt(month) - 1, parseInt(day), h, parseInt(min));
-			}
-		}
-
-		// 3. Try m/d/Y H:i — US format with 24h time
-		if (!d || isNaN(d.getTime())) {
-			match = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
-			if (match) {
-				const [, month, day, year, hour, min, sec] = match;
-				const y = year.length <= 2 ? 2000 + parseInt(year) : parseInt(year);
-				d = new Date(y, parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min), parseInt(sec || '0'));
-			}
-		}
-
-		// 4. Try H:i d-m-Y or h:i a m/d/Y — time-first formats
-		if (!d || isNaN(d.getTime())) {
-			match = str.match(/^(\d{1,2}):(\d{2})\s+(\d{1,2})-(\d{1,2})-(\d{2,4})$/);
-			if (match) {
-				const [, hour, min, day, month, year] = match;
-				const y = year.length <= 2 ? 2000 + parseInt(year) : parseInt(year);
-				d = new Date(y, parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min));
-			}
-		}
-
-		if (!d || isNaN(d.getTime())) {
-			match = str.match(/^(\d{1,2}):(\d{2})\s*(am|pm)\s+(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/i);
-			if (match) {
-				const [, hour, min, ampm, month, day, year] = match;
-				const y = year.length <= 2 ? 2000 + parseInt(year) : parseInt(year);
-				let h = parseInt(hour);
-				if (ampm.toLowerCase() === 'pm' && h !== 12) h += 12;
-				if (ampm.toLowerCase() === 'am' && h === 12) h = 0;
-				d = new Date(y, parseInt(month) - 1, parseInt(day), h, parseInt(min));
-			}
-		}
-
-		// 5. Fallback to Date constructor (handles ISO, Y-m-d, Y-m-d H:i:s, etc.)
-		if (!d || isNaN(d.getTime())) {
-			d = new Date(str);
-		}
-
-		if (!d || isNaN(d.getTime())) return undefined;
-
-		return toCalendar(d);
-	}
-
-	/**
-	 * Format CalendarDateTime to ISO-8601 Y-m-d H:i for Grav storage.
-	 *
-	 * The old admin wrote day-first d-m-Y, but that is ambiguous to JS
-	 * `new Date()` (e.g. `03-04-2026` reads as March 4th, not April 3rd),
-	 * so the Page Information sidebar rendered "Invalid Date" reading it back.
-	 * ISO is unambiguous and parses everywhere. See admin2#134.
-	 */
-	function formatForStorage(date: DateValue | undefined): string {
-		if (!date) return '';
-		const d = String(date.day).padStart(2, '0');
-		const m = String(date.month).padStart(2, '0');
-		const y = String(date.year);
-		if ('hour' in date) {
-			const dt = date as CalendarDateTime;
-			const h = String(dt.hour).padStart(2, '0');
-			const min = String(dt.minute).padStart(2, '0');
-			return `${y}-${m}-${d} ${h}:${min}`;
-		}
-		return `${y}-${m}-${d}`;
-	}
 
 	let dateValue = $derived(parseValue(value));
 
