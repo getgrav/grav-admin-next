@@ -30,6 +30,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { toast } from 'svelte-sonner';
+	import { saveErrorMessage } from '$lib/utils/save-error';
 	import { Save, Loader2 } from 'lucide-svelte';
 
 	const REDACTED = '********';
@@ -264,7 +265,7 @@
 				? (err as { status: number }).status : 0;
 			const message = status === 409
 				? i18n.t('ADMIN_NEXT.PLUGINS.CONFIGURATION_WAS_MODIFIED_ELSEWHERE')
-				: i18n.t('ADMIN_NEXT.PLUGINS.FAILED_TO_SAVE_CONFIGURATION');
+				: saveErrorMessage(err, i18n.t('ADMIN_NEXT.PLUGINS.FAILED_TO_SAVE_CONFIGURATION'));
 			toast.error(message);
 			say('error', { message });
 			return false;

@@ -29,6 +29,7 @@
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
+	import { saveErrorMessage } from '$lib/utils/save-error';
 	import { ApiRequestError } from '$lib/api/client';
 	import {
 		Save, Loader2, AlertCircle, Trash2, BadgeCheck,
@@ -300,7 +301,7 @@
 				}
 				toast.error(err.message || i18n.t('ADMIN_NEXT.PLUGINS.FAILED_TO_SAVE_CONFIGURATION'));
 			} else {
-				toast.error(i18n.t('ADMIN_NEXT.PLUGINS.FAILED_TO_SAVE_CONFIGURATION'));
+				toast.error(saveErrorMessage(err, i18n.t('ADMIN_NEXT.PLUGINS.FAILED_TO_SAVE_CONFIGURATION')));
 			}
 		} finally {
 			saving = false;

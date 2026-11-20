@@ -46,7 +46,10 @@ export function normalizeLang(code: string | undefined | null): string {
 	if (key in ALIASES) return ALIASES[key];
 
 	// Two-part codes: re-case region subtag (UPPER) and script subtag (Title).
-	const m = code.match(/^([a-z]{2,3})-([a-z0-9]{2,4})$/i);
+	// Matched on the hyphenated form, so `pt_BR` comes back as `pt-BR`: an
+	// underscore code is no BCP 47 tag, and IntlMessageFormat won't compile a
+	// message for it.
+	const m = key.match(/^([a-z]{2,3})-([a-z0-9]{2,4})$/i);
 	if (m) {
 		const lang = m[1].toLowerCase();
 		const tag = m[2];

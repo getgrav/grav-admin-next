@@ -218,6 +218,9 @@ function createI18nStore() {
 	function t(key: string | undefined, params?: TranslateParams): string {
 		if (!key) return '';
 
+		// When the formatter can't be built or can't format, plain `{name}`
+		// placeholders are still filled in, so a message never reaches the
+		// screen with a raw `{status}` in it (getgrav/grav-plugin-admin2#219).
 		const formatIcu = (icuKey: string, icuVal: string): string => {
 			if (!libsReady) return formatSimple(icuVal, params) ?? '';
 			const f = getFormatter(icuKey, icuVal);
@@ -227,10 +230,10 @@ function createI18nStore() {
 					return typeof out === 'string' ? out : String(out ?? '');
 				} catch (err) {
 					console.warn(`[i18n] Format error for "${icuKey}":`, err);
-					return icuVal;
+					return formatSimple(icuVal, params) ?? icuVal;
 				}
 			}
-			return icuVal;
+			return formatSimple(icuVal, params) ?? icuVal;
 		};
 
 		// 1. Modern ICU lookup (preferred)

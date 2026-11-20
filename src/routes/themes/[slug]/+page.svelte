@@ -25,6 +25,7 @@
 	import UnsavedIndicator from '$lib/components/ui/UnsavedIndicator.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
+	import { saveErrorMessage } from '$lib/utils/save-error';
 	import {
 		Save, Loader2, AlertCircle, Trash2, BadgeCheck,
 		Palette, Power, ArrowUpCircle, CornerDownRight
@@ -275,7 +276,7 @@
 			if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {
 				toast.error(i18n.t('ADMIN_NEXT.THEMES.CONFIGURATION_WAS_MODIFIED_ELSEWHERE'));
 			} else {
-				toast.error(i18n.t('ADMIN_NEXT.THEMES.FAILED_TO_SAVE_CONFIGURATION'));
+				toast.error(saveErrorMessage(err, i18n.t('ADMIN_NEXT.THEMES.FAILED_TO_SAVE_CONFIGURATION')));
 			}
 		} finally {
 			saving = false;
