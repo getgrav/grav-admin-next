@@ -7,9 +7,16 @@
 	interface Props {
 		toggled: boolean;
 		onToggle: () => void;
+		/**
+		 * Id for the button, so the field's label can be a `<label for>` that
+		 * points at it: a click anywhere on the label flips the toggle, as it did
+		 * in admin-classic, and the label names the button for screen readers
+		 * (admin2#224).
+		 */
+		id?: string;
 	}
 
-	let { toggled, onToggle }: Props = $props();
+	let { toggled, onToggle, id }: Props = $props();
 
 	// Sits beside the field rather than inside it, so a read-only form's
 	// disabled field wrapper doesn't reach it (admin2#209).
@@ -17,6 +24,7 @@
 </script>
 
 <button
+	{id}
 	type="button"
 	class="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border transition-colors
 		{toggled ? 'border-primary bg-primary' : 'border-input bg-muted/50'}"

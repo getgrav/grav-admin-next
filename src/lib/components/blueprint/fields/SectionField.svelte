@@ -143,6 +143,9 @@
 			{#each visibleFields as childField, i (childField.name)}
 				{@const toggled = isToggleOn(childField)}
 				{@const controlId = childField.type === 'checkbox' && showLabelColumn(childField) ? `${uid}-${i}` : undefined}
+				<!-- A toggleable field's label flips its toggle (admin2#224); any other
+				     field's label points at its own control, if it has one. -->
+				{@const toggleId = childField.toggleable && showLabelColumn(childField) ? `${uid}-${i}-toggle` : undefined}
 
 				{#if isSuppressed(childField)}
 					<!-- Suppressed in admin-next -->
@@ -164,10 +167,10 @@
 						{#if labelled}
 							<div class="flex items-start gap-2 lg:pt-2.5">
 								{#if childField.toggleable}
-									<ToggleableCheckbox {toggled} onToggle={() => toggleField(childField.name, childField)} />
+									<ToggleableCheckbox id={toggleId} {toggled} onToggle={() => toggleField(childField.name, childField)} />
 								{/if}
 								<div>
-									<FieldLabel field={childField} {toggled} {filter} {controlId} />
+									<FieldLabel field={childField} {toggled} {filter} controlId={toggleId ?? controlId} />
 								</div>
 							</div>
 						{/if}

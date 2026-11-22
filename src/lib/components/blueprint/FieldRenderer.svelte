@@ -186,6 +186,12 @@
 		field.type === 'checkbox' && showLabelColumn ? `${radioGroupId}-control` : undefined
 	);
 
+	// What that label points at. A toggleable field's label flips its on/off
+	// toggle, as admin-classic's `<label for="toggleable_…">` did (admin2#224);
+	// any other field's label points at its own control, if it has one.
+	const toggleId = $derived(field.toggleable && showLabelColumn ? `${radioGroupId}-toggle` : undefined);
+	const labelTargetId = $derived(toggleId ?? columnControlId);
+
 	// Fields suppressed in admin-next (handled by the UI directly)
 	// - order fields: reordering is via drag-and-drop in listing views
 	// - enabled: plugin enable/disable is in the toolbar, not the form
@@ -267,10 +273,10 @@
 		{#if showLabelColumn}
 			<div class="flex items-start gap-2 lg:pt-2.5">
 				{#if field.toggleable}
-					<ToggleableCheckbox {toggled} onToggle={() => onchange(toggleValue(field, toggled))} />
+					<ToggleableCheckbox id={toggleId} {toggled} onToggle={() => onchange(toggleValue(field, toggled))} />
 				{/if}
 				<div>
-					<FieldLabel {field} {toggled} {filter} controlId={columnControlId} />
+					<FieldLabel {field} {toggled} {filter} controlId={labelTargetId} />
 				</div>
 			</div>
 		{/if}
