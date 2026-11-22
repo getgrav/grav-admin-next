@@ -25,3 +25,23 @@ export function isServerPageRejection(status: number, text: string): boolean {
 		return true;
 	}
 }
+
+/**
+ * Methods some hosts refuse before the request reaches PHP. The API accepts
+ * them as POST + X-HTTP-Method-Override instead (MethodOverrideMiddleware).
+ */
+export const OVERRIDABLE_METHODS = new Set(['DELETE', 'PATCH', 'PUT']);
+
+/**
+ * Whether a failed DELETE/PATCH/PUT looks like the host refusing the method
+ * itself, so the client should try it once more as POST + override. Some nginx
+ * configs answer 405. Apache on shared hosting (OVH, for one) answers its stock
+ * "403 You don't have permission to access this resource." page, which Grav
+ * never writes: the API's own 403 is always JSON (getgrav/grav-plugin-admin2#219).
+ * 501 is Apache's answer to a method it doesn't implement; Grav never sends it.
+ */
+export function isMethodRefusal(method: string, status: number, text: string): boolean {
+	if (!OVERRIDABLE_METHODS.has(method.toUpperCase())) return false;
+	if (status === 405 || status === 501) return true;
+	return status === 403 && isServerPageRejection(status, text);
+}

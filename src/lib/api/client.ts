@@ -4,7 +4,12 @@ import { authSession, type PendingRequest } from '$lib/stores/auth-session.svelt
 import { invalidations } from '$lib/stores/invalidation.svelte';
 import { debug, parseServerTiming } from '$lib/stores/debug.svelte';
 import { i18n } from '$lib/stores/i18n.svelte';
-import { SERVER_PAGE_CODE, isServerPageRejection } from '$lib/utils/server-page-error';
+import {
+	OVERRIDABLE_METHODS,
+	SERVER_PAGE_CODE,
+	isMethodRefusal,
+	isServerPageRejection,
+} from '$lib/utils/server-page-error';
 
 import type { ToastHint } from '$lib/utils/toast-hint';
 
@@ -195,6 +200,8 @@ interface RequestOptions {
 	retry?: boolean;
 	/** Internal — disables method-override retry on recursion. */
 	overrideRetry?: boolean;
+	/** Internal — send this request as POST + X-HTTP-Method-Override. */
+	forceOverride?: boolean;
 	/** Internal — counts 429 backoff retries so recursion is bounded. */
 	rateAttempt?: number;
 	/** Receives the headers of the successful response (see `requestWithHeaders`). */
@@ -217,16 +224,30 @@ function cloneResult(value: unknown): unknown {
 	}
 }
 
+/**
+ * The body of a response as text without consuming it, for checks that run
+ * before the real body handling. Only read for statuses a method refusal can
+ * have, so ordinary responses are never buffered twice.
+ */
+async function peekText(response: Response): Promise<string> {
+	if (![403, 405, 501].includes(response.status)) return '';
+	try {
+		return await response.clone().text();
+	} catch {
+		return '';
+	}
+}
+
 /** Refresh proactively if the access token expires within this window. */
 const PRE_EXPIRY_MS = 60_000;
 
 /**
- * Methods that shared-hosting nginx configs occasionally 405 before the
- * request reaches PHP. We retry these as POST + X-HTTP-Method-Override on the
- * first 405 and remember the fallback for the rest of the session so the
- * double round-trip only happens once.
+ * Shared hosts sometimes refuse DELETE/PATCH/PUT before the request reaches
+ * PHP: nginx with a 405, Apache on OVH with its stock 403 page
+ * (getgrav/grav-plugin-admin2#219). We retry once as POST +
+ * X-HTTP-Method-Override and, when that gets through, remember the fallback for
+ * the rest of the session so the double round-trip only happens once.
  */
-const OVERRIDABLE_METHODS = new Set(['DELETE', 'PATCH', 'PUT']);
 const METHOD_OVERRIDE_FLAG = 'grav_admin_method_override';
 
 function methodOverrideNeeded(): boolean {
@@ -504,7 +525,7 @@ class ApiClient {
 		// first round-trip on every subsequent DELETE/PATCH/PUT.
 		const upperMethod = method.toUpperCase();
 		const useOverride =
-			OVERRIDABLE_METHODS.has(upperMethod) && methodOverrideNeeded();
+			OVERRIDABLE_METHODS.has(upperMethod) && (options.forceOverride === true || methodOverrideNeeded());
 
 		const headers: Record<string, string> = {
 			...this.headers,
@@ -582,17 +603,20 @@ class ApiClient {
 			return this.enqueueForReauth<T>(method, path, options);
 		}
 
-		// Proxy 405 fallback: some nginx configs on shared hosting reject
-		// DELETE/PATCH/PUT at the edge. Retry once as POST + override before
-		// surfacing the failure.
+		// Method refusal fallback: some hosts reject DELETE/PATCH/PUT at the
+		// edge. Retry once as POST + override before showing the failure.
 		if (
-			response.status === 405 &&
 			!useOverride &&
-			OVERRIDABLE_METHODS.has(upperMethod) &&
-			options.overrideRetry !== false
+			options.overrideRetry !== false &&
+			isMethodRefusal(upperMethod, response.status, await peekText(response))
 		) {
+			const result = await this.request<T>(method, path, {
+				...options,
+				overrideRetry: false,
+				forceOverride: true,
+			});
 			rememberMethodOverride();
-			return this.request<T>(method, path, { ...options, overrideRetry: false });
+			return result;
 		}
 
 		// Rate limited (429) or server momentarily busy (5xx): back off briefly
@@ -696,6 +720,7 @@ class ApiClient {
 			headers?: Record<string, string>;
 			retry?: boolean;
 			overrideRetry?: boolean;
+			forceOverride?: boolean;
 			signal?: AbortSignal;
 		} = {}
 	): Promise<{ data: T; meta?: unknown; headers: Headers; status: number }> {
@@ -711,7 +736,8 @@ class ApiClient {
 		// Same proxy 405 fallback as request(): config saves and the plugin
 		// toggle PATCH through here and need it on hosts that reject PATCH.
 		const upperMethod = method.toUpperCase();
-		const useOverride = OVERRIDABLE_METHODS.has(upperMethod) && methodOverrideNeeded();
+		const useOverride =
+			OVERRIDABLE_METHODS.has(upperMethod) && (options.forceOverride === true || methodOverrideNeeded());
 		const headers: Record<string, string> = { ...this.headers, ...options.headers };
 		if (useOverride) {
 			headers['X-HTTP-Method-Override'] = upperMethod;
@@ -758,13 +784,17 @@ class ApiClient {
 		}
 
 		if (
-			response.status === 405 &&
 			!useOverride &&
-			OVERRIDABLE_METHODS.has(upperMethod) &&
-			options.overrideRetry !== false
+			options.overrideRetry !== false &&
+			isMethodRefusal(upperMethod, response.status, await peekText(response))
 		) {
+			const result = await this.requestRaw<T>(method, path, {
+				...options,
+				overrideRetry: false,
+				forceOverride: true,
+			});
 			rememberMethodOverride();
-			return this.requestRaw<T>(method, path, { ...options, overrideRetry: false });
+			return result;
 		}
 
 		// Inline body handling (mirrors handleResponse) so callers can read the
