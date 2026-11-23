@@ -8,6 +8,7 @@
 	import FieldHelp from '../FieldHelp.svelte';
 	import { uniqueListOptions, takenByOtherRows } from '$lib/utils/select-unique';
 	import { listItemTitle } from '$lib/utils/list-item-title';
+	import { listControls, type ListEnd } from '$lib/utils/list-controls';
 	import { formReadonly } from '../readonly';
 
 	interface Props {
@@ -44,6 +45,8 @@
 		field.btnLabel ? translateLabel(field.btnLabel) : i18n.t('ADMIN_NEXT.FIELDS.ADD_ITEM')
 	);
 	const isCompact = $derived((field.classes ?? '').includes('compact'));
+	// `controls: top | bottom | both` and `placement`, as classic admin read them (admin2#225).
+	const controls = $derived(listControls(field));
 
 	// Detect if this list uses key-value pairs (has a field with type 'key')
 	const keyFieldDef = $derived(childFields.find((f) => f.type === 'key'));
@@ -181,7 +184,7 @@
 	const uniqueOptions = $derived(uniqueListOptions(field.selectunique));
 	const uniqueFull = $derived(uniqueOptions.length > 0 && items.length >= uniqueOptions.length);
 
-	function addItem() {
+	function addItem(at: ListEnd = 'bottom') {
 		if (uniqueFull) return;
 		const newItem: ListItem = {
 			id: nextId++,
@@ -189,7 +192,7 @@
 			data: newItemData(),
 			collapsed: false
 		};
-		items = [...items, newItem];
+		items = at === 'top' ? [newItem, ...items] : [...items, newItem];
 		emitChange();
 	}
 
@@ -336,7 +339,48 @@
 	const visibleItems = $derived(
 		isFiltering ? items.filter((it) => itemMatches(it, filterQ)) : items
 	);
+
+	const canToggleAll = $derived(isCollapsible && items.length > 1);
+	const hasActions = $derived(canToggleAll || !readOnly);
+	// With `both`, an empty list keeps just the bottom bar rather than two add
+	// buttons stacked over nothing.
+	const showTopBar = $derived(
+		hasActions && controls.top && (!controls.bottom || items.length > 0)
+	);
+	const showBottomBar = $derived(hasActions && controls.bottom);
 </script>
+
+{#snippet actionsBar(addAt: ListEnd)}
+	<div class="flex items-center gap-2">
+		{#if canToggleAll}
+			<button
+				type="button"
+				class="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+				onclick={expandAll}
+			>
+				<ChevronDown size={12} /> {i18n.t('ADMIN_NEXT.EXPAND_ALL')}
+			</button>
+			<button
+				type="button"
+				class="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+				onclick={collapseAll}
+			>
+				<DirectionalIcon name="chevron-forward" size={12} /> {i18n.t('ADMIN_NEXT.COLLAPSE_ALL')}
+			</button>
+		{/if}
+		{#if !readOnly}
+		<button
+			type="button"
+			class="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary disabled:pointer-events-none disabled:opacity-50"
+			onclick={() => addItem(addAt)}
+			disabled={uniqueFull}
+		>
+			<Plus size={14} />
+			{btnLabel}
+		</button>
+		{/if}
+	</div>
+{/snippet}
 
 <div class="space-y-2">
 	{#if field.label || field.help}
@@ -348,6 +392,10 @@
 			{/if}
 			<FieldHelp help={field.help} label={field.label} />
 		</div>
+	{/if}
+
+	{#if showTopBar}
+		{@render actionsBar(controls.topAdds)}
 	{/if}
 
 	{#if visibleItems.length > 0}
@@ -454,34 +502,7 @@
 		<p class="text-xs font-medium text-destructive" data-field-error>{error}</p>
 	{/if}
 
-	<!-- Actions bar -->
-	<div class="flex items-center gap-2">
-		{#if isCollapsible && items.length > 1}
-			<button
-				type="button"
-				class="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-				onclick={expandAll}
-			>
-				<ChevronDown size={12} /> {i18n.t('ADMIN_NEXT.EXPAND_ALL')}
-			</button>
-			<button
-				type="button"
-				class="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-				onclick={collapseAll}
-			>
-				<DirectionalIcon name="chevron-forward" size={12} /> {i18n.t('ADMIN_NEXT.COLLAPSE_ALL')}
-			</button>
-		{/if}
-		{#if !readOnly}
-		<button
-			type="button"
-			class="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary disabled:pointer-events-none disabled:opacity-50"
-			onclick={addItem}
-			disabled={uniqueFull}
-		>
-			<Plus size={14} />
-			{btnLabel}
-		</button>
-		{/if}
-	</div>
+	{#if showBottomBar}
+		{@render actionsBar(controls.bottomAdds)}
+	{/if}
 </div>
