@@ -59,6 +59,12 @@
 	import { renderMarkdown, sanitizeHtml } from '$lib/utils/markdown';
 	import { modals } from '$lib/stores/modals.svelte';
 	import { getEditorButtons, type EditorToolbarButton } from '$lib/api/endpoints/editorButtons';
+	import {
+		insertTarget,
+		selectionAfterInsert,
+		type EditorContext,
+		type PluginInsertResult,
+	} from '$lib/utils/editor-plugin-insert';
 	import { ensureKeymapLoaded, keymapExtension } from './keymap';
 	import ImageInsertModal from './ImageInsertModal.svelte';
 	import type { PageMediaContext } from '$lib/components/media/types';
@@ -796,21 +802,41 @@
 		if (!view) return;
 		if (button.modal) {
 			// The modal builds the markdown and resolves { insertContent } so we
-			// can drop it into this specific editor at the cursor.
+			// can drop it into this specific editor. It's told what was selected
+			// at click time (`editorContext`), since opening it takes focus off
+			// CodeMirror, and its result replaces that same range.
+			const { from, to } = view.state.selection.main;
+			const captured = { from, to, text: view.state.sliceDoc(from, to) };
+			const editorContext: EditorContext = {
+				selectedText: captured.text,
+				from,
+				to,
+				contentLanguage: window.__GRAV_CONTENT_LANG || '',
+			};
 			const result = (await modals.open({
 				kind: 'component',
 				plugin: button.plugin,
 				component: button.modal.component,
 				title: button.modal.title ?? button.label,
-				props: button.modal.props,
+				props: { ...button.modal.props, editorContext },
 				size: button.modal.size,
 				useStandardHeader: button.modal.useStandardHeader,
-			})) as { insertContent?: string } | null;
-			if (result && typeof result.insertContent === 'string') {
-				insertAtCursor(result.insertContent);
-			} else {
-				view?.focus();
+			})) as PluginInsertResult | null;
+			if (!view) return;
+			if (result && typeof result.insertContent === 'string' && result.insertContent !== '') {
+				const text = result.insertContent;
+				const target = insertTarget(
+					captured,
+					view.state.selection.main,
+					view.state.doc.length,
+					(a, b) => view!.state.sliceDoc(a, b)
+				);
+				view.dispatch({
+					changes: { from: target.from, to: target.to, insert: text },
+					selection: selectionAfterInsert(result, target.from, text.length),
+				});
 			}
+			view.focus();
 			return;
 		}
 		if (button.insert) {
