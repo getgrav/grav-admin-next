@@ -1,10 +1,12 @@
 <script lang="ts">
 	import type { BlueprintField } from '$lib/api/endpoints/blueprints';
-	import { getChildren, pageApiRoute, isAncestorOnly } from '$lib/api/endpoints/pages';
+	import { getChildren, getPage, pageApiRoute, isAncestorOnly } from '$lib/api/endpoints/pages';
 	import type { PageSummary } from '$lib/api/endpoints/pages';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { createPageSearch } from '$lib/utils/page-search.svelte';
-	import { pagesFieldScope, isListedPage, canExpandAt, isInScope } from '$lib/utils/pages-field';
+	import {
+		pagesFieldScope, isListedPage, canExpandAt, isInScope, pagesFieldValues, togglePagesValue
+	} from '$lib/utils/pages-field';
 	import {
 		ChevronDown, File, Folder, FolderOpen,
 		Loader2, Search, X, ChevronsUpDown, Check, Lock
@@ -45,7 +47,18 @@
 	const showSlug = field.show_slug ?? true;
 	const showFullpath = field.show_fullpath === true;
 
-	const selectedRoute = $derived(typeof value === 'string' ? value : '');
+	// `multiple: true` saves a list of routes and leaves the picker open so
+	// several pages can be chosen; otherwise the value is one route.
+	const multiple = field.multiple === true;
+	const selectedValues = $derived(pagesFieldValues(value));
+	const selectedRoute = $derived(selectedValues[0] ?? '');
+	const isSelected = (route: string) => selectedValues.includes(route);
+
+	// Blueprint `options` are extra choices listed above the pages, as classic
+	// admin does (the API hands them over as `{ value, label }` pairs).
+	const extraOptions = (field.options ?? []).filter((o) => o && o.value !== undefined && o.value !== null)
+		.map((o) => ({ value: String(o.value), label: o.label }));
+	const optionLabel = (o: { value: string; label: string }) => translateLabel(o.label) || o.value;
 
 	// Address every page by its *structural* route (raw_route), never its public
 	// one. With `system.home.alias: /blog` the blog page's route() is `/` while
@@ -77,17 +90,46 @@
 		return null;
 	}
 
-	// Title of a page picked from search results, which may sit in a folder
-	// the tree never loaded, so findPageTitle() can't see it.
-	let pickedTitle = $state<{ route: string; title: string } | null>(null);
+	// Titles of pages picked from search results, which may sit in a folder
+	// the tree never loaded, so findPageTitle() can't see them.
+	let pickedTitles = $state<Record<string, string>>({});
+
+	function titleFor(route: string): string | null {
+		const option = extraOptions.find((o) => o.value === route);
+		if (option) return optionLabel(option);
+		if (route === '/' && showRoot) return i18n.t('ADMIN_NEXT.FIELDS.PAGES.ROOT');
+		return findPageTitle(rootPages, route) ?? pickedTitles[route] ?? null;
+	}
 
 	const selectedLabel = $derived(() => {
 		if (!selectedRoute) return '';
-		const title = findPageTitle(rootPages, selectedRoute)
-			?? (pickedTitle?.route === selectedRoute ? pickedTitle.title : null);
+		const option = extraOptions.find((o) => o.value === selectedRoute);
+		if (option) return optionLabel(option);
+		const title = titleFor(selectedRoute);
 		if (title && !showFullpath) return showSlug ? `${selectedRoute} — ${title}` : title;
 		return selectedRoute;
 	});
+
+	// Saved pages show their titles straight away rather than routes until the
+	// picker is opened: each saved route that isn't an option or already known
+	// is looked up once.
+	const titleRequested: Record<string, true> = {};
+	$effect(() => {
+		for (const route of selectedValues) {
+			if (titleRequested[route] || route === '/' || extraOptions.some((o) => o.value === route)) continue;
+			titleRequested[route] = true;
+			getPage(route)
+				.then((page) => { pickedTitles = { ...pickedTitles, [route]: page.title }; })
+				.catch(() => { /* a page that is gone or unreadable keeps showing its route */ });
+		}
+	});
+
+	// A chip in a multiple field shows the page title once it is known (the
+	// route is in its tooltip), or the route itself.
+	function chipLabel(route: string): string {
+		const title = titleFor(route);
+		return title && !showFullpath ? title : route;
+	}
 
 	async function loadRoot() {
 		if (rootPages.length > 0) return;
@@ -131,9 +173,18 @@
 	}
 
 	function selectPage(route: string) {
+		if (multiple) {
+			onchange(togglePagesValue(selectedValues, route));
+			return;
+		}
 		onchange(route);
 		open = false;
 		filter = '';
+	}
+
+	function removeValue(route: string, e: Event) {
+		e.stopPropagation();
+		onchange(selectedValues.filter((v) => v !== route));
 	}
 
 	function handleOpen() {
@@ -176,9 +227,15 @@
 	$effect(() => () => search.dispose());
 
 	function selectSearchResult(page: PageSummary) {
-		pickedTitle = { route: pageApiRoute(page), title: page.title };
+		pickedTitles = { ...pickedTitles, [pageApiRoute(page)]: page.title };
 		selectPage(pageApiRoute(page));
 	}
+
+	const matchingOptions = $derived.by(() => {
+		const q = filter.trim().toLowerCase();
+		if (!q) return extraOptions;
+		return extraOptions.filter((o) => optionLabel(o).toLowerCase().includes(q) || o.value.toLowerCase().includes(q));
+	});
 
 	function shouldShow(page: PageSummary): boolean {
 		return isListedPage(page, scope);
@@ -209,17 +266,50 @@
 
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="pages-field-popover relative" onkeydown={handleKeydown}>
-		<!-- Trigger button -->
-		<button
-			type="button"
-			class="flex h-10 w-full items-center justify-between rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm shadow-sm transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-			onclick={handleOpen}
-		>
-			<span class={selectedRoute ? 'text-foreground' : 'text-muted-foreground'}>
-				{selectedRoute ? selectedLabel() : i18n.t('ADMIN_NEXT.FIELDS.SELECT_A_PAGE')}
-			</span>
-			<ChevronsUpDown size={14} class="shrink-0 text-muted-foreground" />
-		</button>
+		<!-- Trigger -->
+		{#if multiple}
+			<!-- Chips can't sit inside a <button> (each has its own remove button). -->
+			<div
+				role="button"
+				tabindex="0"
+				class="flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-lg border border-input bg-muted/50 px-2 py-1.5 text-sm shadow-sm transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+				onclick={handleOpen}
+				onkeydown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); handleOpen(); } }}
+			>
+				<div class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+					{#each selectedValues as route (route)}
+						<span
+							class="inline-flex max-w-full items-center gap-1.5 rounded-md border border-border bg-background px-1.5 py-1 text-xs text-foreground"
+							title={route}
+						>
+							<span class="truncate">{chipLabel(route)}</span>
+							<button
+								type="button"
+								class="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+								onclick={(e) => removeValue(route, e)}
+								aria-label={i18n.t('ADMIN_NEXT.DELETE')}
+							>
+								<X size={12} />
+							</button>
+						</span>
+					{:else}
+						<span class="px-1 text-muted-foreground">{i18n.t('ADMIN_NEXT.FIELDS.SELECT_A_PAGE')}</span>
+					{/each}
+				</div>
+				<ChevronsUpDown size={14} class="shrink-0 text-muted-foreground" />
+			</div>
+		{:else}
+			<button
+				type="button"
+				class="flex h-10 w-full items-center justify-between rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm shadow-sm transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+				onclick={handleOpen}
+			>
+				<span class={selectedRoute ? 'text-foreground' : 'text-muted-foreground'}>
+					{selectedRoute ? selectedLabel() : i18n.t('ADMIN_NEXT.FIELDS.SELECT_A_PAGE')}
+				</span>
+				<ChevronsUpDown size={14} class="shrink-0 text-muted-foreground" />
+			</button>
+		{/if}
 
 		<!-- Popover dropdown -->
 		{#if open}
@@ -248,12 +338,15 @@
 				<!-- Tree content -->
 				<div class="max-h-72 overflow-y-auto p-1">
 					{#if searching}
+						{#each matchingOptions as option (option.value)}
+							{@render optionRow(option, false)}
+						{/each}
 						{#if search.loading}
 							<div class="flex items-center justify-center py-6 text-sm text-muted-foreground">
 								<Loader2 size={16} class="me-2 animate-spin" />
 								{i18n.t('ADMIN_NEXT.PAGES.PAGES_TREE_VIEW.SEARCHING')}
 							</div>
-						{:else if searchResults.length === 0}
+						{:else if searchResults.length === 0 && matchingOptions.length === 0}
 							<div class="py-4 text-center text-sm text-muted-foreground">
 								{i18n.t('ADMIN_NEXT.PAGES.NO_PAGES')}
 							</div>
@@ -263,7 +356,7 @@
 								<button
 									type="button"
 									class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
-										{selectedRoute === apiRoute ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'}"
+										{isSelected(apiRoute) ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'}"
 									onclick={() => selectSearchResult(page)}
 								>
 									<File size={14} class="shrink-0 text-muted-foreground" />
@@ -275,7 +368,7 @@
 											<span class="text-muted-foreground">{apiRoute}</span>
 										{/if}
 									</span>
-									{#if selectedRoute === apiRoute}
+									{#if isSelected(apiRoute)}
 										<Check size={14} class="ms-auto shrink-0 text-primary" />
 									{/if}
 								</button>
@@ -301,16 +394,19 @@
 							<button
 								type="button"
 								class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
-									{selectedRoute === '/' ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'}"
+									{isSelected('/') ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'}"
 								onclick={() => selectPage('/')}
 							>
 								<File size={14} class="shrink-0 text-muted-foreground" />
 								<span class="truncate">{i18n.t('ADMIN_NEXT.FIELDS.PAGES.ROOT')}</span>
-								{#if selectedRoute === '/'}
+								{#if isSelected('/')}
 									<Check size={14} class="ms-auto shrink-0 text-primary" />
 								{/if}
 							</button>
 						{/if}
+						{#each extraOptions as option (option.value)}
+							{@render optionRow(option, true)}
+						{/each}
 						{#each rootPages as page (pageApiRoute(page))}
 							{#if shouldShow(page)}
 								{@render pageNode(page, 0)}
@@ -333,7 +429,7 @@
 	{@const apiRoute = pageApiRoute(page)}
 	{@const isExpanded = expandedRoutes.has(apiRoute)}
 	{@const isLoading = loadingRoutes.has(apiRoute)}
-	{@const isSelected = selectedRoute === apiRoute}
+	{@const selected = isSelected(apiRoute)}
 	{@const children = childrenCache[apiRoute]}
 	{@const filtered = children ? children.filter(shouldShow) : []}
 	<!-- A page the user can't read is listed only as a way to the pages inside
@@ -345,7 +441,7 @@
 		<button
 			type="button"
 			class="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
-				{isSelected ? 'bg-primary/10 text-primary' : passThrough ? 'text-muted-foreground hover:bg-accent/50' : 'text-foreground hover:bg-accent'}"
+				{selected ? 'bg-primary/10 text-primary' : passThrough ? 'text-muted-foreground hover:bg-accent/50' : 'text-foreground hover:bg-accent'}"
 			title={passThrough ? i18n.t('ADMIN_NEXT.PAGES.ANCESTOR_ONLY_HINT') : undefined}
 			onclick={(e) => { if (!passThrough) selectPage(apiRoute); else if (expandable) toggleExpand(apiRoute, e); }}
 		>
@@ -396,7 +492,7 @@
 				<Lock size={11} class="shrink-0 text-muted-foreground/70" aria-hidden="true" />
 			{/if}
 
-			{#if isSelected}
+			{#if selected}
 				<Check size={14} class="ms-auto shrink-0 text-primary" />
 			{/if}
 		</button>
@@ -408,4 +504,23 @@
 			{@render pageNode(child, depth + 1)}
 		{/each}
 	{/if}
+{/snippet}
+
+<!-- In the tree an option lines up with the page titles (past the expand
+     toggle and icon), in search results with the result titles (past the icon). -->
+{#snippet optionRow(option: { value: string; label: string }, inTree: boolean)}
+	<button
+		type="button"
+		class="flex w-full items-center rounded-lg px-2 py-1.5 text-start text-sm transition-colors
+			{inTree ? 'gap-1.5' : 'gap-2'}
+			{isSelected(option.value) ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'}"
+		onclick={() => selectPage(option.value)}
+	>
+		{#if inTree}<span class="w-5 shrink-0"></span>{/if}
+		<span class="w-[14px] shrink-0"></span>
+		<span class="min-w-0 truncate">{optionLabel(option)}</span>
+		{#if isSelected(option.value)}
+			<Check size={14} class="ms-auto shrink-0 text-primary" />
+		{/if}
+	</button>
 {/snippet}

@@ -79,3 +79,20 @@ export function isInScope(route: string, scope: PagesFieldScope): boolean {
 	const depth = segments(route) - segments(scope.start);
 	return depth >= 1 && (scope.levels === null || depth <= scope.levels);
 }
+
+/**
+ * The routes a pages field holds, whatever form the saved value is in: a
+ * list for `multiple: true` fields, a single route otherwise. A single route
+ * saved before the field became `multiple` still counts as one choice.
+ */
+export function pagesFieldValues(value: unknown): string[] {
+	if (Array.isArray(value)) {
+		return value.filter((v): v is string => typeof v === 'string' && v !== '');
+	}
+	return typeof value === 'string' && value !== '' ? [value] : [];
+}
+
+/** Adds the route to a `multiple` field's list, or takes it out if it's already there. */
+export function togglePagesValue(values: string[], route: string): string[] {
+	return values.includes(route) ? values.filter((v) => v !== route) : [...values, route];
+}

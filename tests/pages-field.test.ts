@@ -6,6 +6,8 @@ import {
 	isListedPage,
 	canExpandAt,
 	isInScope,
+	pagesFieldValues,
+	togglePagesValue,
 } from '../src/lib/utils/pages-field.ts';
 
 test('start_route is normalized, and an empty one means the whole site', () => {
@@ -64,4 +66,19 @@ test('search results are kept to the start route and the level limit', () => {
 	const site = pagesFieldScope({});
 	assert.equal(isInScope('/blog', site), true);
 	assert.equal(isInScope('/blog/a/b/c', site), true);
+});
+
+test('a saved value reads as a list of routes, single or multiple', () => {
+	assert.deepEqual(pagesFieldValues(['/blog/a', '/blog/b']), ['/blog/a', '/blog/b']);
+	assert.deepEqual(pagesFieldValues('/blog/a'), ['/blog/a']);
+	assert.deepEqual(pagesFieldValues(''), []);
+	assert.deepEqual(pagesFieldValues(null), []);
+	assert.deepEqual(pagesFieldValues(undefined), []);
+	assert.deepEqual(pagesFieldValues(['/a', '', 3, null, '/b']), ['/a', '/b']);
+});
+
+test('picking a page in a multiple field adds it, picking it again takes it out', () => {
+	assert.deepEqual(togglePagesValue([], '/a'), ['/a']);
+	assert.deepEqual(togglePagesValue(['/a'], '/b'), ['/a', '/b']);
+	assert.deepEqual(togglePagesValue(['/a', '/b'], '/a'), ['/b']);
 });
