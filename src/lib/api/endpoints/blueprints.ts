@@ -105,6 +105,12 @@ export interface BlueprintField {
 	show_modular?: boolean;
 	show_root?: boolean;
 	show_slug?: boolean;
+	/** pages field — list only the pages below this route (classic `start_route`). */
+	start_route?: string;
+	/** pages field — label each page with its route instead of its title. */
+	show_fullpath?: boolean;
+	/** pages field — how deep the list goes (classic `limit_levels`). */
+	limit_levels?: number | string;
 	placeholder_key?: string;
 	placeholder_value?: string;
 	value_type?: string;

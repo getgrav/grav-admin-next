@@ -4,6 +4,7 @@
 	import type { PageSummary } from '$lib/api/endpoints/pages';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { createPageSearch } from '$lib/utils/page-search.svelte';
+	import { pagesFieldScope, isListedPage, canExpandAt, isInScope } from '$lib/utils/pages-field';
 	import {
 		ChevronDown, File, Folder, FolderOpen,
 		Loader2, Search, X, ChevronsUpDown, Check, Lock
@@ -29,7 +30,12 @@
 	let rootLoading = $state(false);
 	let filterInputEl = $state<HTMLInputElement | null>(null);
 
-	const showModular = field.show_modular ?? false;
+	// start_route / show_all / show_modular / limit_levels, as classic reads them.
+	const fieldScope = pagesFieldScope(field);
+	// Classic lists the whole site when start_route doesn't point at a page
+	// (Module Reuse ships with `root: /root`), so an empty start falls back to it.
+	let startFallback = $state(false);
+	const scope = $derived(startFallback ? { ...fieldScope, start: '/' } : fieldScope);
 	// `parents` is the parent-picker field type — root is always a valid
 	// parent there, so default show_root to true when the blueprint doesn't
 	// say otherwise. Plain `pages` fields (where the chosen value is a
@@ -37,6 +43,7 @@
 	// false default unless the blueprint opts in.
 	const showRoot = field.show_root ?? (field.type === 'parents');
 	const showSlug = field.show_slug ?? true;
+	const showFullpath = field.show_fullpath === true;
 
 	const selectedRoute = $derived(typeof value === 'string' ? value : '');
 
@@ -78,7 +85,7 @@
 		if (!selectedRoute) return '';
 		const title = findPageTitle(rootPages, selectedRoute)
 			?? (pickedTitle?.route === selectedRoute ? pickedTitle.title : null);
-		if (title) return showSlug ? `${selectedRoute} — ${title}` : title;
+		if (title && !showFullpath) return showSlug ? `${selectedRoute} — ${title}` : title;
 		return selectedRoute;
 	});
 
@@ -86,8 +93,12 @@
 		if (rootPages.length > 0) return;
 		rootLoading = true;
 		try {
-			rootPages = await getChildren('/', 'title', 'asc', undefined, undefined, { summary: true });
-			childrenCache = { '/': rootPages };
+			rootPages = await getChildren(scope.start, 'title', 'asc', undefined, undefined, { summary: true });
+			if (rootPages.length === 0 && scope.start !== '/') {
+				startFallback = true;
+				rootPages = await getChildren('/', 'title', 'asc', undefined, undefined, { summary: true });
+			}
+			childrenCache = { [scope.start]: rootPages };
 		} catch { /* handled */ }
 		finally { rootLoading = false; }
 	}
@@ -157,7 +168,7 @@
 	const search = createPageSearch({ debounceMs: 200, editable: false });
 	const searching = $derived(filter.trim().length > 0);
 	const searchResults = $derived(
-		search.results.filter((p) => shouldShow(p) && !isAncestorOnly(p))
+		search.results.filter((p) => shouldShow(p) && !isAncestorOnly(p) && isInScope(pageApiRoute(p), scope))
 	);
 	$effect(() => {
 		search.run(filter);
@@ -170,8 +181,7 @@
 	}
 
 	function shouldShow(page: PageSummary): boolean {
-		if (!showModular && page.template?.startsWith('modular/')) return false;
-		return true;
+		return isListedPage(page, scope);
 	}
 
 	$effect(() => {
@@ -258,8 +268,12 @@
 								>
 									<File size={14} class="shrink-0 text-muted-foreground" />
 									<span class="min-w-0 truncate">
-										{page.title}
-										<span class="text-muted-foreground">{apiRoute}</span>
+										{#if showFullpath}
+											{page.route}
+										{:else}
+											{page.title}
+											<span class="text-muted-foreground">{apiRoute}</span>
+										{/if}
 									</span>
 									{#if selectedRoute === apiRoute}
 										<Check size={14} class="ms-auto shrink-0 text-primary" />
@@ -325,6 +339,7 @@
 	<!-- A page the user can't read is listed only as a way to the pages inside
 	     it (admin2#209): picking it opens it instead of choosing it. -->
 	{@const passThrough = isAncestorOnly(page)}
+	{@const expandable = page.has_children && canExpandAt(depth, scope)}
 
 	<div style="padding-left: {depth * 16}px">
 		<button
@@ -332,10 +347,10 @@
 			class="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
 				{isSelected ? 'bg-primary/10 text-primary' : passThrough ? 'text-muted-foreground hover:bg-accent/50' : 'text-foreground hover:bg-accent'}"
 			title={passThrough ? i18n.t('ADMIN_NEXT.PAGES.ANCESTOR_ONLY_HINT') : undefined}
-			onclick={(e) => { if (!passThrough) selectPage(apiRoute); else if (page.has_children) toggleExpand(apiRoute, e); }}
+			onclick={(e) => { if (!passThrough) selectPage(apiRoute); else if (expandable) toggleExpand(apiRoute, e); }}
 		>
 			<!-- Expand toggle -->
-			{#if page.has_children}
+			{#if expandable}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<span
 					class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -368,10 +383,14 @@
 
 			<!-- Label -->
 			<span class="min-w-0 truncate">
-				{#if showSlug}
-					<span class="text-muted-foreground">({page.slug})</span>
+				{#if showFullpath}
+					{page.route}
+				{:else}
+					{#if showSlug}
+						<span class="text-muted-foreground">({page.slug})</span>
+					{/if}
+					{page.title}
 				{/if}
-				{page.title}
 			</span>
 			{#if passThrough}
 				<Lock size={11} class="shrink-0 text-muted-foreground/70" aria-hidden="true" />
@@ -384,7 +403,7 @@
 	</div>
 
 	<!-- Children -->
-	{#if isExpanded && children}
+	{#if expandable && isExpanded && children}
 		{#each filtered as child (pageApiRoute(child))}
 			{@render pageNode(child, depth + 1)}
 		{/each}
