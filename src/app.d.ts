@@ -115,6 +115,42 @@ declare global {
 			shortcuts: (item: string) => string[];
 			setShortcut: (item: string, child: string, on: boolean) => Promise<void>;
 		};
+		/**
+		 * Add actions to the page editor's Translations panel. Registering the
+		 * same `id` again replaces the action. See
+		 * `$lib/stores/translationActions.svelte.ts` for the context `run()` gets.
+		 */
+		__GRAV_TRANSLATION_ACTIONS?: {
+			register: (action: import('$lib/stores/translationActions.svelte').TranslationAction) => void;
+			unregister: (id: string) => void;
+		};
+		/**
+		 * The open page editor, for plugin scripts. Set while a page is open in
+		 * the editor, removed when it closes.
+		 *
+		 * `getData()` returns what the editor shows now, unsaved edits included:
+		 * the header (title folded in), the body, and the resolved blueprint
+		 * fields. `applyChanges()` makes edits the same way typing in the form
+		 * does: they show in the form, count as unsaved changes, go on the undo
+		 * stack and follow the auto-save setting. Header paths are dot paths
+		 * (`metadata.description`, `features.0.title`). Returns false when the
+		 * page can't be edited.
+		 */
+		__GRAV_PAGE_EDITOR?: {
+			getData: () => {
+				route: string;
+				lang: string;
+				template: string;
+				slug: string;
+				readOnly: boolean;
+				isFallback: boolean;
+				translatedLanguages: string[];
+				header: Record<string, unknown>;
+				content: string;
+				fields: import('$lib/api/endpoints/blueprints').BlueprintField[];
+			};
+			applyChanges: (changes: { header?: Record<string, unknown>; content?: string }) => boolean;
+		};
 		__GRAV_TOAST: {
 			success: (message: string, options?: Record<string, unknown>) => void;
 			error: (message: string, options?: Record<string, unknown>) => void;

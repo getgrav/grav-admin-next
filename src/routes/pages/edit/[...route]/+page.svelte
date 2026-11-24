@@ -8,7 +8,7 @@
 	import { createTranslation, syncTranslation, adoptPageLanguage } from '$lib/api/endpoints/languages';
 	import { getPageBlueprint } from '$lib/api/endpoints/blueprints';
 	import type { PageDetail } from '$lib/api/endpoints/pages';
-	import type { BlueprintSchema } from '$lib/api/endpoints/blueprints';
+	import type { BlueprintField, BlueprintSchema } from '$lib/api/endpoints/blueprints';
 	import type { MediaItem } from '$lib/api/endpoints/media';
 	import type { PageMediaContext } from '$lib/components/media/types';
 	import BlueprintForm from '$lib/components/blueprint/BlueprintForm.svelte';
@@ -68,6 +68,8 @@
 	import * as Y from 'yjs';
 	import { api as apiClient, ApiRequestError } from '$lib/api/client';
 	import { pageEditorBar } from '$lib/stores/pageEditorBar.svelte';
+	import { translationActions, type TranslationAction, type TranslationActionContext } from '$lib/stores/translationActions.svelte';
+	import { faIconClass } from '$lib/utils/fa-icon';
 	import EditorLockNotice from '$lib/components/sync/EditorLockNotice.svelte';
 	import TwigContentBanner from '$lib/components/pages/TwigContentBanner.svelte';
 	import { pageFolderName } from '$lib/utils/page-folder';
@@ -134,7 +136,6 @@
 			const { content: newContent, mode } = e.detail || {};
 			if (!newContent || readOnly) return;
 
-			const oldContent = content;
 			let updatedContent: string;
 			if (mode === 'replace') {
 				updatedContent = newContent;
@@ -143,28 +144,8 @@
 			} else {
 				return; // 'insert-at-cursor' is handled by MarkdownEditor directly
 			}
-
-			// Update Svelte state
-			content = updatedContent;
-			headerData = { ...headerData, content: updatedContent };
-			hasLocalEdits = true;
-
-			// Directly update editor-pro web component (TipTap).
-			// Use replaceContent() so the update goes through TipTap's setContent
-			// — under collaborative mode this propagates via y-prosemirror to peers.
-			// (The plain `value =` setter bails out under collab to protect routine prop syncs.)
-			// CodeMirror (MarkdownEditor) handles the event directly via its own listener.
-			const editorPro = document.querySelector('grav-editor-pro--editor-pro') as (HTMLElement & { value?: string; replaceContent?: (md: string) => void }) | null;
-			if (editorPro) {
-				if (typeof editorPro.replaceContent === 'function') {
-					editorPro.replaceContent(updatedContent);
-				} else {
-					editorPro.value = updatedContent;
-				}
-			}
-
-			// Trigger auto-save commit
-			autoSave.oncommit('content', updatedContent, oldContent);
+			// CodeMirror (MarkdownEditor) handles this event itself via its own listener.
+			replaceMainContent(updatedContent, false);
 		}
 		window.addEventListener('grav:editor:get-content', handleGetContent);
 		// Vim ex-commands (:w / :q / :wq) dispatch these on the shared bus;
@@ -181,6 +162,148 @@
 			window.removeEventListener('grav:editor:close', handleVimClose);
 		};
 	});
+	/**
+	 * The editor-pro element editing the page body, if editor-pro is the
+	 * content editor. Matched by field name: a page can have other editor-pro
+	 * fields (a description, say), and the first one in the DOM isn't
+	 * necessarily the body.
+	 */
+	function mainEditorPro(): (HTMLElement & { value?: string; replaceContent?: (md: string) => void }) | null {
+		const all = Array.from(document.querySelectorAll('grav-editor-pro--editor-pro')) as Array<HTMLElement & { field?: { name?: string }; value?: string; replaceContent?: (md: string) => void }>;
+		return all.find((el) => el.field?.name === 'content') ?? null;
+	}
+
+	/**
+	 * Replace the page body as an edit: state, the visible editor, collab
+	 * peers and the auto-save stack all follow.
+	 *
+	 * @param updateCodeMirror Also push the text into a collaborative
+	 *   CodeMirror. Off for the `grav:editor:insert-content` event, which
+	 *   CodeMirror listens for itself.
+	 */
+	function replaceMainContent(updatedContent: string, updateCodeMirror = true) {
+		const oldContent = content;
+		content = updatedContent;
+		headerData = { ...headerData, content: updatedContent };
+		hasLocalEdits = true;
+
+		// editor-pro (TipTap): replaceContent() goes through TipTap's setContent,
+		// so under collaborative mode it reaches peers via y-prosemirror. (The
+		// plain `value =` setter bails out under collab to protect prop syncs.)
+		const editorPro = mainEditorPro();
+		if (editorPro) {
+			if (typeof editorPro.replaceContent === 'function') {
+				editorPro.replaceContent(updatedContent);
+			} else {
+				editorPro.value = updatedContent;
+			}
+		} else if (updateCodeMirror && editorCollab?.yText) {
+			// A collaborative CodeMirror follows its Y.Text, not the `value`
+			// prop, so the replacement has to go into the shared text.
+			const yText = editorCollab.yText;
+			const apply = () => {
+				yText.delete(0, yText.length);
+				yText.insert(0, updatedContent);
+			};
+			if (yText.doc) yText.doc.transact(apply);
+			else apply();
+		}
+
+		autoSave.oncommit('content', updatedContent, oldContent);
+	}
+
+	/**
+	 * The header the editor shows now, unsaved edits and title included.
+	 * Throws in Expert mode while the YAML doesn't parse: the form state is
+	 * stale there, and a plugin acting on it would overwrite the user's text.
+	 */
+	function currentHeader(): Record<string, unknown> {
+		if (prefs.editorMode === 'expert') {
+			let parsed: unknown;
+			try {
+				parsed = yaml.load(expertFrontmatter);
+			} catch {
+				throw new Error(i18n.t('ADMIN_NEXT.PAGES.EDIT.INVALID_YAML_FRONTMATTER'));
+			}
+			return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
+		}
+		return { ...((headerData.header as Record<string, unknown>) ?? {}), title };
+	}
+
+	// The open page, for plugin scripts (ai-translate's whole-page translation).
+	// Reads give what the editor shows now; writes go through the same path as
+	// typing in the form. See `__GRAV_PAGE_EDITOR` in app.d.ts.
+	$effect(() => {
+		const pageEditor: NonNullable<Window['__GRAV_PAGE_EDITOR']> = {
+			getData: () => {
+				const header = $state.snapshot(currentHeader()) as Record<string, unknown>;
+				return {
+					route,
+					lang: contentLang.activeLang,
+					template,
+					slug: typeof header.slug === 'string' && header.slug !== '' ? header.slug : (pageData?.slug ?? ''),
+					readOnly,
+					isFallback,
+					translatedLanguages: Object.keys(pageData?.translated_languages ?? {}),
+					header,
+					content,
+					fields: $state.snapshot(blueprint?.fields ?? []) as BlueprintField[],
+				};
+			},
+			applyChanges: (changes) => {
+				if (!pageData || readOnly || isFallback || !changes || typeof changes !== 'object') return false;
+				const header = changes.header && typeof changes.header === 'object' ? changes.header : {};
+
+				if (prefs.editorMode === 'expert') {
+					// Re-dumping the YAML drops comments, so leave it alone unless
+					// the header actually changes.
+					if (Object.keys(header).length > 0) {
+						let parsed: Record<string, unknown>;
+						try {
+							parsed = currentHeader();
+						} catch {
+							return false;
+						}
+						for (const [path, value] of Object.entries(header)) {
+							parsed = setByPath(parsed, path, value) as Record<string, unknown>;
+						}
+						const before = expertFrontmatter;
+						expertFrontmatter = yaml.dump(parsed, { lineWidth: -1, noRefs: true }).trimEnd();
+						if (expertFrontmatter !== before) {
+							hasLocalEdits = true;
+							autoSave.oncommit('expertFrontmatter', expertFrontmatter, before);
+						}
+					}
+				} else {
+					for (const [path, value] of Object.entries(header)) {
+						const full = 'header.' + path;
+						autoSave.oncommit(full, value, path === 'title' ? title : getHeaderValue(path));
+						handleBlueprintChange(full, value);
+					}
+				}
+
+				if (typeof changes.content === 'string' && changes.content !== content) {
+					replaceMainContent(changes.content);
+				}
+				return true;
+			},
+		};
+		window.__GRAV_PAGE_EDITOR = pageEditor;
+		return () => {
+			// Only remove our own: a newer editor may already have replaced it.
+			if (window.__GRAV_PAGE_EDITOR === pageEditor) delete window.__GRAV_PAGE_EDITOR;
+		};
+	});
+
+	function getHeaderValue(path: string): unknown {
+		let cur: unknown = headerData.header;
+		for (const part of path.split('.')) {
+			if (cur === null || cur === undefined || typeof cur !== 'object') return undefined;
+			cur = (cur as Record<string, unknown>)[part];
+		}
+		return cur;
+	}
+
 	// Provide page type context (standard vs modular) for template selectors
 	// (`modular/<name>` is a module; the `modular` template itself is an ordinary page).
 	setContext('pageType', () => template?.startsWith('modular/') ? 'modular' : 'standard');
@@ -1130,6 +1253,29 @@
 		page: pageData,
 	}));
 	let isFallback = $derived(fallbackState !== 'none');
+
+	// Plugin actions for the Translations panel (see translationActions store).
+	const translationActionCtx = $derived<TranslationActionContext | null>(pageData ? {
+		route,
+		lang: contentLang.activeLang,
+		defaultLang: contentLang.defaultLang,
+		translatedLanguages: Object.keys(pageData.translated_languages ?? {}),
+		untranslatedLanguages: [...(pageData.untranslated_languages ?? [])],
+		isFallback,
+	} : null);
+	const visibleTranslationActions = $derived(
+		translationActionCtx && !readOnly ? translationActions.visibleFor(translationActionCtx) : []
+	);
+
+	async function runTranslationAction(action: TranslationAction) {
+		if (!translationActionCtx) return;
+		try {
+			await action.run({ ...translationActionCtx });
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : String(err));
+		}
+	}
+
 	// True when we're viewing a fallback AND the active lang can be created as
 	// a new translation. In this state the Save button creates the translation
 	// (even with no edits — copies fallback content as the seed).
@@ -1752,6 +1898,7 @@
 			// The language of the file the editor loaded, which is not the active
 			// content language when the page is shown as a fallback: the server
 			// has to read that file to keep the page's template.
+			const sourceLangForCreate = contentLang.enabled ? effectiveLang : contentLang.defaultLang;
 			await createTranslation(route, {
 				source_lang: contentLang.enabled ? effectiveLang : undefined,
 				lang: targetLang,
@@ -1765,6 +1912,11 @@
 			hasLocalEdits = false;
 			await loadPage(targetLang);
 			contentLang.setLanguage(targetLang);
+			// Tell plugin scripts a new language file was just made from this one
+			// (ai-translate offers to translate it). The editor now shows it.
+			window.dispatchEvent(new CustomEvent('grav:page:translation-created', {
+				detail: { route, source_lang: sourceLangForCreate, target_lang: targetLang },
+			}));
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'message' in err) {
 				toast.error((err as { message: string }).message);
@@ -2633,6 +2785,21 @@
 										<span class="inline-flex h-5 shrink-0 items-center justify-center whitespace-nowrap rounded bg-amber-500/15 px-[2px] text-[0.625rem] font-bold uppercase text-amber-600 dark:text-amber-400"
 										>{lang}</span>
 										{i18n.t('ADMIN_NEXT.PAGES.EDIT.RESET_FROM', { language: contentLang.getLanguageName(lang) })}
+									</button>
+								{/each}
+							{/if}
+							{#if visibleTranslationActions.length > 0}
+								<!-- Plugin actions (window.__GRAV_TRANSLATION_ACTIONS) -->
+								<div class="my-1 border-t border-border"></div>
+								{#each visibleTranslationActions as action (action.id)}
+									<button
+										class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-[0.8125rem] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+										title={action.title ?? action.label}
+										data-translation-action={action.id}
+										onclick={() => runTranslationAction(action)}
+									>
+										<span class="inline-flex h-5 w-5 shrink-0 items-center justify-center" aria-hidden="true"><i class="{faIconClass(action.icon || 'fa-language')} text-[0.75rem]"></i></span>
+										{action.label}
 									</button>
 								{/each}
 							{/if}

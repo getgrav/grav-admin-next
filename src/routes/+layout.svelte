@@ -42,6 +42,7 @@
 	import { defineHelpElement } from '$lib/elements/help.svelte';
 	import { modals } from '$lib/stores/modals.svelte';
 	import { mediaPicker } from '$lib/stores/mediaPicker.svelte';
+	import { translationActions } from '$lib/stores/translationActions.svelte';
 	import { Toaster, toast } from 'svelte-sonner';
 	import { Loader2 } from 'lucide-svelte';
 
@@ -385,6 +386,17 @@
 			// (grav-{plugin}--modal-{component}) and resolves whatever it reports.
 			form: (options) => modals.form(options),
 			open: (options) => modals.open({ ...options, kind: 'component' }),
+		};
+	});
+
+	// Let plugins add actions to the page editor's Translations panel
+	// (ai-translate's "Translate with AI…"). Installed at boot because widget
+	// scripts register once, whenever they load.
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+		window.__GRAV_TRANSLATION_ACTIONS = {
+			register: (action) => translationActions.register(action),
+			unregister: (id) => translationActions.unregister(id),
 		};
 	});
 
