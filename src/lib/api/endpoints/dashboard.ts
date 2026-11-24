@@ -5,6 +5,22 @@ export interface NotificationAction {
 	url: string;
 }
 
+/**
+ * A button a plugin puts on its notification. `route` opens an admin route
+ * (`/plugins/login#security`); `config` saves `values` into a config scope
+ * (`plugins/login`) in the environment the admin is working in. In `label`,
+ * `success` and string `values`, `{site_url}` becomes the address the admin
+ * is using: the browser's origin plus the site's base path.
+ */
+export interface NotificationButton {
+	label: string;
+	route?: string;
+	config?: { scope: string; values: Record<string, unknown> };
+	/** Toast shown after a `config` save. */
+	success?: string;
+	primary?: boolean;
+}
+
 export interface Notification {
 	id: number;
 	type: 'info' | 'notice' | 'warning' | 'promo' | string;
@@ -30,6 +46,7 @@ export interface Notification {
 	/** Height of `image` in pixels, 20 to 48. The default is 28. */
 	image_height?: number;
 	action?: NotificationAction;
+	actions?: NotificationButton[];
 }
 
 export interface DashboardStats {
