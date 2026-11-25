@@ -1,8 +1,13 @@
 <script lang="ts">
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { getPermissionsBlueprint, type PermissionAction } from '$lib/api/endpoints/blueprints';
-	import { pruneEmpty } from '$lib/utils/blueprint-validation';
-	import { toAccessRecord, type InheritedAccessMap } from '$lib/utils/user-access';
+	import type { InheritedAccessMap } from '$lib/utils/user-access';
+	import {
+		effectiveRule,
+		flattenAccessRules,
+		serializeAccessRules,
+		setAccessRule,
+	} from '$lib/utils/access-rules';
 	import { Loader2, ChevronDown, Check, Users, Crown, Lock } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
 	import PermissionRow from './PermissionRow.svelte';
@@ -53,22 +58,11 @@
 		}
 	}
 
-	function deepClone(obj: Record<string, unknown>): Record<string, unknown> {
-		return JSON.parse(JSON.stringify(obj));
-	}
-
-	function getPathValue(tree: Record<string, unknown>, name: string): unknown {
-		const parts = name.split('.');
-		let current: unknown = tree;
-		for (const part of parts) {
-			if (current && typeof current === 'object') {
-				current = (current as Record<string, unknown>)[part];
-			} else {
-				return undefined;
-			}
-		}
-		return current;
-	}
+	// Read every access map once into flat rules keyed by dotted name, so a rule
+	// that comes back as a top-level dotted key (`'api.system.backup': false`
+	// next to `api: { system: true }`) lands on the same row as a nested one.
+	const rules = $derived(flattenAccessRules(value));
+	const grantedRules = $derived(flattenAccessRules(granted));
 
 	/** Find a permission action by its full dotted name in the loaded tree. */
 	function findAction(name: string, nodes: PermissionAction[] = sections): PermissionAction | null {
@@ -82,22 +76,15 @@
 		return null;
 	}
 
-	/** Leaf segments of a node's immediate children (e.g. ['read','write']). */
-	function childLeafKeys(dottedName: string): string[] {
-		return (findAction(dottedName)?.children ?? []).map((c) => c.name.split('.').pop() as string);
+	/** Full names of a node's immediate children (e.g. `api.pages.read`). */
+	function childNames(dottedName: string): string[] {
+		return (findAction(dottedName)?.children ?? []).map((c) => c.name);
 	}
 
 	/** Whether the saved account grants `name`, directly or through a parent's
 	 *  blanket `true` (mirrors the API's check for grants that aren't new). */
 	function alreadyGranted(name: string): boolean {
-		if (!granted) return false;
-		const parts = name.split('.');
-		for (let i = parts.length; i > 0; i--) {
-			const v = getPathValue(granted, parts.slice(0, i).join('.'));
-			if (v === true) return true;
-			if (v !== undefined && (typeof v !== 'object' || v === null)) return false;
-		}
-		return false;
+		return effectiveRule(grantedRules, name) === true;
 	}
 
 	/** Whether the Allow toggle may be switched on for `name`. The API refuses a
@@ -116,53 +103,15 @@
 	const hasInherited = $derived(!!inherited && Object.keys(inherited).length > 0);
 
 	/** Whether admin.super is explicitly allowed — implies all admin/site perms. */
-	const superAdmin = $derived(getPathValue(value, 'admin.super') === true);
+	const superAdmin = $derived(rules['admin.super'] === true);
 	/** Whether api.super is explicitly allowed — implies all api perms. */
-	const apiSuper = $derived(getPathValue(value, 'api.super') === true);
+	const apiSuper = $derived(rules['api.super'] === true);
 
 	function handleToggle(name: string, newVal: 'allowed' | 'denied' | 'unset') {
-		const parts = name.split('.');
-		// Coerce to a plain object first: an empty access map arrives from the API
-		// as `[]`, and mutating that as an object then pruning would lose the
-		// changes, so the first permission could never be added (admin2#58).
-		const updated = deepClone(toAccessRecord(value));
-		let current: Record<string, unknown> = updated;
-
-		for (let i = 0; i < parts.length - 1; i++) {
-			const key = parts[i];
-			const ancestor = current[key];
-			if (typeof ancestor === 'boolean') {
-				// The ancestor holds a blanket grant (e.g. `api.pages: true`). Grav's
-				// nested access can't keep a parent boolean and a child override at
-				// once, so descending here would silently drop the blanket. Preserve
-				// the intent by materialising it onto the node's known children before
-				// we set the more specific permission (admin2#50).
-				const expanded: Record<string, unknown> = {};
-				for (const child of childLeafKeys(parts.slice(0, i + 1).join('.'))) {
-					expanded[child] = ancestor;
-				}
-				current[key] = expanded;
-			} else if (typeof ancestor !== 'object' || ancestor === null) {
-				current[key] = {};
-			}
-			current = current[key] as Record<string, unknown>;
-		}
-
-		const lastKey = parts[parts.length - 1];
-		if (newVal === 'allowed') {
-			current[lastKey] = true;
-		} else if (newVal === 'denied') {
-			current[lastKey] = false;
-		} else {
-			delete current[lastKey];
-		}
-
-		// Unsetting a permission deletes the leaf but leaves the parent objects
-		// the walk created above (e.g. `api.pages: {}`). Prune those empty
-		// branches so the tree round-trips back to its original shape — otherwise
-		// a set-then-unset leaves `{api:{pages:{}}}` and the form looks dirty with
-		// no net change, and the empty objects get persisted (admin2#50).
-		onchange(pruneEmpty(updated) as Record<string, unknown>);
+		// Writing back from the flat rules also drops the empty branches a cleared
+		// rule leaves, so a set-then-unset round-trips to the original map, and
+		// an empty map that arrives from the API as `[]` reads as `{}` (admin2#58).
+		onchange(serializeAccessRules(setAccessRule(rules, name, newVal, childNames)));
 	}
 
 	function toggleSection(name: string) {
@@ -244,7 +193,7 @@
 						<PermissionRow
 							{action}
 							depth={0}
-							{value}
+							{rules}
 							{superAdmin}
 							{apiSuper}
 							{inherited}

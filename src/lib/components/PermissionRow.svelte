@@ -2,16 +2,18 @@
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import type { PermissionAction } from '$lib/api/endpoints/blueprints';
 	import type { InheritedAccessMap } from '$lib/utils/user-access';
+	import type { AccessRules } from '$lib/utils/access-rules';
 	import { Crown, Check, Ban, Minus, Users, Lock } from 'lucide-svelte';
 	import Self from './PermissionRow.svelte';
 
 	interface Props {
 		action: PermissionAction;
 		depth: number;
-		/** The full access tree, passed so the row's $derived val tracks
+		/** Every rule of the access map, flat and keyed by dotted name (see
+		 *  utils/access-rules). Passed so the row's $derived val tracks
 		 *  reactivity across component boundaries. */
-		value: Record<string, unknown>;
-		/** Whether admin.super is explicitly allowed in `value` — passed so
+		rules: AccessRules;
+		/** Whether admin.super is explicitly allowed in `rules` — passed so
 		 *  every row reads the same canonical signal. */
 		superAdmin: boolean;
 		/** Whether api.super is explicitly allowed — implies every api.* row. */
@@ -26,20 +28,14 @@
 		onToggle: (name: string, newVal: 'allowed' | 'denied' | 'unset') => void;
 	}
 
-	let { action, depth, value, superAdmin, apiSuper, inherited, canAllow, onToggle }: Props = $props();
+	let { action, depth, rules, superAdmin, apiSuper, inherited, canAllow, onToggle }: Props = $props();
 
+	// The row's own rule only: a permission covered by a rule above it shows as
+	// not set, as before.
 	const val = $derived.by((): 'allowed' | 'denied' | 'unset' => {
-		const parts = action.name.split('.');
-		let current: unknown = value;
-		for (const part of parts) {
-			if (current && typeof current === 'object') {
-				current = (current as Record<string, unknown>)[part];
-			} else {
-				return 'unset';
-			}
-		}
-		if (current === true) return 'allowed';
-		if (current === false) return 'denied';
+		const rule = rules[action.name];
+		if (rule === true) return 'allowed';
+		if (rule === false) return 'denied';
 		return 'unset';
 	});
 
@@ -157,7 +153,7 @@
 		<Self
 			action={child}
 			depth={depth + 1}
-			{value}
+			{rules}
 			{superAdmin}
 			{apiSuper}
 			{inherited}
