@@ -13,7 +13,8 @@
 	import { contentLang } from '$lib/stores/contentLang.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
-	import { canWrite } from '$lib/utils/permissions';
+	import { canWrite, pageCan } from '$lib/utils/permissions';
+	import type { PagePermissions } from '$lib/api/endpoints/pages';
 	import { toast } from 'svelte-sonner';
 	import {
 		FilePlus, Loader2, Save,
@@ -46,7 +47,12 @@
 	// A module only shows inside the modular page above it, so it never
 	// starts at (or can pick) the site root: it starts with no parent until
 	// one is chosen, unless the link that opened the form names one.
-	const initialParent = initialParams.get('parent') || '/';
+	// Only an account that may write pages site-wide adds one at the top level.
+	// A page's own `create` rule covers the pages under that page alone
+	// (getgrav/grav-plugin-admin2#226), so such an account starts with no
+	// parent and the picker leaves the root out.
+	const canCreateAtRoot = $derived(canWrite('pages'));
+	const initialParent = initialParams.get('parent') || (canWrite('pages') ? '/' : '');
 	let parentRoute = $state(initialParams.get('kind') === 'module' && initialParent === '/' ? '' : initialParent);
 	let template = $state(initialParams.get('template') || 'default');
 	const templateLocked = initialParams.has('template');
@@ -75,12 +81,39 @@
 	let rootLoading = $state(false);
 	let filterInputEl = $state<HTMLInputElement | null>(null);
 
+	// ── Parent create permission ────────────────────────────────────
+	// The selected parent's `permissions`: picker rows carry them, and a parent
+	// that came in through `?parent=` is fetched once.
+	let parentPermissions = $state<{ permissions?: PagePermissions } | null>(null);
+	let parentLookup = 0;
+	$effect(() => {
+		const route = parentRoute;
+		untrack(() => { void loadParentPermissions(route); });
+	});
+	async function loadParentPermissions(route: string): Promise<void> {
+		const lookup = ++parentLookup;
+		parentPermissions = null;
+		if (route === '/' || route === '') return;
+		const found = findCachedPage(rootPages, route) ?? await getPage(route, { summary: true }).catch(() => null);
+		if (lookup === parentLookup) parentPermissions = found;
+	}
+
+	// Whether the selected parent takes new pages: the root needs site-wide
+	// `api.pages.write`, any other page its own `permissions.create`, which a
+	// page rule can grant without that permission (admin2#226). The server
+	// checks the same thing on submit.
+	const parentCreatable = $derived(
+		parentRoute === '/'
+			? canCreateAtRoot
+			: parentRoute !== '' && parentPermissions !== null && pageCan(parentPermissions, 'create'),
+	);
+
 	// ── Derived ─────────────────────────────────────────────────────
 	// Folder kind has no Title field (no .md, no frontmatter); page/module do
 	// and also need a template.
 	const needsModularParent = $derived(kind === 'module' && (parentRoute === '' || parentRoute === '/'));
 	const canSave = $derived(
-		canWrite('pages')
+		parentCreatable
 		&& slug.trim().length > 0
 		&& !needsModularParent
 		&& (kind === 'folder' || (title.trim().length > 0 && template.length > 0))
@@ -96,7 +129,7 @@
 	);
 
 	const parentLabel = $derived(() => {
-		if (parentRoute === '') return i18n.t('ADMIN_NEXT.PAGES.NEW.PICK_MODULAR_PAGE');
+		if (parentRoute === '') return i18n.t(kind === 'module' ? 'ADMIN_NEXT.PAGES.NEW.PICK_MODULAR_PAGE' : 'ADMIN_NEXT.PAGES.NEW.PICK_PARENT_PAGE');
 		if (parentRoute === '/') return '<root> /';
 		const found = findPageTitle([...rootPages], parentRoute)
 			?? (pickedParent?.route === parentRoute ? pickedParent.title : null);
@@ -334,7 +367,7 @@
 	// a folder unless the folder's own name matched too.
 	const parentSearch = createPageSearch({ debounceMs: 200, editable: false });
 	const parentSearching = $derived(parentFilter.trim().length > 0);
-	const parentResults = $derived(parentSearch.results.filter((p) => !isAncestorOnly(p)));
+	const parentResults = $derived(parentSearch.results.filter((p) => !isAncestorOnly(p) && pageCan(p, 'create')));
 	$effect(() => {
 		parentSearch.run(parentFilter);
 	});
@@ -670,7 +703,7 @@
 										{:else}
 											<!-- Root option. Not offered for a module: nothing draws a
 											     module that has no modular page above it. -->
-											{#if kind !== 'module'}
+											{#if kind !== 'module' && canCreateAtRoot}
 											<button
 												type="button"
 												class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
@@ -834,14 +867,17 @@
 	{@const filtered = children ?? []}
 	<!-- A page the user can't read is listed only as a way to the pages inside
 	     it (admin2#209): clicking it opens it instead of choosing it. -->
-	{@const passThrough = isAncestorOnly(pg)}
+	{@const unreadable = isAncestorOnly(pg)}
+	<!-- A page the user may not add pages under is a way down only, too
+	     (admin2#226). -->
+	{@const passThrough = unreadable || !pageCan(pg, 'create')}
 
 	<div style="padding-left: {depth * 16}px">
 		<button
 			type="button"
 			class="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
 				{isSelected ? 'bg-primary/10 text-primary' : passThrough ? 'text-muted-foreground hover:bg-accent/50' : 'text-foreground hover:bg-accent'}"
-			title={passThrough ? i18n.t('ADMIN_NEXT.PAGES.ANCESTOR_ONLY_HINT') : undefined}
+			title={unreadable ? i18n.t('ADMIN_NEXT.PAGES.ANCESTOR_ONLY_HINT') : undefined}
 			onclick={(e) => { if (!passThrough) selectParent(apiRoute); else if (pg.has_children) toggleExpand(apiRoute, e); }}
 		>
 			{#if pg.has_children}

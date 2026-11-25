@@ -215,8 +215,10 @@ export interface PageListParams {
 	 * Only pages the caller can update, plus (in folder listings) the
 	 * `ancestor_only` folders leading to them. Sent when the site turns on
 	 * admin2's `pages.only_editable` (admin2#209); older APIs ignore it.
+	 * `'create'` keeps the pages the caller may add pages under instead
+	 * (admin2#226); APIs before it ignore that value too.
 	 */
-	editable?: boolean;
+	editable?: boolean | 'create';
 }
 
 /**
@@ -373,7 +375,7 @@ function toParams(p: PageListParams): Record<string, string> {
 	if (p.translations) params.translations = 'true';
 	if (p.search) params.search = p.search;
 	if (p.fields) params.fields = p.fields;
-	if (p.editable) params.editable = 'true';
+	if (p.editable) params.editable = p.editable === 'create' ? 'create' : 'true';
 	return params;
 }
 

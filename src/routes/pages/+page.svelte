@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { pageEditUrl } from '$lib/utils/pageEditUrl';
-	import { deletePage, duplicatePage, updatePage, pageApiRoute, getPage } from '$lib/api/endpoints/pages';
+	import { deletePage, duplicatePage, updatePage, pageApiRoute, getPage, getPagesList } from '$lib/api/endpoints/pages';
 	import { deleteUndo, runDeleteUndo, pageDeleteText, displayLanguageName } from '$lib/utils/page-delete';
 	import type { PageSummary, PageDetail } from '$lib/api/endpoints/pages';
 	import { dashboardStats } from '$lib/stores/dashboardStats.svelte';
@@ -26,9 +26,23 @@
 		Plus, Search, TreePine, List, Columns3, X, ArrowUpDown, ChevronDown, FilePlus, FolderPlus, LayoutGrid
 	} from 'lucide-svelte';
 	import StickyHeader from '$lib/components/ui/StickyHeader.svelte';
-	import { canWrite } from '$lib/utils/permissions';
+	import { canWrite, pageCan } from '$lib/utils/permissions';
 
 	const canEditPages = $derived(canWrite('pages'));
+
+	// A page's own `create` rule lets an account without `api.pages.write` add
+	// pages under that page (getgrav/grav-plugin-admin2#226), so Add is offered
+	// when the API lists at least one such parent. An API that doesn't know
+	// `editable=create` returns any readable page, whose `permissions` still
+	// answer correctly.
+	let hasCreatableParent = $state(false);
+	onMount(() => {
+		if (canWrite('pages')) return;
+		getPagesList({ editable: 'create', per_page: 1, fields: 'summary' })
+			.then((rows) => { hasCreatableParent = rows.some((p) => pageCan(p, 'create')); })
+			.catch(() => { /* Add stays hidden */ });
+	});
+	const canAddPages = $derived(canEditPages || hasCreatableParent);
 
 	let searchQuery = $state('');
 	let reorderMode = $state(false);
@@ -236,7 +250,7 @@
 							</p>
 						{/if}
 					</div>
-					{#if canEditPages}
+					{#if canAddPages}
 					<!-- Split button: primary action is "Add Page"; the chevron
 						 opens a menu to add a Folder (no .md) or a Module
 						 (modular sub-page). Mirrors classic admin's 3-way split. -->
