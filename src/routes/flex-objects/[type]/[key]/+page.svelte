@@ -337,7 +337,7 @@
 						{#if prefs.autoSaveEnabled && prefs.autoSaveToolbarUndo && autoSave.canUndo}
 							<Button variant="outline" size="sm" onclick={() => autoSave.undo()}>
 								<Undo2 size={14} />
-								Undo
+								{i18n.t('ADMIN_NEXT.UNDO')}
 							</Button>
 						{/if}
 						<Button
@@ -359,7 +359,7 @@
 							{:else}
 								<Save size={14} class="me-1.5" />
 							{/if}
-							Save
+							{i18n.t('ADMIN_NEXT.SAVE')}
 						</Button>
 					</div>
 				</div>
@@ -408,8 +408,8 @@
 <ConfirmModal
 	open={confirmDeleteOpen}
 	title={i18n.t('ADMIN_NEXT.FLEX_OBJECTS.DELETE_OBJECT')}
-	message="Are you sure you want to delete this object? This action cannot be undone."
-	confirmLabel="Delete"
+	message={i18n.t('ADMIN_NEXT.FLEX_OBJECTS.DELETE_CONFIRM')}
+	confirmLabel={i18n.t('ADMIN_NEXT.DELETE')}
 	variant="destructive"
 	onconfirm={confirmDelete}
 	oncancel={() => (confirmDeleteOpen = false)}

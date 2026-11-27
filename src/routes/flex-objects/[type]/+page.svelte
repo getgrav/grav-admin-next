@@ -298,7 +298,7 @@
 						</h1>
 						{#if !scrolled && data}
 							<p class="mt-0.5 text-xs text-muted-foreground">
-								{data.total} item{data.total !== 1 ? 's' : ''}
+								{i18n.t('ADMIN_NEXT.FLEX_OBJECTS.ITEM_COUNT', { count: data.total })}
 							</p>
 						{/if}
 					</div>
@@ -445,7 +445,7 @@
 									<button
 										type="button"
 										class="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-										title="Edit"
+										title={i18n.t('ADMIN_NEXT.EDIT')}
 										onclick={() => openEdit(obj.key)}
 									>
 										<Pencil size={14} />
@@ -471,7 +471,7 @@
 								colspan={columns.length + 1}
 								class="px-4 py-8 text-center text-sm text-muted-foreground"
 							>
-								{search ? 'No items match your search' : 'No items found'}
+								{search ? i18n.t('ADMIN_NEXT.FLEX_OBJECTS.NO_ITEMS_MATCH') : i18n.t('ADMIN_NEXT.FLEX_OBJECTS.NO_ITEMS_FOUND')}
 							</td>
 						</tr>
 					{/if}
@@ -483,7 +483,7 @@
 		{#if data.totalPages > 0}
 			<div class="flex items-center justify-between border-t border-border px-4 py-2">
 				<span class="text-xs text-muted-foreground">
-					Displaying {rangeStart} to {rangeEnd} out of {data.total} records
+					{i18n.t('ADMIN_NEXT.FLEX_OBJECTS.DISPLAYING_RECORDS', { from: rangeStart, to: rangeEnd, total: data.total })}
 				</span>
 				{#if data.totalPages > 1}
 					<div class="flex items-center gap-0.5">
@@ -494,7 +494,7 @@
 							disabled={currentPage <= 1}
 							onclick={() => loadObjects(1)}
 							class="h-7 w-7"
-							title="First"
+							title={i18n.t('ADMIN_NEXT.FLEX_OBJECTS.FIRST')}
 						>
 							<DirectionalIcon name="chevrons-back" size={14} />
 						</Button>
@@ -561,7 +561,7 @@
 							disabled={currentPage >= data.totalPages}
 							onclick={() => loadObjects(currentPage + 1)}
 							class="h-7 w-7"
-							title="Next"
+							title={i18n.t('ADMIN_NEXT.FLEX_OBJECTS.NEXT')}
 						>
 							<DirectionalIcon name="chevron-forward" size={14} />
 						</Button>
@@ -572,7 +572,7 @@
 							disabled={currentPage >= data.totalPages}
 							onclick={() => loadObjects(data!.totalPages)}
 							class="h-7 w-7"
-							title="Last"
+							title={i18n.t('ADMIN_NEXT.FLEX_OBJECTS.LAST')}
 						>
 							<DirectionalIcon name="chevrons-forward" size={14} />
 						</Button>
@@ -586,8 +586,8 @@
 <ConfirmModal
 	open={deleteOpen}
 	title={i18n.t('ADMIN_NEXT.FLEX_OBJECTS.DELETE_OBJECT')}
-	message="Are you sure you want to delete this object? This action cannot be undone."
-	confirmLabel={deleting ? 'Deleting...' : 'Delete'}
+	message={i18n.t('ADMIN_NEXT.FLEX_OBJECTS.DELETE_CONFIRM')}
+	confirmLabel={deleting ? i18n.t('ADMIN_NEXT.FLEX_OBJECTS.DELETING') : i18n.t('ADMIN_NEXT.DELETE')}
 	onconfirm={handleDelete}
 	oncancel={() => {
 		deleteOpen = false;

@@ -184,7 +184,7 @@
 			const message =
 				err && typeof err === 'object' && 'message' in err
 					? (err as { message: string }).message
-					: 'Failed to create object';
+					: i18n.t('ADMIN_NEXT.FLEX_OBJECTS.FAILED_TO_CREATE');
 			toast.error(message);
 		} finally {
 			saving = false;
@@ -205,7 +205,7 @@
 </script>
 
 <svelte:head>
-	<title>{newTitle} — Grav Admin</title>
+	<title>{i18n.t('ADMIN_NEXT.APP.PAGE_TITLE', { name: newTitle })}</title>
 </svelte:head>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -242,7 +242,7 @@
 						{:else}
 							<Save size={14} class="me-1.5" />
 						{/if}
-						Create
+						{i18n.t('ADMIN_NEXT.FLEX_OBJECTS.NEW.CREATE')}
 					</Button>
 				</div>
 			</div>
