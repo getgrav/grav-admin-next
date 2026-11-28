@@ -160,6 +160,14 @@ export async function saveSitePreferences(
 	return api.patch<PreferencesResponse>('/admin-next/preferences/site', payload);
 }
 
+/**
+ * Super-admin: put every site default (Tier B + A2) back to the ones Admin2
+ * ships with. Branding and users' own overrides are kept.
+ */
+export async function resetSitePreferences(): Promise<PreferencesResponse> {
+	return api.delete<PreferencesResponse>('/admin-next/preferences/site');
+}
+
 /** Super-admin: write site branding (mode/text + logo paths). */
 export async function saveSiteBranding(
 	payload: Partial<SiteBranding>,

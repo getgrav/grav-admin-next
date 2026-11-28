@@ -6,7 +6,7 @@
 	import { branding } from '$lib/stores/branding.svelte';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { saveSitePreferences, type DarkShade, type LogoMode, type PreferenceValues, type SiteSettings } from '$lib/api/endpoints/preferences';
+	import { saveSitePreferences, resetSitePreferences, type DarkShade, type LogoMode, type PreferenceValues, type SiteSettings } from '$lib/api/endpoints/preferences';
 	import { getAdminLanguages, type AdminLanguageInfo } from '$lib/api/endpoints/languages';
 	import { flushNow } from '$lib/stores/_serverSync';
 	import { toast } from 'svelte-sonner';
@@ -27,6 +27,7 @@
 	type SiteDraft = Partial<PreferenceValues> & Partial<SiteSettings>;
 
 	let confirmResetOpen = $state(false);
+	let confirmSiteResetOpen = $state(false);
 	let customOpen = $state(!ACCENT_PRESETS.some(p => p.hue === theme.accentHue && p.saturation === theme.accentSaturation));
 
 	// Locales the admin can render in. Enumerated server-side from
@@ -168,6 +169,21 @@
 		}
 	}
 
+	async function confirmSiteReset() {
+		confirmSiteResetOpen = false;
+		try {
+			const resp = await resetSitePreferences();
+			prefs.init(resp);
+			// Repaint with the new effective values: anything this account
+			// hasn't overridden now follows the Admin2 defaults.
+			theme.init(resp);
+			resetSiteDraft();
+			toast.success(i18n.t('ADMIN_NEXT.SETTINGS.SITE_DEFAULTS_RESET'));
+		} catch {
+			toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_RESET_SITE_DEFAULTS'));
+		}
+	}
+
 	// Menubar links editor inside the site-defaults draft.
 	function addSiteLink() {
 		const list = Array.isArray(siteDraft.menubarLinks) ? siteDraft.menubarLinks : [];
@@ -203,14 +219,13 @@
 	async function confirmReset() {
 		confirmResetOpen = false;
 		try {
-			await prefs.resetAllToSiteDefaults();
-			theme.setColorMode(prefs.siteDefaults.colorMode ?? '');
-			theme.setAccent(
-				prefs.siteDefaults.accentHue ?? 271,
-				prefs.siteDefaults.accentSaturation ?? 91,
-			);
-			theme.resetDarkShadeToSiteDefault(prefs.siteDefaults.darkShade);
-			toast.success(i18n.t('ADMIN_NEXT.SETTINGS.PREFERENCES_RESET_RELOAD_TO_APPLY'));
+			const payload = await prefs.resetAllToSiteDefaults();
+			// theme.init repaints without queueing user patches. The setters
+			// used here before wrote the site values straight back as personal
+			// overrides, so the reset didn't stick.
+			theme.init(payload);
+			if (i18n.lang !== prefs.adminLanguage) void i18n.setLanguage(prefs.adminLanguage);
+			toast.success(i18n.t('ADMIN_NEXT.SETTINGS.PREFERENCES_RESET'));
 		} catch {
 			toast.error(i18n.t('ADMIN_NEXT.SETTINGS.FAILED_TO_RESET_PREFERENCES'));
 		}
@@ -232,6 +247,10 @@
 							<p class="mt-0.5 text-xs text-muted-foreground">{i18n.t('ADMIN_NEXT.SETTINGS.ADMIN_PREFERENCES_AND_APPEARANCE')}</p>
 						{/if}
 					</div>
+					<Button variant="outline" size="sm" onclick={resetPreferences} title={i18n.t('ADMIN_NEXT.SETTINGS.RESET_TO_SITE_DEFAULTS')}>
+						<RotateCcw size={14} />
+						{i18n.t('ADMIN_NEXT.SETTINGS.RESET_TO_SITE_DEFAULTS_SHORT')}
+					</Button>
 				</div>
 			</div>
 		{/snippet}
@@ -642,14 +661,6 @@
 					</div>
 				</div>
 			</div>
-		</div>
-
-		<!-- Reset all user overrides -->
-		<div class="flex justify-end">
-			<Button variant="outline" onclick={resetPreferences}>
-				<RotateCcw size={14} />
-				{i18n.t('ADMIN_NEXT.SETTINGS.RESET_TO_SITE_DEFAULTS')}
-			</Button>
 		</div>
 
 		<!-- ── Site Defaults (super-admin only) ───────────────────────────── -->
@@ -1339,7 +1350,11 @@
 							</div>
 						</div>
 
-						<div class="flex items-center justify-end gap-2 border-t border-border bg-muted/40 px-6 py-3">
+						<div class="flex flex-wrap items-center justify-end gap-2 border-t border-border bg-muted/40 px-6 py-3">
+							<Button variant="ghost" size="sm" class="me-auto" onclick={() => { confirmSiteResetOpen = true; }}>
+								<RotateCcw size={14} />
+								{i18n.t('ADMIN_NEXT.SETTINGS.RESET_TO_ADMIN2_DEFAULTS')}
+							</Button>
 							<Button variant="outline" size="sm" onclick={resetSiteDraft}>{i18n.t('ADMIN_NEXT.SETTINGS.REVERT_CHANGES')}</Button>
 							<Button size="sm" onclick={saveSiteDefaults}>{i18n.t('ADMIN_NEXT.SETTINGS.SAVE_SITE_DEFAULTS')}</Button>
 						</div>
@@ -1358,4 +1373,14 @@
 	variant="destructive"
 	onconfirm={confirmReset}
 	oncancel={() => { confirmResetOpen = false; }}
+/>
+
+<ConfirmModal
+	open={confirmSiteResetOpen}
+	title={i18n.t('ADMIN_NEXT.SETTINGS.RESET_SITE_DEFAULTS')}
+	message={i18n.t('ADMIN_NEXT.SETTINGS.RESET_SITE_DEFAULTS_MSG')}
+	confirmLabel={i18n.t('ADMIN_NEXT.SETTINGS.RESET')}
+	variant="destructive"
+	onconfirm={confirmSiteReset}
+	oncancel={() => { confirmSiteResetOpen = false; }}
 />
