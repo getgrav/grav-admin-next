@@ -37,7 +37,7 @@
 			type="button"
 			class="relative z-10 rounded-md font-medium transition-colors duration-200
 				{size === 'sm' ? 'px-2.5 py-1 text-xs tabular-nums' : 'px-4 py-2 text-sm'}
-				{opt.value === value ? 'text-white' : 'text-muted-foreground hover:text-foreground'}"
+				{opt.value === value ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}"
 			aria-pressed={opt.value === value}
 			{disabled}
 			onclick={() => onchange(opt.value)}

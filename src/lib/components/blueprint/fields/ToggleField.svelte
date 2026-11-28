@@ -111,7 +111,7 @@
 				type="button"
 				class="relative z-10 rounded-md px-4 py-2 text-sm font-medium transition-colors duration-200
 					{opt.value === activeValue
-						? 'text-white'
+						? (activeIsHighlighted ? 'text-primary-foreground' : 'text-white')
 						: 'text-muted-foreground hover:text-foreground'}"
 				disabled={field.disabled}
 				onclick={() => select(opt.value)}
