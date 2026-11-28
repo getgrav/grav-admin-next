@@ -314,7 +314,7 @@
 												href={url}
 												target="_blank"
 												rel="noopener noreferrer"
-												class="inline-flex max-w-[200px] items-center gap-1 text-primary hover:underline"
+												class="inline-flex max-w-[200px] items-center gap-1 text-primary-text hover:underline"
 											>
 												<ExternalLink size={12} class="shrink-0" />
 												<span class="truncate">{url.replace(/^https?:\/\//, '')}</span>

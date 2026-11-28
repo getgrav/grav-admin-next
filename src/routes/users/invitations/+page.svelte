@@ -146,7 +146,7 @@
 			<div class="space-y-2 px-6 py-4">
 				{#each invitations as invite (invite.token)}
 					<div class="flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3">
-						<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+						<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary-text">
 							<Mail size={16} />
 						</div>
 						<div class="min-w-0 flex-1">

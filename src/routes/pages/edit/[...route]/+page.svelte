@@ -2228,7 +2228,7 @@
 			<button
 				class="inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors
 					{showNavigator
-						? 'border-primary bg-primary/10 text-primary'
+						? 'border-primary bg-primary/10 text-primary-text'
 						: 'border-border text-muted-foreground hover:bg-accent hover:text-foreground'}"
 				onclick={() => showNavigator = !showNavigator}
 				title={i18n.t('ADMIN_NEXT.PAGES.EDIT.TOGGLE_PAGE_NAVIGATOR')}
@@ -2645,7 +2645,7 @@
 								{/if}
 								{i18n.t('ADMIN_NEXT.PAGES.INFO_VISIBLE')}
 							</dt>
-							<dd class="font-medium {pageData.visible ? 'text-primary' : 'text-muted-foreground'}">
+							<dd class="font-medium {pageData.visible ? 'text-primary-text' : 'text-muted-foreground'}">
 								{pageData.visible ? i18n.t('ADMIN_NEXT.YES') : i18n.t('ADMIN_NEXT.NO')}
 							</dd>
 						</div>

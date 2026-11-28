@@ -157,7 +157,7 @@ export function parseCompatibility(compatibility: unknown): CompatibilityRow[] {
  * gets the neutral one.
  */
 const CHANGELOG_SECTION_CLASSES: Record<string, string> = {
-	new: 'bg-primary/10 text-primary',
+	new: 'bg-primary/10 text-primary-text',
 	improved: 'bg-amber-500/10 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
 	bugfix: 'bg-red-600/10 text-red-700 dark:bg-red-500/15 dark:text-red-300',
 };

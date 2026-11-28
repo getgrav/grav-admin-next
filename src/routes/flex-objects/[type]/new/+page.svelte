@@ -226,7 +226,7 @@
 						</button>
 						{#if !scrolled}
 							<div
-								class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary"
+								class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary-text"
 							>
 								<Plus size={16} />
 							</div>

@@ -710,7 +710,7 @@
 						{#if user}
 							<div class="flex items-center gap-3">
 								{#if !scrolled}
-									<div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+									<div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary-text">
 										<User size={16} />
 									</div>
 								{/if}

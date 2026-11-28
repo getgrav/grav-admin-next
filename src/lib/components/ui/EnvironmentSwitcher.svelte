@@ -122,7 +122,7 @@
 				? 'bg-destructive/10 text-destructive hover:bg-destructive/15'
 				: configEnv.target === ''
 					? 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
-					: 'bg-primary/10 text-primary hover:bg-primary/15'}"
+					: 'bg-primary/10 text-primary-text hover:bg-primary/15'}"
 		onclick={() => open = !open}
 		title={i18n.t('ADMIN_NEXT.ENVIRONMENT_SWITCHER.SELECT_WHERE_CONFIG_WRITES_ARE_SAVED')}
 	>

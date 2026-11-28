@@ -371,7 +371,7 @@
 		{#if !readOnly}
 		<button
 			type="button"
-			class="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary disabled:pointer-events-none disabled:opacity-50"
+			class="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary-text disabled:pointer-events-none disabled:opacity-50"
 			onclick={() => addItem(addAt)}
 			disabled={uniqueFull}
 		>

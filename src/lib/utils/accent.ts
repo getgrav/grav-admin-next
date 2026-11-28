@@ -6,17 +6,25 @@ import type { DarkShade } from '$lib/api/endpoints/preferences';
  *
  * Only hue and saturation are stored. Lightness starts from a fixed value per
  * colour mode (40% light, 65% dark), but HSL lightness is not perceptual: at
- * the same L, blue and violet are dark while green and yellow are light. So
- * when the fixed value leaves accent text (links, `text-primary`) under 4.5:1
- * on one of the surfaces it sits on, or on the `bg-primary/10` tint of one
- * (the active sidebar item, accent chips), the lightness moves, darker in
- * light mode and lighter in dark mode, just far enough to reach it. An accent
- * that already passes keeps exactly the colour it had.
+ * the same L, blue and violet are dark while green and yellow are light. One
+ * colour can't serve both jobs in dark mode (a link needs to be light, a
+ * white button label needs the fill dark), so the accent is fitted twice:
  *
- * The label on accent buttons stays white while white reaches 4.5:1 on the
- * accent, otherwise it becomes whichever of white and near-black contrasts
- * more. The focus ring is fitted the same way at 3:1, the minimum for a
- * non-text indicator.
+ *   --primary       the fill (buttons, badges, toggles). It darkens from the
+ *                   start value just far enough for its white label to reach
+ *                   4.5:1, so it stays as close to the chosen colour as
+ *                   contrast allows. When that would take it more than
+ *                   MAX_FILL_DARKEN points down (green, yellow, orange in
+ *                   dark mode turn to mud), the fill keeps its start value and
+ *                   the label turns near-black instead. Plugins that pair
+ *                   --primary with --primary-foreground keep working.
+ *   --primary-text  accent text (`text-primary-text`, links). It moves, darker in
+ *                   light mode and lighter in dark mode, just far enough to
+ *                   reach 4.5:1 on every surface it sits on and on the
+ *                   `bg-primary/10` tint of each (the active sidebar item).
+ *
+ * An accent that already passes keeps exactly the colour it had. The focus
+ * ring is fitted like the text at 3:1, the minimum for a non-text indicator.
  */
 
 export type Hsl = readonly [hue: number, saturation: number, lightness: number];
@@ -35,52 +43,70 @@ export const ACCENT_SURFACES: Record<'light' | DarkShade, readonly Hsl[]> = {
 
 const TEXT_MIN = 4.5;
 const NON_TEXT_MIN = 3;
-/** `bg-primary/10`: accent text on a tenth of the accent over a surface. */
+/** `bg-primary/10`: accent text on a tenth of the fill over a surface. */
 const TINT = 0.1;
 const WHITE: Hsl = [0, 0, 100];
 /** The light-mode --foreground. */
 const NEAR_BLACK: Hsl = [240, 10, 3.9];
+/** How far the fill may darken for a white label before it switches label. */
+const MAX_FILL_DARKEN = 15;
 
 export interface AccentTokens {
-	/** The lightness actually used for --primary. */
+	/** The lightness of the fill, --primary. */
 	lightness: number;
+	/** The fill: buttons and other solid accent backgrounds. */
 	primary: string;
+	/** The label on the fill: white, or near-black on a bright fill. */
 	primaryForeground: string;
 	/** True when the button label is near-black rather than white. */
 	darkLabel: boolean;
+	/** The lightness of accent text, --primary-text. */
+	textLightness: number;
+	/** Accent text and links. */
+	primaryText: string;
 	ring: string;
 }
 
 export function accentTokens(hue: number, saturation: number, dark: boolean, shade: DarkShade = 'graphite'): AccentTokens {
 	const surfaces = dark ? (ACCENT_SURFACES[shade] ?? ACCENT_SURFACES.graphite) : ACCENT_SURFACES.light;
-	const lightness = fitLightness(hue, saturation, dark ? 65 : 40, dark, surfaces, TEXT_MIN, true);
-	const ringLightness = fitLightness(hue, saturation, dark ? 60 : 50, dark, surfaces, NON_TEXT_MIN, false);
+	const start = dark ? 65 : 40;
 
+	const white = toRgb(WHITE);
+	let lightness = start;
+	while (lightness > 0 && contrastRatio(white, toRgb([hue, saturation, lightness])) < TEXT_MIN) lightness -= 0.5;
+	let darkLabel = false;
+	if (start - lightness > MAX_FILL_DARKEN && contrastRatio(toRgb(NEAR_BLACK), toRgb([hue, saturation, start])) >= TEXT_MIN) {
+		lightness = start;
+		darkLabel = true;
+	}
 	const fill = toRgb([hue, saturation, lightness]);
-	const onWhite = contrastRatio(toRgb(WHITE), fill);
-	const darkLabel = onWhite < TEXT_MIN && contrastRatio(toRgb(NEAR_BLACK), fill) > onWhite;
+
+	const textLightness = fitLightness(hue, saturation, start, dark, surfaces, TEXT_MIN, fill);
+	const ringLightness = fitLightness(hue, saturation, dark ? 60 : 50, dark, surfaces, NON_TEXT_MIN, null);
 
 	return {
 		lightness,
 		primary: css([hue, saturation, lightness]),
 		primaryForeground: css(darkLabel ? NEAR_BLACK : WHITE),
 		darkLabel,
+		textLightness,
+		primaryText: css([hue, saturation, textLightness]),
 		ring: css([hue, saturation, ringLightness]),
 	};
 }
 
 /**
  * Walk lightness from `start` (up in dark mode, down in light mode) to the
- * first value that reaches `min` on every surface, and with `tinted` on the
- * accent tint over it too. Luminance only rises with L, so the walk always
- * ends, at white or black at the latest.
+ * first value that reaches `min` on every surface, and, given the fill, on the
+ * fill's tint over each surface too. Luminance only rises with L, so the walk
+ * always ends, at white or black at the latest.
  */
-function fitLightness(hue: number, saturation: number, start: number, dark: boolean, surfaces: readonly Hsl[], min: number, tinted: boolean): number {
+function fitLightness(hue: number, saturation: number, start: number, dark: boolean, surfaces: readonly Hsl[], min: number, fill: Rgb | null): number {
 	const backs = surfaces.map(toRgb);
 	const step = dark ? 0.5 : -0.5;
 	for (let l = start; l >= 0 && l <= 100; l += step) {
 		const c = toRgb([hue, saturation, l]);
-		if (backs.every(bg => contrastRatio(c, bg) >= min && (!tinted || contrastRatio(c, tint(c, bg)) >= min))) return l;
+		if (backs.every(bg => contrastRatio(c, bg) >= min && (!fill || contrastRatio(c, tint(fill, bg)) >= min))) return l;
 	}
 	return dark ? 100 : 0;
 }

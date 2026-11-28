@@ -184,7 +184,7 @@
 		padding: 0;
 	}
 	:global(.prose a) {
-		color: var(--color-primary, hsl(221 83% 53%));
+		color: var(--color-primary-text, var(--color-primary, hsl(221 83% 53%)));
 		text-decoration: none;
 	}
 	:global(.prose a:hover) {

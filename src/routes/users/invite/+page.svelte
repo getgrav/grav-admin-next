@@ -140,7 +140,7 @@
 							<DirectionalIcon name="arrow-back" size={16} />
 						</button>
 						{#if !scrolled}
-							<div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+							<div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary-text">
 								<MailPlus size={16} />
 							</div>
 						{/if}
@@ -168,7 +168,7 @@
 				<!-- Success / link panel -->
 				<div class="rounded-xl border border-border bg-card p-5">
 					<div class="flex items-center gap-2">
-						<div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+						<div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary-text">
 							<Check size={16} />
 						</div>
 						<h2 class="text-sm font-semibold text-foreground">{i18n.t('ADMIN_NEXT.INVITATIONS.INVITE_READY')}</h2>
@@ -274,7 +274,7 @@
 										onclick={() => toggleGroup(group.groupname)}
 										class="rounded-full border px-3 py-1 text-xs font-medium transition-colors
 											{selectedGroups.includes(group.groupname)
-												? 'border-primary bg-primary/10 text-primary'
+												? 'border-primary bg-primary/10 text-primary-text'
 												: 'border-border text-muted-foreground hover:text-foreground'}"
 									>
 										{group.readableName || group.groupname}

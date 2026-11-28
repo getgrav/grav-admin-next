@@ -46,7 +46,7 @@
 			href="{base}/config/{scope}"
 			class="flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors
 				{isActive(scope)
-					? 'border-primary text-primary'
+					? 'border-primary text-primary-text'
 					: 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'}"
 		>
 			{#if Icon}

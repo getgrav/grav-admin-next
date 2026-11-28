@@ -630,7 +630,7 @@
 						<!-- Description -->
 						{#if selectedTheme.description}
 							{#if selectedTheme.description_html}
-								<div class="prose prose-sm dark:prose-invert mt-4 max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">
+								<div class="prose prose-sm dark:prose-invert mt-4 max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary-text [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">
 									{@html sanitizeHtml(selectedTheme.description_html)}
 								</div>
 							{:else}
@@ -664,7 +664,7 @@
 									<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.AUTHOR')}</dt>
 									<dd class="mt-0.5 text-sm text-foreground">
 										{#if selectedLinks.author}
-											<a href={selectedLinks.author} target="_blank" rel="noopener" class="text-primary hover:underline">
+											<a href={selectedLinks.author} target="_blank" rel="noopener" class="text-primary-text hover:underline">
 												{selectedTheme.author.name}
 												<ExternalLink size={10} class="inline" />
 											</a>
@@ -679,7 +679,7 @@
 								<div>
 									<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.HOMEPAGE')}</dt>
 									<dd class="mt-0.5 text-sm">
-										<a href={selectedLinks.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
+										<a href={selectedLinks.homepage} target="_blank" rel="noopener" class="text-primary-text hover:underline">
 											{hostname(selectedLinks.homepage)}
 											<ExternalLink size={10} class="inline" />
 										</a>

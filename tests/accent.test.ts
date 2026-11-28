@@ -46,53 +46,73 @@ test('every hue and saturation reaches AA in every mode and shade', () => {
 		for (let hue = 0; hue < 360; hue += 1) {
 			for (const sat of [0, 6, 30, 50, 70, 83, 91, 100]) {
 				const t = accentTokens(hue, sat, dark, shade);
-				const primary = toRgb(parse(t.primary));
+				const fill = toRgb(parse(t.primary));
+				const text = toRgb(parse(t.primaryText));
 				const where = `${hue}/${sat} ${dark ? shade : 'light'}`;
 				for (const surface of surfaces) {
 					const bg = toRgb(surface);
-					assert.ok(contrastRatio(primary, bg) >= 4.5, `link ${where}`);
-					assert.ok(contrastRatio(primary, tint(primary, bg)) >= 4.5, `active item ${where}`);
+					assert.ok(contrastRatio(text, bg) >= 4.5, `link ${where}`);
+					assert.ok(contrastRatio(text, tint(fill, bg)) >= 4.5, `active item ${where}`);
 					assert.ok(contrastRatio(toRgb(parse(t.ring)), bg) >= 3, `ring ${where}`);
 				}
-				assert.ok(contrastRatio(toRgb(parse(t.primaryForeground)), primary) >= 4.5, `label ${where}`);
+				assert.ok(contrastRatio(toRgb(parse(t.primaryForeground)), fill) >= 4.5, `label ${where}`);
 			}
 		}
 	}
 });
 
 test('an accent that already passes keeps its colour', () => {
-	// The default Grav purple in light mode, and Emerald in dark mode.
+	// The default Grav purple in light mode.
 	assert.deepEqual(accentTokens(271, 91, false), {
 		lightness: 40,
 		primary: 'hsl(271 91% 40%)',
 		primaryForeground: 'hsl(0 0% 100%)',
 		darkLabel: false,
+		textLightness: 40,
+		primaryText: 'hsl(271 91% 40%)',
 		ring: 'hsl(271 91% 50%)',
 	});
-	assert.equal(accentTokens(160, 84, true, 'graphite').primary, 'hsl(160 84% 65%)');
 });
 
-test('light mode only ever darkens and keeps white labels', () => {
-	for (let hue = 0; hue < 360; hue += 1) {
-		const t = accentTokens(hue, 91, false);
-		assert.ok(t.lightness <= 40);
-		assert.equal(t.primaryForeground, 'hsl(0 0% 100%)');
+test('the fill never lightens and never darkens by more than 15 points', () => {
+	for (const { dark, shade } of modes) {
+		const start = dark ? 65 : 40;
+		for (let hue = 0; hue < 360; hue += 1) {
+			const t = accentTokens(hue, 91, dark, shade);
+			assert.ok(t.lightness <= start && start - t.lightness <= 15, `${hue} ${t.lightness}`);
+		}
 	}
 });
 
-test('dark mode lightens the reporter\'s blue and violet', () => {
-	assert.ok(accentTokens(240, 91, true, 'zinc').lightness > 65);
-	assert.ok(accentTokens(271, 91, true, 'zinc').lightness > 65);
-	// Green already reads as text at 65%, but white on it does not.
-	const green = accentTokens(120, 91, true, 'zinc');
-	assert.equal(green.primary, 'hsl(120 91% 65%)');
-	assert.equal(green.primaryForeground, 'hsl(240 10% 3.9%)');
+test('purples and blues keep white labels; bright greens and yellows get dark ones in dark mode', () => {
+	// The Grav, Blue, Violet and Rose presets.
+	for (const [hue, sat] of [[271, 91], [217, 91], [262, 83], [346, 77]]) assert.equal(accentTokens(hue, sat, true, 'graphite').darkLabel, false, `${hue}`);
+	for (const hue of [38, 60, 120, 160]) {
+		const t = accentTokens(hue, 91, true, 'graphite');
+		assert.equal(t.darkLabel, true, `${hue}`);
+		assert.equal(t.lightness, 65);
+	}
+	// Light mode keeps white labels on every preset-strength hue.
+	for (let hue = 0; hue < 360; hue += 1) assert.equal(accentTokens(hue, 91, false).darkLabel, false, `${hue}`);
+});
+
+test('the default purple keeps a strong fill in dark mode (Andy, 2026-11-28)', () => {
+	// The first fix lightened the fill to 78.5% with a near-black label, which
+	// washed the purple out. The fill now moves only as far as white needs.
+	const t = accentTokens(271, 91, true, 'graphite');
+	assert.ok(t.lightness >= 60, `fill ${t.lightness}`);
+	assert.ok(t.textLightness > 65, `text ${t.textLightness}`);
+});
+
+test('dark mode lightens the reporter\'s blue and violet text', () => {
+	assert.ok(accentTokens(240, 91, true, 'zinc').textLightness > 65);
+	assert.ok(accentTokens(271, 91, true, 'zinc').textLightness > 65);
 });
 
 test('the lightest dark shade needs the most lift', () => {
-	const g = accentTokens(271, 91, true, 'graphite').lightness;
-	const z = accentTokens(271, 91, true, 'zinc').lightness;
+	const g = accentTokens(271, 91, true, 'graphite').textLightness;
+	const z = accentTokens(271, 91, true, 'zinc').textLightness;
 	assert.ok(g > z);
 	// An unknown shade falls back to graphite.
-	assert.equal(accentTokens(271, 91, true, 'nope' as never).lightness, g);
+	assert.equal(accentTokens(271, 91, true, 'nope' as never).textLightness, g);
 });

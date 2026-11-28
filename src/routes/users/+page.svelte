@@ -454,7 +454,7 @@
 				<p class="text-sm text-muted-foreground">{i18n.t('ADMIN_NEXT.USERS_FILTER.NO_MATCHES_FILTERS')}</p>
 				<button
 					type="button"
-					class="text-xs font-medium text-primary hover:underline"
+					class="text-xs font-medium text-primary-text hover:underline"
 					onclick={clearFilters}
 				>
 					{i18n.t('ADMIN_NEXT.USERS_FILTER.CLEAR_ALL')}

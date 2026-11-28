@@ -259,7 +259,7 @@
 							{@const on = isEnabled(job)}
 							<tr class="border-b border-border last:border-0 hover:bg-muted/30">
 								<td class="px-4 py-3">
-									<span class="font-medium text-primary">{job.id}</span>
+									<span class="font-medium text-primary-text">{job.id}</span>
 								</td>
 								<td class="px-4 py-3 text-muted-foreground">{cronToHuman(job.expression)}</td>
 								<td class="px-4 py-3 text-muted-foreground">

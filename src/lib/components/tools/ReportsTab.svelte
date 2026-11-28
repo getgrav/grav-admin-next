@@ -82,7 +82,7 @@
 									{#if 'route' in item}
 										<div class="flex items-center gap-2 min-w-0">
 											<ShieldAlert size={14} class="shrink-0 text-muted-foreground" />
-											<span class="font-medium text-primary truncate">{item.route}</span>
+											<span class="font-medium text-primary-text truncate">{item.route}</span>
 										</div>
 										{#if item.field}
 											<span class="shrink-0 text-muted-foreground">{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.CONTENT_FIELD', { field: String(item.field) })}</span>

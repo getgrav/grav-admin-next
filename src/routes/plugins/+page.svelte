@@ -511,7 +511,7 @@
 						ondblclick={() => openPluginConfig(plugin.slug)}
 					>
 						<!-- Icon -->
-						<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg {plugin.enabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}">
+						<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg {plugin.enabled ? 'bg-primary/10 text-primary-text' : 'bg-muted text-muted-foreground'}">
 							{#if plugin.icon}
 								<i class="{faIconClass(plugin.icon)} text-sm"></i>
 							{:else}
@@ -600,7 +600,7 @@
 					<div class="p-6">
 						<!-- Plugin header -->
 						<div class="flex items-start gap-4">
-							<div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl {selectedPlugin.enabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}">
+							<div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl {selectedPlugin.enabled ? 'bg-primary/10 text-primary-text' : 'bg-muted text-muted-foreground'}">
 								{#if selectedPlugin.icon}
 									<i class="{faIconClass(selectedPlugin.icon)} text-2xl"></i>
 								{:else}
@@ -677,7 +677,7 @@
 						<!-- Description -->
 						{#if selectedPlugin.description}
 							{#if selectedPlugin.description_html}
-								<div class="prose prose-sm dark:prose-invert mt-4 max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">
+								<div class="prose prose-sm dark:prose-invert mt-4 max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary-text [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">
 									{@html sanitizeHtml(selectedPlugin.description_html)}
 								</div>
 							{:else}
@@ -711,7 +711,7 @@
 									<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.AUTHOR')}</dt>
 									<dd class="mt-0.5 text-sm text-foreground">
 										{#if selectedLinks.author}
-											<a href={selectedLinks.author} target="_blank" rel="noopener" class="text-primary hover:underline">
+											<a href={selectedLinks.author} target="_blank" rel="noopener" class="text-primary-text hover:underline">
 												{selectedPlugin.author.name}
 												<ExternalLink size={10} class="inline" />
 											</a>
@@ -726,7 +726,7 @@
 								<div>
 									<dt class="text-xs font-medium text-muted-foreground">{i18n.t('ADMIN_NEXT.HOMEPAGE')}</dt>
 									<dd class="mt-0.5 text-sm">
-										<a href={selectedLinks.homepage} target="_blank" rel="noopener" class="text-primary hover:underline">
+										<a href={selectedLinks.homepage} target="_blank" rel="noopener" class="text-primary-text hover:underline">
 											{hostname(selectedLinks.homepage)}
 											<ExternalLink size={10} class="inline" />
 										</a>

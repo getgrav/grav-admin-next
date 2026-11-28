@@ -47,7 +47,7 @@
 			type="button"
 			class="relative inline-flex items-center px-4 py-2.5 text-sm font-medium transition-colors
 				{active === tab.id
-					? 'text-primary'
+					? 'text-primary-text'
 					: 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => go(tab.path)}
 		>

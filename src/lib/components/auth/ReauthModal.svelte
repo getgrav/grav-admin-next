@@ -342,7 +342,7 @@
 		<div class="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-2xl">
 			<div class="flex gap-4">
 				<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
-					<LockKeyhole size={20} class="text-primary" />
+					<LockKeyhole size={20} class="text-primary-text" />
 				</div>
 				<div class="min-w-0 flex-1">
 					<h3 id="reauth-title" class="text-base font-semibold text-foreground">

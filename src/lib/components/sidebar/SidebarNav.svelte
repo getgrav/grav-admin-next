@@ -342,7 +342,7 @@
 	}
 
 	const linkClass = 'flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium transition-colors';
-	const activeClass = 'bg-primary/10 text-primary';
+	const activeClass = 'bg-primary/10 text-primary-text';
 	const idleClass = 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground';
 </script>
 
@@ -408,7 +408,7 @@
 									<span class="truncate">{label(entry)}</span>
 									{@const badge = sidebarStore.badges[entry.item.id] ?? entry.item.badge}
 									{#if badge != null}
-										<span class="ms-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">{badge}</span>
+										<span class="ms-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary-text">{badge}</span>
 									{/if}
 								{/if}
 							</a>
@@ -501,7 +501,7 @@
 											<li class="flex items-center gap-1.5 rounded-md py-0.5 pe-1 ps-1.5 text-[0.75rem] font-medium {on ? 'text-sidebar-foreground/80' : 'text-sidebar-foreground/40'}">
 												<span class="min-w-0 flex-1 truncate">{child.label}</span>
 												<button type="button"
-													class="flex h-6 w-6 shrink-0 items-center justify-center rounded hover:bg-sidebar-accent {on ? 'text-primary' : 'text-sidebar-foreground/50 hover:text-sidebar-foreground'}"
+													class="flex h-6 w-6 shrink-0 items-center justify-center rounded hover:bg-sidebar-accent {on ? 'text-primary-text' : 'text-sidebar-foreground/50 hover:text-sidebar-foreground'}"
 													aria-pressed={on}
 													aria-label={i18n.t(on ? 'ADMIN_NEXT.SIDEBAR_EDIT.UNSTAR' : 'ADMIN_NEXT.SIDEBAR_EDIT.STAR', { label: child.label })}
 													title={i18n.t(on ? 'ADMIN_NEXT.SIDEBAR_EDIT.UNSTAR' : 'ADMIN_NEXT.SIDEBAR_EDIT.STAR', { label: child.label })}

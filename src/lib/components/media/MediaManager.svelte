@@ -386,11 +386,11 @@
 		{#if dragOver}
 			<div class="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
 				<div class="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-primary/50 bg-primary/5 px-12 py-8">
-					<Upload size={32} class="text-primary" />
+					<Upload size={32} class="text-primary-text" />
 					<!-- One sentence, not "Drop files to upload" + "to" + a path: the
 					     fragments can't be reordered by a translator. tHtml renders the
 					     **{path}** emphasis from markdown. -->
-					<p class="text-sm font-medium text-primary">
+					<p class="text-sm font-medium text-primary-text">
 						{#if mediaManager.currentPath}
 							{@html i18n.tHtml('ADMIN_NEXT.MEDIA.MEDIA_MANAGER.DROP_FILES_TO_UPLOAD_TO_PATH', {
 								path: mediaManager.currentPath,

@@ -652,7 +652,7 @@
 				<span class="text-destructive">{i18n.t('ADMIN_NEXT.PAGES.LOAD_CHILDREN_FAILED')}</span>
 				<button
 					type="button"
-					class="font-medium text-primary hover:underline"
+					class="font-medium text-primary-text hover:underline"
 					onclick={() => bootstrapFolder(parentRoute)}
 				>
 					{i18n.t('ADMIN_NEXT.RETRY')}
@@ -692,7 +692,7 @@
 			ondrop={(e) => handleDrop(e, apiRoute, 0)}
 		>
 			<div class="flex h-8 items-center rounded-md border border-dashed px-3 text-[0.75rem] transition-colors
-				{active ? 'border-primary bg-primary/5 text-primary' : 'border-border text-muted-foreground'}
+				{active ? 'border-primary bg-primary/5 text-primary-text' : 'border-border text-muted-foreground'}
 				{blocked ? 'opacity-50' : ''}">
 				<span class="truncate">{i18n.t('ADMIN_NEXT.PAGES.DROP_INSIDE', { title: page.title })}</span>
 			</div>
@@ -781,12 +781,12 @@
 
 					{#if page.has_children}
 						{#if expandedRoutes.has(apiRoute)}
-							<FolderOpen size={14} class="shrink-0 {page.visible && !passThrough ? 'text-primary' : 'text-muted-foreground'}" />
+							<FolderOpen size={14} class="shrink-0 {page.visible && !passThrough ? 'text-primary-text' : 'text-muted-foreground'}" />
 						{:else}
-							<Folder size={14} class="shrink-0 {page.visible && !passThrough ? 'text-primary/70' : 'text-muted-foreground'}" />
+							<Folder size={14} class="shrink-0 {page.visible && !passThrough ? 'text-primary-text/70' : 'text-muted-foreground'}" />
 						{/if}
 					{:else}
-						<File size={14} class="shrink-0 {page.visible && !passThrough ? 'text-primary/70' : 'text-muted-foreground'}" />
+						<File size={14} class="shrink-0 {page.visible && !passThrough ? 'text-primary-text/70' : 'text-muted-foreground'}" />
 					{/if}
 
 					{#if passThrough}
@@ -813,7 +813,7 @@
 						draggable={!reorderMode}
 					>
 						<div class="flex min-w-0 items-center gap-1.5">
-							<span class="min-w-0 truncate text-sm font-medium group-hover:text-primary
+							<span class="min-w-0 truncate text-sm font-medium group-hover:text-primary-text
 								{isUntranslated ? 'text-muted-foreground italic' : 'text-foreground'}"
 								title={pageTitleIfDifferent(page) ? i18n.t('ADMIN_NEXT.PAGES.PAGE_TITLE_HINT', { title: page.title }) : undefined}>{pageLabel(page)}</span>
 							{#if lang && badgeKeys.length > 0}
@@ -938,7 +938,7 @@
 				{#if search.hasMore}
 					<button
 						type="button"
-						class="font-medium text-primary hover:underline disabled:opacity-50"
+						class="font-medium text-primary-text hover:underline disabled:opacity-50"
 						disabled={search.loadingMore}
 						onclick={() => search.more()}
 					>

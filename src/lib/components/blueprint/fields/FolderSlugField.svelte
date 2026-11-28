@@ -53,7 +53,7 @@
 		<input
 			type="text"
 			class="flex h-10 min-w-0 flex-1 rounded-l-lg border border-r-0 border-input bg-muted/50 px-3 py-2 font-mono text-sm shadow-sm transition-all placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
-				{highlight ? 'bg-primary/10 text-primary' : 'text-foreground'}"
+				{highlight ? 'bg-primary/10 text-primary-text' : 'text-foreground'}"
 			value={value ?? field.default ?? ''}
 			placeholder={translateLabel(field.placeholder) || 'folder-name'}
 			disabled={field.disabled}

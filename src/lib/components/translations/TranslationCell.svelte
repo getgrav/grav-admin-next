@@ -156,7 +156,7 @@
 				type="button"
 				class="absolute end-1 top-1 flex h-6 w-6 items-center justify-center rounded-md border border-border/60 bg-background/80 shadow-sm backdrop-blur-sm transition disabled:opacity-50 {translateOff
 					? 'cursor-help text-muted-foreground/50 hover:text-muted-foreground opacity-60'
-					: 'text-muted-foreground hover:border-input hover:bg-background hover:text-primary'} {!translateOff &&
+					: 'text-muted-foreground hover:border-input hover:bg-background hover:text-primary-text'} {!translateOff &&
 				cellState === 'missing'
 					? 'opacity-100'
 					: translateOff
@@ -178,7 +178,7 @@
 
 		{#if proposal !== null}
 			<div class="mt-1 rounded border border-dashed border-primary/50 bg-primary/5 px-2 py-1">
-				<div class="mb-1 flex items-center gap-1 text-[10px] font-medium text-primary">
+				<div class="mb-1 flex items-center gap-1 text-[10px] font-medium text-primary-text">
 					<Sparkles size={10} />
 					{i18n.t('ADMIN_NEXT.TRANSLATIONS.SUGGESTED')}
 				</div>
@@ -186,7 +186,7 @@
 				<div class="mt-1 flex items-center gap-2">
 					<button
 						type="button"
-						class="flex items-center gap-0.5 text-[10px] font-medium text-primary hover:underline"
+						class="flex items-center gap-0.5 text-[10px] font-medium text-primary-text hover:underline"
 						onclick={() => onaccept?.()}
 					>
 						<Check size={10} />
@@ -206,7 +206,7 @@
 
 		{#if cellState === 'overridden'}
 			<div class="mt-0.5 flex items-center gap-1.5">
-				<span class="text-[10px] font-medium text-primary">
+				<span class="text-[10px] font-medium text-primary-text">
 					{i18n.t('ADMIN_NEXT.TRANSLATIONS.STATE_OVERRIDDEN')}
 				</span>
 				<button

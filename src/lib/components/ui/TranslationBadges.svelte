@@ -39,7 +39,7 @@
 		<div class="inline-flex shrink-0 items-center gap-0.5" title={tooltip}>
 			{#if showCurrent}
 				<span class="inline-flex h-4 shrink-0 items-center whitespace-nowrap rounded px-1 text-[0.5625rem] font-bold uppercase leading-none
-					{inverted ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'}">{currentLang}</span>
+					{inverted ? 'bg-primary-foreground text-primary-text' : 'bg-primary text-primary-foreground'}">{currentLang}</span>
 			{/if}
 			<span
 				class="inline-flex h-4 shrink-0 items-center whitespace-nowrap rounded px-1 text-[0.5625rem] font-bold leading-none tabular-nums

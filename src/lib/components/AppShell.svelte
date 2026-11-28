@@ -280,7 +280,7 @@
 				<a {href}
 					class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium transition-colors
 						{active
-							? 'bg-primary/10 text-primary'
+							? 'bg-primary/10 text-primary-text'
 							: 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
 					onclick={() => mobileOpen = false}
 					title={collapsed ? item.label : undefined}>
@@ -288,7 +288,7 @@
 					{#if !collapsed}
 						<span class="truncate">{item.label}</span>
 						{#if badge != null}
-							<span class="ms-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary">{badge}</span>
+							<span class="ms-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-primary-text">{badge}</span>
 						{/if}
 					{/if}
 				</a>
@@ -296,7 +296,7 @@
 			<a href={settingsItem.href}
 				class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium transition-colors
 					{isActive(settingsItem.href)
-						? 'bg-primary/10 text-primary'
+						? 'bg-primary/10 text-primary-text'
 						: 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
 				onclick={() => mobileOpen = false}
 				title={collapsed ? i18n.t(settingsItem.labelKey) : undefined}>
@@ -405,7 +405,7 @@
 						{:else if part.slot === 'love'}
 							<Heart size={11} class="inline-block -mt-px align-middle fill-current text-rose-500/70 transition-colors group-hover:text-rose-500" aria-hidden="true" />
 						{:else if part.slot === 'company'}
-							<span class="font-medium text-sidebar-foreground/70 group-hover:text-primary group-hover:underline">Trilby Media</span>
+							<span class="font-medium text-sidebar-foreground/70 group-hover:text-primary-text group-hover:underline">Trilby Media</span>
 						{:else}
 							{part.text}
 						{/if}

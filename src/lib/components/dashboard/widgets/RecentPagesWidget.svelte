@@ -18,14 +18,14 @@
 			<Clock size={15} />
 			{i18n.t('ADMIN_NEXT.DASHBOARD.WIDGETS.RECENT_PAGES')}
 		</h2>
-		<a href="{base}/pages" class="text-[0.6875rem] text-primary hover:underline">{i18n.t('ADMIN_NEXT.RECENT_PAGES_WIDGET.VIEW_ALL')}</a>
+		<a href="{base}/pages" class="text-[0.6875rem] text-primary-text hover:underline">{i18n.t('ADMIN_NEXT.RECENT_PAGES_WIDGET.VIEW_ALL')}</a>
 	</div>
 	{#if recentPages.length > 0}
 		<div class="space-y-0.5">
 			{#each recentPages.slice(0, max) as pg}
 				<a href={pageEditUrl(pg.route)} class="group flex items-center justify-between gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-accent">
 					<div class="min-w-0 flex-1">
-						<div class="truncate text-[0.8125rem] font-medium text-foreground group-hover:text-primary">{pg.title}</div>
+						<div class="truncate text-[0.8125rem] font-medium text-foreground group-hover:text-primary-text">{pg.title}</div>
 						<div class="truncate text-[0.6875rem] text-muted-foreground">{pg.route}</div>
 					</div>
 					<div class="flex shrink-0 items-center gap-2">

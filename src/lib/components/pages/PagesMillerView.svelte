@@ -962,7 +962,7 @@
 		<span>{i18n.t('ADMIN_NEXT.PAGES.SEARCH_SHOWING', { shown: search.results.length, total: search.total })}</span>
 		<button
 			type="button"
-			class="font-medium text-primary hover:underline disabled:opacity-50"
+			class="font-medium text-primary-text hover:underline disabled:opacity-50"
 			disabled={search.loadingMore}
 			onclick={() => search.more()}
 		>
@@ -1004,7 +1004,7 @@
 					{@const blocked = !!dragPage && !canDropInto(col.parentRoute)}
 					<div class="p-2">
 						<div class="flex min-h-16 items-center justify-center rounded-md border border-dashed px-3 py-4 text-center text-xs transition-colors
-							{active ? 'border-primary bg-primary/5 text-primary' : 'border-border text-muted-foreground'}
+							{active ? 'border-primary bg-primary/5 text-primary-text' : 'border-border text-muted-foreground'}
 							{blocked ? 'opacity-50' : ''}">
 							{i18n.t('ADMIN_NEXT.PAGES.DROP_INSIDE', { title: owner?.title ?? col.parentRoute })}
 						</div>
@@ -1100,9 +1100,9 @@
 										draggable={!reorderMode}
 									>
 										{#if page.has_children}
-											<Folder size={14} class="shrink-0 {isActive ? 'text-primary-foreground/80' : (page.visible ? 'text-primary' : 'text-muted-foreground')}" />
+											<Folder size={14} class="shrink-0 {isActive ? 'text-primary-foreground/80' : (page.visible ? 'text-primary-text' : 'text-muted-foreground')}" />
 										{:else}
-											<File size={14} class="shrink-0 {isActive ? 'text-primary-foreground/60' : (page.visible ? 'text-primary/70' : 'text-muted-foreground')}" />
+											<File size={14} class="shrink-0 {isActive ? 'text-primary-foreground/60' : (page.visible ? 'text-primary-text/70' : 'text-muted-foreground')}" />
 										{/if}
 										<div class="min-w-0 flex-1">
 											<div class="flex items-center gap-1.5">
@@ -1311,7 +1311,7 @@
 										     columns and this preview reload in that language. -->
 										<button
 											type="button"
-											class="inline-flex h-5 items-center whitespace-nowrap rounded bg-muted px-1.5 text-[0.625rem] font-bold uppercase leading-none text-foreground transition-colors hover:bg-primary/15 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+											class="inline-flex h-5 items-center whitespace-nowrap rounded bg-muted px-1.5 text-[0.625rem] font-bold uppercase leading-none text-foreground transition-colors hover:bg-primary/15 hover:text-primary-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 											title={contentLang.getLanguageName(code)}
 											onclick={() => { contentLang.setLanguage(code); onLanguageChange?.(code); }}
 										>{code}</button>

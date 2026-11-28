@@ -406,7 +406,7 @@
 		class="group flex items-center gap-2 border-b border-border/50 px-2 py-2 transition-colors hover:bg-accent/50 sm:px-4"
 	>
 		<div class="flex min-w-0 flex-1 items-center gap-2">
-			<File size={14} class="shrink-0 {page.visible && !passThrough ? 'text-primary/70' : 'text-muted-foreground'}" />
+			<File size={14} class="shrink-0 {page.visible && !passThrough ? 'text-primary-text/70' : 'text-muted-foreground'}" />
 			{#if passThrough}
 				<div
 					class="min-w-0 flex-1 text-start"
@@ -427,7 +427,7 @@
 				onclick={linkClick(() => onEdit(pageApiRoute(page)))}
 			>
 				<div class="flex min-w-0 items-center gap-1.5">
-					<span class="min-w-0 truncate text-sm font-medium group-hover:text-primary
+					<span class="min-w-0 truncate text-sm font-medium group-hover:text-primary-text
 						{isUntranslated ? 'text-muted-foreground italic' : 'text-foreground'}"
 						title={pageTitleIfDifferent(page) ? i18n.t('ADMIN_NEXT.PAGES.PAGE_TITLE_HINT', { title: page.title }) : undefined}>{pageLabel(page)}</span>
 					{#if lang && badgeKeys.length > 0}
@@ -538,7 +538,7 @@
 			<span>{i18n.t('ADMIN_NEXT.PAGES.SEARCH_SHOWING', { shown: search.results.length, total: search.total })}</span>
 			<button
 				type="button"
-				class="font-medium text-primary hover:underline disabled:opacity-50"
+				class="font-medium text-primary-text hover:underline disabled:opacity-50"
 				disabled={search.loadingMore}
 				onclick={() => search.more()}
 			>

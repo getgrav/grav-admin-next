@@ -98,6 +98,7 @@ function createThemeStore() {
 		const tokens = accentTokens(accentHue, accentSaturation, html.classList.contains('dark'), darkShade);
 		html.style.setProperty('--primary', tokens.primary);
 		html.style.setProperty('--primary-foreground', tokens.primaryForeground);
+		html.style.setProperty('--primary-text', tokens.primaryText);
 		html.style.setProperty('--ring', tokens.ring);
 		// The checkbox tick is an SVG in layout.css and cannot read a variable.
 		html.dataset.accentLabel = tokens.darkLabel ? 'dark' : 'light';

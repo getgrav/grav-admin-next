@@ -89,7 +89,7 @@
 							<DirectionalIcon name="arrow-back" size={16} />
 						</button>
 						{#if !scrolled}
-							<div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+							<div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary-text">
 								<UserPlus size={16} />
 							</div>
 						{/if}

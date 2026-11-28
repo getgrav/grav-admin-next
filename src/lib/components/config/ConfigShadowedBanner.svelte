@@ -32,16 +32,16 @@
 	<div class="{className} flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2.5 text-sm text-foreground" role="note">
 		<span class="flex min-w-0 flex-1 items-center gap-2">
 			{#if envs.length > 0}
-				<Layers size={16} class="shrink-0 text-primary" />
+				<Layers size={16} class="shrink-0 text-primary-text" />
 			{:else}
-				<ServerCog size={16} class="shrink-0 text-primary" />
+				<ServerCog size={16} class="shrink-0 text-primary-text" />
 			{/if}
 			<span class="min-w-0">{message}</span>
 		</span>
 		{#each envs as env (env)}
 			<button
 				type="button"
-				class="h-7 shrink-0 rounded-md border border-primary/40 bg-background px-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+				class="h-7 shrink-0 rounded-md border border-primary/40 bg-background px-2.5 text-xs font-medium text-primary-text transition-colors hover:bg-primary/10"
 				onclick={() => ctx.switchTo(env)}
 			>
 				{i18n.t('ADMIN_NEXT.CONFIG.SHADOWED.SWITCH_TO', { env })}

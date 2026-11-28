@@ -54,9 +54,9 @@
 	{/if}
 	<div class="min-w-0 flex-1">
 		{#if notif.title}
-			<div class="text-[0.75rem] font-semibold text-foreground group-hover:text-primary">{notif.title}</div>
+			<div class="text-[0.75rem] font-semibold text-foreground group-hover:text-primary-text">{notif.title}</div>
 		{/if}
-		<p class="text-[0.75rem] leading-relaxed text-foreground/80 group-hover:text-primary [&_a]:font-medium [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-primary/80">
+		<p class="text-[0.75rem] leading-relaxed text-foreground/80 group-hover:text-primary-text [&_a]:font-medium [&_a]:text-primary-text [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-primary-text/80">
 			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 			{@html renderInlineMarkdown(notif.message)}
 		</p>

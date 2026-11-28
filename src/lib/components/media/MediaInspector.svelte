@@ -171,7 +171,7 @@
 				{i18n.t('ADMIN_NEXT.MEDIA.METADATA.TITLE')}
 			</h4>
 			{#if selectionCount > 1 && !readonly}
-				<div class="mb-3 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-[0.6875rem] leading-snug text-primary">
+				<div class="mb-3 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-[0.6875rem] leading-snug text-primary-text">
 					{i18n.t('ADMIN_NEXT.MEDIA.METADATA.BATCH_EDITING', { n: selectionCount })}
 				</div>
 			{/if}

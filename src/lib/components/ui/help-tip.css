@@ -100,6 +100,6 @@
 }
 
 .grav-help-tip__popup a {
-	color: var(--primary);
+	color: var(--primary-text, var(--primary));
 	text-decoration: underline;
 }

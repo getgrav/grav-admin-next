@@ -309,7 +309,7 @@
 									href={pageEditUrl(moduleRoute)}
 									draggable="false"
 								>
-									<span class="min-w-0 truncate text-sm font-medium text-foreground group-hover:text-primary">{module.title}</span>
+									<span class="min-w-0 truncate text-sm font-medium text-foreground group-hover:text-primary-text">{module.title}</span>
 									<span class="ms-auto hidden shrink-0 truncate text-xs text-muted-foreground sm:inline">{moduleTypeLabel(module.template, types)}</span>
 								</a>
 

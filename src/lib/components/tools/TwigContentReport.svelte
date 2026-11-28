@@ -304,9 +304,9 @@
 					<FileWarning size={14} class="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
 					<div class="min-w-0">
 						{#if isLinkable(leak.route)}
-							<a href={pageEditUrl(leak.route)} class="font-medium text-primary truncate hover:underline">{leak.route}</a>
+							<a href={pageEditUrl(leak.route)} class="font-medium text-primary-text truncate hover:underline">{leak.route}</a>
 						{:else}
-							<div class="font-medium text-primary truncate">{leak.route}</div>
+							<div class="font-medium text-primary-text truncate">{leak.route}</div>
 						{/if}
 						<div class="text-xs text-muted-foreground">
 							{leak.reason === 'gate_off'
@@ -330,7 +330,7 @@
 					href={TROUBLESHOOTING_URL}
 					target="_blank"
 					rel="noopener noreferrer"
-					class="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+					class="inline-flex items-center gap-1 text-xs text-primary-text hover:underline"
 				>
 					<BookOpen size={12} />
 					{i18n.t('ADMIN_NEXT.TOOLS.REPORTS.TWIG_CONTENT.TROUBLESHOOTING_LINK')}
@@ -362,7 +362,7 @@
 									<code class="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-foreground">{event.token}</code>
 								{/if}
 								{#if isLinkable(event.route)}
-									<a href={pageEditUrl(event.route)} class="text-xs text-primary truncate hover:underline">{event.route}</a>
+									<a href={pageEditUrl(event.route)} class="text-xs text-primary-text truncate hover:underline">{event.route}</a>
 								{:else}
 									<span class="text-xs text-muted-foreground truncate">{event.route}</span>
 								{/if}

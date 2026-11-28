@@ -386,7 +386,7 @@
 								type="button"
 								class="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-start transition-colors
 									{selected
-										? 'bg-primary/10 text-primary'
+										? 'bg-primary/10 text-primary-text'
 										: i === highlightedIndex
 											? 'bg-accent text-accent-foreground'
 											: 'text-foreground hover:bg-accent'}"
@@ -405,7 +405,7 @@
 								{/if}
 								<span class="flex-1 truncate text-sm">{item.filename}</span>
 								{#if multiple && selected}
-									<Check size={14} class="shrink-0 text-primary" />
+									<Check size={14} class="shrink-0 text-primary-text" />
 								{/if}
 							</button>
 						{/each}

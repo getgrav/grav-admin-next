@@ -1027,7 +1027,7 @@
 						type="button"
 						class="inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors disabled:pointer-events-none disabled:opacity-50
 							{item.label === 'Toggle Preview' && showPreview
-								? 'bg-primary/10 text-primary'
+								? 'bg-primary/10 text-primary-text'
 								: 'text-muted-foreground hover:bg-accent hover:text-foreground'}"
 						title="{item.label}{item.shortcut ? ` (${item.shortcut})` : ''}"
 						onclick={item.action}
@@ -1208,7 +1208,7 @@
 	.prose :global(code) { font-size: 0.85em; background: var(--color-muted); padding: 0.15em 0.35em; border-radius: 4px; }
 	.prose :global(pre) { background: var(--color-muted); padding: 0.75rem 1rem; border-radius: 8px; overflow-x: auto; margin: 0.5rem 0; }
 	.prose :global(pre code) { background: none; padding: 0; }
-	.prose :global(a) { color: var(--color-primary); text-decoration: none; }
+	.prose :global(a) { color: var(--color-primary-text); text-decoration: none; }
 	.prose :global(a:hover) { text-decoration: underline; }
 	.prose :global(blockquote) { border-left: 3px solid var(--color-border); padding-left: 1rem; color: var(--color-muted-foreground); margin: 0.5rem 0; }
 	.prose :global(hr) { border: none; border-top: 1px solid var(--color-border); margin: 1rem 0; }

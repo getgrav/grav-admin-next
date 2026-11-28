@@ -90,7 +90,7 @@
 		class="group flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card p-4 transition-all hover:border-primary/30 hover:bg-accent/50 hover:shadow-sm"
 		onclick={handleClick}
 	>
-		<Folder size={32} class="text-primary/70" />
+		<Folder size={32} class="text-primary-text/70" />
 		<div class="w-full text-center">
 			<div class="truncate text-[0.8125rem] font-medium text-foreground">{props.folder.name}</div>
 			<div class="text-[0.6875rem] text-muted-foreground">

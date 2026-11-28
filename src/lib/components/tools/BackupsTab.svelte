@@ -215,7 +215,7 @@
 								<div class="flex items-center justify-end gap-1">
 									<a
 										href={getBackupDownloadUrl(backup.filename)}
-										class="inline-flex h-7 w-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10"
+										class="inline-flex h-7 w-7 items-center justify-center rounded-md text-primary-text transition-colors hover:bg-primary/10"
 										title={i18n.t('ADMIN_NEXT.DOWNLOAD')}
 									>
 										<Download size={14} />

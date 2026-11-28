@@ -267,7 +267,7 @@
 						<button
 							class="shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-start text-sm font-medium transition-colors
 								{i === activeIndex
-									? 'bg-primary/10 text-primary'
+									? 'bg-primary/10 text-primary-text'
 									: 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'}"
 							type="button"
 							onclick={() => setActiveTab(i)}
@@ -330,7 +330,7 @@
 						<button
 							class="shrink-0 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors
 								{i === activeIndex
-									? 'border-primary text-primary'
+									? 'border-primary text-primary-text'
 									: 'border-transparent text-muted-foreground hover:text-foreground'}"
 							type="button"
 							onclick={() => setActiveTab(i)}

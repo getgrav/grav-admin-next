@@ -665,7 +665,7 @@
 			>
 				{i18n.t('ADMIN_NEXT.TRANSLATIONS.LANGUAGES')}
 				{#if targetLangs.length > 0}
-					<span class="rounded bg-primary/10 px-1.5 text-xs font-medium text-primary">{targetLangs.length}</span>
+					<span class="rounded bg-primary/10 px-1.5 text-xs font-medium text-primary-text">{targetLangs.length}</span>
 				{/if}
 				<ChevronDown size={14} class="text-muted-foreground" />
 			</button>
@@ -698,7 +698,7 @@
 								/>
 								<span class="font-mono text-xs">{lang.code}</span>
 								{#if lang.hasOverrides}
-									<span class="rounded bg-primary/10 px-1 text-[10px] font-medium text-primary">
+									<span class="rounded bg-primary/10 px-1 text-[10px] font-medium text-primary-text">
 										{i18n.t('ADMIN_NEXT.TRANSLATIONS.EDITED')}
 									</span>
 								{/if}
@@ -905,7 +905,7 @@
 						</label>
 
 						{#if namespace}
-							<span class="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+							<span class="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary-text">
 								{i18n.t('ADMIN_NEXT.TRANSLATIONS.SCOPED_TO', { namespace })}
 							</span>
 						{:else}

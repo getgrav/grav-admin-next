@@ -150,7 +150,7 @@
 								<span class="shrink-0 truncate font-mono text-[0.6875rem] text-muted-foreground">{option.hint}</span>
 							{/if}
 							{#if option.value === value}
-								<Check size={13} class="shrink-0 text-primary" />
+								<Check size={13} class="shrink-0 text-primary-text" />
 							{/if}
 						</button>
 					{/each}

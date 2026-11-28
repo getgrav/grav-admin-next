@@ -75,7 +75,7 @@
 				<tr class="border-b border-border transition-colors hover:bg-muted/30">
 					<td class="px-4 py-2">
 						<a
-							class="font-medium text-primary hover:underline"
+							class="font-medium text-primary-text hover:underline"
 							href="{base}/users/groups/{group.groupname}"
 							onclick={linkClick(() => onEdit(group.groupname))}
 						>

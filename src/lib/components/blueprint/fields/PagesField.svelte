@@ -356,7 +356,7 @@
 								<button
 									type="button"
 									class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
-										{isSelected(apiRoute) ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'}"
+										{isSelected(apiRoute) ? 'bg-primary/10 text-primary-text' : 'text-foreground hover:bg-accent'}"
 									onclick={() => selectSearchResult(page)}
 								>
 									<File size={14} class="shrink-0 text-muted-foreground" />
@@ -369,14 +369,14 @@
 										{/if}
 									</span>
 									{#if isSelected(apiRoute)}
-										<Check size={14} class="ms-auto shrink-0 text-primary" />
+										<Check size={14} class="ms-auto shrink-0 text-primary-text" />
 									{/if}
 								</button>
 							{/each}
 							{#if search.hasMore}
 								<button
 									type="button"
-									class="w-full px-2 py-1.5 text-start text-xs font-medium text-primary hover:underline disabled:opacity-50"
+									class="w-full px-2 py-1.5 text-start text-xs font-medium text-primary-text hover:underline disabled:opacity-50"
 									disabled={search.loadingMore}
 									onclick={() => search.more()}
 								>
@@ -394,13 +394,13 @@
 							<button
 								type="button"
 								class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
-									{isSelected('/') ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'}"
+									{isSelected('/') ? 'bg-primary/10 text-primary-text' : 'text-foreground hover:bg-accent'}"
 								onclick={() => selectPage('/')}
 							>
 								<File size={14} class="shrink-0 text-muted-foreground" />
 								<span class="truncate">{i18n.t('ADMIN_NEXT.FIELDS.PAGES.ROOT')}</span>
 								{#if isSelected('/')}
-									<Check size={14} class="ms-auto shrink-0 text-primary" />
+									<Check size={14} class="ms-auto shrink-0 text-primary-text" />
 								{/if}
 							</button>
 						{/if}
@@ -441,7 +441,7 @@
 		<button
 			type="button"
 			class="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
-				{selected ? 'bg-primary/10 text-primary' : passThrough ? 'text-muted-foreground hover:bg-accent/50' : 'text-foreground hover:bg-accent'}"
+				{selected ? 'bg-primary/10 text-primary-text' : passThrough ? 'text-muted-foreground hover:bg-accent/50' : 'text-foreground hover:bg-accent'}"
 			title={passThrough ? i18n.t('ADMIN_NEXT.PAGES.ANCESTOR_ONLY_HINT') : undefined}
 			onclick={(e) => { if (!passThrough) selectPage(apiRoute); else if (expandable) toggleExpand(apiRoute, e); }}
 		>
@@ -493,7 +493,7 @@
 			{/if}
 
 			{#if selected}
-				<Check size={14} class="ms-auto shrink-0 text-primary" />
+				<Check size={14} class="ms-auto shrink-0 text-primary-text" />
 			{/if}
 		</button>
 	</div>
@@ -513,14 +513,14 @@
 		type="button"
 		class="flex w-full items-center rounded-lg px-2 py-1.5 text-start text-sm transition-colors
 			{inTree ? 'gap-1.5' : 'gap-2'}
-			{isSelected(option.value) ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'}"
+			{isSelected(option.value) ? 'bg-primary/10 text-primary-text' : 'text-foreground hover:bg-accent'}"
 		onclick={() => selectPage(option.value)}
 	>
 		{#if inTree}<span class="w-5 shrink-0"></span>{/if}
 		<span class="w-[14px] shrink-0"></span>
 		<span class="min-w-0 truncate">{optionLabel(option)}</span>
 		{#if isSelected(option.value)}
-			<Check size={14} class="ms-auto shrink-0 text-primary" />
+			<Check size={14} class="ms-auto shrink-0 text-primary-text" />
 		{/if}
 	</button>
 {/snippet}

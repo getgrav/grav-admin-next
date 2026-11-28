@@ -41,7 +41,7 @@
 {#if slug === SLUG}
 	<div class="rounded-xl border border-primary/40 bg-primary/5 p-5">
 		<div class="flex items-start gap-3">
-			<div class="mt-0.5 shrink-0 text-primary">
+			<div class="mt-0.5 shrink-0 text-primary-text">
 				<Languages size={20} />
 			</div>
 			<div class="min-w-0 flex-1 space-y-2">
@@ -52,7 +52,7 @@
 					{i18n.t('ADMIN_NEXT.TRANSLATIONS.SUPERSEDED_BODY')}
 				</p>
 				{#if status?.present && status.pending > 0}
-					<p class="text-sm text-primary">
+					<p class="text-sm text-primary-text">
 						{i18n.t('ADMIN_NEXT.TRANSLATIONS.SUPERSEDED_PENDING', { count: status.pending })}
 					</p>
 				{/if}

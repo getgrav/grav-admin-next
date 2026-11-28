@@ -253,7 +253,7 @@
 	{#if canAdd}
 		<button
 			type="button"
-			class="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
+			class="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary-text"
 			onclick={addEntry}
 		>
 			<Plus size={14} />

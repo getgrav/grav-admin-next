@@ -112,11 +112,11 @@
 				<tr class="border-b border-border transition-colors hover:bg-muted/30">
 					<td class="px-4 py-2">
 						<a
-							class="inline-flex items-center gap-2 text-start text-primary hover:underline"
+							class="inline-flex items-center gap-2 text-start text-primary-text hover:underline"
 							href="{base}/plugins/{plugin.slug}"
 							onclick={linkClick(() => onConfigure(plugin.slug))}
 						>
-							<span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md {plugin.enabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}">
+							<span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md {plugin.enabled ? 'bg-primary/10 text-primary-text' : 'bg-muted text-muted-foreground'}">
 								{#if plugin.icon}
 									<i class="{faIconClass(plugin.icon)} text-xs"></i>
 								{:else}

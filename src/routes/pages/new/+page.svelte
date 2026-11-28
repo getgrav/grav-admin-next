@@ -535,7 +535,7 @@
 							<DirectionalIcon name="arrow-back" size={16} />
 						</button>
 						{#if !scrolled}
-							<div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+							<div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary-text">
 								<FilePlus size={16} />
 							</div>
 						{/if}
@@ -671,7 +671,7 @@
 													<button
 														type="button"
 														class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
-															{parentRoute === apiRoute ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'}"
+															{parentRoute === apiRoute ? 'bg-primary/10 text-primary-text' : 'text-foreground hover:bg-accent'}"
 														onclick={() => selectParentResult(pg)}
 													>
 														<File size={14} class="shrink-0 text-muted-foreground" />
@@ -680,14 +680,14 @@
 															<span class="text-muted-foreground">{apiRoute}</span>
 														</span>
 														{#if parentRoute === apiRoute}
-															<Check size={14} class="ms-auto shrink-0 text-primary" />
+															<Check size={14} class="ms-auto shrink-0 text-primary-text" />
 														{/if}
 													</button>
 												{/each}
 												{#if parentSearch.hasMore}
 													<button
 														type="button"
-														class="w-full px-2 py-1.5 text-start text-xs font-medium text-primary hover:underline disabled:opacity-50"
+														class="w-full px-2 py-1.5 text-start text-xs font-medium text-primary-text hover:underline disabled:opacity-50"
 														disabled={parentSearch.loadingMore}
 														onclick={() => parentSearch.more()}
 													>
@@ -707,13 +707,13 @@
 											<button
 												type="button"
 												class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
-													{parentRoute === '/' ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-accent'}"
+													{parentRoute === '/' ? 'bg-primary/10 text-primary-text' : 'text-foreground hover:bg-accent'}"
 												onclick={() => selectParent('/')}
 											>
 												<Folder size={14} class="shrink-0 text-muted-foreground" />
 												<span class="truncate">{i18n.t('ADMIN_NEXT.PAGES.NEW.ROOT')}</span>
 												{#if parentRoute === '/'}
-													<Check size={14} class="ms-auto shrink-0 text-primary" />
+													<Check size={14} class="ms-auto shrink-0 text-primary-text" />
 												{/if}
 											</button>
 											{/if}
@@ -876,7 +876,7 @@
 		<button
 			type="button"
 			class="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-start text-sm transition-colors
-				{isSelected ? 'bg-primary/10 text-primary' : passThrough ? 'text-muted-foreground hover:bg-accent/50' : 'text-foreground hover:bg-accent'}"
+				{isSelected ? 'bg-primary/10 text-primary-text' : passThrough ? 'text-muted-foreground hover:bg-accent/50' : 'text-foreground hover:bg-accent'}"
 			title={unreadable ? i18n.t('ADMIN_NEXT.PAGES.ANCESTOR_ONLY_HINT') : undefined}
 			onclick={(e) => { if (!passThrough) selectParent(apiRoute); else if (pg.has_children) toggleExpand(apiRoute, e); }}
 		>
@@ -919,7 +919,7 @@
 			{/if}
 
 			{#if isSelected}
-				<Check size={14} class="ms-auto shrink-0 text-primary" />
+				<Check size={14} class="ms-auto shrink-0 text-primary-text" />
 			{/if}
 		</button>
 	</div>

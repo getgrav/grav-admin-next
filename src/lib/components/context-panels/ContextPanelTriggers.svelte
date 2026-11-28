@@ -66,7 +66,7 @@
 		<button
 			class="relative inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors
 				{isActive
-					? 'border-primary bg-primary/10 text-primary'
+					? 'border-primary bg-primary/10 text-primary-text'
 					: 'border-border text-muted-foreground hover:bg-accent hover:text-foreground'}"
 			onclick={() => contextPanelStore.toggle(panel.id, { route, lang, type: context })}
 			title={panel.label}

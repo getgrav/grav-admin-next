@@ -21,7 +21,7 @@
 		<Minus size={14} class="text-muted-foreground" aria-label="no" />
 	{/if}
 {:else if cell.kind === 'link'}
-	<a href={cell.href} target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">
+	<a href={cell.href} target="_blank" rel="noopener noreferrer" class="text-primary-text hover:underline">
 		{cell.text}
 	</a>
 {:else if cell.kind === 'badge'}

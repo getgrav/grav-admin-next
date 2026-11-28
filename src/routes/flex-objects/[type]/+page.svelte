@@ -398,7 +398,7 @@
 										{/if}
 									{:else if col.link === 'edit'}
 										<a
-											class="font-medium text-primary hover:underline"
+											class="font-medium text-primary-text hover:underline"
 											href="{base}/flex-objects/{type}/{obj.key}"
 											onclick={linkClick(() => openEdit(obj.key))}
 										>
@@ -428,7 +428,7 @@
 												href={url}
 												target="_blank"
 												rel="noopener noreferrer"
-												class="inline-flex items-center gap-1 text-primary hover:underline"
+												class="inline-flex items-center gap-1 text-primary-text hover:underline"
 												onclick={(e) => e.stopPropagation()}
 											>
 												<ExternalLink size={12} class="shrink-0" />

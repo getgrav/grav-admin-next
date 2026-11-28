@@ -679,7 +679,7 @@
 
 	{#if canEditMeta && !readonly && selectionCount > 0}
 		<div class="flex items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5">
-			<span class="text-[0.6875rem] leading-snug text-primary">
+			<span class="text-[0.6875rem] leading-snug text-primary-text">
 				{i18n.t('ADMIN_NEXT.FIELDS.MEDIA.SELECTED_COUNT', { count: selectionCount })}
 			</span>
 			<div class="flex items-center gap-1">
@@ -693,7 +693,7 @@
 				</button>
 				<button
 					type="button"
-					class="inline-flex h-6 w-6 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10"
+					class="inline-flex h-6 w-6 items-center justify-center rounded-md text-primary-text transition-colors hover:bg-primary/10"
 					aria-label={i18n.t('ADMIN_NEXT.CANCEL')}
 					onclick={clearSelection}
 				>

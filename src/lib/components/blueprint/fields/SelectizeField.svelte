@@ -324,13 +324,13 @@
 					class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium transition-colors
 						{selectedTagIndex === i
 							? 'bg-primary text-primary-foreground ring-1 ring-primary'
-							: 'bg-primary/15 text-primary'}"
+							: 'bg-primary/15 text-primary-text'}"
 				>
 					{labelFor(tag)}
 					<button
 						type="button"
 						class="inline-flex items-center rounded-sm transition-colors
-							{selectedTagIndex === i ? 'text-primary-foreground/70 hover:text-primary-foreground' : 'text-primary/60 hover:text-primary'}"
+							{selectedTagIndex === i ? 'text-primary-foreground/70 hover:text-primary-foreground' : 'text-primary-text/60 hover:text-primary-text'}"
 						onclick={(e) => { e.stopPropagation(); removeTag(i); }}
 						tabindex={-1}
 					>

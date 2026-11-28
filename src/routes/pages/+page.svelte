@@ -342,7 +342,7 @@
 			<button
 				class="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-[0.75rem] font-medium transition-colors
 					{reorderMode
-						? 'border-primary bg-primary/10 text-primary'
+						? 'border-primary bg-primary/10 text-primary-text'
 						: 'border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
 				onclick={() => reorderMode = !reorderMode}
 				title={reorderMode ? i18n.t('ADMIN_NEXT.PAGES.REORDER_EXIT_TITLE') : i18n.t('ADMIN_NEXT.PAGES.REORDER_START_TITLE')}

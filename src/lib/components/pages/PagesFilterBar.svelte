@@ -43,7 +43,7 @@
 		type="button"
 		class="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-[0.75rem] font-medium transition-colors
 			{activeCount > 0
-				? 'border-primary bg-primary/10 text-primary'
+				? 'border-primary bg-primary/10 text-primary-text'
 				: 'border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
 		onclick={() => (open = !open)}
 		title={i18n.t('ADMIN_NEXT.PAGES.FILTER.TITLE')}

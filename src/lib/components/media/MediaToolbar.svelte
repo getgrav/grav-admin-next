@@ -126,7 +126,7 @@
 			<button
 				class="inline-flex h-8 items-center gap-1 px-2.5 text-[0.75rem] font-medium transition-colors first:rounded-l-md first:border first:border-r-0 last:rounded-r-md last:border last:border-l-0 [&:not(:first-child):not(:last-child)]:border-y
 					{mediaManager.typeFilter === filter.value
-						? 'border-primary/30 bg-primary/10 text-primary'
+						? 'border-primary/30 bg-primary/10 text-primary-text'
 						: 'border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
 				onclick={() => mediaManager.setTypeFilter(filter.value)}
 			>

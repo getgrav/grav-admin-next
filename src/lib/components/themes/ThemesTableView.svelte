@@ -101,7 +101,7 @@
 				<tr class="border-b border-border transition-colors hover:bg-muted/30">
 					<td class="px-4 py-2">
 						<a
-							class="inline-flex items-center gap-2 text-start text-primary hover:underline"
+							class="inline-flex items-center gap-2 text-start text-primary-text hover:underline"
 							href="{base}/themes/{theme.slug}"
 							onclick={linkClick(() => onConfigure(theme.slug))}
 						>

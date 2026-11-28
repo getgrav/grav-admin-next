@@ -82,7 +82,7 @@
 			<h2 class="text-xl font-semibold text-foreground">{user.fullname || user.username}</h2>
 			<div class="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
 				{#if user.email}
-					<span class="text-primary">{user.email}</span>
+					<span class="text-primary-text">{user.email}</span>
 				{/if}
 				{#if user.title}
 					<span>— {user.title}</span>

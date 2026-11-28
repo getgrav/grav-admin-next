@@ -419,7 +419,7 @@
 			</button>
 			{#if theme}
 				<div class="flex items-center gap-3">
-					<div class="flex h-9 w-9 items-center justify-center rounded-lg {theme.enabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}">
+					<div class="flex h-9 w-9 items-center justify-center rounded-lg {theme.enabled ? 'bg-primary/10 text-primary-text' : 'bg-muted text-muted-foreground'}">
 						{#if theme.icon}
 							<i class="{faIconClass(theme.icon)} text-sm"></i>
 						{:else}
@@ -610,7 +610,7 @@
 						<div class="min-w-0 flex-1 text-center sm:text-start">
 							{#if theme.description}
 								{#if theme.description_html}
-									<div class="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">
+									<div class="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary-text [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">
 										{@html sanitizeHtml(theme.description_html)}
 									</div>
 								{:else}

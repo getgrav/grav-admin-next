@@ -498,7 +498,7 @@
 			</button>
 			{#if plugin}
 				<div class="flex items-center gap-3">
-					<div class="flex h-9 w-9 items-center justify-center rounded-lg {plugin.enabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}">
+					<div class="flex h-9 w-9 items-center justify-center rounded-lg {plugin.enabled ? 'bg-primary/10 text-primary-text' : 'bg-muted text-muted-foreground'}">
 						{#if plugin.icon}
 							<i class="{faIconClass(plugin.icon)} text-sm"></i>
 						{:else}
@@ -685,7 +685,7 @@
 				<!-- Plugin info card -->
 				<div class="rounded-xl border border-border bg-card p-5">
 					<div class="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-						<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl {plugin.enabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}">
+						<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl {plugin.enabled ? 'bg-primary/10 text-primary-text' : 'bg-muted text-muted-foreground'}">
 							{#if plugin.icon}
 								<i class="{faIconClass(plugin.icon)} text-xl"></i>
 							{:else}
@@ -695,7 +695,7 @@
 						<div class="min-w-0 flex-1 text-center sm:text-start">
 							{#if plugin.description}
 								{#if plugin.description_html}
-									<div class="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">
+									<div class="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed text-muted-foreground [&_a]:text-primary-text [&_a]:no-underline hover:[&_a]:underline [&_p]:my-0 [&_p+p]:mt-2">
 										{@html sanitizeHtml(plugin.description_html)}
 									</div>
 								{:else}

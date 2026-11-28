@@ -118,7 +118,7 @@
 	bind:this={button}
 	type="button"
 	popovertarget={popId}
-	class="inline-flex shrink-0 items-center justify-center rounded p-0.5 text-primary/75 transition-colors hover:bg-muted hover:text-primary"
+	class="inline-flex shrink-0 items-center justify-center rounded p-0.5 text-primary-text/75 transition-colors hover:bg-muted hover:text-primary-text"
 	title={title}
 	aria-label={title}
 	aria-expanded={open}
@@ -143,9 +143,9 @@
 >
 	<p class="flex items-center gap-1.5 text-[0.8125rem] font-semibold text-foreground">
 		{#if isEnv}
-			<Layers size={13} class="shrink-0 text-primary" />
+			<Layers size={13} class="shrink-0 text-primary-text" />
 		{:else}
-			<ServerCog size={13} class="shrink-0 text-primary" />
+			<ServerCog size={13} class="shrink-0 text-primary-text" />
 		{/if}
 		<span class="min-w-0">{title}</span>
 	</p>

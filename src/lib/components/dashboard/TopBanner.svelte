@@ -145,7 +145,7 @@
 			{/if}
 			<div class="flex min-w-0 flex-1 flex-col gap-2 md:flex-row md:items-center md:gap-3">
 				<div
-					class="min-w-0 flex-1 text-[0.8125rem] leading-relaxed text-foreground [&_a]:font-medium [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-primary/80"
+					class="min-w-0 flex-1 text-[0.8125rem] leading-relaxed text-foreground [&_a]:font-medium [&_a]:text-primary-text [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-primary-text/80"
 				>
 					{#if current.title}
 						<span class="font-semibold">{current.title}</span>

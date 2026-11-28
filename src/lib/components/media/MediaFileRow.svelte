@@ -91,7 +91,7 @@
 		onclick={handleClick}
 	>
 		<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
-			<Folder size={18} class="text-primary/70" />
+			<Folder size={18} class="text-primary-text/70" />
 		</div>
 		<div class="min-w-0 flex-1">
 			<div class="text-sm font-medium text-foreground">{props.folder.name}</div>

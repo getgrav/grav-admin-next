@@ -236,7 +236,7 @@
 					type="checkbox"
 					checked={Boolean(formValues[field.name])}
 					onchange={(e) => (formValues[field.name] = (e.target as HTMLInputElement).checked)}
-					class="h-4 w-4 rounded border-input text-primary focus:ring-1 focus:ring-ring"
+					class="h-4 w-4 rounded border-input text-primary-text focus:ring-1 focus:ring-ring"
 				/>
 				{#if field.placeholder}<span class="text-sm text-foreground">{field.placeholder}</span>{/if}
 			</label>
