@@ -2,11 +2,13 @@
 	/**
 	 * The colour the hue and saturation sliders currently make, written out so
 	 * it can be read, copied and pasted somewhere else. The admin only stores
-	 * hue and saturation; lightness is fixed per colour mode (see
-	 * theme.svelte.ts), so the readout shows the value for the mode on screen
-	 * and names the mode, and the copy button copies exactly that string.
+	 * hue and saturation; lightness is worked out per colour mode and dark
+	 * shade (see utils/accent.ts), so the readout shows the value for the mode
+	 * on screen and names the mode, and the copy button copies exactly that
+	 * string.
 	 */
 	import { theme } from '$lib/stores/theme.svelte';
+	import { accentTokens } from '$lib/utils/accent';
 	import { i18n } from '$lib/stores/i18n.svelte';
 	import { Copy, Check } from 'lucide-svelte';
 
@@ -16,9 +18,9 @@
 	}
 	let { hue, saturation }: Props = $props();
 
-	const lightness = $derived(theme.isDark ? 65 : 40);
-	const hsl = $derived(`hsl(${hue} ${saturation}% ${lightness}%)`);
-	const hex = $derived(hslToHex(hue, saturation, lightness));
+	const tokens = $derived(accentTokens(hue, saturation, theme.isDark, theme.darkShade));
+	const hsl = $derived(tokens.primary);
+	const hex = $derived(hslToHex(hue, saturation, tokens.lightness));
 	const modeLabel = $derived(theme.isDark ? i18n.t('ADMIN_NEXT.SETTINGS.DARK') : i18n.t('ADMIN_NEXT.SETTINGS.LIGHT'));
 
 	let copied = $state(false);

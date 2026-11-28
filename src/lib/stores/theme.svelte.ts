@@ -1,6 +1,7 @@
 import { queueUserPatch } from './_serverSync';
 import { loadBootCache, saveBootCache, bootConfigAppearance } from './_bootCache';
 import type { PreferencesResponse, ColorMode as ServerColorMode, DarkShade } from '$lib/api/endpoints/preferences';
+import { accentTokens } from '$lib/utils/accent';
 
 /**
  * Visible color mode applied to the DOM. The server allows '' (empty) which
@@ -92,11 +93,14 @@ function createThemeStore() {
 	function applyAccent(): void {
 		if (typeof document === 'undefined') return;
 		const html = document.documentElement;
-		const dark = html.classList.contains('dark');
-		// Light mode L=40 keeps brand visible on white; dark L=65 matches Tailwind-500.
-		const lightness = dark ? 65 : 40;
-		html.style.setProperty('--primary', `hsl(${accentHue} ${accentSaturation}% ${lightness}%)`);
-		html.style.setProperty('--ring', `hsl(${accentHue} ${accentSaturation}% ${dark ? 60 : 50}%)`);
+		// Lightness and the button label are fitted for contrast against this
+		// mode's surfaces, which differ per dark shade (see utils/accent.ts).
+		const tokens = accentTokens(accentHue, accentSaturation, html.classList.contains('dark'), darkShade);
+		html.style.setProperty('--primary', tokens.primary);
+		html.style.setProperty('--primary-foreground', tokens.primaryForeground);
+		html.style.setProperty('--ring', tokens.ring);
+		// The checkbox tick is an SVG in layout.css and cannot read a variable.
+		html.dataset.accentLabel = tokens.darkLabel ? 'dark' : 'light';
 	}
 
 	function applyShade(): void {
@@ -175,6 +179,7 @@ function createThemeStore() {
 		setDarkShade(shade: DarkShade): void {
 			darkShade = asShade(shade);
 			applyShade();
+			applyAccent();
 			queueUserPatch('darkShade', darkShade);
 		},
 
@@ -203,6 +208,7 @@ function createThemeStore() {
 		resetDarkShadeToSiteDefault(siteShade: DarkShade | undefined): void {
 			darkShade = asShade(siteShade);
 			applyShade();
+			applyAccent();
 			queueUserPatch('darkShade', null);
 		},
 
